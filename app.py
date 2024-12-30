@@ -485,7 +485,28 @@ def create_initial_activities():
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 1,
-                'instructions': 'Écrivez votre premier programme C++ qui affiche "Bonjour le monde!" dans la console.',
+                'instructions': '''Écrivez votre premier programme C++ qui affiche "Bonjour le monde!" dans la console.
+
+Syntaxe nécessaire:
+1. Inclusion de bibliothèque:
+   #include <iostream>     // Pour utiliser cout et endl
+
+2. Point d'entrée du programme:
+   int main() {           // Fonction principale
+      // Code ici
+      return 0;           // Retourne 0 pour indiquer succès
+   }
+
+3. Affichage:
+   std::cout << "texte"   // Pour afficher du texte
+   << std::endl;          // Pour aller à la ligne
+
+4. Structure complète:
+   #include <iostream>
+   int main() {
+       std::cout << "texte" << std::endl;
+       return 0;
+   }''',
                 'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
                 'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
@@ -699,7 +720,7 @@ def create_initial_activities():
                 'sequence': 9,
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! = " << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
                 'test_cases': [
                     {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                     {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
