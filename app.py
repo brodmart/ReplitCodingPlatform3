@@ -1,7 +1,7 @@
 import os
 import logging
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, abort
-from flask_login import LoginManager, current_user, login_user, login_required
+from flask_login import LoginManager, current_user, login_user, login_required, logout_user
 from compiler_service import compile_and_run
 from database import db
 from models import (
@@ -9,9 +9,11 @@ from models import (
     SharedCode, CodingActivity, StudentProgress
 )
 from sqlalchemy import desc
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from datetime import datetime
+from forms import LoginForm, RegisterForm #Added
+
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -253,7 +255,6 @@ def test_login():
     login_user(test_user)
     flash('Logged in as test user')
     return redirect(url_for('list_activities'))  # Fixed: using correct endpoint name
-
 
 
 @app.route('/share', methods=['POST'])
@@ -834,41 +835,34 @@ def create_initial_activities():
                 'sequence': 11,
                 'instructions': 'Créez une classe Étudiant avec des propriétés et des méthodes pour gérer les informations des étudiants.',
                 'starter_code': '''using System;
-
-class Etudiant {
+\n\nclass Etudiant {
     // Ajoutez les propriétés ici
-
-    // Ajoutez les méthodes ici
+\n\n    // Ajoutez les méthodes ici
 }
-
-class Programme {
+\n\nclass Programme {
     static void Main() {
         // Votre code ici
     }
 }''',
                 'solution_code': '''using System;
-
-class Etudiant {
+\n\nclass Etudiant {
     public string Nom { get; set; }
     public int Age { get; set; }
     public double Moyenne { get; private set; }
     private int nombreNotes = 0;
     private double sommeNotes = 0;
-
-    public void AjouterNote(double note) {
+\n\n    public void AjouterNote(double note) {
         if (note >= 0 && note <= 100) {
             sommeNotes += note;
             nombreNotes++;
             Moyenne = sommeNotes / nombreNotes;
         }
     }
-
-    public string ObtenirInformations() {
+\n\n    public string ObtenirInformations() {
         return $"Nom: {Nom}, Age: {Age}, Moyenne: {Moyenne:F1}";
     }
 }
-
-class Programme {
+\n\nclass Programme {
     static void Main() {
         Etudiant etudiant = new Etudiant();
         Console.Write("Nom de l'étudiant: ");
@@ -899,44 +893,35 @@ class Programme {
                 'sequence': 12,
                 'instructions': 'Créez une liste chaînée simple avec des opérations de base (ajout et affichage).',
                 'starter_code': '''using System;
-
-class Noeud {
+\n\nclass Noeud {
     public int Valeur;
     public Noeud Suivant;
-
-    public Noeud(int valeur) {
+\n\n    public Noeud(int valeur) {
         Valeur = valeur;
         Suivant = null;
     }
 }
-
-class ListeChainee {
+\n\nclass ListeChainee {
     private Noeud tete;
-
-    // Implémentez les méthodes Ajouter et Afficher
+\n\n    // Implémentez les méthodes Ajouter et Afficher
 }
-
-class Programme {
+\n\nclass Programme {
     static void Main() {
         // Votre code ici
     }
 }''',
                 'solution_code': '''using System;
-
-class Noeud {
+\n\nclass Noeud {
     public int Valeur;
     public Noeud Suivant;
-
-    public Noeud(int valeur) {
+\n\n    public Noeud(int valeur) {
         Valeur = valeur;
         Suivant = null;
     }
 }
-
-class ListeChainee {
+\n\nclass ListeChainee {
     private Noeud tete;
-
-    public void Ajouter(int valeur) {
+\n\n    public void Ajouter(int valeur) {
         Noeud nouveau = new Noeud(valeur);
         if (tete == null) {
             tete = nouveau;
@@ -948,8 +933,7 @@ class ListeChainee {
             courant.Suivant = nouveau;
         }
     }
-
-    public void Afficher() {
+\n\n    public void Afficher() {
         Noeud courant = tete;
         while (courant != null) {
             Console.Write(courant.Valeur + " ");
@@ -958,20 +942,17 @@ class ListeChainee {
         Console.WriteLine();
     }
 }
-
-class Programme {
+\n\nclass Programme {
     static void Main() {
         ListeChainee liste = new ListeChainee();
         Console.Write("Nombre d'éléments: ");
         int n = Convert.ToInt32(Console.ReadLine());
-
-        for (int i = 0; i < n; i++) {
+\n\n        for (int i = 0; i < n; i++) {
             Console.Write($"Élément {i + 1}: ");
             int valeur = Convert.ToInt32(Console.ReadLine());
             liste.Ajouter(valeur);
         }
-
-        Console.Write("Liste: ");
+\n\n        Console.Write("Liste: ");
         liste.Afficher();
     }
 }''',
@@ -995,51 +976,41 @@ class Programme {
                 'instructions': 'Créez un gestionnaire de tâches qui permet d\'ajouter et d\'afficher des tâches avec leurs priorités.',
                 'starter_code': '''using System;
 using System.Collections.Generic;
-
-class Tache {
+\n\nclass Tache {
     // Implémentez la classe Tache
 }
-
-class Programme {
+\n\nclass Programme {
     static void Main() {
         // Votre code ici
     }
 }''',
                 'solution_code': '''using System;
 using System.Collections.Generic;
-
-class Tache {
+\n\nclass Tache {
     public string Description { get; set; }
     public int Priorite { get; set; }
-
-    public Tache(string description, int priorite) {
+\n\n    public Tache(string description, int priorite) {
         Description = description;
         Priorite = priorite;
     }
-
-    public override string ToString() {
+\n\n    public override string ToString() {
         return $"[Priorité: {Priorite}] {Description}";
     }
 }
-
-class Programme {
+\n\nclass Programme {
     static void Main() {
         List<Tache> taches = new List<Tache>();
-
-        Console.Write("Nombre de tâches: ");
+\n\n        Console.Write("Nombre de tâches: ");
         int n = Convert.ToInt32(Console.ReadLine());
-
-        for (int i = 0; i < n; i++) {
+\n\n        for (int i = 0; i < n; i++) {
             Console.Write($"Description de la tâche {i + 1}: ");
             string description = Console.ReadLine();
             Console.Write("Priorité (1-5): ");
             int priorite = Convert.ToInt32(Console.ReadLine());
             taches.Add(new Tache(description, priorite));
         }
-
-        taches.Sort((a, b) => b.Priorite.CompareTo(a.Priorite));
-
-        Console.WriteLine("\nListe des tâches par priorité:");
+\n\n        taches.Sort((a, b) => b.Priorite.CompareTo(a.Priorite));
+\n\n        Console.WriteLine("\nListe des tâches par priorité:");
         foreach (var tache in taches) {
             Console.WriteLine(tache);
         }
@@ -1073,3 +1044,41 @@ class Programme {
 # Initialize activities in app context
 with app.app_context():
     create_initial_activities()
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        student = Student.query.filter_by(email=form.email.data).first()
+        if student and check_password_hash(student.password_hash, form.password.data):
+            login_user(student, remember=form.remember_me.data)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+        flash('Email ou mot de passe incorrect.', 'danger')
+    return render_template('login.html', form=form)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegisterForm()
+    if form.validate_on_submit():
+        hashed_password = generate_password_hash(form.password.data)
+        student = Student(
+            username=form.username.data,
+            email=form.email.data,
+            password_hash=hashed_password
+        )
+        db.session.add(student)
+        db.session.commit()
+        flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html', form=form)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))

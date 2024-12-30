@@ -67,26 +67,22 @@
                 </ul>
                 <div class="d-flex align-items-center">
                     {% if current_user.is_authenticated %}
-                        {% if current_user.achievements %}
-                            {% for achievement in current_user.achievements %}
-                            <span class="badge bg-success me-1" 
-                                  data-bs-toggle="tooltip" 
-                                  title="{{ achievement.achievement.description }}">
-                                <i class="bi {{ achievement.achievement.badge_icon }}"></i>
-                                {{ achievement.achievement.name }}
+                        <div class="me-3">
+                            <span class="text-light">
+                                <i class="bi bi-person-circle"></i>
+                                {{ current_user.username }}
                             </span>
-                            {% endfor %}
-                        {% else %}
-                            <span class="badge bg-secondary me-1">
-                                <i class="bi bi-trophy"></i>
-                                Pas encore de réalisations
-                            </span>
-                        {% endif %}
+                        </div>
+                        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+                            <i class="bi bi-box-arrow-right"></i> Déconnexion
+                        </a>
                     {% else %}
-                        <span class="badge bg-info me-1">
-                            <i class="bi bi-person"></i>
-                            Connectez-vous pour suivre vos réalisations
-                        </span>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm me-2">
+                            <i class="bi bi-box-arrow-in-right"></i> Connexion
+                        </a>
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-plus"></i> Inscription
+                        </a>
                     {% endif %}
                 </div>
             </div>
