@@ -317,6 +317,23 @@ def list_activities():
     # Get student progress if logged in
     progress = {}
     if current_user.is_authenticated:
+        # Create progress entries for all activities if they don't exist
+        for activity in activities:
+            progress_entry = StudentProgress.query.filter_by(
+                student_id=current_user.id,
+                activity_id=activity.id
+            ).first()
+
+            if not progress_entry:
+                progress_entry = StudentProgress(
+                    student_id=current_user.id,
+                    activity_id=activity.id
+                )
+                db.session.add(progress_entry)
+
+        db.session.commit()
+
+        # Get all progress entries
         student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
         progress = {
             p.activity_id: p 
