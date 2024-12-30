@@ -7,7 +7,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="mb-0">Your Progress</h3>
+                    <h3 class="mb-0">Votre Progression</h3>
                 </div>
                 <div class="card-body">
                     {% if curriculum_progress and curriculum_progress|length > 0 %}
@@ -15,7 +15,7 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h5 class="mb-0">{{ curriculum }}</h5>
-                                <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activities</span>
+                                <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activités</span>
                             </div>
                             <div class="progress" style="height: 20px;">
                                 <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
@@ -30,7 +30,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <p class="text-center mb-0">Start completing activities to track your progress!</p>
+                        <p class="text-center mb-0">Commencez à compléter des activités pour suivre votre progression!</p>
                     {% endif %}
                 </div>
             </div>
@@ -50,7 +50,7 @@
                     {% endif %}
                 {% endfor %}
                 <div class="badge bg-info fs-6">
-                    {{ completed_count.count }}/{{ activities|length }} Activities Completed
+                    {{ completed_count.count }}/{{ activities|length }} Activités Complétées
                 </div>
             {% endif %}
         </div>
@@ -75,13 +75,19 @@
                         <p class="mb-1">{{ activity.description }}</p>
                         <div class="mt-2">
                             <span class="badge {% if activity.difficulty == 'beginner' %}bg-success{% elif activity.difficulty == 'intermediate' %}bg-warning{% else %}bg-danger{% endif %}">
-                                {{ activity.difficulty }}
+                                {% if activity.difficulty == 'beginner' %}
+                                    Débutant
+                                {% elif activity.difficulty == 'intermediate' %}
+                                    Intermédiaire
+                                {% else %}
+                                    Avancé
+                                {% endif %}
                             </span>
                             <span class="badge bg-info">{{ activity.points }} points</span>
                             {% if user_progress %}
                                 <span class="badge bg-secondary">
                                     <i class="bi bi-clock"></i> 
-                                    {{ user_progress.attempts }} attempt{{ 's' if user_progress.attempts != 1 }}
+                                    {{ user_progress.attempts }} tentative{{ 's' if user_progress.attempts != 1 }}
                                 </span>
                             {% endif %}
                         </div>
@@ -89,9 +95,9 @@
                     <div class="text-end">
                         <button class="btn btn-sm {% if user_progress and user_progress.completed %}btn-success{% else %}btn-primary{% endif %}">
                             {% if user_progress and user_progress.completed %}
-                                <i class="bi bi-check2"></i> Completed
+                                <i class="bi bi-check2"></i> Complété
                             {% else %}
-                                <i class="bi bi-code-slash"></i> Start
+                                <i class="bi bi-code-slash"></i> Commencer
                             {% endif %}
                         </button>
                     </div>
