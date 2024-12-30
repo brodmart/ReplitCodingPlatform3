@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, abort
 from flask_login import LoginManager, current_user, login_user, login_required, logout_user
+from flask_migrate import Migrate
 from compiler_service import compile_and_run
 from database import db
 from models import (
@@ -12,7 +13,9 @@ from sqlalchemy import desc
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from datetime import datetime
-from forms import LoginForm, RegisterForm, ProfileForm # Assuming ProfileForm exists
+from forms import LoginForm, RegisterForm, ProfileForm
+from werkzeug.utils import secure_filename
+from PIL import Image
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -24,6 +27,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize extensions
 db.init_app(app)
+migrate = Migrate(app, db)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -133,128 +137,6 @@ def execute():
         logging.error(f"Execution error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/leaderboard')
-def leaderboard():
-    # Get top 10 students by score
-    top_students = Student.query.order_by(desc(Student.score)).limit(10).all()
-
-    # Get current user's rank if authenticated
-    current_user_rank = None
-    if current_user.is_authenticated:
-        current_user_rank = Student.query.filter(Student.score > current_user.score).count() + 1
-
-    return render_template('leaderboard.html', 
-                         top_students=top_students,
-                         current_user_rank=current_user_rank)
-
-
-# Create initial achievements
-def create_initial_achievements():
-    achievements = [
-        # Beginner Tier
-        {
-            'name': 'First Steps',
-            'description': 'Write and execute your first program',
-            'criteria': 'submit_count:1',
-            'badge_icon': 'bi-1-circle-fill text-success',
-            'points': 10,
-            'category': 'beginner'
-        },
-        {
-            'name': 'Quick Learner',
-            'description': 'Submit 5 successful programs',
-            'criteria': 'submit_count:5',
-            'badge_icon': 'bi-lightning-fill text-warning',
-            'points': 25,
-            'category': 'beginner'
-        },
-        # Intermediate Tier
-        {
-            'name': 'Code Warrior',
-            'description': 'Submit 10 successful programs',
-            'criteria': 'submit_count:10',
-            'badge_icon': 'bi-trophy-fill text-info',
-            'points': 50,
-            'category': 'intermediate'
-        },
-        {
-            'name': 'Bug Hunter',
-            'description': 'Fix and resubmit 5 programs that had errors',
-            'criteria': 'error_fixes:5',
-            'badge_icon': 'bi-bug-fill text-danger',
-            'points': 75,
-            'category': 'intermediate'
-        },
-        # Advanced Tier
-        {
-            'name': 'Code Master',
-            'description': 'Submit 50 successful programs',
-            'criteria': 'submit_count:50',
-            'badge_icon': 'bi-star-fill text-warning',
-            'points': 100,
-            'category': 'advanced'
-        },
-        {
-            'name': 'Polyglot',
-            'description': 'Successfully write programs in both C++ and C#',
-            'criteria': 'languages:2',
-            'badge_icon': 'bi-code-square text-primary',
-            'points': 150,
-            'category': 'advanced'
-        }
-    ]
-
-    for achievement_data in achievements:
-        if not Achievement.query.filter_by(name=achievement_data['name']).first():
-            achievement = Achievement(**achievement_data)
-            db.session.add(achievement)
-
-    db.session.commit()
-
-# Initialize database and achievements
-with app.app_context():
-    db.create_all()
-    create_initial_achievements()
-
-@app.route('/test-login')
-def test_login():
-    # Check if test user exists
-    test_user = Student.query.filter_by(username='test_user').first()
-    if not test_user:
-        # Create test user
-        test_user = Student(
-            username='test_user',
-            email='test@example.com',
-            password_hash=generate_password_hash('password123')
-        )
-        db.session.add(test_user)
-        db.session.commit()
-
-        # Add some test activities progress
-        activities = CodingActivity.query.all()
-        for activity in activities[:2]:  # Complete first two activities
-            progress = StudentProgress(
-                student_id=test_user.id,
-                activity_id=activity.id,
-                completed=True,
-                completed_at=datetime.utcnow()
-            )
-            db.session.add(progress)
-
-        # Add some test achievements
-        achievements = Achievement.query.all()
-        for achievement in achievements[:3]:  # Add first 3 achievements
-            sa = StudentAchievement(student_id=test_user.id, achievement_id=achievement.id)
-            db.session.add(sa)
-
-        db.session.commit()
-        update_student_score(test_user)
-
-    # Log in the test user
-    login_user(test_user)
-    flash('Logged in as test user')
-    return redirect(url_for('list_activities'))
-
 @app.route('/share', methods=['POST'])
 @login_required
 def share_code():
@@ -307,6 +189,19 @@ def my_shared_codes():
     shared_codes = SharedCode.query.filter_by(student_id=current_user.id).order_by(SharedCode.created_at.desc()).all()
     return render_template('my_shares.html', shared_codes=shared_codes)
 
+@app.route('/leaderboard')
+def leaderboard():
+    # Get top 10 students by score
+    top_students = Student.query.order_by(desc(Student.score)).limit(10).all()
+
+    # Get current user's rank if authenticated
+    current_user_rank = None
+    if current_user.is_authenticated:
+        current_user_rank = Student.query.filter(Student.score > current_user.score).count() + 1
+
+    return render_template('leaderboard.html', 
+                         top_students=top_students,
+                         current_user_rank=current_user_rank)
 
 @app.route('/activities')
 def list_activities():
@@ -355,9 +250,6 @@ def list_activities():
                     'percentage': (completed / total * 100)
                 }
                 logging.debug(f"Curriculum {curriculum} progress: {curriculum_progress[curriculum]}")
-
-    logging.debug(f"Final curriculum_progress: {curriculum_progress}")
-    logging.debug(f"Rendering template with progress data")
 
     return render_template(
         'activities.html',
@@ -466,582 +358,261 @@ def submit_activity(activity_id):
         'attempts': progress.attempts
     })
 
+@app.route('/tutorial/<int:activity_id>', defaults={'step': 1})
+@app.route('/tutorial/<int:activity_id>/<int:step>')
+@login_required
+def tutorial(activity_id, step=1):
+    activity = CodingActivity.query.get_or_404(activity_id)
+
+    # Get all tutorial steps for this activity
+    tutorial_steps = TutorialStep.query.filter_by(activity_id=activity_id).order_by(TutorialStep.step_number).all()
+    if not tutorial_steps:
+        flash('Ce tutoriel n\'a pas encore d\'étapes définies.', 'warning')
+        return redirect(url_for('view_activity', activity_id=activity_id))
+
+    # Validate step number
+    total_steps = len(tutorial_steps)
+    if step < 1 or step > total_steps:
+        return redirect(url_for('tutorial', activity_id=activity_id, step=1))
+
+    # Get current step
+    current_tutorial_step = tutorial_steps[step - 1]
+
+    # Get or create progress for this step
+    progress = TutorialProgress.query.filter_by(
+        student_id=current_user.id,
+        step_id=current_tutorial_step.id
+    ).first()
+
+    if not progress:
+        progress = TutorialProgress(
+            student_id=current_user.id,
+            step_id=current_tutorial_step.id
+        )
+        db.session.add(progress)
+        db.session.commit()
+
+    # Determine if we should show hint
+    show_hint = request.args.get('hint', '').lower() == 'true'
+
+    # Check if current step is completed
+    step_completed = progress.completed
+
+    # Determine if there are previous/next steps
+    prev_step = step > 1
+    next_step = step < total_steps
+
+    return render_template('tutorial.html',
+                         activity=activity,
+                         current_step=step,
+                         total_steps=total_steps,
+                         current_tutorial_step=current_tutorial_step,
+                         show_hint=show_hint,
+                         step_completed=step_completed,
+                         prev_step=prev_step,
+                         next_step=next_step)
+
+@app.route('/tutorial/<int:activity_id>/<int:step>/verify', methods=['POST'])
+@login_required
+def verify_tutorial_step(activity_id, step):
+    activity = CodingActivity.query.get_or_404(activity_id)
+    tutorial_step = TutorialStep.query.filter_by(
+        activity_id=activity_id,
+        step_number=step
+    ).first_or_404()
+
+    code = request.json.get('code', '')
+    if not code:
+        return jsonify({'success': False, 'message': 'No code provided'})
+
+    # Get progress
+    progress = TutorialProgress.query.filter_by(
+        student_id=current_user.id,
+        step_id=tutorial_step.id
+    ).first()
+
+    if not progress:
+        return jsonify({'success': False, 'message': 'Progress not found'})
+
+    # Increment attempts
+    progress.attempts += 1
+
+    # Execute code
+    result = compile_and_run(code, activity.language)
+
+    # Verify output matches expected output
+    success = False
+    if result.get('success'):
+        output = result.get('output', '').strip()
+        expected = tutorial_step.expected_output.strip()
+        success = output == expected
+
+        if success:
+            progress.completed = True
+            progress.completed_at = datetime.utcnow()
+
+            # Check if all steps are completed
+            all_steps = TutorialStep.query.filter_by(activity_id=activity_id).all()
+            all_completed = all(
+                TutorialProgress.query.filter_by(
+                    student_id=current_user.id,
+                    step_id=step.id,
+                    completed=True
+                ).first() for step in all_steps
+            )
+
+            if all_completed:
+                # Mark activity as completed
+                activity_progress = StudentProgress.query.filter_by(
+                    student_id=current_user.id,
+                    activity_id=activity_id
+                ).first()
+
+                if activity_progress:
+                    activity_progress.completed = True
+                    activity_progress.completed_at = datetime.utcnow()
+
+                # Award points
+                current_user.score += activity.points
+                flash(f'Félicitations! Vous avez terminé le tutoriel et gagné {activity.points} points!')
+
+    db.session.commit()
+
+    return jsonify({
+        'success': success,
+        'message': 'Step completed successfully!' if success else 'Output does not match expected result'
+    })
+
+# Create initial achievements
+def create_initial_achievements():
+    achievements = [
+        {
+            'name': 'First Steps',
+            'description': 'Write and execute your first program',
+            'criteria': 'submit_count:1',
+            'badge_icon': 'bi-1-circle-fill text-success',
+            'points': 10,
+            'category': 'beginner'
+        },
+        {
+            'name': 'Quick Learner',
+            'description': 'Submit 5 successful programs',
+            'criteria': 'submit_count:5',
+            'badge_icon': 'bi-lightning-fill text-warning',
+            'points': 25,
+            'category': 'beginner'
+        },
+        {
+            'name': 'Code Warrior',
+            'description': 'Submit 10 successful programs',
+            'criteria': 'submit_count:10',
+            'badge_icon': 'bi-trophy-fill text-info',
+            'points': 50,
+            'category': 'intermediate'
+        },
+        {
+            'name': 'Bug Hunter',
+            'description': 'Fix and resubmit 5 programs that had errors',
+            'criteria': 'error_fixes:5',
+            'badge_icon': 'bi-bug-fill text-danger',
+            'points': 75,
+            'category': 'intermediate'
+        },
+        {
+            'name': 'Code Master',
+            'description': 'Submit 50 successful programs',
+            'criteria': 'submit_count:50',
+            'badge_icon': 'bi-star-fill text-warning',
+            'points': 100,
+            'category': 'advanced'
+        },
+        {
+            'name': 'Polyglot',
+            'description': 'Successfully write programs in both C++ and C#',
+            'criteria': 'languages:2',
+            'badge_icon': 'bi-code-square text-primary',
+            'points': 150,
+            'category': 'advanced'
+        }
+    ]
+
+    for achievement_data in achievements:
+        if not Achievement.query.filter_by(name=achievement_data['name']).first():
+            achievement = Achievement(**achievement_data)
+            db.session.add(achievement)
+
+    db.session.commit()
+
 def create_initial_activities():
     """Initialize database with coding activities"""
-    try:
-        # First remove dependent records
-        StudentProgress.query.delete()
-        # Then remove activities
-        CodingActivity.query.delete()
+    activities = [
+        {
+            'title': 'Bonjour le monde!',
+            'description': 'Introduction à la programmation C++ avec une sortie simple.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 1,
+            'instructions': 'Écrivez votre premier programme C++ qui affiche "Bonjour le monde!" dans la console.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
+            'hints': [
+                'N\'oubliez pas d\'inclure iostream',
+                'Utilisez std::cout pour afficher du texte',
+                'Terminez avec return 0'
+            ],
+            'points': 10
+        }
+       
+    ]
 
-        activities = [
-            # TEJ2O C++ Activities
-            {
-                'title': 'Bonjour le monde!',
-                'description': 'Introduction à la programmation C++ avec une sortie simple.',
-                'difficulty': 'beginner',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 1,
-                'instructions': 'Écrivez votre premier programme C++ qui affiche "Bonjour le monde!" dans la console.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
-                'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
-                'hints': [
-                    'N\'oubliez pas d\'inclure iostream',
-                    'Utilisez std::cout pour afficher du texte',
-                    'Terminez avec return 0'
-                ],
-                'points': 10
-            },
-            {
-                'title': 'Saisie Utilisateur',
-                'description': 'Apprendre à recevoir et traiter les entrées utilisateur en C++.',
-                'difficulty': 'beginner',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 2,
-                'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et affiche un message de bienvenue personnalisé.',
-                'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    std::cout << "Entrez votre nom: ";\n    std::getline(std::cin, nom);\n    std::cout << "Bonjour, " << nom << "!" << std::endl;\n    return 0;\n}',
-                'test_cases': [
-                    {'input': 'Marie\n', 'output': 'Entrez votre nom: Bonjour, Marie!'},
-                    {'input': 'Pierre\n', 'output': 'Entrez votre nom: Bonjour, Pierre!'}
-                ],
-                'hints': [
-                    'Utilisez std::string pour stocker le texte',
-                    'std::getline permet de lire une ligne complète',
-                    'N\'oubliez pas d\'inclure la bibliothèque string'
-                ],
-                'points': 15
-            },
-            {
-                'title': 'Calculatrice Simple',
-                'description': 'Créer une calculatrice basique pour additionner deux nombres.',
-                'difficulty': 'beginner',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 3,
-                'instructions': 'Écrivez un programme qui demande deux nombres à l\'utilisateur et affiche leur somme.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int nombre1, nombre2;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int nombre1, nombre2;\n    std::cout << "Premier nombre: ";\n    std::cin >> nombre1;\n    std::cout << "Deuxième nombre: ";\n    std::cin >> nombre2;\n    std::cout << "Somme: " << nombre1 + nombre2 << std::endl;\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '5\n3\n', 'output': 'Premier nombre: Deuxième nombre: Somme: 8'},
-                    {'input': '10\n20\n', 'output': 'Premier nombre: Deuxième nombre: Somme: 30'}
-                ],
-                'hints': [
-                    'Utilisez int pour les nombres entiers',
-                    'L\'opérateur + additionne les nombres',
-                    'Affichez chaque invite avant de lire l\'entrée'
-                ],
-                'points': 20
-            },
-            {
-                'title': 'Conditions Si-Sinon',
-                'description': 'Apprendre à utiliser les structures conditionnelles en C++.',
-                'difficulty': 'beginner',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 4,
-                'instructions': 'Créez un programme qui détermine si un nombre est positif, négatif ou zéro.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre > 0) {\n        std::cout << "Le nombre est positif" << std::endl;\n    } else if (nombre < 0) {\n        std::cout << "Le nombre est négatif" << std::endl;\n    } else {\n        std::cout << "Le nombre est zéro" << std::endl;\n    }\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '5\n', 'output': 'Entrez un nombre: Le nombre est positif'},
-                    {'input': '-3\n', 'output': 'Entrez un nombre: Le nombre est négatif'},
-                    {'input': '0\n', 'output': 'Entrez un nombre: Le nombre est zéro'}
-                ],
-                'hints': [
-                    'Utilisez if, else if, et else pour les conditions',
-                    'Comparez le nombre avec 0',
-                    'N\'oubliez pas les accolades { }'
-                ],
-                'points': 25
-            },
-            {
-                'title': 'Boucle Simple',
-                'description': 'Introduction aux boucles for en C++.',
-                'difficulty': 'beginner',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 5,
-                'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        std::cout << i << " ";\n    }\n    std::cout << std::endl;\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '5\n', 'output': 'Entrez un nombre: 1 2 3 4 5 '},
-                    {'input': '3\n', 'output': 'Entrez un nombre: 1 2 3 '}
-                ],
-                'hints': [
-                    'Utilisez une boucle for',
-                    'La variable i commence à 1',
-                    'Affichez chaque nombre suivi d\'un espace'
-                ],
-                'points': 30
-            },
-            {
-                'title': 'Table de Multiplication',
-                'description': 'Utiliser les boucles imbriquées en C++.',
-                'difficulty': 'intermediate',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 6,
-                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= n; j++) {\n            std::cout << i * j << "\\t";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\t\n2\t4\t6\t\n3\t6\t9\t\n'}
-                ],
-                'hints': [
-                    'Utilisez deux boucles for imbriquées',
-                    'Utilisez \\t pour aligner les colonnes',
-                    'Multipliez les compteurs i et j'
-                ],
-                'points': 35
-            },
-            {
-                'title': 'Calcul de Moyenne',
-                'description': 'Travailler avec les tableaux en C++.',
-                'difficulty': 'intermediate',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 7,
-                'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double somme = 0;\n    for (int i = 1; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        somme += nombre;\n    }\n    \n    std::cout << "Moyenne: " << somme/n << std::endl;\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '3\n10\n20\n30\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Moyenne: 20'}
-                ],
-                'hints': [
-                    'Utilisez une boucle pour lire les nombres',
-                    'Gardez une variable pour la somme',
-                    'Divisez la somme par n pour la moyenne'
-                ],
-                'points': 40
-            },
-            {
-                'title': 'Plus Grand Nombre',
-                'description': 'Travailler avec les conditions et les boucles.',
-                'difficulty': 'intermediate',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 8,
-                'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double max;\n    std::cout << "Nombre 1: ";\n    std::cin >> max;\n    \n    for (int i = 2; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        if (nombre > max) {\n            max = nombre;\n        }\n    }\n    \n    std::cout << "Le plus grand nombre est: " << max << std::endl;\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '4\n5\n8\n2\n10\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Nombre 4: Le plus grand nombre est: 10'}
-                ],
-                'hints': [
-                    'Initialisez max avec le premier nombre',
-                    'Comparez chaque nouveau nombre avec max',
-                    'Mettez à jour max si nécessaire'
-                ],
-                'points': 45
-            },
-            {
-                'title': 'Calculatrice de Factorielle',
-                'description': 'Introduction aux fonctions en C++.',
-                'difficulty': 'intermediate',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 9,
-                'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
-                'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! = " << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
-                    {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
-                ],
-                'hints': [
-                    'Utilisez la récursion ou une boucle',
-                    'N\'oubliez pas le cas de base (0! = 1)',
-                    'Attention aux nombres négatifs'
-                ],
-                'points': 50
-            },
-            {
-                'title': 'Générateur de Motifs',
-                'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
-                'difficulty': 'intermediate',
-                'curriculum': 'TEJ2O',
-                'language': 'cpp',
-                'sequence': 10,
-                'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
-                'starter_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    std::cout << "Hauteur du triangle: ";\n    std::cin >> hauteur;\n    \n    for (int i = 1; i <= hauteur; i++) {\n        // Espaces\n        for (int j = 1; j <= hauteur - i; j++) {\n            std::cout << " ";\n        }\n        // Étoiles\n        for (int j = 1; j <= 2*i - 1; j++) {\n            std::cout << "*";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
-                'test_cases': [
-                    {'input': '3\n', 'output': 'Hauteur du triangle:   *\n **\n***\n'}
-                ],
-                'hints': [
-                    'Utilisez des boucles imbriquées',
-                    'Calculez les espaces et étoiles nécessaires',
-                    'La ligne i a 2*i - 1 étoiles'
-                ],
-                'points': 55
-            },
-            # ICS3U C# Activities - Continue with the next part
-            {
-                'title': 'Conditions If-Else',
-                'description': 'Apprendre à utiliser les structures conditionnelles en C#.',
-                'difficulty': 'beginner',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 4,
-                'instructions': 'Créez un programme qui détermine si un nombre est pair ou impair.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int nombre;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int nombre;\n        Console.Write("Entrez un nombre: ");\n        nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre % 2 == 0) {\n            Console.WriteLine("Le nombre est pair.");\n        } else {\n            Console.WriteLine("Le nombre est impair.");\n        }\n    }\n}',
-                'test_cases': [
-                    {'input': '4\n', 'output': 'Entrez un nombre: Le nombre est pair.'},
-                    {'input': '7\n', 'output': 'Entrez un nombre: Le nombre est impair.'}
-                ],
-                'hints': [
-                    'Utilisez l\'opérateur modulo (%)',
-                    'Si nombre % 2 == 0, le nombre est pair',
-                    'Sinon, le nombre est impair'
-                ],
-                'points': 25
-            },
-            {
-                'title': 'Boucles For',
-                'description': 'Introduction aux boucles for en C#.',
-                'difficulty': 'beginner',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 5,
-                'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            Console.Write(i + " ");\n        }\n        Console.WriteLine();\n    }\n}',
-                'test_cases': [
-                    {'input': '5\n', 'output': 'Entrez un nombre: 1 2 3 4 5 '},
-                    {'input': '3\n', 'output': 'Entrez un nombre: 1 2 3 '}
-                ],
-                'hints': [
-                    'Utilisez une boucle for',
-                    'La variable i commence à 1',
-                    'Affichez chaque nombre suivi d\'un espace'
-                ],
-                'points': 30
-            },
-            {
-                'title': 'Table de Multiplication',
-                'description': 'Utiliser les boucles imbriquées en C#.',
-                'difficulty': 'intermediate',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 6,
-                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
-                'test_cases': [
-                    {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\n2\t4\t6\n3\t6\t9\n'}
-                ],
-                'hints': [
-                    'Utilisez deux boucles for imbriquées',
-                    'Utilisez \\t pour aligner les colonnes',
-                    'Multipliez les compteurs i et j'
-                ],
-                'points': 35
-            },
-            {
-                'title': 'Calcul de Moyenne',
-                'description': 'Travailler avec les tableaux en C#.',
-                'difficulty': 'intermediate',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 7,
-                'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Combien de nombres? ");\n        n = Convert.ToInt32(Console.ReadLine());\n        double[] nombres = new double[n];\n        double somme = 0;\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Nombre {i + 1}: ");\n            nombres[i] = Convert.ToDouble(Console.ReadLine());\n            somme += nombres[i];\n        }\n        Console.WriteLine($"Moyenne: {somme / n}");\n    }\n}',
-                'test_cases': [
-                    {'input': '3\n10\n20\n30\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Moyenne: 20'}
-                ],
-                'hints': [
-                    'Utilisez un tableau pour stocker les nombres',
-                    'Calculez la somme des nombres',
-                    'Divisez la somme par n pour la moyenne'
-                ],
-                'points': 40
-            },
-            {
-                'title': 'Plus Grand Nombre',
-                'description': 'Travailler avec les conditions et les boucles.',
-                'difficulty': 'intermediate',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 8,
-                'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Combien de nombres? ");\n        n = Convert.ToInt32(Console.ReadLine());\n        double max;\n        Console.Write("Nombre 1: ");\n        max = Convert.ToDouble(Console.ReadLine());\n        for (int i = 2; i <= n; i++) {\n            double nombre;\n            Console.Write($"Nombre {i}: ");\n            nombre = Convert.ToDouble(Console.ReadLine());\n            if (nombre > max) {\n                max = nombre;\n            }\n        }\n        Console.WriteLine($"Le plus grand nombre est: {max}");\n    }\n}',
-                'test_cases': [
-                    {'input': '4\n5\n8\n2\n10\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Nombre 4: Le plus grand nombre est: 10'}
-                ],
-                'hints': [
-                    'Initialisez max avec le premier nombre',
-                    'Comparez chaque nouveau nombre avec max',
-                    'Mettez à jour max si nécessaire'
-                ],
-                'points': 45
-            },
-            {
-                'title': 'Calcul de Factorielle',
-                'description': 'Introduction aux fonctions en C#.',
-                'difficulty': 'intermediate',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 9,
-                'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
-                'starter_code': 'using System;\n\nclass Programme {\n    // Créez la fonction factorielle ici\n    static void Main() {\n        int nombre;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static long Factorielle(int n) {\n        if (n <= 1) return 1;\n        return n * Factorielle(n - 1);\n    }\n    static void Main() {\n        int nombre;\n        Console.Write("Entrez un nombre: ");\n        nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre < 0) {\n            Console.WriteLine("Erreur: nombre négatif");\n        } else {\n            Console.WriteLine($"{nombre}! = {Factorielle(nombre)}");\n        }\n    }\n}',
-                'test_cases': [
-                    {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
-                    {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
-                ],
-                'hints': [
-                    'Utilisez la récursion ou une boucle',
-                    'N\'oubliez pas le cas de base (0! = 1)',
-                    'Attention aux nombres négatifs'
-                ],
-                'points': 50
-            },
-            {
-                'title': 'Générateur de Motifs',
-                'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
-                'difficulty': 'intermediate',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 10,
-                'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int hauteur;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int hauteur;\n        Console.Write("Hauteur du triangle: ");\n        hauteur = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= hauteur; i++) {\n            for (int j = 1; j <= hauteur - i; j++) {\n                Console.Write(" ");\n            }\n            for (int j = 1; j <= 2 * i - 1; j++) {\n                Console.Write("*");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
-                'test_cases': [
-                    {'input': '3\n', 'output': 'Hauteur du triangle:   *\n **\n***\n'}
-                ],
-                'hints': [
-                    'Utilisez des boucles imbriquées',
-                    'Calculez les espaces et étoiles nécessaires',
-                    'La ligne i a 2*i - 1 étoiles'
-                ],
-                'points': 55
-            },
-            {
-                'title': 'Gestion des Étudiants',
-                'description': 'Introduction à la programmation orientée objet en C#.',
-                'difficulty': 'advanced',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 11,
-                'instructions': 'Créez une classe Étudiant avec des propriétés et des méthodes pour gérer les informations des étudiants.',
-                'starter_code': '''using System;
-\n\nclass Etudiant {
-    // Ajoutez les propriétés ici
-\n\n    // Ajoutez les méthodes ici
-}
-\n\nclass Programme {
-    static void Main() {
-        // Votre code ici
-    }
-}''',
-                'solution_code': '''using System;
-\n\nclass Etudiant {
-    public string Nom { get; set; }
-    public int Age { get; set; }
-    public double Moyenne { get; private set; }
-    private int nombreNotes = 0;
-    private double sommeNotes = 0;
-\n\n    public void AjouterNote(double note) {
-        if (note >= 0 && note <= 100) {
-            sommeNotes += note;
-            nombreNotes++;
-            Moyenne = sommeNotes / nombreNotes;
-        }
-    }
-\n\n    public string ObtenirInformations() {
-        return $"Nom: {Nom}, Age: {Age}, Moyenne: {Moyenne:F1}";
-    }
-}
-\n\nclass Programme {
-    static void Main() {
-        Etudiant etudiant = new Etudiant();
-        Console.Write("Nom de l'étudiant: ");
-        etudiant.Nom = Console.ReadLine();
-        Console.Write("Age de l'étudiant: ");
-        etudiant.Age = Convert.ToInt32(Console.ReadLine());
-        Console.Write("Note: ");
-        etudiant.AjouterNote(Convert.ToDouble(Console.ReadLine()));
-        Console.WriteLine(etudiant.ObtenirInformations());
-    }
-}''',
-                'test_cases': [
-                    {'input': 'Marie\n16\n85\n', 'output': 'Nom de l\'étudiant: Age de l\'étudiant: Note: Nom: Marie, Age: 16, Moyenne: 85.0'}
-                ],
-                'hints': [
-                    'Utilisez des propriétés auto-implémentées pour Nom et Age',
-                    'Encapsulez la logique de calcul de la moyenne',
-                    'Utilisez le formatage de chaîne pour l\'affichage'
-                ],
-                'points': 60
-            },
-            {
-                'title': 'Liste Chaînée Simple',
-                'description': 'Implémentation d\'une structure de données de base.',
-                'difficulty': 'advanced',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 12,
-                'instructions': 'Créez une liste chaînée simple avec des opérations de base (ajout et affichage).',
-                'starter_code': '''using System;
-\n\nclass Noeud {
-    public int Valeur;
-    public Noeud Suivant;
-\n\n    public Noeud(int valeur) {
-        Valeur = valeur;
-        Suivant = null;
-    }
-}
-\n\nclass ListeChainee {
-    private Noeud tete;
-\n\n    // Implémentez les méthodes Ajouter et Afficher
-}
-\n\nclass Programme {
-    static void Main() {
-        // Votre code ici
-    }
-}''',
-                'solution_code': '''using System;
-\n\nclass Noeud {
-    public int Valeur;
-    public Noeud Suivant;
-\n\n    public Noeud(int valeur) {
-        Valeur = valeur;
-        Suivant = null;
-    }
-}
-\n\nclass ListeChainee {
-    private Noeud tete;
-\n\n    public void Ajouter(int valeur) {
-        Noeud nouveau = new Noeud(valeur);
-        if (tete == null) {
-            tete = nouveau;
-        } else {
-            Noeud courant = tete;
-            while (courant.Suivant != null) {
-                courant = courant.Suivant;
-            }
-            courant.Suivant = nouveau;
-        }
-    }
-\n\n    public void Afficher() {
-        Noeud courant = tete;
-        while (courant != null) {
-            Console.Write(courant.Valeur + " ");
-            courant = courant.Suivant;
-        }
-        Console.WriteLine();
-    }
-}
-\n\nclass Programme {
-    static void Main() {
-        ListeChainee liste = new ListeChainee();
-        Console.Write("Nombre d'éléments: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-\n\n        for (int i = 0; i < n; i++) {
-            Console.Write($"Élément {i + 1}: ");
-            int valeur = Convert.ToInt32(Console.ReadLine());
-            liste.Ajouter(valeur);
-        }
-\n\n        Console.Write("Liste: ");
-        liste.Afficher();
-    }
-}''',
-                'test_cases': [
-                    {'input': '3\n10\n20\n30\n', 'output': 'Nombre d\'éléments: Élément 1: Élément 2: Élément 3: Liste: 10 20 30 '}
-                ],
-                'hints': [
-                    'Créez une classe Noeud pour chaque élément',
-                    'Gardez une référence vers le premier nœud (tête)',
-                    'Parcourez la liste pour ajouter à la fin'
-                ],
-                'points': 65
-            },
-            {
-                'title': 'Gestionnaire de Tâches',
-                'description': 'Application de gestion de tâches avec priorités.',
-                'difficulty': 'advanced',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 13,
-                'instructions': 'Créez un gestionnaire de tâches qui permet d\'ajouter et d\'afficher des tâches avec leurs priorités.',
-                'starter_code': '''using System;
-using System.Collections.Generic;
-\n\nclass Tache {
-    // Implémentez la classe Tache
-}
-\n\nclass Programme {
-    static void Main() {
-        // Votre code ici
-    }
-}''',
-                'solution_code': '''using System;
-using System.Collections.Generic;
-\n\nclass Tache {
-    public string Description { get; set; }
-    public int Priorite { get; set; }
-\n\n    public Tache(string description, int priorite) {
-        Description = description;
-        Priorite = priorite;
-    }
-\n\n    public override string ToString() {
-        return $"[Priorité: {Priorite}] {Description}";
-    }
-}
-\n\nclass Programme {
-    static void Main() {
-        List<Tache> taches = new List<Tache>();
-\n\n        Console.Write("Nombre de tâches: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-\n\n        for (int i = 0; i < n; i++) {
-            Console.Write($"Description de la tâche {i + 1}: ");
-            string description = Console.ReadLine();
-            Console.Write("Priorité (1-5): ");
-            int priorite = Convert.ToInt32(Console.ReadLine());
-            taches.Add(new Tache(description, priorite));
-        }
-\n\n        taches.Sort((a, b) => b.Priorite.CompareTo(a.Priorite));
-\n\n        Console.WriteLine("\nListe des tâches par priorité:");
-        foreach (var tache in taches) {
-            Console.WriteLine(tache);
-        }
-    }
-}''',
-                'test_cases': [
-                    {'input': '2\nÉtudier pour l\'examen\n5\nFaire les courses\n3\n', 
-                     'output': 'Nombre de tâches: Description de la tâche 1: Priorité (1-5): Description de la tâche 2: Priorité (1-5): \nListe des tâches par priorité:\n[Priorité: 5] Étudier pour l\'examen\n[Priorité: 3] Faire les courses'}
-                ],
-                'hints': [
-                    'Utilisez une List<T> pour stocker les tâches',
-                    'Implémentez ToString() pour l\'affichage',
-                    'Utilisez Sort() avec un comparateur personnalisé'
-                ],
-                'points': 70
-            }
-        ]
+    # First remove dependent records
+    StudentProgress.query.delete()
+    # Then remove activities
+    CodingActivity.query.delete()
 
-        for activity_data in activities:
-            activity = CodingActivity(**activity_data)
-            db.session.add(activity)
+    # Create activities
+    for activity_data in activities:
+        activity = CodingActivity(**activity_data)
+        db.session.add(activity)
 
-        db.session.commit()
-        logging.info(f"Successfully created {len(activities)} activities")
+        # Add tutorial steps
+        step1 = TutorialStep(
+            activity=activity,
+            step_number=1,
+            title="Introduction aux conditions",
+            content="Dans cette étape, nous allons apprendre à utiliser les conditions if-else en C#.",
+            code_snippet="if (condition) {\n    // code si vrai\n} else {\n    // code si faux\n}",
+            expected_output="",
+            hint="Les conditions permettent à votre programme de prendre des décisions."
+        )
 
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"Error creating activities: {str(e)}")
-        raise
+        step2 = TutorialStep(
+            activity=activity,
+            step_number=2,
+            title="Lecture des entrées",
+            content="Apprenons à lire un nombre entré par l'utilisateur.",
+            code_snippet="Console.Write(\"Entrez un nombre: \");\nint nombre = Convert.ToInt32(Console.ReadLine());",
+            expected_output="Entrez un nombre: ",
+            hint="Utilisez Console.ReadLine() pour lire l'entrée et Convert.ToInt32() pour la convertir en nombre."
+        )
 
-# Initialize activities in app context
-with app.app_context():
-    create_initial_activities()
+        step3 = TutorialStep(
+            activity=activity,
+            step_number=3,
+            title="Vérification pair/impair",
+            content="Utilisons l'opérateur modulo (%) pour vérifier si un nombre est pair ou impair.",
+            code_snippet="if (nombre % 2 == 0) {\n    Console.WriteLine(\"Le nombre est pair.\");\n}",
+            expected_output="Le nombre est pair.",
+            hint="Un nombre est pair si sa division par 2 ne donne aucun reste."
+        )
+
+        db.session.add(step1)
+        db.session.add(step2)
+        db.session.add(step3)
+
+    db.session.commit()
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1138,131 +709,12 @@ def profile():
         form.bio.data = current_user.bio
     return render_template('profile.html', form=form)
 
-@app.route('/tutorial/<int:activity_id>')
-@app.route('/tutorial/<int:activity_id>/<int:step>')
-@login_required
-def tutorial(activity_id, step=1):
-    activity = CodingActivity.query.get_or_404(activity_id)
 
-    # Get all tutorial steps for this activity
-    tutorial_steps = TutorialStep.query.filter_by(activity_id=activity_id).order_by(TutorialStep.step_number).all()
-    if not tutorial_steps:
-        flash('Ce tutoriel n\'a pas encore d\'étapes définies.', 'warning')
-        return redirect(url_for('view_activity', activity_id=activity_id))
+# Initialize database and initial data
+with app.app_context():
+    db.create_all()
+    create_initial_achievements()
+    create_initial_activities()
 
-    # Validate step number
-    total_steps = len(tutorial_steps)
-    if step < 1 or step > total_steps:
-        return redirect(url_for('tutorial', activity_id=activity_id, step=1))
-
-    # Get current step
-    current_tutorial_step = tutorial_steps[step - 1]
-
-    # Get or create progress for this step
-    progress = TutorialProgress.query.filter_by(
-        student_id=current_user.id,
-        step_id=current_tutorial_step.id
-    ).first()
-
-    if not progress:
-        progress = TutorialProgress(
-            student_id=current_user.id,
-            step_id=current_tutorial_step.id
-        )
-        db.session.add(progress)
-        db.session.commit()
-
-    # Determine if we should show hint
-    show_hint = request.args.get('hint', '').lower() == 'true'
-
-    # Check if current step is completed
-    step_completed = progress.completed
-
-    # Determine if there are previous/next steps
-    prev_step = step > 1
-    next_step = step < total_steps
-
-    return render_template('tutorial.html',
-                         activity=activity,
-                         current_step=step,
-                         total_steps=total_steps,
-                         current_tutorial_step=current_tutorial_step,
-                         show_hint=show_hint,
-                         step_completed=step_completed,
-                         prev_step=prev_step,
-                         next_step=next_step)
-
-@app.route('/tutorial/<int:activity_id>/<int:step>/verify', methods=['POST'])
-@login_required
-def verify_tutorial_step(activity_id, step):
-    activity = CodingActivity.query.get_or_404(activity_id)
-    tutorial_step = TutorialStep.query.filter_by(
-        activity_id=activity_id,
-        step_number=step
-    ).first_or_404()
-
-    code = request.json.get('code', '')
-    if not code:
-        return jsonify({'success': False, 'message': 'No code provided'})
-
-    # Get progress
-    progress = TutorialProgress.query.filter_by(
-        student_id=current_user.id,
-        step_id=tutorial_step.id
-    ).first()
-
-    if not progress:
-        return jsonify({'success': False, 'message': 'Progress not found'})
-
-    # Increment attempts
-    progress.attempts += 1
-
-    # Execute code
-    result = compile_and_run(
-        code=code,
-        language=activity.language,
-        input_data=None  # You might want to add specific test inputs for tutorial steps
-    )
-
-    # Verify output matches expected output
-    success = False
-    if result.get('success'):
-        output = result.get('output', '').strip()
-        expected = tutorial_step.expected_output.strip()
-        success = output == expected
-
-        if success:
-            progress.completed = True
-            progress.completed_at = datetime.utcnow()
-
-            # Check if all steps are completed
-            all_steps = TutorialStep.query.filter_by(activity_id=activity_id).all()
-            all_completed = all(
-                TutorialProgress.query.filter_by(
-                    student_id=current_user.id,
-                    step_id=step.id,
-                    completed=True
-                ).first() for step in all_steps
-            )
-
-            if all_completed:
-                # Mark activity as completed
-                activity_progress = StudentProgress.query.filter_by(
-                    student_id=current_user.id,
-                    activity_id=activity_id
-                ).first()
-
-                if activity_progress:
-                    activity_progress.completed = True
-                    activity_progress.completed_at = datetime.utcnow()
-
-                # Award points
-                current_user.score += activity.points
-                flash(f'Félicitations! Vous avez terminé le tutoriel et gagné {activity.points} points!')
-
-    db.session.commit()
-
-    return jsonify({
-        'success': success,
-        'message': 'Step completed successfully!' if success else 'Output does not match expected result'
-    })
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
