@@ -4,10 +4,14 @@ from flask import Flask, render_template, request, jsonify, flash, redirect, url
 from flask_login import LoginManager, current_user, login_user, login_required
 from compiler_service import compile_and_run
 from database import db
-from models import Student, Achievement, StudentAchievement, CodeSubmission, SharedCode
+from models import (
+    Student, Achievement, StudentAchievement, CodeSubmission, 
+    SharedCode, CodingActivity, StudentProgress
+)
 from sqlalchemy import desc
 from werkzeug.security import generate_password_hash
 import uuid
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -291,3 +295,253 @@ def view_shared_code(code_id):
 def my_shared_codes():
     shared_codes = SharedCode.query.filter_by(student_id=current_user.id).order_by(SharedCode.created_at.desc()).all()
     return render_template('my_shares.html', shared_codes=shared_codes)
+
+
+@app.route('/activities')
+def list_activities():
+    """List all coding activities, grouped by curriculum and language"""
+    activities = CodingActivity.query.order_by(
+        CodingActivity.curriculum,
+        CodingActivity.language,
+        CodingActivity.sequence
+    ).all()
+
+    # Group activities by curriculum and language
+    grouped_activities = {}
+    for activity in activities:
+        key = (activity.curriculum, activity.language)
+        if key not in grouped_activities:
+            grouped_activities[key] = []
+        grouped_activities[key].append(activity)
+
+    # Get student progress if logged in
+    progress = {}
+    if current_user.is_authenticated:
+        progress = {
+            p.activity_id: p 
+            for p in current_user.progress
+        }
+
+    return render_template(
+        'activities.html',
+        grouped_activities=grouped_activities,
+        progress=progress
+    )
+
+@app.route('/activity/<int:activity_id>')
+def view_activity(activity_id):
+    """View a specific coding activity"""
+    activity = CodingActivity.query.get_or_404(activity_id)
+
+    # Get student's progress for this activity
+    progress = None
+    if current_user.is_authenticated:
+        progress = StudentProgress.query.filter_by(
+            student_id=current_user.id,
+            activity_id=activity_id
+        ).first()
+
+        # Create progress entry if it doesn't exist
+        if not progress:
+            progress = StudentProgress(
+                student_id=current_user.id,
+                activity_id=activity_id
+            )
+            db.session.add(progress)
+            db.session.commit()
+
+    return render_template(
+        'activity.html',
+        activity=activity,
+        progress=progress
+    )
+
+@app.route('/activity/<int:activity_id>/submit', methods=['POST'])
+@login_required
+def submit_activity(activity_id):
+    """Submit a solution for a coding activity"""
+    activity = CodingActivity.query.get_or_404(activity_id)
+    code = request.json.get('code', '')
+
+    if not code:
+        return jsonify({'error': 'No code provided'}), 400
+
+    # Get or create progress
+    progress = StudentProgress.query.filter_by(
+        student_id=current_user.id,
+        activity_id=activity_id
+    ).first()
+
+    if not progress:
+        progress = StudentProgress(
+            student_id=current_user.id,
+            activity_id=activity_id
+        )
+        db.session.add(progress)
+
+    # Update progress
+    progress.attempts += 1
+    progress.last_submission = code
+
+    # Execute code against test cases
+    all_tests_passed = True
+    test_results = []
+
+    for test_case in activity.test_cases:
+        result = compile_and_run(
+            code=code,
+            language=activity.language,
+            input_data=test_case.get('input')
+        )
+
+        test_passed = (
+            result.get('success', False) and
+            result.get('output', '').strip() == str(test_case.get('output')).strip()
+        )
+
+        test_results.append({
+            'input': test_case.get('input'),
+            'expected': test_case.get('output'),
+            'actual': result.get('output'),
+            'passed': test_passed,
+            'error': result.get('error')
+        })
+
+        if not test_passed:
+            all_tests_passed = False
+
+    # Update progress if all tests passed
+    if all_tests_passed:
+        progress.completed = True
+        progress.completed_at = datetime.utcnow()
+
+        # Award points to student
+        current_user.score += activity.points
+
+        flash(f'Congratulations! You completed "{activity.title}" and earned {activity.points} points!')
+
+    db.session.commit()
+
+    return jsonify({
+        'success': all_tests_passed,
+        'test_results': test_results,
+        'attempts': progress.attempts
+    })
+
+# Initialize database with some example activities
+def create_initial_activities():
+    # Only create if no activities exist
+    if CodingActivity.query.first():
+        return
+
+    activities = [
+        # TEJ2O C++ Activities (Grade 10)
+        {
+            'title': 'Hello, World!',
+            'description': 'Introduction to C++ programming and basic output.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 1,
+            'instructions': 'Write your first C++ program that displays "Hello, World!" to the console. This introduces basic program structure and output.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Hello, World!'}],
+            'hints': ['Remember to include iostream', 'Use std::cout for output', 'End with return 0'],
+            'points': 10
+        },
+        {
+            'title': 'Basic Input',
+            'description': 'Learn to receive user input in C++',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 2,
+            'instructions': 'Create a program that asks for the user\'s name and greets them personally.',
+            'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string name;\n    // Add your code here\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string name;\n    std::cout << "Enter your name: ";\n    std::getline(std::cin, name);\n    std::cout << "Hello, " << name << "!" << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': 'Alice\n', 'output': 'Enter your name: Hello, Alice!'},
+                {'input': 'Bob\n', 'output': 'Enter your name: Hello, Bob!'}
+            ],
+            'hints': ['Use std::string for text', 'std::cin >> name will only read one word', 'std::getline is better for full names'],
+            'points': 15
+        },
+        {
+            'title': 'Simple Calculator',
+            'description': 'Create a basic calculator using arithmetic operators',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 3,
+            'instructions': 'Write a program that adds two numbers input by the user.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int num1, num2;\n    // Add your code here\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int num1, num2;\n    std::cout << "Enter first number: ";\n    std::cin >> num1;\n    std::cout << "Enter second number: ";\n    std::cin >> num2;\n    std::cout << "Sum: " << num1 + num2 << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5\n3\n', 'output': 'Enter first number: Enter second number: Sum: 8'},
+                {'input': '10\n20\n', 'output': 'Enter first number: Enter second number: Sum: 30'}
+            ],
+            'hints': ['Use int for whole numbers', 'Remember to prompt for each input', 'Use + operator for addition'],
+            'points': 20
+        },
+
+        # ICS3U/3C C# Activities (Grade 11)
+        {
+            'title': 'Introduction to C#',
+            'description': 'First steps in C# programming with proper naming conventions',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 1,
+            'instructions': 'Create your first C# program using proper Pascal Case naming convention.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, World!");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Hello, World!'}],
+            'hints': ['Class names use PascalCase', 'Method names use PascalCase', 'Use Console.WriteLine() for output'],
+            'points': 10
+        },
+        {
+            'title': 'String Manipulation',
+            'description': 'Working with strings and string methods in C#',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 2,
+            'instructions': 'Create a program that takes a user\'s full name and displays it in uppercase.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        string fullName;\n        // Your code here\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        string fullName;\n        Console.Write("Enter your full name: ");\n        fullName = Console.ReadLine();\n        Console.WriteLine($"Your name in uppercase: {fullName.ToUpper()}");\n    }\n}',
+            'test_cases': [
+                {'input': 'John Doe\n', 'output': 'Enter your full name: Your name in uppercase: JOHN DOE'},
+                {'input': 'Jane Smith\n', 'output': 'Enter your full name: Your name in uppercase: JANE SMITH'}
+            ],
+            'hints': ['Use Console.ReadLine() for input', 'String methods like ToUpper() are helpful', 'Try string interpolation with $'],
+            'points': 15
+        },
+        {
+            'title': 'Basic Methods',
+            'description': 'Introduction to methods and parameters',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 3,
+            'instructions': 'Create a method that calculates the area of a rectangle.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Call your CalculateArea method here\n    }\n\n    // Create your CalculateArea method here\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.Write("Enter width: ");\n        double width = Convert.ToDouble(Console.ReadLine());\n        Console.Write("Enter height: ");\n        double height = Convert.ToDouble(Console.ReadLine());\n        \n        double area = CalculateArea(width, height);\n        Console.WriteLine($"The area is: {area}");\n    }\n\n    static double CalculateArea(double width, double height) {\n        return width * height;\n    }\n}',
+            'test_cases': [
+                {'input': '5\n3\n', 'output': 'Enter width: Enter height: The area is: 15'},
+                {'input': '4\n4\n', 'output': 'Enter width: Enter height: The area is: 16'}
+            ],
+            'hints': ['Methods should do one specific task', 'Use meaningful parameter names', 'Remember to convert string input to double'],
+            'points': 20
+        }
+    ]
+
+    for activity_data in activities:
+        activity = CodingActivity(**activity_data)
+        db.session.add(activity)
+
+    db.session.commit()
+
+# Initialize activities in app context
+with app.app_context():
+    create_initial_activities()

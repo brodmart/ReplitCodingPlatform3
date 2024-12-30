@@ -14,21 +14,16 @@ class Student(UserMixin, db.Model):
     # Relationships
     achievements = db.relationship('StudentAchievement', back_populates='student')
     submissions = db.relationship('CodeSubmission', back_populates='student')
+    progress = db.relationship('StudentProgress', back_populates='student')
 
     @property
-    def successful_submissions(self):
-        return len([s for s in self.submissions if s.success])
-
-    @property
-    def achievements_by_category(self):
-        """Group achievements by category"""
-        categories = {}
-        for sa in self.achievements:
-            category = sa.achievement.category
-            if category not in categories:
-                categories[category] = []
-            categories[category].append(sa.achievement)
-        return categories
+    def current_activity(self):
+        """Get the student's current activity based on their progress"""
+        completed_activities = set(p.activity_id for p in self.progress if p.completed)
+        next_activity = CodingActivity.query.filter(
+            ~CodingActivity.id.in_(completed_activities)
+        ).order_by(CodingActivity.sequence).first()
+        return next_activity
 
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -79,3 +74,36 @@ class SharedCode(db.Model):
 
     # Relationships
     student = db.relationship('Student', back_populates='shared_codes')
+
+class CodingActivity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    difficulty = db.Column(db.String(20), nullable=False)  # beginner, intermediate, advanced
+    curriculum = db.Column(db.String(20), nullable=False)  # TEJ2O or ICS3U
+    language = db.Column(db.String(20), nullable=False)    # cpp or csharp
+    sequence = db.Column(db.Integer, nullable=False)       # Order in curriculum
+    instructions = db.Column(db.Text, nullable=False)
+    starter_code = db.Column(db.Text)
+    solution_code = db.Column(db.Text, nullable=False)
+    test_cases = db.Column(db.JSON, nullable=False)        # JSON array of input/output pairs
+    hints = db.Column(db.JSON)                            # Optional hints for students
+    points = db.Column(db.Integer, default=10)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    student_progress = db.relationship('StudentProgress', back_populates='activity')
+
+class StudentProgress(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    completed = db.Column(db.Boolean, default=False)
+    attempts = db.Column(db.Integer, default=0)
+    last_submission = db.Column(db.Text)
+
+    # Relationships
+    student = db.relationship('Student', back_populates='progress')
+    activity = db.relationship('CodingActivity', back_populates='student_progress')
