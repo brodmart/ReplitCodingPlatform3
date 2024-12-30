@@ -319,31 +319,34 @@ def list_activities():
     curriculum_progress = {}
 
     if current_user.is_authenticated:
+        logging.debug(f"User authenticated: {current_user.username}")
+
         # Get all progress entries
         student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
         progress = {p.activity_id: p for p in student_progress}
+        logging.debug(f"Student progress: {progress}")
 
         # Calculate curriculum progress
         for curriculum in ['TEJ2O', 'ICS3U']:
             curriculum_activities = CodingActivity.query.filter_by(curriculum=curriculum).all()
-            completed = StudentProgress.query.filter(
-                StudentProgress.student_id == current_user.id,
-                StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
-                StudentProgress.completed == True
-            ).count()
             total = len(curriculum_activities)
 
-            if total > 0:  # Avoid division by zero
+            if total > 0:
+                completed = StudentProgress.query.filter(
+                    StudentProgress.student_id == current_user.id,
+                    StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
+                    StudentProgress.completed == True
+                ).count()
+
                 curriculum_progress[curriculum] = {
                     'completed': completed,
                     'total': total,
                     'percentage': (completed / total * 100)
                 }
+                logging.debug(f"Curriculum {curriculum} progress: {curriculum_progress[curriculum]}")
 
-        # Add logging for debugging
-        logging.debug(f"Current User: {current_user.id}")
-        logging.debug(f"Progress: {progress}")
-        logging.debug(f"Curriculum Progress: {curriculum_progress}")
+    logging.debug(f"Final curriculum_progress: {curriculum_progress}")
+    logging.debug(f"Rendering template with progress data")
 
     return render_template(
         'activities.html',
