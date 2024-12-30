@@ -467,7 +467,6 @@ def submit_activity(activity_id):
         'attempts': progress.attempts
     })
 
-# Initialize database with some example activities
 def create_initial_activities():
     """Initialize database with coding activities"""
     try:
@@ -556,6 +555,48 @@ def create_initial_activities():
                     'Les noms de classe commencent par une majuscule'
                 ],
                 'points': 10
+            },
+            {
+                'title': 'Message Personnalisé',
+                'description': 'Apprendre à utiliser les entrées utilisateur en C#.',
+                'difficulty': 'beginner',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 2,
+                'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et affiche un message personnalisé.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        string nom;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        string nom;\n        Console.Write("Entrez votre nom: ");\n        nom = Console.ReadLine();\n        Console.WriteLine($"Bienvenue dans le monde de la programmation, {nom}!");\n    }\n}',
+                'test_cases': [
+                    {'input': 'Sophie\n', 'output': 'Entrez votre nom: Bienvenue dans le monde de la programmation, Sophie!'},
+                    {'input': 'Lucas\n', 'output': 'Entrez votre nom: Bienvenue dans le monde de la programmation, Lucas!'}
+                ],
+                'hints': [
+                    'Console.ReadLine() lit une ligne de texte',
+                    'Utilisez la syntaxe $"..." pour l\'interpolation de chaînes',
+                    'Console.Write n\'ajoute pas de nouvelle ligne'
+                ],
+                'points': 15
+            },
+            {
+                'title': 'Convertisseur de Température',
+                'description': 'Créer un convertisseur Celsius vers Fahrenheit.',
+                'difficulty': 'beginner',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 3,
+                'instructions': 'Écrivez un programme qui convertit une température en Celsius vers Fahrenheit.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        double celsius;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        double celsius;\n        Console.Write("Température en Celsius: ");\n        celsius = Convert.ToDouble(Console.ReadLine());\n        double fahrenheit = (celsius * 9/5) + 32;\n        Console.WriteLine($"{celsius}°C = {fahrenheit}°F");\n    }\n}',
+                'test_cases': [
+                    {'input': '0\n', 'output': 'Température en Celsius: 0°C = 32°F'},
+                    {'input': '100\n', 'output': 'Température en Celsius: 100°C = 212°F'}
+                ],
+                'hints': [
+                    'La formule est: °F = (°C × 9/5) + 32',
+                    'Utilisez Convert.ToDouble() pour la conversion',
+                    'N\'oubliez pas les symboles ° dans l\'affichage'
+                ],
+                'points': 20
             }
         ]
 
