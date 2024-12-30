@@ -7,29 +7,40 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
-                    <h5 class="mb-3">Your Progress</h5>
-                    <div class="progress mb-3" style="height: 25px;">
-                        {% set completed = current_user.progress|selectattr('completed')|list|length %}
-                        {% set total = current_user.progress|length %}
-                        {% if total > 0 %}
-                            {% set percentage = (completed / total * 100)|round|int %}
-                        {% else %}
-                            {% set percentage = 0 %}
-                        {% endif %}
-                        <div class="progress-bar" role="progressbar" style="width: {{ percentage }}%">
-                            {{ percentage }}% Complete
+                    <h5 class="mb-3">Your Curriculum Progress</h5>
+                    {% for curriculum in ['TEJ2O', 'ICS3U'] %}
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">{{ curriculum }} Progress</h6>
+                            {% set curriculum_activities = grouped_activities.items()|selectattr('0.0', 'equalto', curriculum)|list %}
+                            {% set completed = namespace(count=0, total=0) %}
+                            {% for (curr, lang), activities in curriculum_activities %}
+                                {% for activity in activities %}
+                                    {% set completed.total = completed.total + 1 %}
+                                    {% if progress.get(activity.id) and progress.get(activity.id).completed %}
+                                        {% set completed.count = completed.count + 1 %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            <span class="badge bg-info">{{ completed.count }}/{{ completed.total }} Complete</span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            {% if completed.total > 0 %}
+                                {% set percentage = (completed.count / completed.total * 100)|round|int %}
+                            {% else %}
+                                {% set percentage = 0 %}
+                            {% endif %}
+                            <div class="progress-bar {% if percentage == 100 %}bg-success{% endif %}" 
+                                 role="progressbar" 
+                                 style="width: {{ percentage }}%"
+                                 aria-valuenow="{{ percentage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ percentage }}%
+                            </div>
                         </div>
                     </div>
-                    <div class="row text-center">
-                        <div class="col">
-                            <h6>Activities Completed</h6>
-                            <span class="h4">{{ completed }}/{{ total }}</span>
-                        </div>
-                        <div class="col">
-                            <h6>Total Points Earned</h6>
-                            <span class="h4">{{ current_user.score }}</span>
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -38,42 +49,55 @@
 
     {% for (curriculum, language), activities in grouped_activities.items() %}
     <div class="card mb-4">
-        <div class="card-header">
+        <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>
+            {% if current_user.is_authenticated %}
+                {% set completed_count = activities|selectattr('id', 'in', progress.keys())|selectattr('id', 'in', progress|map(attribute='completed')|list)|list|length %}
+                <div class="badge bg-info fs-6">
+                    {{ completed_count }}/{{ activities|length }} Activities Completed
+                </div>
+            {% endif %}
         </div>
         <div class="card-body">
             <div class="list-group">
                 {% for activity in activities %}
                 {% set user_progress = progress.get(activity.id) if current_user.is_authenticated else None %}
                 <a href="{{ url_for('view_activity', activity_id=activity.id) }}" 
-                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
+                          {% if user_progress and user_progress.completed %}list-group-item-success{% endif %}">
                     <div>
-                        <h5 class="mb-1">{{ activity.title }}</h5>
+                        <div class="d-flex align-items-center">
+                            <h5 class="mb-1">
+                                {% if user_progress and user_progress.completed %}
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                {% else %}
+                                    <i class="bi bi-circle me-2"></i>
+                                {% endif %}
+                                {{ activity.title }}
+                            </h5>
+                        </div>
                         <p class="mb-1">{{ activity.description }}</p>
-                        <small>
-                            Difficulty: 
+                        <div class="mt-2">
                             <span class="badge {% if activity.difficulty == 'beginner' %}bg-success{% elif activity.difficulty == 'intermediate' %}bg-warning{% else %}bg-danger{% endif %}">
                                 {{ activity.difficulty }}
                             </span>
-                            Points: <span class="badge bg-info">{{ activity.points }}</span>
-                        </small>
-                    </div>
-                    <div class="text-end">
-                        {% if user_progress %}
-                            {% if user_progress.completed %}
-                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Completed</span>
-                            {% else %}
-                                <span class="badge bg-warning">
+                            <span class="badge bg-info">{{ activity.points }} points</span>
+                            {% if user_progress %}
+                                <span class="badge bg-secondary">
                                     <i class="bi bi-clock"></i> 
                                     {{ user_progress.attempts }} attempt{{ 's' if user_progress.attempts != 1 }}
                                 </span>
                             {% endif %}
-                        {% endif %}
-                        <div class="mt-2">
-                            <button class="btn btn-sm btn-primary">
-                                <i class="bi bi-code-slash"></i> Start
-                            </button>
                         </div>
+                    </div>
+                    <div class="text-end">
+                        <button class="btn btn-sm {% if user_progress and user_progress.completed %}btn-success{% else %}btn-primary{% endif %}">
+                            {% if user_progress and user_progress.completed %}
+                                <i class="bi bi-check2"></i> Completed
+                            {% else %}
+                                <i class="bi bi-code-slash"></i> Start
+                            {% endif %}
+                        </button>
                     </div>
                 </a>
                 {% endfor %}
