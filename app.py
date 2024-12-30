@@ -537,19 +537,19 @@ def create_initial_activities():
         # Activities for ICS3U (C#)
         {
             'title': 'Premiers pas en C#',
-            'description': 'Découvrez les bases de la programmation C# et ses conventions.',
+            'description': 'Écrivez votre premier programme C# qui affiche "Bonjour le monde!"',
             'difficulty': 'beginner',
             'curriculum': 'ICS3U',
             'language': 'csharp',
             'sequence': 1,
-            'instructions': 'Créez votre premier programme C# qui affiche un message de bienvenue.',
+            'instructions': 'Créez un programme qui affiche "Bonjour le monde!" dans la console.',
             'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        // Votre code ici\n    }\n}',
             'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}',
             'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
             'hints': [
-                'Utilisez Console.WriteLine pour afficher du texte',
-                'Les noms de classe commencent par une majuscule',
-                'N\'oubliez pas le point-virgule à la fin des instructions'
+                'Utilisez Console.WriteLine() pour afficher du texte',
+                'N\'oubliez pas le point-virgule à la fin',
+                'Les noms de classe commencent par une majuscule'
             ],
             'points': 10
         },
