@@ -316,6 +316,8 @@ def list_activities():
 
     # Get student progress if logged in
     progress = {}
+    curriculum_progress = {}
+
     if current_user.is_authenticated:
         # Create progress entries for all activities if they don't exist
         for activity in activities:
@@ -335,17 +337,12 @@ def list_activities():
 
         # Get all progress entries
         student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
-        progress = {
-            p.activity_id: p 
-            for p in student_progress
-        }
+        progress = {p.activity_id: p for p in student_progress}
 
-    # Calculate curriculum progress
-    curriculum_progress = {}
-    if current_user.is_authenticated:
+        # Calculate curriculum progress
         for curriculum in ['TEJ2O', 'ICS3U']:
             curriculum_activities = [
-                activity
+                activity 
                 for (curr, _), acts in grouped_activities.items()
                 if curr == curriculum
                 for activity in acts
@@ -361,6 +358,7 @@ def list_activities():
                 'percentage': (completed / total * 100) if total > 0 else 0
             }
 
+    logging.debug(f"Curriculum Progress: {curriculum_progress}")
     return render_template(
         'activities.html',
         grouped_activities=grouped_activities,
