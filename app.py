@@ -531,7 +531,20 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 2,
-                'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et affiche un message de bienvenue personnalisé.',
+                'instructions': '''Créez un programme qui demande le nom de l'utilisateur et affiche un message de bienvenue personnalisé.
+
+Syntaxe nécessaire:
+- Pour déclarer une variable texte: 
+    std::string nom;
+
+- Pour afficher un message:
+    std::cout << "message";
+
+- Pour lire une ligne de texte:
+    std::getline(std::cin, nom);
+
+- Pour combiner texte et variable:
+    std::cout << "Bonjour, " << nom;''',
                 'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    std::cout << "Entrez votre nom: ";\n    std::getline(std::cin, nom);\n    std::cout << "Bonjour, " << nom << "!" << std::endl;\n    return 0;\n}',
                 'test_cases': [
@@ -720,7 +733,7 @@ Syntaxe nécessaire:
                 'sequence': 9,
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        stdcout << nombre << "! =" << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
                 'test_cases': [
                     {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                     {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
