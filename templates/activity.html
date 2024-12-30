@@ -37,6 +37,18 @@
                     </ul>
                     {% endif %}
 
+                    {% if activity.common_errors %}
+                    <h5 class="mt-4">Erreurs Courantes à Éviter</h5>
+                    <ul class="list-group">
+                        {% for error in activity.common_errors %}
+                        <li class="list-group-item list-group-item-danger">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            {{ error }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
                     {% if progress %}
                     <div class="mt-4">
                         <h5>Votre Progression</h5>

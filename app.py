@@ -494,6 +494,12 @@ def create_initial_activities():
                     'Utilisez std::cout pour afficher du texte',
                     'Terminez avec return 0'
                 ],
+                'common_errors': [
+                    'Oublier le point-virgule à la fin de l\'instruction cout',
+                    'Écrire "iostream.h" au lieu de <iostream>',
+                    'Oublier d\'utiliser std:: devant cout',
+                    'Oublier les guillemets autour du texte à afficher'
+                ],
                 'points': 10
             },
             {
@@ -515,6 +521,12 @@ def create_initial_activities():
                     'std::getline permet de lire une ligne complète',
                     'N\'oubliez pas d\'inclure la bibliothèque string'
                 ],
+                'common_errors': [
+                    'Utiliser cin >> nom au lieu de getline (ne gère pas les espaces)',
+                    'Oublier d\'inclure la bibliothèque <string>',
+                    'Ne pas vider le buffer après un cin >>',
+                    'Oublier de déclarer la variable nom comme std::string'
+                ],
                 'points': 15
             },
             {
@@ -535,6 +547,12 @@ def create_initial_activities():
                     'Utilisez int pour les nombres entiers',
                     'L\'opérateur + additionne les nombres',
                     'Affichez chaque invite avant de lire l\'entrée'
+                ],
+                'common_errors': [
+                    'Ne pas vérifier si l\'entrée est bien un nombre',
+                    'Oublier de gérer le dépassement d\'entier',
+                    'Ne pas afficher de message pour guider l\'utilisateur',
+                    'Additionner les nombres comme des chaînes de caractères'
                 ],
                 'points': 20
             },
@@ -558,6 +576,12 @@ def create_initial_activities():
                     'Comparez le nombre avec 0',
                     'N\'oubliez pas les accolades { }'
                 ],
+                'common_errors': [
+                    'Oublier les accolades après if, else if, else',
+                    'Mauvaise utilisation des opérateurs de comparaison',
+                    'Ne pas gérer tous les cas possibles (positif, négatif, zéro)',
+                    'Oublier de demander l\'entrée à l\'utilisateur'
+                ],
                 'points': 25
             },
             {
@@ -579,6 +603,12 @@ def create_initial_activities():
                     'La variable i commence à 1',
                     'Affichez chaque nombre suivi d\'un espace'
                 ],
+                'common_errors': [
+                    'Mauvaise initialisation de la boucle for',
+                    'Mauvaise condition de terminaison de la boucle',
+                    'Incrémentation incorrecte du compteur',
+                    'Ne pas afficher de sortie'
+                ],
                 'points': 30
             },
             {
@@ -598,6 +628,12 @@ def create_initial_activities():
                     'Utilisez deux boucles for imbriquées',
                     'Utilisez \\t pour aligner les colonnes',
                     'Multipliez les compteurs i et j'
+                ],
+                'common_errors': [
+                    'Mauvaise imbrication des boucles',
+                    'Mauvaise utilisation de \\t pour l\'alignement',
+                    'Calcul incorrect du produit',
+                    'Ne pas gérer correctement les sauts de ligne'
                 ],
                 'points': 35
             },
@@ -619,6 +655,13 @@ def create_initial_activities():
                     'Gardez une variable pour la somme',
                     'Divisez la somme par n pour la moyenne'
                 ],
+                'common_errors': [
+                    'Division par zéro si n est égal à 0',
+                    'Mauvaise gestion des types de données (int au lieu de double)',
+                    'Oublier d\'initialiser la somme à 0',
+                    'Ne pas demander le nombre de nombres à l\'utilisateur'
+
+                ],
                 'points': 40
             },
             {
@@ -638,6 +681,12 @@ def create_initial_activities():
                     'Initialisez max avec le premier nombre',
                     'Comparez chaque nouveau nombre avec max',
                     'Mettez à jour max si nécessaire'
+                ],
+                'common_errors': [
+                    'Ne pas initialiser correctement max',
+                    'Mauvaise comparaison des nombres',
+                    'Ne pas gérer correctement les cas de nombres égaux',
+                    'Ne pas afficher la sortie'
                 ],
                 'points': 45
             },
@@ -660,6 +709,12 @@ def create_initial_activities():
                     'N\'oubliez pas le cas de base (0! = 1)',
                     'Attention aux nombres négatifs'
                 ],
+                'common_errors': [
+                    'Cas de base incorrect pour la récursion',
+                    'Dépassement de pile pour les grands nombres',
+                    'Ne pas gérer les nombres négatifs',
+                    'Mauvaise utilisation de la récursionor boucle iterative'
+                ],
                 'points': 50
             },
             {
@@ -679,6 +734,12 @@ def create_initial_activities():
                     'Utilisez des boucles imbriquées',
                     'Calculez les espaces et étoiles nécessaires',
                     'La ligne i a 2*i - 1 étoiles'
+                ],
+                'common_errors': [
+                    'Mauvaise gestion des espaces',
+                    'Mauvais calcul du nombre d\'étoiles',
+                    'Ne pas gérer correctement les sauts de ligne',
+                    'Imbrication incorrecte des boucles'
                 ],
                 'points': 55
             },
@@ -702,6 +763,12 @@ def create_initial_activities():
                     'Si nombre % 2 == 0, le nombre est pair',
                     'Sinon, le nombre est impair'
                 ],
+                'common_errors': [
+                    'Mauvaise utilisation de l\'opérateur modulo',
+                    'Mauvaise condition dans le if-else',
+                    'Oublier de gérer les cas possibles',
+                    'Ne pas demander l\'entrée à l\'utilisateur'
+                ],
                 'points': 25
             },
             {
@@ -723,6 +790,12 @@ def create_initial_activities():
                     'La variable i commence à 1',
                     'Affichez chaque nombre suivi d\'un espace'
                 ],
+                'common_errors': [
+                    'Mauvaise initialisation de la boucle for',
+                    'Mauvaise condition de terminaison',
+                    'Incrémentation incorrecte du compteur',
+                    'Ne pas afficher la sortie'
+                ],
                 'points': 30
             },
             {
@@ -742,6 +815,12 @@ def create_initial_activities():
                     'Utilisez deux boucles for imbriquées',
                     'Utilisez \\t pour aligner les colonnes',
                     'Multipliez les compteurs i et j'
+                ],
+                'common_errors': [
+                    'Mauvaise imbrication des boucles',
+                    'Mauvaise utilisation de \\t',
+                    'Calcul incorrect du produit',
+                    'Mauvaise gestion des sauts de ligne'
                 ],
                 'points': 35
             },
@@ -763,6 +842,12 @@ def create_initial_activities():
                     'Calculez la somme des nombres',
                     'Divisez la somme par n pour la moyenne'
                 ],
+                'common_errors': [
+                    'Division par zéro si n est 0',
+                    'Mauvaise gestion des types de données',
+                    'Oublier d\'initialiser la somme',
+                    'Ne pas demander le nombre de nombres'
+                ],
                 'points': 40
             },
             {
@@ -782,6 +867,12 @@ def create_initial_activities():
                     'Initialisez max avec le premier nombre',
                     'Comparez chaque nouveau nombre avec max',
                     'Mettez à jour max si nécessaire'
+                ],
+                'common_errors': [
+                    'Ne pas initialiser correctement max',
+                    'Mauvaise comparaison des nombres',
+                    'Ne pas gérer les cas de nombres égaux',
+                    'Ne pas afficher la sortie'
                 ],
                 'points': 45
             },
@@ -804,6 +895,12 @@ def create_initial_activities():
                     'N\'oubliez pas le cas de base (0! = 1)',
                     'Attention aux nombres négatifs'
                 ],
+                'common_errors': [
+                    'Cas de base incorrect pour la récursion',
+                    'Dépassement de pile pour les grands nombres',
+                    'Ne pas gérer les nombres négatifs',
+                    'Mauvaise utilisation de la récursion ou boucle iterative'
+                ],
                 'points': 50
             },
             {
@@ -823,6 +920,12 @@ def create_initial_activities():
                     'Utilisez des boucles imbriquées',
                     'Calculez les espaces et étoiles nécessaires',
                     'La ligne i a 2*i - 1 étoiles'
+                ],
+                'common_errors': [
+                    'Mauvaise gestion des espaces',
+                    'Mauvais calcul du nombre d\'étoiles',
+                    'Ne pas gérer les sauts de ligne',
+                    'Imbrication incorrecte des boucles'
                 ],
                 'points': 55
             },
@@ -881,6 +984,12 @@ def create_initial_activities():
                     'Utilisez des propriétés auto-implémentées pour Nom et Age',
                     'Encapsulez la logique de calcul de la moyenne',
                     'Utilisez le formatage de chaîne pour l\'affichage'
+                ],
+                'common_errors': [
+                    'Mauvaise déclaration des propriétés',
+                    'Mauvaise implémentation des méthodes',
+                    'Ne pas gérer les erreurs d\'entrée',
+                    'Mauvaise utilisation des modificateurs d\'accès'
                 ],
                 'points': 60
             },
@@ -964,6 +1073,12 @@ def create_initial_activities():
                     'Gardez une référence vers le premier nœud (tête)',
                     'Parcourez la liste pour ajouter à la fin'
                 ],
+                'common_errors': [
+                    'Mauvaise gestion des pointeurs',
+                    'Fuites de mémoire',
+                    'Ne pas gérer correctement le cas de liste vide',
+                    'Ne pas parcourir correctement la liste'
+                ],
                 'points': 65
             },
             {
@@ -1024,6 +1139,12 @@ using System.Collections.Generic;
                     'Utilisez une List<T> pour stocker les tâches',
                     'Implémentez ToString() pour l\'affichage',
                     'Utilisez Sort() avec un comparateur personnalisé'
+                ],
+                'common_errors': [
+                    'Mauvaise gestion de la liste de tâches',
+                    'Mauvaise implémentation de la comparaison de priorités',
+                    'Ne pas trier correctement la liste',
+                    'Ne pas afficher correctement la sortie'
                 ],
                 'points': 70
             }
