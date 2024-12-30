@@ -6,7 +6,15 @@ require.config({
     }
 });
 
+// Initialize Monaco editor with language features
 require(['vs/editor/editor.main'], function() {
+    // Configure language features
+    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+        noSemanticValidation: true,
+        noSyntaxValidation: true
+    });
+
+    // Create editor instance
     editor = monaco.editor.create(document.getElementById('editor'), {
         value: getDefaultCode('cpp'),
         language: 'cpp',
@@ -21,14 +29,51 @@ require(['vs/editor/editor.main'], function() {
         padding: {
             top: 10,
             bottom: 10
-        }
+        },
+        // Enhanced editor features
+        formatOnType: true,
+        formatOnPaste: true,
+        autoIndent: 'full',
+        bracketPairColorization: {
+            enabled: true
+        },
+        // Language specific features
+        suggestOnTriggerCharacters: true,
+        wordBasedSuggestions: true,
+        // Code folding
+        folding: true,
+        foldingStrategy: 'indentation',
+        // Line numbers
+        lineNumbers: true,
+        lineDecorationsWidth: 0,
+        // Rendering
+        renderControlCharacters: true,
+        roundedSelection: false,
+        // Tab completion
+        tabCompletion: 'on',
+        // Auto closing
+        autoClosingBrackets: 'always',
+        autoClosingQuotes: 'always'
     });
 
-    // Language change handler
+    // Language change handler with improved state management
     document.getElementById('languageSelect').addEventListener('change', function(e) {
         const language = e.target.value;
-        monaco.editor.setModelLanguage(editor.getModel(), language);
+        const currentState = editor.saveViewState();
+
+        // Update editor model with new language
+        const model = editor.getModel();
+        monaco.editor.setModelLanguage(model, language);
+
+        // Update content with default code while preserving state
         editor.setValue(getDefaultCode(language));
+
+        // Restore view state if possible
+        if (currentState) {
+            editor.restoreViewState(currentState);
+        }
+
+        editor.focus();
     });
 
     // Run button handler
@@ -58,11 +103,11 @@ async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const language = document.getElementById('languageSelect').value;
-    
+
     try {
         runButton.disabled = true;
         runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
-        
+
         const response = await fetch('/execute', {
             method: 'POST',
             headers: {
@@ -73,9 +118,9 @@ async function executeCode() {
                 language: language
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (result.error) {
             output.innerHTML = `<span style="color: var(--bs-danger)">Error:\n${result.error}</span>`;
         } else {
