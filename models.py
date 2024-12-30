@@ -9,6 +9,9 @@ class Student(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    # Add avatar and profile fields
+    avatar_filename = db.Column(db.String(255))
+    bio = db.Column(db.Text)
     shared_codes = db.relationship('SharedCode', back_populates='student')
 
     # Relationships

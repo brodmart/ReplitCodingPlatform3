@@ -12,8 +12,9 @@ from sqlalchemy import desc
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from datetime import datetime
-from forms import LoginForm, RegisterForm #Added
-
+from forms import LoginForm, RegisterForm
+from PIL import Image
+from werkzeug.utils import secure_filename
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -70,14 +71,14 @@ def check_achievements(student, submission):
                     db.session.add(new_achievement)
                     awarded = True
                     flash(f'Achievement Unlocked: {achievement.name}!')
-            elif criterion == 'error_fixes': #Added for new achievement criteria
+            elif criterion == 'error_fixes':
                 error_fixes = CodeSubmission.query.filter_by(student_id=student.id, success=False).count()
                 if error_fixes >= value:
                     new_achievement = StudentAchievement(student_id=student.id, achievement_id=achievement.id)
                     db.session.add(new_achievement)
                     awarded = True
                     flash(f'Achievement Unlocked: {achievement.name}!')
-            elif criterion == 'languages': #Added for new achievement criteria
+            elif criterion == 'languages':
                 languages = set(s.language for s in CodeSubmission.query.filter_by(student_id=student.id))
                 if len(languages) >= value:
                     new_achievement = StudentAchievement(student_id=student.id, achievement_id=achievement.id)
@@ -254,8 +255,7 @@ def test_login():
     # Log in the test user
     login_user(test_user)
     flash('Logged in as test user')
-    return redirect(url_for('list_activities'))  # Fixed: using correct endpoint name
-
+    return redirect(url_for('list_activities'))
 
 @app.route('/share', methods=['POST'])
 @login_required
@@ -1082,3 +1082,60 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    form = ProfileForm(current_user.username, current_user.email)
+    if form.validate_on_submit():
+        if form.avatar.data:
+            # Save avatar
+            avatar_path = os.path.join(app.root_path, 'static/avatars')
+            os.makedirs(avatar_path, exist_ok=True)
+
+            # Process and save avatar
+            avatar_file = form.avatar.data
+            filename = secure_filename(f"avatar_{current_user.id}_{int(datetime.utcnow().timestamp())}.jpg")
+
+            # Open and process image
+            image = Image.open(avatar_file)
+            image = image.convert('RGB')  # Convert to RGB format
+
+            # Resize to square
+            size = (150, 150)
+            if image.size[0] != image.size[1]:
+                # Crop to square
+                width, height = image.size
+                new_size = min(width, height)
+                left = (width - new_size) // 2
+                top = (height - new_size) // 2
+                right = left + new_size
+                bottom = top + new_size
+                image = image.crop((left, top, right, bottom))
+
+            # Resize to final size
+            image = image.resize(size, Image.Resampling.LANCZOS)
+
+            # Save processed image
+            filepath = os.path.join(avatar_path, filename)
+            image.save(filepath, 'JPEG', quality=85)
+
+            # Delete old avatar if exists
+            if current_user.avatar_filename:
+                old_avatar = os.path.join(avatar_path, current_user.avatar_filename)
+                if os.path.exists(old_avatar):
+                    os.remove(old_avatar)
+
+            current_user.avatar_filename = filename
+
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        current_user.bio = form.bio.data
+        db.session.commit()
+        flash('Votre profil a été mis à jour!', 'success')
+        return redirect(url_for('profile'))
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+        form.bio.data = current_user.bio
+    return render_template('profile.html', form=form)

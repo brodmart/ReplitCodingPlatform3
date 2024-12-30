@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError
+from flask_wtf.file import FileField, FileAllowed
 from models import Student
 
 class LoginForm(FlaskForm):
@@ -26,3 +27,27 @@ class RegisterForm(FlaskForm):
         user = Student.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('Ce nom d\'utilisateur est déjà pris.')
+
+class ProfileForm(FlaskForm):
+    username = StringField('Nom d\'utilisateur', validators=[DataRequired(), Length(min=2, max=20)])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    bio = TextAreaField('Bio', validators=[Length(max=500)])
+    avatar = FileField('Avatar', validators=[FileAllowed(['jpg', 'png', 'jpeg', 'gif'], 'Images seulement!')])
+    submit = SubmitField('Mettre à jour le profil')
+
+    def __init__(self, original_username, original_email, *args, **kwargs):
+        super(ProfileForm, self).__init__(*args, **kwargs)
+        self.original_username = original_username
+        self.original_email = original_email
+
+    def validate_username(self, username):
+        if username.data != self.original_username:
+            user = Student.query.filter_by(username=username.data).first()
+            if user:
+                raise ValidationError('Ce nom d\'utilisateur est déjà pris.')
+
+    def validate_email(self, email):
+        if email.data != self.original_email:
+            user = Student.query.filter_by(email=email.data).first()
+            if user:
+                raise ValidationError('Cet email est déjà utilisé.')
