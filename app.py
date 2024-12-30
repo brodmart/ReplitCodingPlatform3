@@ -476,100 +476,100 @@ def create_initial_activities():
     activities = [
         # TEJ2O C++ Activities (Grade 10)
         {
-            'title': 'Hello, World!',
-            'description': 'Introduction to C++ programming and basic output.',
+            'title': 'Bonjour, le monde!',
+            'description': 'Introduction à la programmation C++ et sortie de base.',
             'difficulty': 'beginner',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'sequence': 1,
-            'instructions': 'Write your first C++ program that displays "Hello, World!" to the console. This introduces basic program structure and output.',
-            'starter_code': '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}',
-            'test_cases': [{'input': '', 'output': 'Hello, World!'}],
-            'hints': ['Remember to include iostream', 'Use std::cout for output', 'End with return 0'],
+            'instructions': 'Écrivez votre premier programme C++ qui affiche "Bonjour, le monde!" dans la console. Cela introduit la structure de base du programme et la sortie.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour, le monde!" << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Bonjour, le monde!'}],
+            'hints': ['N\'oubliez pas d\'inclure iostream', 'Utilisez std::cout pour la sortie', 'Terminez avec return 0'],
             'points': 10
         },
         {
-            'title': 'Basic Input',
-            'description': 'Learn to receive user input in C++',
+            'title': 'Saisie de Base',
+            'description': 'Apprenez à recevoir les entrées utilisateur en C++',
             'difficulty': 'beginner',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'sequence': 2,
-            'instructions': 'Create a program that asks for the user\'s name and greets them personally.',
-            'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string name;\n    // Add your code here\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string name;\n    std::cout << "Enter your name: ";\n    std::getline(std::cin, name);\n    std::cout << "Hello, " << name << "!" << std::endl;\n    return 0;\n}',
+            'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et le salue personnellement.',
+            'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    // Ajoutez votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    std::cout << "Entrez votre nom: ";\n    std::getline(std::cin, nom);\n    std::cout << "Bonjour, " << nom << "!" << std::endl;\n    return 0;\n}',
             'test_cases': [
-                {'input': 'Alice\n', 'output': 'Enter your name: Hello, Alice!'},
-                {'input': 'Bob\n', 'output': 'Enter your name: Hello, Bob!'}
+                {'input': 'Alice\n', 'output': 'Entrez votre nom: Bonjour, Alice!'},
+                {'input': 'Bob\n', 'output': 'Entrez votre nom: Bonjour, Bob!'}
             ],
-            'hints': ['Use std::string for text', 'std::cin >> name will only read one word', 'std::getline is better for full names'],
+            'hints': ['Utilisez std::string pour le texte', 'std::cin >> nom ne lira qu\'un mot', 'std::getline est préférable pour les noms complets'],
             'points': 15
         },
         {
-            'title': 'Simple Calculator',
-            'description': 'Create a basic calculator using arithmetic operators',
+            'title': 'Calculatrice Simple',
+            'description': 'Créez une calculatrice de base utilisant les opérateurs arithmétiques',
             'difficulty': 'beginner',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'sequence': 3,
-            'instructions': 'Write a program that adds two numbers input by the user.',
-            'starter_code': '#include <iostream>\n\nint main() {\n    int num1, num2;\n    // Add your code here\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nint main() {\n    int num1, num2;\n    std::cout << "Enter first number: ";\n    std::cin >> num1;\n    std::cout << "Enter second number: ";\n    std::cin >> num2;\n    std::cout << "Sum: " << num1 + num2 << std::endl;\n    return 0;\n}',
+            'instructions': 'Écrivez un programme qui additionne deux nombres saisis par l\'utilisateur.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int num1, num2;\n    // Ajoutez votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int num1, num2;\n    std::cout << "Entrez le premier nombre: ";\n    std::cin >> num1;\n    std::cout << "Entrez le deuxième nombre: ";\n    std::cin >> num2;\n    std::cout << "Somme: " << num1 + num2 << std::endl;\n    return 0;\n}',
             'test_cases': [
-                {'input': '5\n3\n', 'output': 'Enter first number: Enter second number: Sum: 8'},
-                {'input': '10\n20\n', 'output': 'Enter first number: Enter second number: Sum: 30'}
+                {'input': '5\n3\n', 'output': 'Entrez le premier nombre: Entrez le deuxième nombre: Somme: 8'},
+                {'input': '10\n20\n', 'output': 'Entrez le premier nombre: Entrez le deuxième nombre: Somme: 30'}
             ],
-            'hints': ['Use int for whole numbers', 'Remember to prompt for each input', 'Use + operator for addition'],
+            'hints': ['Utilisez int pour les nombres entiers', 'N\'oubliez pas de demander chaque entrée', 'Utilisez l\'opérateur + pour l\'addition'],
             'points': 20
         },
         # ICS3U/3C C# Activities (Grade 11)
         {
-            'title': 'Introduction to C#',
-            'description': 'First steps in C# programming with proper naming conventions',
+            'title': 'Introduction à C#',
+            'description': 'Premiers pas en programmation C# avec les conventions de nommage appropriées',
             'difficulty': 'beginner',
             'curriculum': 'ICS3U',
             'language': 'csharp',
             'sequence': 1,
-            'instructions': 'Create your first C# program using proper Pascal Case naming convention.',
-            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}',
-            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Hello, World!");\n    }\n}',
-            'test_cases': [{'input': '', 'output': 'Hello, World!'}],
-            'hints': ['Class names use PascalCase', 'Method names use PascalCase', 'Use Console.WriteLine() for output'],
+            'instructions': 'Créez votre premier programme C# en utilisant la convention de nommage Pascal Case.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bonjour, le monde!");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Bonjour, le monde!'}],
+            'hints': ['Les noms de classe utilisent PascalCase', 'Les noms de méthodes utilisent PascalCase', 'Utilisez Console.WriteLine() pour la sortie'],
             'points': 10
         },
         {
-            'title': 'String Manipulation',
-            'description': 'Working with strings and string methods in C#',
+            'title': 'Manipulation de Chaînes',
+            'description': 'Travailler avec les chaînes et les méthodes de chaîne en C#',
             'difficulty': 'beginner',
             'curriculum': 'ICS3U',
             'language': 'csharp',
             'sequence': 2,
-            'instructions': 'Create a program that takes a user\'s full name and displays it in uppercase.',
-            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        string fullName;\n        // Your code here\n    }\n}',
-            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        string fullName;\n        Console.Write("Enter your full name: ");\n        fullName = Console.ReadLine();\n        Console.WriteLine($"Your name in uppercase: {fullName.ToUpper()}");\n    }\n}',
+            'instructions': 'Créez un programme qui prend le nom complet d\'un utilisateur et l\'affiche en majuscules.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        string nomComplet;\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        string nomComplet;\n        Console.Write("Entrez votre nom complet: ");\n        nomComplet = Console.ReadLine();\n        Console.WriteLine($"Votre nom en majuscules: {nomComplet.ToUpper()}");\n    }\n}',
             'test_cases': [
-                {'input': 'John Doe\n', 'output': 'Enter your full name: Your name in uppercase: JOHN DOE'},
-                {'input': 'Jane Smith\n', 'output': 'Enter your full name: Your name in uppercase: JANE SMITH'}
+                {'input': 'John Doe\n', 'output': 'Entrez votre nom complet: Votre nom en majuscules: JOHN DOE'},
+                {'input': 'Jane Smith\n', 'output': 'Entrez votre nom complet: Votre nom en majuscules: JANE SMITH'}
             ],
-            'hints': ['Use Console.ReadLine() for input', 'String methods like ToUpper() are helpful', 'Try string interpolation with $'],
+            'hints': ['Utilisez Console.ReadLine() pour l\'entrée', 'Les méthodes de chaîne comme ToUpper() sont utiles', 'Essayez l\'interpolation de chaîne avec $'],
             'points': 15
         },
         {
-            'title': 'Basic Methods',
-            'description': 'Introduction to methods and parameters',
+            'title': 'Méthodes de Base',
+            'description': 'Introduction aux méthodes et paramètres',
             'difficulty': 'beginner',
             'curriculum': 'ICS3U',
             'language': 'csharp',
             'sequence': 3,
-            'instructions': 'Create a method that calculates the area of a rectangle.',
-            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Call your CalculateArea method here\n    }\n\n    // Create your CalculateArea method here\n}',
-            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.Write("Enter width: ");\n        double width = Convert.ToDouble(Console.ReadLine());\n        Console.Write("Enter height: ");\n        double height = Convert.ToDouble(Console.ReadLine());\n        \n        double area = CalculateArea(width, height);\n        Console.WriteLine($"The area is: {area}");\n    }\n\n    static double CalculateArea(double width, double height) {\n        return width * height;\n    }\n}',
+            'instructions': 'Créez une méthode qui calcule l\'aire d\'un rectangle.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Appelez votre méthode CalculerAire ici\n    }\n\n    // Créez votre méthode CalculerAire ici\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.Write("Entrez la largeur: ");\n        double largeur = Convert.ToDouble(Console.ReadLine());\n        Console.Write("Entrez la hauteur: ");\n        double hauteur = Convert.ToDouble(Console.ReadLine());\n        \n        double aire = CalculerAire(largeur, hauteur);\n        Console.WriteLine($"L\'aire est: {aire}");\n    }\n\n    static double CalculerAire(double largeur, double hauteur) {\n        return largeur * hauteur;\n    }\n}',
             'test_cases': [
-                {'input': '5\n3\n', 'output': 'Enter width: Enter height: The area is: 15'},
-                {'input': '4\n4\n', 'output': 'Enter width: Enter height: The area is: 16'}
+                {'input': '5\n3\n', 'output': 'Entrez la largeur: Entrez la hauteur: L\'aire est: 15'},
+                {'input': '4\n4\n', 'output': 'Entrez la largeur: Entrez la hauteur: L\'aire est: 16'}
             ],
-            'hints': ['Methods should do one specific task', 'Use meaningful parameter names', 'Remember to convert string input to double'],
+            'hints': ['Les méthodes doivent faire une tâche spécifique', 'Utilisez des noms de paramètres significatifs', 'N\'oubliez pas de convertir l\'entrée string en double'],
             'points': 20
         }
     ]
