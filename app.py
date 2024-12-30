@@ -563,29 +563,121 @@ def create_initial_activities():
                 }
             ]
         },
-        # ICS3U C# Activities
+        # TEJ2O C++ Activities (continued)
         {
-            'title': 'Introduction à C#',
-            'description': 'Premiers pas avec C# et les bases de la programmation.',
-            'difficulty': 'beginner',
-            'curriculum': 'ICS3U',
-            'language': 'csharp',
-            'sequence': 1,
-            'instructions': 'Créez votre première application console C# qui affiche un message personnalisé.',
-            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
-            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Bienvenue dans le monde de C#!");\n    }\n}',
-            'test_cases': [{'input': '', 'output': 'Bienvenue dans le monde de C#!'}],
-            'points': 10,
+            'title': 'Boucles en C++',
+            'description': 'Maîtriser les boucles for et while en C++.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 4,
+            'instructions': 'Créez un programme qui utilise une boucle pour afficher les nombres de 1 à 10.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    for(int i = 1; i <= 10; i++) {\n        std::cout << i << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': '1\n2\n3\n4\n5\n6\n7\n8\n9\n10'}],
+            'points': 20,
             'tutorial_steps': [
                 {
                     'step_number': 1,
-                    'title': 'Structure d\'un programme C#',
-                    'content': 'Un programme C# commence toujours par des `using` qui importent les fonctionnalités nécessaires.\n\nLa classe `Program` et la méthode `Main` sont les points d\'entrée de l\'application.\n\n**Erreurs courantes:**\n- Oublier le point-virgule après using System\n- Mal placer les accolades\n- Oublier static pour Main',
-                    'code_snippet': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Le code va ici\n    }\n}',
-                    'hint': 'Vérifiez que toutes les accolades sont bien appariées'
+                    'title': 'Comprendre les boucles for',
+                    'content': 'La boucle for est utilisée quand on connaît le nombre d\'itérations à l\'avance.\n\n**Structure:**\n`for(initialisation; condition; incrémentation)`\n\n**Erreurs courantes:**\n- Oublier le point-virgule dans la déclaration for\n- Utiliser , au lieu de ;\n- Condition incorrecte (< vs <=)',
+                    'code_snippet': 'for(int i = 1; i <= 10; i++) {\n    // Code répété\n}',
+                    'hint': 'La boucle doit commencer à 1 et se terminer à 10 inclus'
+                }
+            ]
+        },
+        {
+            'title': 'Tableaux en C++',
+            'description': 'Apprendre à utiliser les tableaux pour stocker des collections de données.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 5,
+            'instructions': 'Créez un programme qui stocke et manipule des notes dans un tableau.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int notes[5];\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int notes[5] = {85, 90, 78, 88, 76};\n    int somme = 0;\n    \n    for(int i = 0; i < 5; i++) {\n        somme += notes[i];\n    }\n    \n    double moyenne = somme / 5.0;\n    std::cout << "Moyenne: " << moyenne << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Moyenne: 83.4'}],
+            'points': 25,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Déclaration des tableaux',
+                    'content': 'Les tableaux permettent de stocker plusieurs valeurs du même type.\n\n**Erreurs courantes:**\n- Dépasser la taille du tableau\n- Oublier d\'initialiser les éléments\n- Index hors limites',
+                    'code_snippet': 'int notes[5] = {85, 90, 78, 88, 76};',
+                    'hint': 'Les indices commencent à 0, pas à 1'
+                }
+            ]
+        },
+        {
+            'title': 'Fonctions en C++',
+            'description': 'Créer et utiliser des fonctions pour organiser le code.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 6,
+            'instructions': 'Créez une fonction qui calcule le carré d\'un nombre.',
+            'starter_code': '#include <iostream>\n\n// Déclarez votre fonction ici\n\nint main() {\n    // Utilisez votre fonction ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint carre(int nombre) {\n    return nombre * nombre;\n}\n\nint main() {\n    int n = 5;\n    std::cout << "Le carré de " << n << " est " << carre(n) << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Le carré de 5 est 25'}],
+            'points': 25,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Déclaration de fonction',
+                    'content': 'Une fonction a un type de retour, un nom et des paramètres.\n\n**Erreurs courantes:**\n- Oublier le type de retour\n- Ne pas déclarer la fonction avant de l\'utiliser\n- Oublier return',
+                    'code_snippet': 'int carre(int nombre) {\n    return nombre * nombre;\n}',
+                    'hint': 'Le type de retour doit correspondre à la valeur retournée'
+                }
+            ]
+        },
+
+        # ICS3U C# Activities (continued)
+        {
+            'title': 'Classes et Objets',
+            'description': 'Introduction à la programmation orientée objet en C#.',
+            'difficulty': 'intermediate',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 2,
+            'instructions': 'Créez une classe Étudiant avec des propriétés et des méthodes.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Créez et utilisez un étudiant ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Etudiant\n{\n    public string Nom { get; set; }\n    public int Age { get; set; }\n    \n    public void AfficherInfo()\n    {\n        Console.WriteLine($"Nom: {Nom}, Age: {Age}");\n    }\n}\n\nclass Program\n{\n    static void Main()\n    {\n        var etudiant = new Etudiant { Nom = "Alice", Age = 16 };\n        etudiant.AfficherInfo();\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Nom: Alice, Age: 16'}],
+            'points': 30,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Création d\'une classe',
+                    'content': 'Une classe est un modèle pour créer des objets.\n\n**Erreurs courantes:**\n- Oublier les accolades\n- Ne pas déclarer les propriétés public\n- Confusion entre méthodes et propriétés',
+                    'code_snippet': 'class Etudiant\n{\n    public string Nom { get; set; }\n    public int Age { get; set; }\n}',
+                    'hint': 'Les propriétés doivent être public pour être accessibles'
+                }
+            ]
+        },
+        {
+            'title': 'Listes et Collections',
+            'description': 'Utiliser les collections génériques en C#.',
+            'difficulty': 'intermediate',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 3,
+            'instructions': 'Créez un programme qui gère une liste d\'étudiants.',
+            'starter_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program\n{\n    static void Main()\n    {\n        // Créez et gérez une liste d\'étudiants\n    }\n}',
+            'solution_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program\n{\n    static void Main()\n    {\n        var etudiants = new List<string> { "Alice", "Bob", "Charlie" };\n        \n        Console.WriteLine("Liste des étudiants:");\n        foreach(var etudiant in etudiants)\n        {\n            Console.WriteLine(etudiant);\n        }\n        \n        Console.WriteLine`($"Nombre total: {etudiants.Count}");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Liste des étudiants:\nAlice\nBob\nCharlie\nNombre total: 3'}],
+            'points': 30,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Utilisation des Listes',
+                    'content': 'List<T> est une collection générique flexible.\n\n**Erreurs courantes:**\n- Oublier d\'importer System.Collections.Generic\n- Confusion entre Array et List\n- Accès incorrect aux éléments',
+                    'code_snippet': 'var etudiants = new List<string>();\netudiants.Add("Alice");',
+                    'hint': 'Utilisez foreach pour parcourir une liste facilement'
                 }
             ]
         }
+
+        # More activities will be added in subsequent updates...
     ]
 
     # Create activities and their tutorial steps
