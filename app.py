@@ -229,6 +229,17 @@ def test_login():
         db.session.add(test_user)
         db.session.commit()
 
+        # Add some test activities progress
+        activities = CodingActivity.query.all()
+        for activity in activities[:2]:  # Complete first two activities
+            progress = StudentProgress(
+                student_id=test_user.id,
+                activity_id=activity.id,
+                completed=True,
+                completed_at=datetime.utcnow()
+            )
+            db.session.add(progress)
+
         # Add some test achievements
         achievements = Achievement.query.all()
         for achievement in achievements[:3]:  # Add first 3 achievements
@@ -241,7 +252,7 @@ def test_login():
     # Log in the test user
     login_user(test_user)
     flash('Logged in as test user')
-    return redirect(url_for('index'))
+    return redirect(url_for('activities'))  # Redirect to activities page instead of index
 
 
 @app.route('/share', methods=['POST'])
