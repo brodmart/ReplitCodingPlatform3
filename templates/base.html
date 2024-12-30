@@ -22,13 +22,21 @@
             padding: 1rem 0;
             position: relative;
         }
+        .navbar-brand img {
+            height: 40px;
+            width: auto;
+            margin-right: 10px;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
     <nav class="navbar navbar-expand-lg bg-dark border-bottom">
         <div class="container-fluid">
-            <a class="navbar-brand text-light" href="{{ url_for('index') }}">Éditeur de Code</a>
+            <a class="navbar-brand d-flex align-items-center text-light" href="{{ url_for('index') }}">
+                <img src="{{ url_for('static', filename='assets/codingmountains.webp') }}" alt="Coding Mountains Logo" class="me-2">
+                Éditeur de Code
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
