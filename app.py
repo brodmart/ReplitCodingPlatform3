@@ -498,7 +498,8 @@ def create_initial_activities():
                     'Oublier le point-virgule à la fin de l\'instruction cout',
                     'Écrire "iostream.h" au lieu de <iostream>',
                     'Oublier d\'utiliser std:: devant cout',
-                    'Oublier les guillemets autour du texte à afficher'
+                    'Oublier les guillemets autour du texte à afficher',
+                    'Utiliser printf au lieu de cout'
                 ],
                 'points': 10
             },
@@ -660,7 +661,6 @@ def create_initial_activities():
                     'Mauvaise gestion des types de données (int au lieu de double)',
                     'Oublier d\'initialiser la somme à 0',
                     'Ne pas demander le nombre de nombres à l\'utilisateur'
-
                 ],
                 'points': 40
             },
@@ -718,7 +718,7 @@ def create_initial_activities():
                 'points': 50
             },
             {
-                'title': 'Générateur de Motifs',
+                'title':'Générateur de Motifs',
                 'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
                 'difficulty': 'intermediate',
                 'curriculum': 'TEJ2O',
@@ -1158,8 +1158,8 @@ using System.Collections.Generic;
         logging.info(f"Successfully created {len(activities)} activities")
 
     except Exception as e:
-        db.session.rollback()
         logging.error(f"Error creating activities: {str(e)}")
+        db.session.rollback()
         raise
 
 # Initialize activities in app context

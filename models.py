@@ -96,7 +96,7 @@ class CodingActivity(db.Model):
     solution_code = db.Column(db.Text, nullable=False)
     test_cases = db.Column(db.JSON, nullable=False)        # JSON array of input/output pairs
     hints = db.Column(db.JSON)                            # Optional hints for students
-    common_errors = db.Column(db.JSON)                    # Optional common errors to avoid
+    common_errors = db.Column(db.JSON)                    # Array of common errors to avoid
     points = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
