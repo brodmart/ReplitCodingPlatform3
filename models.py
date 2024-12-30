@@ -7,11 +7,16 @@ class Student(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256))
+    score = db.Column(db.Integer, default=0)  # New field for leaderboard
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
     achievements = db.relationship('StudentAchievement', back_populates='student')
     submissions = db.relationship('CodeSubmission', back_populates='student')
+
+    @property
+    def successful_submissions(self):
+        return len([s for s in self.submissions if s.success])
 
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -19,6 +24,7 @@ class Achievement(db.Model):
     description = db.Column(db.String(500), nullable=False)
     criteria = db.Column(db.String(200), nullable=False)  # e.g., "submit_count:10"
     badge_icon = db.Column(db.String(200))  # Path to badge icon
+    points = db.Column(db.Integer, default=10)  # New field for achievement points
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

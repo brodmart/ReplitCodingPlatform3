@@ -1,84 +1,79 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Code Editor</title>
-    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-</head>
-<body>
-    <div class="container-fluid h-100">
-        <div class="row h-100">
-            <!-- Header -->
-            <div class="col-12">
-                <nav class="navbar navbar-expand-lg">
-                    <div class="container-fluid">
-                        <span class="navbar-brand">Code Editor</span>
-                        <div class="d-flex align-items-center">
-                            <div class="achievements-container me-3">
-                                {% if current_user.is_authenticated %}
-                                    {% if achievements %}
-                                        {% for achievement in achievements %}
-                                        <span class="badge bg-success me-1" data-bs-toggle="tooltip" title="{{ achievement.description }}">
-                                            <i class="bi {{ achievement.badge_icon }}"></i>
-                                            {{ achievement.name }}
-                                        </span>
-                                        {% endfor %}
-                                    {% else %}
-                                        <span class="badge bg-secondary me-1">
-                                            <i class="bi bi-trophy"></i>
-                                            No achievements yet
-                                        </span>
-                                    {% endif %}
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <div class="col-12">
+            <nav class="navbar navbar-expand-lg">
+                <div class="container-fluid">
+                    <span class="navbar-brand">Code Editor</span>
+                    <div class="d-flex align-items-center">
+                        <div class="achievements-container me-3">
+                            {% if current_user.is_authenticated %}
+                                {% if achievements %}
+                                    {% for achievement in achievements %}
+                                    <span class="badge bg-success me-1" data-bs-toggle="tooltip" title="{{ achievement.description }}">
+                                        <i class="bi {{ achievement.badge_icon }}"></i>
+                                        {{ achievement.name }}
+                                    </span>
+                                    {% endfor %}
                                 {% else %}
-                                    <span class="badge bg-info me-1">
-                                        <i class="bi bi-person"></i>
-                                        Sign in to track achievements
+                                    <span class="badge bg-secondary me-1">
+                                        <i class="bi bi-trophy"></i>
+                                        No achievements yet
                                     </span>
                                 {% endif %}
-                            </div>
-                            <select id="languageSelect" class="form-select me-2">
-                                <option value="cpp">C++</option>
-                                <option value="csharp">C#</option>
-                            </select>
-                            <button id="runButton" class="btn btn-success">
-                                <i class="bi bi-play-fill"></i> Run
-                            </button>
+                            {% else %}
+                                <span class="badge bg-info me-1">
+                                    <i class="bi bi-person"></i>
+                                    Sign in to track achievements
+                                </span>
+                            {% endif %}
                         </div>
+                        <select id="languageSelect" class="form-select me-2">
+                            <option value="cpp">C++</option>
+                            <option value="csharp">C#</option>
+                        </select>
+                        <button id="runButton" class="btn btn-success">
+                            <i class="bi bi-play-fill"></i> Run
+                        </button>
                     </div>
-                </nav>
-            </div>
+                </div>
+            </nav>
+        </div>
 
-            <!-- Editor -->
-            <div class="col-12 col-lg-8 editor-container">
-                <div id="editor" class="h-100"></div>
-            </div>
+        <!-- Editor -->
+        <div class="col-12 col-lg-8 editor-container">
+            <div id="editor" class="h-100"></div>
+        </div>
 
-            <!-- Console -->
-            <div class="col-12 col-lg-4 console-container">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">Console Output</h5>
-                    </div>
-                    <div class="card-body">
-                        <pre id="output" class="console-output"></pre>
-                    </div>
+        <!-- Console -->
+        <div class="col-12 col-lg-4 console-container">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">Console Output</h5>
+                </div>
+                <div class="card-body">
+                    <pre id="output" class="console-output"></pre>
                 </div>
             </div>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
-    <script>
-        // Initialize tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
-    </script>
-</body>
-</html>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+{% endblock %}
