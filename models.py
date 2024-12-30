@@ -17,6 +17,14 @@ class Student(UserMixin, db.Model):
     progress = db.relationship('StudentProgress', back_populates='student')
 
     @property
+    def successful_submissions(self):
+        """Get the count of successful code submissions"""
+        return CodeSubmission.query.filter_by(
+            student_id=self.id,
+            success=True
+        ).count()
+
+    @property
     def current_activity(self):
         """Get the student's current activity based on their progress"""
         completed_activities = set(p.activity_id for p in self.progress if p.completed)
