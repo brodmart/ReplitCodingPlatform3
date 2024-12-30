@@ -12,28 +12,6 @@
                 <div class="container-fluid">
                     <span class="navbar-brand">Code Editor</span>
                     <div class="d-flex align-items-center">
-                        <div class="achievements-container me-3">
-                            {% if current_user.is_authenticated %}
-                                {% if achievements %}
-                                    {% for achievement in achievements %}
-                                    <span class="badge bg-success me-1" data-bs-toggle="tooltip" title="{{ achievement.description }}">
-                                        <i class="bi {{ achievement.badge_icon }}"></i>
-                                        {{ achievement.name }}
-                                    </span>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="badge bg-secondary me-1">
-                                        <i class="bi bi-trophy"></i>
-                                        No achievements yet
-                                    </span>
-                                {% endif %}
-                            {% else %}
-                                <span class="badge bg-info me-1">
-                                    <i class="bi bi-person"></i>
-                                    Sign in to track achievements
-                                </span>
-                            {% endif %}
-                        </div>
                         <select id="languageSelect" class="form-select me-2">
                             <option value="cpp">C++</option>
                             <option value="csharp">C#</option>
