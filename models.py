@@ -9,16 +9,29 @@ class Student(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    # Add avatar and profile fields
-    avatar_filename = db.Column(db.String(255))
-    bio = db.Column(db.Text)
     shared_codes = db.relationship('SharedCode', back_populates='student')
 
     # Relationships
     achievements = db.relationship('StudentAchievement', back_populates='student')
     submissions = db.relationship('CodeSubmission', back_populates='student')
     progress = db.relationship('StudentProgress', back_populates='student')
-    tutorial_progress = db.relationship('TutorialProgress', back_populates='student')
+
+    @property
+    def successful_submissions(self):
+        """Get the count of successful code submissions"""
+        return CodeSubmission.query.filter_by(
+            student_id=self.id,
+            success=True
+        ).count()
+
+    @property
+    def current_activity(self):
+        """Get the student's current activity based on their progress"""
+        completed_activities = set(p.activity_id for p in self.progress if p.completed)
+        next_activity = CodingActivity.query.filter(
+            ~CodingActivity.id.in_(completed_activities)
+        ).order_by(CodingActivity.sequence).first()
+        return next_activity
 
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -84,16 +97,7 @@ class CodingActivity(db.Model):
     test_cases = db.Column(db.JSON, nullable=False)        # JSON array of input/output pairs
     hints = db.Column(db.JSON)                            # Optional hints for students
     points = db.Column(db.Integer, default=10)
-    complexity_analysis = db.Column(db.JSON)              # Stores cognitive load, concepts, and common mistakes
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Tutorial steps for interactive guidance, ordered by step_number
-    tutorial_steps = db.relationship(
-        'TutorialStep',
-        back_populates='activity',
-        order_by='TutorialStep.step_number',
-        cascade='all, delete-orphan'
-    )
 
     # Relationships
     student_progress = db.relationship('StudentProgress', back_populates='activity')
@@ -111,30 +115,3 @@ class StudentProgress(db.Model):
     # Relationships
     student = db.relationship('Student', back_populates='progress')
     activity = db.relationship('CodingActivity', back_populates='student_progress')
-
-class TutorialStep(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
-    step_number = db.Column(db.Integer, nullable=False)
-    title = db.Column(db.String(200), nullable=False)
-    content = db.Column(db.Text, nullable=False)  # Markdown content for step explanation
-    code_snippet = db.Column(db.Text)  # Example code for this step
-    expected_output = db.Column(db.Text)  # Expected output/behavior for this step
-    hint = db.Column(db.Text)  # Optional hint for this step
-
-    # Relationships
-    activity = db.relationship('CodingActivity', back_populates='tutorial_steps')
-    progress = db.relationship('TutorialProgress', back_populates='step')
-
-class TutorialProgress(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    step_id = db.Column(db.Integer, db.ForeignKey('tutorial_step.id'), nullable=False)
-    completed = db.Column(db.Boolean, default=False)
-    started_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
-    attempts = db.Column(db.Integer, default=0)
-
-    # Relationships
-    student = db.relationship('Student', back_populates='tutorial_progress')
-    step = db.relationship('TutorialStep', back_populates='progress')
