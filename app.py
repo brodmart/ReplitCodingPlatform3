@@ -6,15 +6,13 @@ from compiler_service import compile_and_run
 from database import db
 from models import (
     Student, Achievement, StudentAchievement, CodeSubmission, 
-    SharedCode, CodingActivity, StudentProgress
+    SharedCode, CodingActivity, StudentProgress, TutorialStep, TutorialProgress
 )
 from sqlalchemy import desc
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 from datetime import datetime
-from forms import LoginForm, RegisterForm
-from PIL import Image
-from werkzeug.utils import secure_filename
+from forms import LoginForm, RegisterForm, ProfileForm # Assuming ProfileForm exists
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -1139,3 +1137,132 @@ def profile():
         form.email.data = current_user.email
         form.bio.data = current_user.bio
     return render_template('profile.html', form=form)
+
+@app.route('/tutorial/<int:activity_id>')
+@app.route('/tutorial/<int:activity_id>/<int:step>')
+@login_required
+def tutorial(activity_id, step=1):
+    activity = CodingActivity.query.get_or_404(activity_id)
+
+    # Get all tutorial steps for this activity
+    tutorial_steps = TutorialStep.query.filter_by(activity_id=activity_id).order_by(TutorialStep.step_number).all()
+    if not tutorial_steps:
+        flash('Ce tutoriel n\'a pas encore d\'étapes définies.', 'warning')
+        return redirect(url_for('view_activity', activity_id=activity_id))
+
+    # Validate step number
+    total_steps = len(tutorial_steps)
+    if step < 1 or step > total_steps:
+        return redirect(url_for('tutorial', activity_id=activity_id, step=1))
+
+    # Get current step
+    current_tutorial_step = tutorial_steps[step - 1]
+
+    # Get or create progress for this step
+    progress = TutorialProgress.query.filter_by(
+        student_id=current_user.id,
+        step_id=current_tutorial_step.id
+    ).first()
+
+    if not progress:
+        progress = TutorialProgress(
+            student_id=current_user.id,
+            step_id=current_tutorial_step.id
+        )
+        db.session.add(progress)
+        db.session.commit()
+
+    # Determine if we should show hint
+    show_hint = request.args.get('hint', '').lower() == 'true'
+
+    # Check if current step is completed
+    step_completed = progress.completed
+
+    # Determine if there are previous/next steps
+    prev_step = step > 1
+    next_step = step < total_steps
+
+    return render_template('tutorial.html',
+                         activity=activity,
+                         current_step=step,
+                         total_steps=total_steps,
+                         current_tutorial_step=current_tutorial_step,
+                         show_hint=show_hint,
+                         step_completed=step_completed,
+                         prev_step=prev_step,
+                         next_step=next_step)
+
+@app.route('/tutorial/<int:activity_id>/<int:step>/verify', methods=['POST'])
+@login_required
+def verify_tutorial_step(activity_id, step):
+    activity = CodingActivity.query.get_or_404(activity_id)
+    tutorial_step = TutorialStep.query.filter_by(
+        activity_id=activity_id,
+        step_number=step
+    ).first_or_404()
+
+    code = request.json.get('code', '')
+    if not code:
+        return jsonify({'success': False, 'message': 'No code provided'})
+
+    # Get progress
+    progress = TutorialProgress.query.filter_by(
+        student_id=current_user.id,
+        step_id=tutorial_step.id
+    ).first()
+
+    if not progress:
+        return jsonify({'success': False, 'message': 'Progress not found'})
+
+    # Increment attempts
+    progress.attempts += 1
+
+    # Execute code
+    result = compile_and_run(
+        code=code,
+        language=activity.language,
+        input_data=None  # You might want to add specific test inputs for tutorial steps
+    )
+
+    # Verify output matches expected output
+    success = False
+    if result.get('success'):
+        output = result.get('output', '').strip()
+        expected = tutorial_step.expected_output.strip()
+        success = output == expected
+
+        if success:
+            progress.completed = True
+            progress.completed_at = datetime.utcnow()
+
+            # Check if all steps are completed
+            all_steps = TutorialStep.query.filter_by(activity_id=activity_id).all()
+            all_completed = all(
+                TutorialProgress.query.filter_by(
+                    student_id=current_user.id,
+                    step_id=step.id,
+                    completed=True
+                ).first() for step in all_steps
+            )
+
+            if all_completed:
+                # Mark activity as completed
+                activity_progress = StudentProgress.query.filter_by(
+                    student_id=current_user.id,
+                    activity_id=activity_id
+                ).first()
+
+                if activity_progress:
+                    activity_progress.completed = True
+                    activity_progress.completed_at = datetime.utcnow()
+
+                # Award points
+                current_user.score += activity.points
+                flash(f'Félicitations! Vous avez terminé le tutoriel et gagné {activity.points} points!')
+
+    db.session.commit()
+
+    return jsonify({
+        'success': success,
+        'message': 'Step completed successfully!' if success else 'Output does not match expected result'
+    })
