@@ -7,7 +7,7 @@ class Student(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256))
-    score = db.Column(db.Integer, default=0)  # New field for leaderboard
+    score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -18,13 +18,25 @@ class Student(UserMixin, db.Model):
     def successful_submissions(self):
         return len([s for s in self.submissions if s.success])
 
+    @property
+    def achievements_by_category(self):
+        """Group achievements by category"""
+        categories = {}
+        for sa in self.achievements:
+            category = sa.achievement.category
+            if category not in categories:
+                categories[category] = []
+            categories[category].append(sa.achievement)
+        return categories
+
 class Achievement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.String(500), nullable=False)
-    criteria = db.Column(db.String(200), nullable=False)  # e.g., "submit_count:10"
-    badge_icon = db.Column(db.String(200))  # Path to badge icon
-    points = db.Column(db.Integer, default=10)  # New field for achievement points
+    criteria = db.Column(db.String(200), nullable=False)
+    badge_icon = db.Column(db.String(200))
+    points = db.Column(db.Integer, default=10)
+    category = db.Column(db.String(50), nullable=False, default='beginner')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships

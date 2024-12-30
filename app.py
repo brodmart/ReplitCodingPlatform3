@@ -62,6 +62,20 @@ def check_achievements(student, submission):
                     db.session.add(new_achievement)
                     awarded = True
                     flash(f'Achievement Unlocked: {achievement.name}!')
+            elif criterion == 'error_fixes': #Added for new achievement criteria
+                error_fixes = CodeSubmission.query.filter_by(student_id=student.id, success=False).count()
+                if error_fixes >= value:
+                    new_achievement = StudentAchievement(student_id=student.id, achievement_id=achievement.id)
+                    db.session.add(new_achievement)
+                    awarded = True
+                    flash(f'Achievement Unlocked: {achievement.name}!')
+            elif criterion == 'languages': #Added for new achievement criteria
+                languages = set(s.language for s in CodeSubmission.query.filter_by(student_id=student.id))
+                if len(languages) >= value:
+                    new_achievement = StudentAchievement(student_id=student.id, achievement_id=achievement.id)
+                    db.session.add(new_achievement)
+                    awarded = True
+                    flash(f'Achievement Unlocked: {achievement.name}!')
 
     if awarded:
         db.session.commit()
@@ -130,26 +144,56 @@ def leaderboard():
 # Create initial achievements
 def create_initial_achievements():
     achievements = [
+        # Beginner Tier
         {
-            'name': 'First Code',
-            'description': 'Submit your first code',
+            'name': 'First Steps',
+            'description': 'Write and execute your first program',
             'criteria': 'submit_count:1',
-            'badge_icon': 'bi-1-circle',
-            'points': 10
+            'badge_icon': 'bi-1-circle-fill text-success',
+            'points': 10,
+            'category': 'beginner'
         },
+        {
+            'name': 'Quick Learner',
+            'description': 'Submit 5 successful programs',
+            'criteria': 'submit_count:5',
+            'badge_icon': 'bi-lightning-fill text-warning',
+            'points': 25,
+            'category': 'beginner'
+        },
+        # Intermediate Tier
         {
             'name': 'Code Warrior',
-            'description': 'Submit 10 code snippets',
+            'description': 'Submit 10 successful programs',
             'criteria': 'submit_count:10',
-            'badge_icon': 'bi-trophy',
-            'points': 50
+            'badge_icon': 'bi-trophy-fill text-info',
+            'points': 50,
+            'category': 'intermediate'
         },
         {
+            'name': 'Bug Hunter',
+            'description': 'Fix and resubmit 5 programs that had errors',
+            'criteria': 'error_fixes:5',
+            'badge_icon': 'bi-bug-fill text-danger',
+            'points': 75,
+            'category': 'intermediate'
+        },
+        # Advanced Tier
+        {
             'name': 'Code Master',
-            'description': 'Submit 50 code snippets',
+            'description': 'Submit 50 successful programs',
             'criteria': 'submit_count:50',
-            'badge_icon': 'bi-star-fill',
-            'points': 100
+            'badge_icon': 'bi-star-fill text-warning',
+            'points': 100,
+            'category': 'advanced'
+        },
+        {
+            'name': 'Polyglot',
+            'description': 'Successfully write programs in both C++ and C#',
+            'criteria': 'languages:2',
+            'badge_icon': 'bi-code-square text-primary',
+            'points': 150,
+            'category': 'advanced'
         }
     ]
 

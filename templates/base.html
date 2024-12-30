@@ -29,12 +29,20 @@
                 </ul>
                 <div class="achievements-container me-3">
                     {% if current_user.is_authenticated %}
-                        {% if achievements %}
-                            {% for achievement in achievements %}
-                            <span class="badge bg-success me-1" data-bs-toggle="tooltip" title="{{ achievement.description }}">
-                                <i class="bi {{ achievement.badge_icon }}"></i>
-                                {{ achievement.name }}
-                            </span>
+                        {% if current_user.achievements_by_category %}
+                            {% for category, achievements in current_user.achievements_by_category.items() %}
+                            <div class="achievement-category d-inline-block me-2">
+                                <span class="badge bg-secondary text-uppercase small">{{ category }}</span>
+                                {% for achievement in achievements %}
+                                <span class="badge bg-dark border border-light me-1" 
+                                      data-bs-toggle="tooltip" 
+                                      data-bs-placement="bottom"
+                                      title="{{ achievement.description }} ({{ achievement.points }} points)">
+                                    <i class="bi {{ achievement.badge_icon }}"></i>
+                                    <span class="d-none d-md-inline">{{ achievement.name }}</span>
+                                </span>
+                                {% endfor %}
+                            </div>
                             {% endfor %}
                         {% else %}
                             <span class="badge bg-secondary me-1">
