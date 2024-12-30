@@ -1237,3 +1237,53 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+# Add these routes after the existing routes
+
+@app.route('/validate_code', methods=['POST'])
+def validate_code():
+    """
+    Validate code syntax in real-time and provide bilingual feedback
+    """
+    code = request.json.get('code', '')
+    language = request.json.get('language', '')
+    activity_id = request.json.get('activity_id')
+
+    if not code or not language:
+        return jsonify({'errors': []})
+
+    errors = []
+
+    # Basic syntax validation for C++
+    if language == 'cpp':
+        # Check for missing semicolons
+        if ';' not in code:
+            errors.append({
+                'message_fr': 'Il manque des points-virgules dans votre code',
+                'message_en': 'Missing semicolons in your code'
+            })
+
+        # Check for missing includes
+        if '#include' not in code:
+            errors.append({
+                'message_fr': 'N\'oubliez pas d\'inclure les bibliothèques nécessaires',
+                'message_en': 'Don\'t forget to include necessary libraries'
+            })
+
+        # Check for main function
+        if 'main' not in code:
+            errors.append({
+                'message_fr': 'La fonction main() est requise',
+                'message_en': 'The main() function is required'
+            })
+
+        # Check for matching braces
+        if code.count('{') != code.count('}'):
+            errors.append({
+                'message_fr': 'Vérifiez vos accolades - il en manque une ou plusieurs',
+                'message_en': 'Check your braces - some are missing'
+            })
+
+    return jsonify({
+        'errors': errors
+    })

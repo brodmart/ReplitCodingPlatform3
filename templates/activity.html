@@ -2,11 +2,42 @@
 
 {% block extra_head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+<style>
+.syntax-helper {
+    position: fixed;
+    right: 20px;
+    top: 80px;
+    width: 300px;
+    z-index: 1000;
+    display: none;
+}
+
+.syntax-helper.show {
+    display: block;
+}
+
+.real-time-feedback {
+    margin-top: 10px;
+    padding: 10px;
+    border-left: 4px solid;
+}
+
+.feedback-error {
+    border-color: #dc3545;
+    background-color: #f8d7da;
+}
+
+.feedback-success {
+    border-color: #28a745;
+    background-color: #d4edda;
+}
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
+        <!-- Left panel with activity details -->
         <div class="col-12 col-lg-4 mb-4">
             <div class="card">
                 <div class="card-header">
@@ -27,6 +58,23 @@
 
                     <h5>Instructions</h5>
                     <p>{{ activity.instructions }}</p>
+
+                    <button class="btn btn-info mb-3" onclick="toggleSyntaxHelper()">
+                        <i class="bi bi-lightbulb"></i> Aide Syntaxe
+                    </button>
+
+                    <!-- Syntax Helper Popup -->
+                    <div class="card syntax-helper" id="syntaxHelper">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Guide de Syntaxe</h5>
+                            <button type="button" class="btn-close" onclick="toggleSyntaxHelper()"></button>
+                        </div>
+                        <div class="card-body">
+                            <div class="syntax-content">
+                                <!-- Dynamic content will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
 
                     {% if activity.hints %}
                     <h5>Indices</h5>
@@ -67,6 +115,7 @@
             </div>
         </div>
 
+        <!-- Right panel with code editor -->
         <div class="col-12 col-lg-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
@@ -82,6 +131,9 @@
                 </div>
                 <div class="card-body">
                     <div id="editor" style="height: 400px; border: 1px solid var(--bs-border-color);"></div>
+
+                    <!-- Real-time feedback section -->
+                    <div id="realTimeFeedback" class="mt-3"></div>
 
                     <div class="mt-4">
                         <h5>Résultats des Tests</h5>
@@ -109,6 +161,13 @@ require(['vs/editor/editor.main'], function() {
         theme: 'vs-dark',
         minimap: { enabled: false },
         automaticLayout: true
+    });
+
+    // Real-time syntax validation
+    let validationTimeout;
+    editor.onKeyUp(() => {
+        clearTimeout(validationTimeout);
+        validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
     });
 
     document.getElementById('resetButton').addEventListener('click', function() {
@@ -161,5 +220,50 @@ require(['vs/editor/editor.main'], function() {
         }
     });
 });
+
+// Toggle syntax helper
+function toggleSyntaxHelper() {
+    const helper = document.getElementById('syntaxHelper');
+    helper.classList.toggle('show');
+}
+
+// Real-time code validation
+async function validateCode(code) {
+    try {
+        const response = await fetch('/validate_code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: code,
+                language: '{{ activity.language }}',
+                activity_id: {{ activity.id }}
+            })
+        });
+
+        const result = await response.json();
+        const feedbackDiv = document.getElementById('realTimeFeedback');
+
+        if (result.errors.length > 0) {
+            feedbackDiv.innerHTML = `
+                <div class="real-time-feedback feedback-error">
+                    <h6><i class="bi bi-exclamation-triangle"></i> Erreurs détectées:</h6>
+                    <ul class="mb-0">
+                        ${result.errors.map(error => `<li>${error.message_fr}<br><small class="text-muted">${error.message_en}</small></li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        } else {
+            feedbackDiv.innerHTML = `
+                <div class="real-time-feedback feedback-success">
+                    <i class="bi-check-circle"></i> La syntaxe semble correcte!
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error validating code:', error);
+    }
+}
 </script>
 {% endblock %}
