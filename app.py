@@ -474,6 +474,7 @@ def create_initial_activities():
         return
 
     activities = [
+        # TEJ2O C++ Activities
         {
             'title': 'Bonjour le monde!',
             'description': 'Introduction à la programmation C++ avec une sortie simple.',
@@ -534,10 +535,10 @@ def create_initial_activities():
             ],
             'points': 20
         },
-        # Activities for ICS3U (C#)
+        # ICS3U C# Activities
         {
             'title': 'Premiers pas en C#',
-            'description': 'Écrivez votre premier programme C# qui affiche "Bonjour le monde!"',
+            'description': 'Introduction à la programmation C# avec une sortie simple.',
             'difficulty': 'beginner',
             'curriculum': 'ICS3U',
             'language': 'csharp',
