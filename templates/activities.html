@@ -7,27 +7,31 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="mb-0">Curriculum Progress</h3>
+                    <h3 class="mb-0">Your Progress</h3>
                 </div>
                 <div class="card-body">
-                    {% for curriculum, stats in curriculum_progress.items() %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="mb-0">{{ curriculum }}</h5>
-                            <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activities</span>
-                        </div>
-                        <div class="progress" style="height: 20px;">
-                            <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
-                                 role="progressbar" 
-                                 style="width: {{ stats.percentage }}%"
-                                 aria-valuenow="{{ stats.percentage }}" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                {{ stats.percentage|round|int }}%
+                    {% if curriculum_progress %}
+                        {% for curriculum, stats in curriculum_progress.items() %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">{{ curriculum }}</h5>
+                                <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activities</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ stats.percentage }}%"
+                                     aria-valuenow="{{ stats.percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ stats.percentage|round|int }}%
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {% endfor %}
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-center mb-0">Start completing activities to track your progress!</p>
+                    {% endif %}
                 </div>
             </div>
         </div>

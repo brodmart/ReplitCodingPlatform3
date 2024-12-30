@@ -325,22 +325,20 @@ def list_activities():
 
         # Calculate curriculum progress
         for curriculum in ['TEJ2O', 'ICS3U']:
-            curriculum_activities = [
-                activity 
-                for (curr, _), acts in grouped_activities.items()
-                if curr == curriculum
-                for activity in acts
-            ]
-            completed = sum(
-                1 for activity in curriculum_activities
-                if progress.get(activity.id) and progress[activity.id].completed
-            )
+            curriculum_activities = CodingActivity.query.filter_by(curriculum=curriculum).all()
+            completed = StudentProgress.query.filter(
+                StudentProgress.student_id == current_user.id,
+                StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
+                StudentProgress.completed == True
+            ).count()
             total = len(curriculum_activities)
-            curriculum_progress[curriculum] = {
-                'completed': completed,
-                'total': total,
-                'percentage': (completed / total * 100) if total > 0 else 0
-            }
+
+            if total > 0:  # Avoid division by zero
+                curriculum_progress[curriculum] = {
+                    'completed': completed,
+                    'total': total,
+                    'percentage': (completed / total * 100)
+                }
 
         # Add logging for debugging
         logging.debug(f"Current User: {current_user.id}")
