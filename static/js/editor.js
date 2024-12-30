@@ -6,15 +6,12 @@ require.config({
     }
 });
 
-// Initialize Monaco editor with language features
 require(['vs/editor/editor.main'], function() {
-    // Configure language features
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: true,
         noSyntaxValidation: true
     });
 
-    // Create editor instance
     editor = monaco.editor.create(document.getElementById('editor'), {
         value: getDefaultCode('cpp'),
         language: 'cpp',
@@ -30,56 +27,38 @@ require(['vs/editor/editor.main'], function() {
             top: 10,
             bottom: 10
         },
-        // Enhanced editor features
         formatOnType: true,
         formatOnPaste: true,
         autoIndent: 'full',
         bracketPairColorization: {
             enabled: true
         },
-        // Language specific features
         suggestOnTriggerCharacters: true,
         wordBasedSuggestions: true,
-        // Code folding
         folding: true,
         foldingStrategy: 'indentation',
-        // Line numbers
         lineNumbers: true,
         lineDecorationsWidth: 0,
-        // Rendering
         renderControlCharacters: true,
         roundedSelection: false,
-        // Tab completion
         tabCompletion: 'on',
-        // Auto closing
         autoClosingBrackets: 'always',
         autoClosingQuotes: 'always'
     });
 
-    // Language change handler with improved state management
     document.getElementById('languageSelect').addEventListener('change', function(e) {
         const language = e.target.value;
         const currentState = editor.saveViewState();
-
-        // Update editor model with new language
         const model = editor.getModel();
         monaco.editor.setModelLanguage(model, language);
-
-        // Update content with default code while preserving state
         editor.setValue(getDefaultCode(language));
-
-        // Restore view state if possible
         if (currentState) {
             editor.restoreViewState(currentState);
         }
-
         editor.focus();
     });
 
-    // Run button handler
     document.getElementById('runButton').addEventListener('click', executeCode);
-
-    // Add share button handler
     document.getElementById('shareButton').addEventListener('click', shareCode);
 });
 
@@ -88,7 +67,7 @@ function getDefaultCode(language) {
         return `#include <iostream>
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    std::cout << "Bonjour le monde!" << std::endl;
     return 0;
 }`;
     } else if (language === 'csharp') {
@@ -96,7 +75,7 @@ int main() {
 
 class Program {
     static void Main() {
-        Console.WriteLine("Hello, World!");
+        Console.WriteLine("Bonjour le monde!");
     }
 }`;
     }
@@ -109,7 +88,7 @@ async function executeCode() {
 
     try {
         runButton.disabled = true;
-        runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+        runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Exécution...';
 
         const response = await fetch('/execute', {
             method: 'POST',
@@ -125,15 +104,15 @@ async function executeCode() {
         const result = await response.json();
 
         if (result.error) {
-            output.innerHTML = `<span style="color: var(--bs-danger)">Error:\n${result.error}</span>`;
+            output.innerHTML = `<span style="color: var(--bs-danger)">Erreur:\n${result.error}</span>`;
         } else {
-            output.innerHTML = result.output || 'Program executed successfully with no output.';
+            output.innerHTML = result.output || 'Programme exécuté avec succès sans sortie.';
         }
     } catch (error) {
-        output.innerHTML = `<span style="color: var(--bs-danger)">Error: ${error.message}</span>`;
+        output.innerHTML = `<span style="color: var(--bs-danger)">Erreur: ${error.message}</span>`;
     } finally {
         runButton.disabled = false;
-        runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
+        runButton.innerHTML = '<i class="bi bi-play-fill"></i> Exécuter';
     }
 }
 
@@ -144,7 +123,7 @@ async function shareCode() {
 
     try {
         shareButton.disabled = true;
-        shareButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sharing...';
+        shareButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Partage...';
 
         const response = await fetch('/share', {
             method: 'POST',
@@ -154,7 +133,7 @@ async function shareCode() {
             body: JSON.stringify({
                 code: code,
                 language: language,
-                title: 'Shared Code',
+                title: 'Code Partagé',
                 description: '',
                 is_public: true
             })
@@ -163,21 +142,19 @@ async function shareCode() {
         const result = await response.json();
 
         if (result.error) {
-            alert('Error sharing code: ' + result.error);
+            alert('Erreur lors du partage du code: ' + result.error);
         } else {
-            // Copy share URL to clipboard
             await navigator.clipboard.writeText(result.share_url);
-            alert('Code shared successfully! Link copied to clipboard.');
+            alert('Code partagé avec succès! Lien copié dans le presse-papiers.');
         }
     } catch (error) {
-        alert('Error sharing code: ' + error.message);
+        alert('Erreur lors du partage du code: ' + error.message);
     } finally {
         shareButton.disabled = false;
-        shareButton.innerHTML = '<i class="bi bi-share"></i> Share';
+        shareButton.innerHTML = '<i class="bi bi-share"></i> Partager';
     }
 }
 
-// Handle window resize
 window.addEventListener('resize', function() {
     if (editor) {
         editor.layout();

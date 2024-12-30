@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="dark">
+<html lang="fr" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Online Code Editor</title>
+    <title>Éditeur de Code en Ligne</title>
     <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -12,29 +12,29 @@
 <body>
     <nav class="navbar navbar-expand-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Code Editor</a>
+            <a class="navbar-brand" href="{{ url_for('index') }}">Éditeur de Code</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarContent">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Editor</a>
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Éditeur</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'list_activities' %}active{% endif %}" href="{{ url_for('list_activities') }}">
-                            <i class="bi bi-book"></i> Activities
+                            <i class="bi bi-book"></i> Activités
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'leaderboard' %}active{% endif %}" href="{{ url_for('leaderboard') }}">
-                            <i class="bi bi-trophy"></i> Leaderboard
+                            <i class="bi bi-trophy"></i> Classement
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'my_shared_codes' %}active{% endif %}" href="{{ url_for('my_shared_codes') }}">
-                            <i class="bi bi-share"></i> My Shared Code
+                            <i class="bi bi-share"></i> Mes Codes Partagés
                         </a>
                     </li>
                     {% endif %}
@@ -53,13 +53,13 @@
                         {% else %}
                             <span class="badge bg-secondary me-1">
                                 <i class="bi bi-trophy"></i>
-                                No achievements yet
+                                Pas encore de réalisations
                             </span>
                         {% endif %}
                     {% else %}
                         <span class="badge bg-info me-1">
                             <i class="bi bi-person"></i>
-                            Sign in to track achievements
+                            Connectez-vous pour suivre vos réalisations
                         </span>
                     {% endif %}
                 </div>
