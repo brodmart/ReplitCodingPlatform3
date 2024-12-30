@@ -16,4 +16,5 @@ dependencies = [
     "pillow>=11.0.0",
     "wtforms>=3.2.1",
     "flask-migrate>=4.0.7",
+    "trafilatura>=2.0.0",
 ]

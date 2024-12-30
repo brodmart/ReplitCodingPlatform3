@@ -545,7 +545,14 @@ def create_initial_achievements():
 
 def create_initial_activities():
     """Initialize database with coding activities"""
+    # First remove all related records in correct order to maintain referential integrity
+    TutorialProgress.query.delete()
+    TutorialStep.query.delete()
+    StudentProgress.query.delete()
+    CodingActivity.query.delete()
+
     activities = [
+        # TEJ2O C++ Activities
         {
             'title': 'Bonjour le monde!',
             'description': 'Introduction à la programmation C++ avec une sortie simple.',
@@ -563,57 +570,480 @@ def create_initial_activities():
                 'Terminez avec return 0'
             ],
             'points': 10
+        },
+        {
+            'title': 'Saisie Utilisateur',
+            'description': 'Apprendre à recevoir et traiter les entrées utilisateur en C++.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 2,
+            'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et affiche un message de bienvenue personnalisé.',
+            'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    std::cout << "Entrez votre nom: ";\n    std::getline(std::cin, nom);\n    std::cout << "Bonjour, " << nom << "!" << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': 'Marie\n', 'output': 'Entrez votre nom: Bonjour, Marie!'},
+                {'input': 'Pierre\n', 'output': 'Entrez votre nom: Bonjour, Pierre!'}
+            ],
+            'hints': [
+                'Utilisez std::string pour stocker le texte',
+                'std::getline permet de lire une ligne complète',
+                'N\'oubliez pas d\'inclure la bibliothèque string'
+            ],
+            'points': 15
+        },
+        {
+            'title': 'Calculatrice Simple',
+            'description': 'Créer une calculatrice basique pour additionner deux nombres.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 3,
+            'instructions': 'Écrivez un programme qui demande deux nombres à l\'utilisateur et affiche leur somme.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int nombre1, nombre2;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int nombre1, nombre2;\n    std::cout << "Premier nombre: ";\n    std::cin >> nombre1;\n    std::cout << "Deuxième nombre: ";\n    std::cin >> nombre2;\n    std::cout << "Somme: " << nombre1 + nombre2 << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5\n3\n', 'output': 'Premier nombre: Deuxième nombre: Somme: 8'},
+                {'input': '10\n20\n', 'output': 'Premier nombre: Deuxième nombre: Somme: 30'}
+            ],
+            'hints': [
+                'Utilisez int pour les nombres entiers',
+                'L\'opérateur + additionne les nombres',
+                'Affichez chaque invite avant de lire l\'entrée'
+            ],
+            'points': 20
+        },
+        {
+            'title': 'Conditions Si-Sinon',
+            'description': 'Apprendre à utiliser les structures conditionnelles en C++.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 4,
+            'instructions': 'Créez un programme qui détermine si un nombre est positif, négatif ou zéro.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre > 0) {\n        std::cout << "Le nombre est positif" << std::endl;\n    } else if (nombre < 0) {\n        std::cout << "Le nombre est négatif" << std::endl;\n    } else {\n        std::cout << "Le nombre est zéro" << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5\n', 'output': 'Entrez un nombre: Le nombre est positif'},
+                {'input': '-3\n', 'output': 'Entrez un nombre: Le nombre est négatif'},
+                {'input': '0\n', 'output': 'Entrez un nombre: Le nombre est zéro'}
+            ],
+            'hints': [
+                'Utilisez if, else if, et else pour les conditions',
+                'Comparez le nombre avec 0',
+                'N\'oubliez pas les accolades { }'
+            ],
+            'points': 25
+        },
+        {
+            'title': 'Boucle Simple',
+            'description': 'Introduction aux boucles for en C++.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 5,
+            'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        std::cout << i << " ";\n    }\n    std::cout << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5\n', 'output': 'Entrez un nombre: 1 2 3 4 5 '},
+                {'input': '3\n', 'output': 'Entrez un nombre: 1 2 3 '}
+            ],
+            'hints': [
+                'Utilisez une boucle for',
+                'La variable i commence à 1',
+                'Affichez chaque nombre suivi d\'un espace'
+            ],
+            'points': 30
+        },
+        {
+            'title': 'Table de Multiplication',
+            'description': 'Utiliser les boucles imbriquées en C++.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 6,
+            'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= n; j++) {\n            std::cout << i * j << "\\t";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [
+                {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\t\n2\t4\t6\t\n3\t6\t9\t\n'}
+            ],
+            'hints': [
+                'Utilisez deux boucles for imbriquées',
+                'Utilisez \\t pour aligner les colonnes',
+                'Multipliez les compteurs i et j'
+            ],
+            'points': 35
+        },
+        {
+            'title': 'Calcul de Moyenne',
+            'description': 'Travailler avec les tableaux en C++.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 7,
+            'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double somme = 0;\n    for (int i = 1; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        somme += nombre;\n    }\n    \n    std::cout << "Moyenne: " << somme/n << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': '3\n10\n20\n30\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Moyenne: 20'}
+            ],
+            'hints': [
+                'Utilisez une boucle pour lire les nombres',
+                'Gardez une variable pour la somme',
+                'Divisez la somme par n pour la moyenne'
+            ],
+            'points': 40
+        },
+        {
+            'title': 'Plus Grand Nombre',
+            'description': 'Travailler avec les conditions et les boucles.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 8,
+            'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double max;\n    std::cout << "Nombre 1: ";\n    std::cin >> max;\n    \n    for (int i = 2; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        if (nombre > max) {\n            max = nombre;\n        }\n    }\n    \n    std::cout << "Le plus grand nombre est: " << max << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': '4\n5\n8\n2\n10\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Nombre 4: Le plus grand nombre est: 10'}
+            ],
+            'hints': [
+                'Initialisez max avec le premier nombre',
+                'Comparez chaque nouveau nombre avec max',
+                'Mettez à jour max si nécessaire'
+            ],
+            'points': 45
+        },
+        {
+            'title': 'Calculatrice de Factorielle',
+            'description': 'Introduction aux fonctions en C++.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 9,
+            'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
+            'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        stdcout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! = " << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
+                {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
+            ],
+            'hints': [
+                'Utilisez la récursion ou une boucle',
+                'N\'oubliez pas le cas de base (0! = 1)',
+                'Attention aux nombres négatifs'
+            ],
+            'points': 50
+        },
+        {
+            'title': 'Générateur de Motifs',
+            'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 10,
+            'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    std::cout << "Hauteur du triangle: ";\n    std::cin >> hauteur;\n    \n    for (int i = 1; i <= hauteur; i++) {\n        // Espaces\n        for (int j = 1; j <= hauteur - i; j++) {\n            std::cout << " ";\n        }\n        // Étoiles\n        for (int j = 1; j <= 2*i - 1; j++) {\n            std::cout << "*";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [
+                {'input': '3\n', 'output': 'Hauteur du triangle:   *\n **\n***\n'}
+            ],
+            'hints': [
+                'Utilisez des boucles imbriquées',
+                'Calculez les espaces et étoiles nécessaires',
+                'La ligne i a 2*i - 1 étoiles'
+            ],
+            'points': 55
+        },
+        # ICS3U C# Activities
+        {
+            'title': 'Gestion des Étudiants',
+            'description': 'Créer une application de gestion des étudiants avec des structures de données.',
+            'difficulty': 'intermediate',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 1,
+            'instructions': 'Créez une application qui gère une liste d\'étudiants avec leurs notes.',
+            'starter_code': '''using System;
+using System.Collections.Generic;
+
+class Programme {
+    static void Main() {
+        List<string> noms = new List<string>();
+        List<double> notes = new List<double>();
+        // Votre code ici
+    }
+}''',
+            'solution_code': '''using System;
+using System.Collections.Generic;
+
+class Programme {
+    static void Main() {
+        List<string> noms = new List<string>();
+        List<double> notes = new List<double>();
+
+        Console.Write("Nombre d'étudiants: ");
+        int n = Convert.ToInt32(Console.ReadLine());
+
+        for (int i = 0; i < n; i++) {
+            Console.Write($"Nom de l'étudiant {i+1}: ");
+            noms.Add(Console.ReadLine());
+            Console.Write($"Note: ");
+            notes.Add(Convert.ToDouble(Console.ReadLine()));
+        }
+
+        double moyenne = 0;
+        for (int i = 0; i < n; i++) {
+            moyenne += notes[i];
+        }
+        moyenne /= n;
+
+        Console.WriteLine($"Moyenne de la classe: {moyenne:F2}");
+
+        for (int i = 0; i < n; i++) {
+            if (notes[i] > moyenne) {
+                Console.WriteLine($"{noms[i]} est au-dessus de la moyenne");
+            }
+        }
+    }
+}''',
+            'test_cases': [
+                {'input': '3\nAlice\n85\nBob\n92\nCarol\n78\n',
+                 'output': 'Nombre d\'étudiants: Nom de l\'étudiant 1: Note: Nom de l\'étudiant 2: Note: Nom de l\'étudiant 3: Note: Moyenne de la classe: 85.00\nAlice est au-dessus de la moyenne\nBob est au-dessus de la moyenne'}
+            ],
+            'hints': [
+                'Utilisez List<T> pour stocker les données',
+                'Convert.ToDouble pour les notes',
+                'Utilisez une boucle pour calculer la moyenne'
+            ],
+            'points': 60
+        },
+        {
+            'title': 'Liste Chaînée Simple',
+            'description': 'Implémenter une structure de données de liste chaînée.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 2,
+            'instructions': 'Créez une implémentation simple d\'une liste chaînée.',
+            'starter_code': '''using System;
+
+class Node {
+    public int Data;
+    public Node Next;
+
+    public Node(int data) {
+        Data = data;
+        Next = null;
+    }
+}
+
+class LinkedList {
+    private Node head;
+
+    // Implémentez les méthodes ici
+}
+
+class Programme {
+    static void Main() {
+        LinkedList liste = new LinkedList();
+        // Votre code ici
+    }
+}''',
+            'solution_code': '''using System;
+
+class Node {
+    public int Data;
+    public Node Next;
+
+    public Node(int data) {
+        Data = data;
+        Next = null;
+    }
+}
+
+class LinkedList {
+    private Node head;
+
+    public void Add(int data) {
+        Node newNode = new Node(data);
+        if (head == null) {
+            head = newNode;
+            return;
+        }
+
+        Node current = head;
+        while (current.Next != null) {
+            current = current.Next;
+        }
+        current.Next = newNode;
+    }
+
+    public void Print() {
+        Node current = head;
+        while (current != null) {
+            Console.Write(current.Data + " ");
+            current = current.Next;
+        }
+        Console.WriteLine();
+    }
+}
+
+class Programme {
+    static void Main() {
+        LinkedList liste = new LinkedList();
+        Console.Write("Nombre d'éléments: ");
+        int n = Convert.ToInt32(Console.ReadLine());
+
+        for (int i = 0; i < n; i++) {
+            Console.Write($"Élément {i+1}: ");
+            int valeur = Convert.ToInt32(Console.ReadLine());
+            liste.Add(valeur);
+        }
+
+        Console.Write("Liste: ");
+        liste.Print();
+    }
+}''',
+            'test_cases': [
+                {'input': '4\n10\n20\n30\n40\n',
+                 'output': 'Nombre d\'éléments: Élément 1: Élément 2: Élément 3: Élément 4: Liste: 10 20 30 40 '}
+            ],
+            'hints': [
+                'Utilisez une classe Node pour chaque élément',
+                'Gardez une référence vers le premier nœud (head)',
+                'Parcourez la liste pour ajouter à la fin'
+            ],
+            'points': 70
+        },
+        {
+            'title': 'Gestionnaire de Tâches',
+            'description': 'Créer un gestionnaire de tâches simple avec priorités.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 3,
+            'instructions': 'Implémentez un gestionnaire de tâches avec priorités.',
+            'starter_code': '''using System;
+using System.Collections.Generic;
+
+class Tache {
+    public string Description { get; set; }
+    public int Priorite { get; set; }
+
+    public Tache(string description, int priorite) {
+        Description = description;
+        Priorite = priorite;
+    }
+}
+
+class Programme {
+    static void Main() {
+        List<Tache> taches = new List<Tache>();
+        // Votre code ici
+    }
+}''',
+            'solution_code': '''using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Tache {
+    public string Description { get; set; }
+    public int Priorite { get; set; }
+
+    public Tache(string description, int priorite) {
+        Description = description;
+        Priorite = priorite;
+    }
+}
+
+class Programme {
+    static void Main() {
+        List<Tache> taches = new List<Tache>();
+
+        Console.Write("Nombre de tâches: ");
+        int n = Convert.ToInt32(Console.ReadLine());
+
+        for (int i = 0; i < n; i++) {
+            Console.Write($"Description de la tâche {i+1}: ");
+            string description = Console.ReadLine();
+            Console.Write("Priorité (1-5): ");
+            int priorite = Convert.ToInt32(Console.ReadLine());
+            taches.Add(new Tache(description, priorite));
+        }
+
+        var tachesTriees = taches.OrderByDescending(t => t.Priorite).ToList();
+
+        Console.WriteLine("\nTâches par priorité:");
+        foreach (var tache in tachesTriees) {
+            Console.WriteLine($"[Priorité {tache.Priorite}] {tache.Description}");
+        }
+    }
+}''',
+            'test_cases': [
+                {'input': '3\nÉtudier\n5\nJouer\n1\nDormir\n3\n',
+                 'output': 'Nombre de tâches: Description de la tâche 1: Priorité (1-5): Description de la tâche 2: Priorité (1-5): Description de la tâche 3: Priorité (1-5): \nTâches par priorité:\n[Priorité 5] Étudier\n[Priorité 3] Dormir\n[Priorité 1] Jouer'}
+            ],
+            'hints': [
+                'Utilisez une classe pour représenter les tâches',
+                'OrderByDescending pour trier par priorité',
+                'Utilisez les propriétés auto-implémentées'
+            ],
+            'points': 80
         }
     ]
 
-    # Remove records in correct order to maintain referential integrity
-    TutorialProgress.query.delete()
-    TutorialStep.query.delete()
-    StudentProgress.query.delete()
-    CodingActivity.query.delete()
-
-    # Create activities
+    # Create activities one by one, with their tutorial steps
     for activity_data in activities:
-        activity = CodingActivity(**activity_data)
+        # Create activity first
+        activity = CodingActivity(**{
+            k: v for k, v in activity_data.items() 
+            if k not in ['test_cases', 'hints']  # Exclude JSON fields
+        })
+        activity.test_cases = activity_data['test_cases']
+        activity.hints = activity_data.get('hints', [])
+
         db.session.add(activity)
         db.session.commit()  # Commit to get activity.id
 
-        # Add tutorial steps
-        step1 = TutorialStep(
-            activity=activity,
-            step_number=1,
-            title="Introduction aux conditions",
-            content="Dans cette étape, nous allons apprendre à utiliser les conditions if-else en C#.",
-            code_snippet="if (condition) {\n    // code si vrai\n} else {\n    // code si faux\n}",
-            expected_output="",
-            hint="Les conditions permettent à votre programme de prendre des décisions."
-        )
+        # Add tutorial steps for this activity
+        steps = [
+            {
+                'step_number': 1,
+                'title': "Comprendre l'exercice",
+                'content': f"Lisez attentivement l'énoncé: {activity.instructions}",
+                'code_snippet': activity.starter_code,
+                'expected_output': "",
+                'hint': "Prenez le temps de bien comprendre ce qui est demandé."
+            },
+            {
+                'step_number': 2,
+                'title': "Analyser les exemples",
+                'content': "Examinez les exemples de test pour comprendre le format attendu.",
+                'code_snippet': "",
+                'expected_output': activity.test_cases[0]['output'] if activity.test_cases else "",
+                'hint': "Les tests vous montrent exactement ce qui est attendu."
+            },
+            {
+                'step_number': 3,
+                'title': "Implémenter la solution",
+                'content': "Complétez le code pour résoudre l'exercice.",
+                'code_snippet': activity.starter_code,
+                'expected_output': activity.test_cases[0]['output'] if activity.test_cases else "",
+                'hint': activity.hints[0] if activity.hints else "Procédez étape par étape."
+            }
+        ]
 
-        step2 = TutorialStep(
-            activity=activity,
-            step_number=2,
-            title="Lecture des entrées",
-            content="Apprenons à lire un nombre entré par l'utilisateur.",
-            code_snippet="Console.Write(\"Entrez un nombre: \");\nint nombre = Convert.ToInt32(Console.ReadLine());",
-            expected_output="Entrez un nombre: ",
-            hint="Utilisez Console.ReadLine() pour lire l'entrée et Convert.ToInt32() pour la convertir en nombre."
-        )
+        for step_data in steps:
+            step = TutorialStep(activity=activity, **step_data)
+            db.session.add(step)
 
-        step3 = TutorialStep(
-            activity=activity,
-            step_number=3,
-            title="Vérification pair/impair",
-            content="Utilisons l'opérateur modulo (%) pour vérifier si un nombre est pair ou impair.",
-            code_snippet="if (nombre % 2 == 0) {\n    Console.WriteLine(\"Le nombre est pair.\");\n}",
-            expected_output="Le nombre est pair.",
-            hint="Un nombre est pair si sa division par 2 ne donne aucun reste."
-        )
+        db.session.commit()
 
-        db.session.add(step1)
-        db.session.add(step2)
-        db.session.add(step3)
-
-    db.session.commit()
+    logging.info(f"Created {CodingActivity.query.count()} activities")
+    logging.info(f"Created {TutorialStep.query.count()} tutorial steps")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
