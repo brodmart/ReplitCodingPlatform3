@@ -22,12 +22,10 @@ def _compile_and_run_cpp(code, temp_dir, input_data=None):
         f.write(code)
 
     try:
-        # Use absolute path for g++
-        cpp_compiler = '/nix/store/z3c7p0jw4cgkn1kxvxz0sb87kc2jxsl4-gcc-wrapper-12.3.0/bin/g++'
-
+        # Use g++ from PATH after system dependency installation
         # Compile
         compile_process = subprocess.run(
-            [cpp_compiler, str(source_file), '-o', str(executable)],
+            ['g++', str(source_file), '-o', str(executable)],
             capture_output=True,
             text=True
         )
@@ -77,13 +75,10 @@ def _compile_and_run_csharp(code, temp_dir, input_data=None):
         f.write(code)
 
     try:
-        # Use absolute path for mono-mcs
-        csharp_compiler = '/nix/store/6g6a2ixk1wv8wiv1vb0z7qi5q5jf8gqy-mono-6.12.0.182/bin/mcs'
-        mono_runtime = '/nix/store/6g6a2ixk1wv8wiv1vb0z7qi5q5jf8gqy-mono-6.12.0.182/bin/mono'
-
+        # Use mcs and mono from PATH after system dependency installation
         # Compile
         compile_process = subprocess.run(
-            [csharp_compiler, str(source_file), '-out:' + str(executable)],
+            ['mcs', str(source_file), '-out:' + str(executable)],
             capture_output=True,
             text=True
         )
@@ -97,7 +92,7 @@ def _compile_and_run_csharp(code, temp_dir, input_data=None):
 
         # Execute
         run_process = subprocess.run(
-            [mono_runtime, str(executable)],
+            ['mono', str(executable)],
             input=input_data,
             capture_output=True,
             text=True,
