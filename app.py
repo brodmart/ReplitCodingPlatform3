@@ -1,11 +1,12 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, flash
-from flask_login import LoginManager, current_user
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
+from flask_login import LoginManager, current_user, login_user
 from compiler_service import compile_and_run
 from database import db
 from models import Student, Achievement, StudentAchievement, CodeSubmission
 from sqlalchemy import desc
+from werkzeug.security import generate_password_hash
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -208,3 +209,31 @@ def create_initial_achievements():
 with app.app_context():
     db.create_all()
     create_initial_achievements()
+
+@app.route('/test-login')
+def test_login():
+    # Check if test user exists
+    test_user = Student.query.filter_by(username='test_user').first()
+    if not test_user:
+        # Create test user
+        test_user = Student(
+            username='test_user',
+            email='test@example.com',
+            password_hash=generate_password_hash('password123')
+        )
+        db.session.add(test_user)
+        db.session.commit()
+
+        # Add some test achievements
+        achievements = Achievement.query.all()
+        for achievement in achievements[:3]:  # Add first 3 achievements
+            sa = StudentAchievement(student_id=test_user.id, achievement_id=achievement.id)
+            db.session.add(sa)
+
+        db.session.commit()
+        update_student_score(test_user)
+
+    # Log in the test user
+    login_user(test_user)
+    flash('Logged in as test user')
+    return redirect(url_for('index'))
