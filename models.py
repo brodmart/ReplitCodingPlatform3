@@ -84,10 +84,16 @@ class CodingActivity(db.Model):
     test_cases = db.Column(db.JSON, nullable=False)        # JSON array of input/output pairs
     hints = db.Column(db.JSON)                            # Optional hints for students
     points = db.Column(db.Integer, default=10)
+    complexity_analysis = db.Column(db.JSON)              # Stores cognitive load, concepts, and common mistakes
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Tutorial steps for interactive guidance
-    tutorial_steps = db.relationship('TutorialStep', back_populates='activity', order_by='TutorialStep.step_number')
+    # Tutorial steps for interactive guidance, ordered by step_number
+    tutorial_steps = db.relationship(
+        'TutorialStep',
+        back_populates='activity',
+        order_by='TutorialStep.step_number',
+        cascade='all, delete-orphan'
+    )
 
     # Relationships
     student_progress = db.relationship('StudentProgress', back_populates='activity')

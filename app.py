@@ -340,7 +340,8 @@ def submit_activity(activity_id):
 @app.route('/tutorial/<int:activity_id>/<int:step>', methods=['GET'])
 def tutorial(activity_id, step):
     activity = CodingActivity.query.get_or_404(activity_id)
-    tutorial_steps = activity.tutorial_steps.order_by(TutorialStep.step_number).all()
+    # tutorial_steps are now automatically ordered by step_number
+    tutorial_steps = activity.tutorial_steps
     total_steps = len(tutorial_steps)
 
     if step < 1 or step > total_steps:
@@ -365,20 +366,21 @@ def tutorial(activity_id, step):
     next_step = current_step < total_steps
 
     return render_template('tutorial.html',
-                         activity=activity,
-                         current_step=current_step,
-                         total_steps=total_steps,
-                         current_tutorial_step=current_tutorial_step,
-                         prev_step=prev_step,
-                         next_step=next_step,
-                         show_hint=show_hint,
-                         step_completed=step_completed)
+                     activity=activity,
+                     current_step=current_step,
+                     total_steps=total_steps,
+                     current_tutorial_step=current_tutorial_step,
+                     prev_step=prev_step,
+                     next_step=next_step,
+                     show_hint=show_hint,
+                     step_completed=step_completed)
 
 @app.route('/verify_tutorial_step/<int:activity_id>/<int:step>', methods=['POST'])
 @login_required
 def verify_tutorial_step(activity_id, step):
     activity = CodingActivity.query.get_or_404(activity_id)
-    tutorial_steps = activity.tutorial_steps.order_by(TutorialStep.step_number).all()
+    # Get all tutorial steps, they are already ordered by step_number
+    tutorial_steps = activity.tutorial_steps
     current_tutorial_step = tutorial_steps[step - 1]
 
     code = request.json.get('code', '')
@@ -474,8 +476,14 @@ def create_initial_achievements():
     db.session.commit()
 
 def create_initial_activities():
-    # Add the first 5 activities (TEJ2O C++)
-    activities = [
+    # First, remove all existing activities and related records
+    TutorialProgress.query.delete()
+    TutorialStep.query.delete()
+    StudentProgress.query.delete()
+    CodingActivity.query.delete()
+
+    # C++ Activities (10 activities)
+    cpp_activities = [
         {
             'title': 'Bonjour le monde!',
             'description': 'Introduction à la programmation C++ avec une sortie simple.',
@@ -488,44 +496,50 @@ def create_initial_activities():
             'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
             'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
             'points': 10,
+            'complexity_analysis': {
+                'cognitive_load': 'low',
+                'concepts': ['basic syntax', 'iostream', 'main function'],
+                'common_mistakes': ['forgetting semicolon', 'misspelling cout']
+            },
             'tutorial_steps': [
                 {
                     'step_number': 1,
                     'title': 'Comprendre la structure de base',
-                    'content': 'Dans C++, chaque programme commence par des *includes* et une fonction principale appelée `main`.\n\nLes includes sont comme des livres de référence que votre programme peut utiliser. `iostream` contient les outils pour l\'entrée/sortie.\n\n**Erreurs courantes à éviter:**\n- Oublier le point-virgule après l\'include\n- Mal orthographier iostream\n- Oublier les chevrons < > autour de iostream',
-                    'code_snippet': '#include <iostream>\n\nint main() {\n    // Le code va ici\n    return 0;\n}',
-                    'hint': 'Regardez attentivement la syntaxe: #include doit être suivi de <iostream>'
+                    'content': 'Dans C++, chaque programme commence par des *includes* et une fonction principale appelée `main`.',
+                    'code_snippet': '#include <iostream>\n\nint main() {\n    return 0;\n}',
+                    'hint': 'Regardez la syntaxe de base'
                 },
                 {
                     'step_number': 2,
                     'title': 'Ajouter l\'instruction d\'affichage',
-                    'content': 'Pour afficher du texte, nous utilisons `std::cout` suivi de `<<`.\n\nLe `std::` indique que nous utilisons l\'espace de noms standard de C++.\n\n**Erreurs courantes à éviter:**\n- Oublier std:: avant cout\n- Utiliser des apostrophes \' \' au lieu des guillemets " "\n- Oublier << entre cout et le texte\n- Oublier le point-virgule à la fin',
-                    'code_snippet': '    std::cout << "Bonjour le monde!";',
-                    'hint': 'Pensez à la direction des flèches <<, elles pointent vers cout'
+                    'content': 'Utilisez std::cout pour afficher du texte',
+                    'code_snippet': 'std::cout << "Bonjour le monde!" << std::endl;',
+                    'hint': 'N\'oubliez pas le point-virgule'
                 }
             ]
         },
         {
-            'title': 'Variables et Types',
-            'description': 'Apprendre à utiliser les variables et les types de données en C++.',
+            'title': 'Calculatrice Simple',
+            'description': 'Créer une calculatrice simple qui effectue des opérations de base.',
             'difficulty': 'beginner',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'sequence': 2,
-            'instructions': 'Créez un programme qui déclare et utilise différents types de variables.',
-            'starter_code': '#include <iostream>\n\nint main() {\n    // Déclarez vos variables ici\n    \n    // Affichez les résultats\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nint main() {\n    int age = 16;\n    double moyenne = 85.5;\n    char grade = \'A\';\n\n    std::cout << "Age: " << age << std::endl;\n    std::cout << "Moyenne: " << moyenne << std::endl;\n    std::cout << "Note: " << grade << std::endl;\n    return 0;\n}',
-            'test_cases': [{'input': '', 'output': 'Age: 16\nMoyenne: 85.5\nNote: A'}],
+            'instructions': 'Créez une calculatrice qui peut additionner, soustraire, multiplier et diviser deux nombres.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    double a, b;\n    char operation;\n    // Votre code ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    double a, b;\n    char operation;\n    std::cout << "Entrez deux nombres et une opération (+,-,*,/): ";\n    std::cin >> a >> operation >> b;\n    \n    switch(operation) {\n        case \'+\': std::cout << a + b; break;\n        case \'-\': std::cout << a - b; break;\n        case \'*\': std::cout << a * b; break;\n        case \'/\': if(b != 0) std::cout << a / b;\n                  else std::cout << "Division par zéro!";\n                  break;\n        default: std::cout << "Opération invalide!";\n    }\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5 + 3', 'output': '8'},
+                {'input': '10 - 4', 'output': '6'},
+                {'input': '3 * 5', 'output': '15'},
+                {'input': '15 / 3', 'output': '5'}
+            ],
             'points': 15,
-            'tutorial_steps': [
-                {
-                    'step_number': 1,
-                    'title': 'Types de données de base',
-                    'content': 'En C++, il existe plusieurs types de données fondamentaux:\n- `int`: nombres entiers\n- `double`: nombres décimaux\n- `char`: caractères simples\n- `bool`: valeurs vraies/fausses\n\n**Erreurs courantes:**\n- Utiliser des virgules au lieu des points pour les décimaux\n- Ne pas initialiser les variables\n- Utiliser des guillemets " " pour les char au lieu des apostrophes \'',
-                    'code_snippet': 'int age;      // Pour l\'âge\ndouble note;   // Pour les notes\nchar grade;    // Pour les lettres de notes',
-                    'hint': 'Pensez à initialiser vos variables avec des valeurs appropriées'
-                }
-            ]
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['user input', 'switch statement', 'arithmetic operations'],
+                'common_mistakes': ['division by zero', 'incorrect operator handling']
+            }
         },
         {
             'title': 'Structures de Contrôle',
@@ -538,19 +552,31 @@ def create_initial_activities():
             'starter_code': '#include <iostream>\n\nint main() {\n    int note;\n    std::cout << "Entrez une note: ";\n    std::cin >> note;\n    \n    // Ajoutez vos conditions ici\n    \n    return 0;\n}',
             'solution_code': '#include <iostream>\n\nint main() {\n    int note;\n    std::cout << "Entrez une note: ";\n    std::cin >> note;\n    \n    if (note >= 90) {\n        std::cout << "Excellent!" << std::endl;\n    } else if (note >= 75) {\n        std::cout << "Très bien!" << std::endl;\n    } else if (note >= 60) {\n        std::cout << "Passable" << std::endl;\n    } else {\n        std::cout << "Échec" << std::endl;\n    }\n    return 0;\n}',
             'test_cases': [
-                {'input': '95', 'output': 'Entrez une note: Excellent!'},
-                {'input': '80', 'output': 'Entrez une note: Très bien!'},
-                {'input': '65', 'output': 'Entrez une note: Passable'},
-                {'input': '55', 'output': 'Entrez une note: Échec'}
+                {'input': '95', 'output': 'Excellent!'},
+                {'input': '80', 'output': 'Très bien!'},
+                {'input': '65', 'output': 'Passable'},
+                {'input': '55', 'output': 'Échec'}
             ],
             'points': 20,
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['conditional statements', 'user input', 'comparison operators'],
+                'common_mistakes': ['wrong comparison operator', 'incorrect order of conditions']
+            },
             'tutorial_steps': [
                 {
                     'step_number': 1,
                     'title': 'Structure if/else',
-                    'content': 'Les structures conditionnelles permettent à votre programme de prendre des décisions.\n\n**Erreurs courantes:**\n- Oublier les accolades { }\n- Utiliser = au lieu de == pour la comparaison\n- Mal ordonner les conditions (commencer par les plus spécifiques)',
+                    'content': 'Les structures conditionnelles permettent de prendre des décisions dans le code.',
                     'code_snippet': 'if (condition) {\n    // code si vrai\n} else {\n    // code si faux\n}',
-                    'hint': 'Commencez par la note la plus élevée et descendez progressivement'
+                    'hint': 'Commencez par la note la plus élevée'
+                },
+                {
+                    'step_number': 2,
+                    'title': 'Conditions multiples',
+                    'content': 'Utilisez else if pour tester plusieurs conditions.',
+                    'code_snippet': 'if (note >= 90) {\n    // excellent\n} else if (note >= 75) {\n    // très bien\n}',
+                    'hint': 'Vérifiez que vos conditions sont dans le bon ordre'
                 }
             ]
         },
@@ -561,53 +587,346 @@ def create_initial_activities():
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'sequence': 4,
-            'instructions': 'Créez un programme qui utilise une boucle pour afficher les nombres de 1 à 10.',
-            'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nint main() {\n    for(int i = 1; i <= 10; i++) {\n        std::cout << i << std::endl;\n    }\n    return 0;\n}',
-            'test_cases': [{'input': '', 'output': '1\n2\n3\n4\n5\n6\n7\n8\n9\n10'}],
-            'points': 20,
+            'instructions': 'Créez un programme qui calcule la somme des nombres de 1 à n.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    // Calculez la somme ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    \n    int somme = 0;\n    for(int i = 1; i <= n; i++) {\n        somme += i;\n    }\n    std::cout << "La somme est: " << somme << std::endl;\n    return 0;\n}',
+            'test_cases': [
+                {'input': '5', 'output': 'La somme est: 15'},
+                {'input': '10', 'output': 'La somme est: 55'}
+            ],
+            'points': 25,
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['loops', 'accumulator pattern', 'arithmetic'],
+                'common_mistakes': ['off-by-one errors', 'incorrect loop bounds']
+            },
             'tutorial_steps': [
                 {
                     'step_number': 1,
-                    'title': 'Comprendre les boucles for',
-                    'content': 'La boucle for est utilisée quand on connaît le nombre d\'itérations à l\'avance.\n\n**Structure:**\n`for(initialisation; condition; incrémentation)`\n\n**Erreurs courantes:**\n- Oublier le point-virgule dans la déclaration for\n- Utiliser , au lieu de ;\n- Condition incorrecte (< vs <=)',
-                    'code_snippet': 'for(int i = 1; i <= 10; i++) {\n    // Code répété\n}',
-                    'hint': 'La boucle doit commencer à 1 et se terminer à 10 inclus'
+                    'title': 'Structure de la boucle',
+                    'content': 'La boucle for est parfaite pour répéter une action un nombre connu de fois.',
+                    'code_snippet': 'for(int i = 1; i <= n; i++) {\n    // Code répété\n}',
+                    'hint': 'Initialisez un compteur pour la somme avant la boucle'
                 }
             ]
         },
         {
             'title': 'Tableaux en C++',
-            'description': 'Apprendre à utiliser les tableaux pour stocker des collections de données.',
+            'description': 'Manipulation des tableaux et calculs statistiques.',
             'difficulty': 'intermediate',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'sequence': 5,
-            'instructions': 'Créez un programme qui stocke et manipule des notes dans un tableau.',
-            'starter_code': '#include <iostream>\n\nint main() {\n    int notes[5];\n    // Votre code ici\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nint main() {\n    int notes[5] = {85, 90, 78, 88, 76};\n    int somme = 0;\n    \n    for(int i = 0; i < 5; i++) {\n        somme += notes[i];\n    }\n    \n    double moyenne = somme / 5.0;\n    std::cout << "Moyenne: " << moyenne << std::endl;\n    return 0;\n}',
-            'test_cases': [{'input': '', 'output': 'Moyenne: 83.4'}],
-            'points': 25,
-            'tutorial_steps': [
-                {
-                    'step_number': 1,
-                    'title': 'Déclaration des tableaux',
-                    'content': 'Les tableaux permettent de stocker plusieurs valeurs du même type.\n\n**Erreurs courantes:**\n- Dépasser la taille du tableau\n- Oublier d\'initialiser les éléments\n- Index hors limites',
-                    'code_snippet': 'int notes[5] = {85, 90, 78, 88, 76};',
-                    'hint': 'Les indices commencent à 0, pas à 1'
-                }
-            ]
+            'instructions': 'Créez un programme qui trouve le maximum et le minimum dans un tableau.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int nombres[] = {12, 5, 23, 9, 30};\n    // Trouvez min et max\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int nombres[] = {12, 5, 23, 9, 30};\n    int min = nombres[0];\n    int max = nombres[0];\n    \n    for(int i = 1; i < 5; i++) {\n        if(nombres[i] < min) min = nombres[i];\n        if(nombres[i] > max) max = nombres[i];\n    }\n    \n    std::cout << "Min: " << min << ", Max: " << max << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Min: 5, Max: 30'}],
+            'points': 30,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['arrays', 'loops', 'conditional logic'],
+                'common_mistakes': ['array bounds', 'initialization errors']
+            }
+        },
+        {
+            'title': 'Fonctions en C++',
+            'description': 'Création et utilisation de fonctions.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 6,
+            'instructions': 'Créez des fonctions pour calculer le périmètre et l\'aire d\'un rectangle.',
+            'starter_code': '#include <iostream>\n\n// Définissez vos fonctions ici\n\nint main() {\n    double longueur, largeur;\n    std::cin >> longueur >> largeur;\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\ndouble perimetre(double l, double w) {\n    return 2 * (l + w);\n}\n\ndouble aire(double l, double w) {\n    return l * w;\n}\n\nint main() {\n    double longueur, largeur;\n    std::cin >> longueur >> largeur;\n    std::cout << "Périmètre: " << perimetre(longueur, largeur) << std::endl;\n    std::cout << "Aire: " << aire(longueur, largeur) << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '5 3', 'output': 'Périmètre: 16\nAire: 15'}],
+            'points': 35,
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['functions', 'parameters', 'return values'],
+                'common_mistakes': ['missing return statement', 'parameter order']
+            }
+        },
+        {
+            'title': 'Chaînes de caractères',
+            'description': 'Manipulation des chaînes en C++.',
+            'difficulty': 'intermediate',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 7,
+            'instructions': 'Créez un programme qui inverse une chaîne de caractères.',
+            'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string texte;\n    std::getline(std::cin, texte);\n    // Inversez la chaîne ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string texte;\n    std::getline(std::cin, texte);\n    std::string inverse;\n    for(int i = texte.length() - 1; i >= 0; i--) {\n        inverse += texte[i];\n    }\n    std::cout << inverse << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': 'Bonjour', 'output': 'ruojnoB'}],
+            'points': 35,
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['strings', 'loops', 'concatenation'],
+                'common_mistakes': ['string bounds', 'off-by-one errors']
+            }
+        },
+        {
+            'title': 'Structures de données',
+            'description': 'Utilisation des structures en C++.',
+            'difficulty': 'advanced',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 8,
+            'instructions': 'Créez une structure pour représenter un point 2D et calculez la distance entre deux points.',
+            'starter_code': '#include <iostream>\n#include <cmath>\n\nstruct Point {\n    double x, y;\n};\n\n// Ajoutez votre fonction ici\n\nint main() {\n    Point p1, p2;\n    std::cin >> p1.x >> p1.y >> p2.x >> p2.y;\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n#include <cmath>\n\nstruct Point {\n    double x, y;\n};\n\ndouble distance(Point p1, Point p2) {\n    return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));\n}\n\nint main() {\n    Point p1, p2;\n    std::cin >> p1.x >> p1.y >> p2.x >> p2.y;\n    std::cout << "Distance: " << distance(p1, p2) << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '0 0 3 4', 'output': 'Distance: 5'}],
+            'points': 40,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['structures', 'functions', 'math operations'],
+                'common_mistakes': ['incorrect math formula', 'parameter passing']
+            }
+        },
+        {
+            'title': 'Pointeurs et Références',
+            'description': 'Comprendre les pointeurs et références en C++.',
+            'difficulty': 'advanced',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 9,
+            'instructions': 'Créezun programme qui échange deux valeurs en utilisant des pointeurs.',
+            'starter_code': '#include <iostream>\n\nvoid echange(int* a, int* b) {\n    // Implémentez l\'échange ici\n}\n\nint main() {\n    int x, y;\n    std::cin >> x >> y;\n    echange(&x, &y);\n    std::cout << x << " " << y << std::endl;\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nvoid echange(int* a, int* b) {\n    int temp = *a;\n    *a = *b;\n    *b = temp;\n}\n\nint main() {\n    int x, y;\n    std::cin >> x >> y;\n    echange(&x, &y);\n    std::cout << x << " " << y << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '5 10', 'output': '10 5'}],
+            'points': 45,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['pointers', 'memory management', 'parameter passing'],
+                'common_mistakes': ['dereferencing errors', 'memory leaks']
+            }
+        },
+        {
+            'title': 'Fichiers et Flux',
+            'description': 'Manipulation des fichiers en C++.',
+            'difficulty': 'advanced',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 10,
+            'instructions': 'Créez un programme qui lit des nombres d\'un fichier et calcule leur moyenne.',
+            'starter_code': '#include <iostream>\n#include <fstream>\n\nint main() {\n    std::ifstream fichier("nombres.txt");\n    // Calculez la moyenne ici\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n#include <fstream>\n\nint main() {\n    std::ifstream fichier("nombres.txt");\n    int nombre, somme = 0, compte = 0;\n    while(fichier >> nombre) {\n        somme += nombre;\n        compte++;\n    }\n    if(compte > 0) {\n        double moyenne = static_cast<double>(somme) / compte;\n        std::cout << "Moyenne: " << moyenne << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Moyenne: 7.5'}],
+            'points': 50,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['file i/o', 'error handling', 'type casting'],
+                'common_mistakes': ['file not found', 'division by zero']
+            }
         }
     ]
 
-    # First, remove all existing activities and related records
-    TutorialProgress.query.delete()
-    TutorialStep.query.delete()
-    StudentProgress.query.delete()
-    CodingActivity.query.delete()
+    # C# Activities (10 activities)
+    csharp_activities = [
+        {
+            'title': 'Hello C#',
+            'description': 'Introduction à la programmation C# avec une application console simple.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 1,
+            'instructions': 'Créez votre première application console C# qui affiche un message de bienvenue.',
+            'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bienvenue en C#!");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Bienvenue en C#!'}],
+            'points': 10,
+            'complexity_analysis': {
+                'cognitive_load': 'low',
+                'concepts': ['basic syntax', 'console output', 'main method'],
+                'common_mistakes': ['forgetting semicolon', 'case sensitivity']
+            },
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Structure de base C#',
+                    'content': 'Comprendre la structure de base d\'un programme C#',
+                    'code_snippet': 'using System;\n\nclass Program {\n    static void Main() {\n    }\n}',
+                    'hint': 'La méthode Main est le point d\'entrée'
+                },
+                {
+                    'step_number': 2,
+                    'title': 'Affichage Console',
+                    'content': 'Utiliser Console.WriteLine pour afficher du texte',
+                    'code_snippet': 'Console.WriteLine("Votre message");',
+                    'hint': 'N\'oubliez pas les guillemets et le point-virgule'
+                }
+            ]
+        },
+        {
+            'title': 'Gestionnaire de Tâches',
+            'description': 'Créer un gestionnaire de tâches simple en C#',
+            'difficulty': 'intermediate',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 2,
+            'instructions': 'Implémentez un gestionnaire de tâches qui permet d\'ajouter, supprimer et lister des tâches.',
+            'starter_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        List<string> tasks = new List<string>();\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        List<string> tasks = new List<string>();\n        string input;\n        \n        do {\n            Console.WriteLine("1. Ajouter tâche");\n            Console.WriteLine("2. Supprimer tâche");\n            Console.WriteLine("3. Lister tâches");\n            Console.WriteLine("4. Quitter");\n            \n            input = Console.ReadLine();\n            \n            switch(input) {\n                case "1":\n                    Console.Write("Nouvelle tâche: ");\n                    tasks.Add(Console.ReadLine());\n                    break;\n                case "2":\n                    if(tasks.Count > 0) {\n                        Console.WriteLine("Index à supprimer:");\n                        int index = int.Parse(Console.ReadLine());\n                        if(index >= 0 && index < tasks.Count)\n                            tasks.RemoveAt(index);\n                    }\n                    break;\n                case "3":\n                    for(int i = 0; i < tasks.Count; i++)\n                        Console.WriteLine($"{i}: {tasks[i]}");\n                    break;\n            }\n        } while(input != "4");\n    }\n}',
+            'test_cases': [
+                {'input': '1\nAcheter du lait\n3\n4', 'output': '0: Acheter du lait'},
+                {'input': '1\nFaire les devoirs\n2\n0\n3\n4', 'output': ''}
+            ],
+            'points': 20,
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['lists', 'user input', 'loops', 'switch statements'],
+                'common_mistakes': ['index out of range', 'not handling empty list']
+            }
+        },
+        {
+            'title': 'Classes et Objets',
+            'description': 'Introduction aux classes et objets en C#.',
+            'difficulty': 'intermediate',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 3,
+            'instructions': 'Créez une classe Etudiant avec des propriétés et des méthodes.',
+            'starter_code': 'using System;\n\nclass Etudiant {\n    // Ajoutez les propriétés et méthodes ici\n}\n\nclass Program {\n    static void Main() {\n        // Testez votre classe ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Etudiant {\n    public string Nom { get; set; }\n    public int Age { get; set; }\n    public double Moyenne { get; private set; }\n    \n    public void AjouterNote(double note) {\n        Moyenne = (Moyenne + note) / 2;\n    }\n    \n    public void AfficherInfo() {\n        Console.WriteLine($"Nom: {Nom}, Age: {Age}, Moyenne: {Moyenne}");\n    }\n}\n\nclass Program {\n    static void Main() {\n        var etudiant = new Etudiant { Nom = "Jean", Age = 16 };\n        etudiant.AjouterNote(85);\n        etudiant.AfficherInfo();\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Nom: Jean, Age: 16, Moyenne: 85'}],
+            'points': 35,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['classes', 'properties', 'methods'],
+                'common_mistakes': ['access modifiers', 'property syntax']
+            }
+        },
+        {
+            'title': 'Héritage',
+            'description': 'Comprendre l\'héritage en C#.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 4,
+            'instructions': 'Créez une hiérarchie de classes pour différents types de véhicules.',
+            'starter_code': 'using System;\n\nclass Vehicule {\n    // Classe de base\n}\n\nclass Voiture : Vehicule {\n    // Classe dérivée\n}\n\nclass Program {\n    static void Main() {\n        // Testez vos classes\n    }\n}',
+            'solution_code': 'using System;\n\nclass Vehicule {\n    public string Marque { get; set; }\n    public virtual void Demarrer() {\n        Console.WriteLine("Le véhicule démarre.");\n    }\n}\n\nclass Voiture : Vehicule {\n    public int NombrePortes { get; set; }\n    public override void Demarrer() {\n        Console.WriteLine($"La voiture {Marque} démarre avec ses {NombrePortes} portes.");\n    }\n}\n\nclass Program {\n    static void Main() {\n        var voiture = new Voiture { Marque = "Toyota", NombrePortes = 4 };\n        voiture.Demarrer();\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'La voiture Toyota démarre avec ses 4 portes.'}],
+            'points': 40,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['inheritance', 'virtual methods', 'overriding'],
+                'common_mistakes': ['missing override keyword', 'base class access']
+            }
+        },
+        {
+            'title': 'Collections',
+            'description': 'Utilisation des collections en C#.',
+            'difficulty': 'intermediate',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 5,
+            'instructions': 'Créez un gestionnaire de bibliothèque utilisant des List<T>.',
+            'starter_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        List<string> livres = new List<string>();\n        // Implémentez la gestion de la bibliothèque\n    }\n}',
+            'solution_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        List<string> livres = new List<string>();\n        \n        livres.Add("Le Petit Prince");\n        livres.Add("1984");\n        livres.Add("Harry Potter");\n        \n        Console.WriteLine("Livres disponibles:");\n        foreach(var livre in livres) {\n            Console.WriteLine($"- {livre}");\n        }\n        \n        Console.WriteLine($"Nombre total: {livres.Count}");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Livres disponibles:\n- Le Petit Prince\n- 1984\n- Harry Potter\nNombre total: 3'}],
+            'points': 35,
+            'complexity_analysis': {
+                'cognitive_load': 'medium',
+                'concepts': ['generic collections', 'foreach loops', 'list methods'],
+                'common_mistakes': ['type constraints', 'collection modification']
+            }
+        },
+        {
+            'title': 'Interfaces',
+            'description': 'Implémentation d\'interfaces en C#.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 6,
+            'instructions': 'Créez une interface IFormeGeometrique et implémentez-la pour différentes formes.',
+            'starter_code': 'using System;\n\ninterface IFormeGeometrique {\n    double CalculerAire();\n    double CalculerPerimetre();\n}\n\nclass Program {\n    static void Main() {\n        // Testez vos implémentations\n    }\n}',
+            'solution_code': 'using System;\n\ninterface IFormeGeometrique {\n    double CalculerAire();\n    double CalculerPerimetre();\n}\n\nclass Cercle : IFormeGeometrique {\n    public double Rayon { get; set; }\n    \n    public double CalculerAire() {\n        return Math.PI * Rayon * Rayon;\n    }\n    \n    public double CalculerPerimetre() {\n        return 2 * Math.PI * Rayon;\n    }\n}\n\nclass Program {\n    static void Main() {\n        var cercle = new Cercle { Rayon = 5 };\n        Console.WriteLine($"Aire: {cercle.CalculerAire():F2}");\n        Console.WriteLine($"Périmètre: {cercle.CalculerPerimetre():F2}");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Aire: 78.54\nPérimètre: 31.42'}],
+            'points': 45,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['interfaces', 'implementation', 'math operations'],
+                'common_mistakes': ['missing implementation', 'math precision']
+            }
+        },
+        {
+            'title': 'Exceptions',
+            'description': 'Gestion des exceptions en C#.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 7,
+            'instructions': 'Créez un programme qui gère les exceptions lors de la division.',
+            'starter_code': 'using System;\n\nclass Program {\n    static double Diviser(double a, double b) {\n        // Implémentez la division sécurisée\n        return 0;\n    }\n    \n    static void Main() {\n        // Testez la division\n    }\n}',
+            'solution_code': 'using System;\n\nclass DivisionParZeroException : Exception {\n    public DivisionParZeroException(string message) : base(message) { }\n}\n\nclass Program {\n    static double Diviser(double a, double b) {\n        if(b == 0) {\n            throw new DivisionParZeroException("Division par zéro impossible");\n        }\n        return a / b;\n    }\n    \n    static void Main() {\n        try {\n            Console.WriteLine(Diviser(10, 2));\n            Console.WriteLine(Diviser(10, 0));\n        } catch(DivisionParZeroException e) {\n            Console.WriteLine($"Erreur: {e.Message}");\n        }\n    }\n}',
+            'test_cases': [
+                {'input': '', 'output': '5\nErreur: Division par zéro impossible'}
+            ],
+            'points': 40,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['exception handling', 'custom exceptions', 'try-catch'],
+                'common_mistakes': ['missing try-catch', 'exception hierarchy']
+            }
+        },
+        {
+            'title': 'Délégués et Événements',
+            'description': 'Utilisation des délégués et événements en C#.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 8,
+            'instructions': 'Créez un système de notification utilisant les événements.',
+            'starter_code': 'using System;\n\nclass Program {\n    // Définissez le délégué et l\'événement ici\n    \n    static void Main() {\n        // Implémentez le système de notification\n    }\n}',
+            'solution_code': 'using System;\n\nclass Notification {\n    public delegate void NotificationHandler(string message);\n    public event NotificationHandler OnNotification;\n    \n    public void EnvoyerNotification(string message) {\n        OnNotification?.Invoke(message);\n    }\n}\n\nclass Program {\n    static void Main() {\n        var notif = new Notification();\n        notif.OnNotification += (msg) => Console.WriteLine($"Notification reçue: {msg}");\n        \n        notif.EnvoyerNotification("Bonjour!");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Notification reçue: Bonjour!'}],
+            'points': 45,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['delegates', 'events', 'lambda expressions'],
+                'common_mistakes': ['event subscription', 'null checking']
+            }
+        },
+        {
+            'title': 'LINQ',
+            'description': 'Utilisation de LINQ pour la manipulation de données.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 9,
+            'instructions': 'Utilisez LINQ pour filtrer et transformer une collection de données.',
+            'starter_code': 'using System;\nusing System.Linq;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        var nombres = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\n        // Utilisez LINQ ici\n    }\n}',
+            'solution_code': 'using System;\nusing System.Linq;\nusing System.Collections.Generic;\n\nclass Program {\n    static void Main() {\n        var nombres = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\n        \n        var pairs = nombres.Where(n => n % 2 == 0);\n        var carres = pairs.Select(n => n * n);\n        \n        Console.WriteLine("Carrés des nombres pairs:");\n        foreach(var n in carres) {\n            Console.WriteLine(n);\n        }\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Carrés des nombres pairs:\n4\n16\n36\n64\n100'}],
+            'points': 50,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['LINQ', 'lambda expressions', 'collection operations'],
+                'common_mistakes': ['query syntax', 'deferred execution']
+            }
+        },
+        {
+            'title': 'Async/Await',
+            'description': 'Programmation asynchrone en C#.',
+            'difficulty': 'advanced',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 10,
+            'instructions': 'Créez un programme qui simule le chargement asynchrone de données.',
+            'starter_code': 'using System;\nusing System.Threading.Tasks;\n\nclass Program {\n    static async Task Main() {\n        // Implémentez le chargement asynchrone\n    }\n}',
+            'solution_code': 'using System;\nusing System.Threading.Tasks;\n\nclass Program {\n    static async Task<string> ChargerDonnees() {\n        await Task.Delay(2000); // Simule un délai\n        return "Données chargées!";\n    }\n    \n    static async Task Main() {\n        Console.WriteLine("Début du chargement...");\n        var resultat = await ChargerDonnees();\n        Console.WriteLine(resultat);\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Début du chargement...\nDonnées chargées!'}],
+            'points': 50,
+            'complexity_analysis': {
+                'cognitive_load': 'high',
+                'concepts': ['async/await', 'tasks', 'concurrent programming'],
+                'common_mistakes': ['blocking calls', 'error handling']
+            }
+        }
+    ]
 
-    # Create activities and their tutorial steps
-    for activity_data in activities:
+    # Create all activities and their tutorial steps
+    for activity_data in cpp_activities + csharp_activities:
         # Extract tutorial steps data before creating activity
         tutorial_steps_data = activity_data.pop('tutorial_steps', [])
 
@@ -718,7 +1037,6 @@ def profile():
         form.email.data = current_user.email
         form.bio.data = current_user.bio
     return render_template('profile.html', form=form)
-
 
 # Initialize database and initial data
 with app.app_context():
