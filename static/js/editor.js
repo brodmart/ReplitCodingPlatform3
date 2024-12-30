@@ -78,6 +78,9 @@ require(['vs/editor/editor.main'], function() {
 
     // Run button handler
     document.getElementById('runButton').addEventListener('click', executeCode);
+
+    // Add share button handler
+    document.getElementById('shareButton').addEventListener('click', shareCode);
 });
 
 function getDefaultCode(language) {
@@ -131,6 +134,46 @@ async function executeCode() {
     } finally {
         runButton.disabled = false;
         runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
+    }
+}
+
+async function shareCode() {
+    const shareButton = document.getElementById('shareButton');
+    const code = editor.getValue();
+    const language = document.getElementById('languageSelect').value;
+
+    try {
+        shareButton.disabled = true;
+        shareButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sharing...';
+
+        const response = await fetch('/share', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: code,
+                language: language,
+                title: 'Shared Code',
+                description: '',
+                is_public: true
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+            alert('Error sharing code: ' + result.error);
+        } else {
+            // Copy share URL to clipboard
+            await navigator.clipboard.writeText(result.share_url);
+            alert('Code shared successfully! Link copied to clipboard.');
+        }
+    } catch (error) {
+        alert('Error sharing code: ' + error.message);
+    } finally {
+        shareButton.disabled = false;
+        shareButton.innerHTML = '<i class="bi bi-share"></i> Share';
     }
 }
 

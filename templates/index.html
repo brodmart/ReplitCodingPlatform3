@@ -38,20 +38,23 @@
                             <option value="cpp">C++</option>
                             <option value="csharp">C#</option>
                         </select>
-                        <button id="runButton" class="btn btn-success">
+                        <button id="runButton" class="btn btn-success me-2">
                             <i class="bi bi-play-fill"></i> Run
                         </button>
+                        {% if current_user.is_authenticated %}
+                        <button id="shareButton" class="btn btn-primary">
+                            <i class="bi bi-share"></i> Share
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </nav>
         </div>
 
-        <!-- Editor -->
         <div class="col-12 col-lg-8 editor-container">
             <div id="editor" class="h-100"></div>
         </div>
 
-        <!-- Console -->
         <div class="col-12 col-lg-4 console-container">
             <div class="card h-100">
                 <div class="card-header">
@@ -70,7 +73,6 @@
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)

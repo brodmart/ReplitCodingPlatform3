@@ -9,6 +9,7 @@ class Student(UserMixin, db.Model):
     password_hash = db.Column(db.String(256))
     score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    shared_codes = db.relationship('SharedCode', back_populates='student')
 
     # Relationships
     achievements = db.relationship('StudentAchievement', back_populates='student')
@@ -64,3 +65,17 @@ class CodeSubmission(db.Model):
 
     # Relationships
     student = db.relationship('Student', back_populates='submissions')
+
+class SharedCode(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    code = db.Column(db.Text, nullable=False)
+    language = db.Column(db.String(20), nullable=False)
+    title = db.Column(db.String(100))
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_public = db.Column(db.Boolean, default=True)
+    views = db.Column(db.Integer, default=0)
+
+    # Relationships
+    student = db.relationship('Student', back_populates='shared_codes')

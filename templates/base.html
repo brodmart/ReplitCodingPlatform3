@@ -26,6 +26,13 @@
                             <i class="bi bi-trophy"></i> Leaderboard
                         </a>
                     </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'my_shared_codes' %}active{% endif %}" href="{{ url_for('my_shared_codes') }}">
+                            <i class="bi bi-share"></i> My Shared Code
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
                 <div class="achievements-container me-3">
                     {% if current_user.is_authenticated %}

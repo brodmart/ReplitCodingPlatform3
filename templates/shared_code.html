@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0">{{ shared_code.title }}</h3>
+                <small class="text-muted">Shared by {{ shared_code.student.username }} on {{ shared_code.created_at.strftime('%Y-%m-%d') }}</small>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="me-3">
+                    <i class="bi bi-eye-fill"></i> {{ shared_code.views }}
+                </span>
+                <span class="badge bg-secondary">{{ shared_code.language }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if shared_code.description %}
+            <p class="mb-4">{{ shared_code.description }}</p>
+            {% endif %}
+            <div id="sharedEditor" style="height: 500px; border: 1px solid var(--bs-border-color); border-radius: 4px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+require.config({
+    paths: {
+        'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
+    }
+});
+
+require(['vs/editor/editor.main'], function() {
+    const editor = monaco.editor.create(document.getElementById('sharedEditor'), {
+        value: {{ shared_code.code|tojson }},
+        language: '{{ shared_code.language }}',
+        theme: 'vs-dark',
+        readOnly: true,
+        minimap: { enabled: false },
+        automaticLayout: true,
+        fontSize: 14
+    });
+});
+</script>
+{% endblock %}

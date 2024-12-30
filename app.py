@@ -1,12 +1,13 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, flash, redirect, url_for
-from flask_login import LoginManager, current_user, login_user
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, abort
+from flask_login import LoginManager, current_user, login_user, login_required
 from compiler_service import compile_and_run
 from database import db
-from models import Student, Achievement, StudentAchievement, CodeSubmission
+from models import Student, Achievement, StudentAchievement, CodeSubmission, SharedCode
 from sqlalchemy import desc
 from werkzeug.security import generate_password_hash
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -237,3 +238,56 @@ def test_login():
     login_user(test_user)
     flash('Logged in as test user')
     return redirect(url_for('index'))
+
+
+@app.route('/share', methods=['POST'])
+@login_required
+def share_code():
+    try:
+        code = request.json.get('code', '')
+        language = request.json.get('language', 'cpp')
+        title = request.json.get('title', 'Untitled')
+        description = request.json.get('description', '')
+        is_public = request.json.get('is_public', True)
+
+        if not code:
+            return jsonify({'error': 'No code provided'}), 400
+
+        shared_code = SharedCode(
+            student_id=current_user.id,
+            code=code,
+            language=language,
+            title=title,
+            description=description,
+            is_public=is_public
+        )
+        db.session.add(shared_code)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'share_url': url_for('view_shared_code', code_id=shared_code.id, _external=True)
+        })
+
+    except Exception as e:
+        logging.error(f"Share code error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/shared/<int:code_id>')
+def view_shared_code(code_id):
+    shared_code = SharedCode.query.get_or_404(code_id)
+
+    if not shared_code.is_public and (not current_user.is_authenticated or current_user.id != shared_code.student_id):
+        abort(403)
+
+    # Increment view counter
+    shared_code.views += 1
+    db.session.commit()
+
+    return render_template('shared_code.html', shared_code=shared_code)
+
+@app.route('/my-shares')
+@login_required
+def my_shared_codes():
+    shared_codes = SharedCode.query.filter_by(student_id=current_user.id).order_by(SharedCode.created_at.desc()).all()
+    return render_template('my_shares.html', shared_codes=shared_codes)
