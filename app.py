@@ -537,66 +537,293 @@ def create_initial_activities():
                 ],
                 'points': 20
             },
-            # ICS3U C# Activities
             {
-                'title': 'Premiers pas en C#',
-                'description': 'Introduction à la programmation C# avec une sortie simple.',
+                'title': 'Conditions Si-Sinon',
+                'description': 'Apprendre à utiliser les structures conditionnelles en C++.',
                 'difficulty': 'beginner',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 1,
-                'instructions': 'Créez un programme qui affiche "Bonjour le monde!" dans la console.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}',
-                'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
-                'hints': [
-                    'Utilisez Console.WriteLine() pour afficher du texte',
-                    'N\'oubliez pas le point-virgule à la fin',
-                    'Les noms de classe commencent par une majuscule'
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 4,
+                'instructions': 'Créez un programme qui détermine si un nombre est positif, négatif ou zéro.',
+                'starter_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre > 0) {\n        std::cout << "Le nombre est positif" << std::endl;\n    } else if (nombre < 0) {\n        std::cout << "Le nombre est négatif" << std::endl;\n    } else {\n        std::cout << "Le nombre est zéro" << std::endl;\n    }\n    return 0;\n}',
+                'test_cases': [
+                    {'input': '5\n', 'output': 'Entrez un nombre: Le nombre est positif'},
+                    {'input': '-3\n', 'output': 'Entrez un nombre: Le nombre est négatif'},
+                    {'input': '0\n', 'output': 'Entrez un nombre: Le nombre est zéro'}
                 ],
-                'points': 10
+                'hints': [
+                    'Utilisez if, else if, et else pour les conditions',
+                    'Comparez le nombre avec 0',
+                    'N\'oubliez pas les accolades { }'
+                ],
+                'points': 25
             },
             {
-                'title': 'Message Personnalisé',
-                'description': 'Apprendre à utiliser les entrées utilisateur en C#.',
+                'title': 'Boucle Simple',
+                'description': 'Introduction aux boucles for en C++.',
                 'difficulty': 'beginner',
-                'curriculum': 'ICS3U',
-                'language': 'csharp',
-                'sequence': 2,
-                'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et affiche un message personnalisé.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        string nom;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        string nom;\n        Console.Write("Entrez votre nom: ");\n        nom = Console.ReadLine();\n        Console.WriteLine($"Bienvenue dans le monde de la programmation, {nom}!");\n    }\n}',
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 5,
+                'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
+                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        std::cout << i << " ";\n    }\n    std::cout << std::endl;\n    return 0;\n}',
                 'test_cases': [
-                    {'input': 'Sophie\n', 'output': 'Entrez votre nom: Bienvenue dans le monde de la programmation, Sophie!'},
-                    {'input': 'Lucas\n', 'output': 'Entrez votre nom: Bienvenue dans le monde de la programmation, Lucas!'}
+                    {'input': '5\n', 'output': 'Entrez un nombre: 1 2 3 4 5 '},
+                    {'input': '3\n', 'output': 'Entrez un nombre: 1 2 3 '}
                 ],
                 'hints': [
-                    'Console.ReadLine() lit une ligne de texte',
-                    'Utilisez la syntaxe $"..." pour l\'interpolation de chaînes',
-                    'Console.Write n\'ajoute pas de nouvelle ligne'
+                    'Utilisez une boucle for',
+                    'La variable i commence à 1',
+                    'Affichez chaque nombre suivi d\'un espace'
                 ],
-                'points': 15
+                'points': 30
             },
             {
-                'title': 'Convertisseur de Température',
-                'description': 'Créer un convertisseur Celsius vers Fahrenheit.',
+                'title': 'Table de Multiplication',
+                'description': 'Utiliser les boucles imbriquées en C++.',
+                'difficulty': 'intermediate',
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 6,
+                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
+                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= n; j++) {\n            std::cout << i * j << "\\t";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
+                'test_cases': [
+                    {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\t\n2\t4\t6\t\n3\t6\t9\t\n'}
+                ],
+                'hints': [
+                    'Utilisez deux boucles for imbriquées',
+                    'Utilisez \\t pour aligner les colonnes',
+                    'Multipliez les compteurs i et j'
+                ],
+                'points': 35
+            },
+            {
+                'title': 'Calcul de Moyenne',
+                'description': 'Travailler avec les tableaux en C++.',
+                'difficulty': 'intermediate',
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 7,
+                'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
+                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double somme = 0;\n    for (int i = 1; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        somme += nombre;\n    }\n    \n    std::cout << "Moyenne: " << somme/n << std::endl;\n    return 0;\n}',
+                'test_cases': [
+                    {'input': '3\n10\n20\n30\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Moyenne: 20'}
+                ],
+                'hints': [
+                    'Utilisez une boucle pour lire les nombres',
+                    'Gardez une variable pour la somme',
+                    'Divisez la somme par n pour la moyenne'
+                ],
+                'points': 40
+            },
+            {
+                'title': 'Plus Grand Nombre',
+                'description': 'Travailler avec les conditions et les boucles.',
+                'difficulty': 'intermediate',
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 8,
+                'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
+                'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double max;\n    std::cout << "Nombre 1: ";\n    std::cin >> max;\n    \n    for (int i = 2; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        if (nombre > max) {\n            max = nombre;\n        }\n    }\n    \n    std::cout << "Le plus grand nombre est: " << max << std::endl;\n    return 0;\n}',
+                'test_cases': [
+                    {'input': '4\n5\n8\n2\n10\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Nombre 4: Le plus grand nombre est: 10'}
+                ],
+                'hints': [
+                    'Initialisez max avec le premier nombre',
+                    'Comparez chaque nouveau nombre avec max',
+                    'Mettez à jour max si nécessaire'
+                ],
+                'points': 45
+            },
+            {
+                'title': 'Calculatrice de Factorielle',
+                'description': 'Introduction aux fonctions en C++.',
+                'difficulty': 'intermediate',
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 9,
+                'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
+                'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! = " << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
+                'test_cases': [
+                    {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
+                    {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
+                ],
+                'hints': [
+                    'Utilisez la récursion ou une boucle',
+                    'N\'oubliez pas le cas de base (0! = 1)',
+                    'Attention aux nombres négatifs'
+                ],
+                'points': 50
+            },
+            {
+                'title': 'Générateur de Motifs',
+                'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
+                'difficulty': 'intermediate',
+                'curriculum': 'TEJ2O',
+                'language': 'cpp',
+                'sequence': 10,
+                'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
+                'starter_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    // Votre code ici\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    std::cout << "Hauteur du triangle: ";\n    std::cin >> hauteur;\n    \n    for (int i = 1; i <= hauteur; i++) {\n        // Espaces\n        for (int j = 1; j <= hauteur - i; j++) {\n            std::cout << " ";\n        }\n        // Étoiles\n        for (int j = 1; j <= 2*i - 1; j++) {\n            std::cout << "*";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
+                'test_cases': [
+                    {'input': '3\n', 'output': 'Hauteur du triangle:   *\n **\n***\n'}
+                ],
+                'hints': [
+                    'Utilisez des boucles imbriquées',
+                    'Calculez les espaces et étoiles nécessaires',
+                    'La ligne i a 2*i - 1 étoiles'
+                ],
+                'points': 55
+            },
+            # ICS3U C# Activities - Continue with the next part
+            {
+                'title': 'Conditions If-Else',
+                'description': 'Apprendre à utiliser les structures conditionnelles en C#.',
                 'difficulty': 'beginner',
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
-                'sequence': 3,
-                'instructions': 'Écrivez un programme qui convertit une température en Celsius vers Fahrenheit.',
-                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        double celsius;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        double celsius;\n        Console.Write("Température en Celsius: ");\n        celsius = Convert.ToDouble(Console.ReadLine());\n        double fahrenheit = (celsius * 9/5) + 32;\n        Console.WriteLine($"{celsius}°C = {fahrenheit}°F");\n    }\n}',
+                'sequence': 4,
+                'instructions': 'Créez un programme qui détermine si un nombre est pair ou impair.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int nombre;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int nombre;\n        Console.Write("Entrez un nombre: ");\n        nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre % 2 == 0) {\n            Console.WriteLine("Le nombre est pair.");\n        } else {\n            Console.WriteLine("Le nombre est impair.");\n        }\n    }\n}',
                 'test_cases': [
-                    {'input': '0\n', 'output': 'Température en Celsius: 0°C = 32°F'},
-                    {'input': '100\n', 'output': 'Température en Celsius: 100°C = 212°F'}
+                    {'input': '4\n', 'output': 'Entrez un nombre: Le nombre est pair.'},
+                    {'input': '7\n', 'output': 'Entrez un nombre: Le nombre est impair.'}
                 ],
                 'hints': [
-                    'La formule est: °F = (°C × 9/5) + 32',
-                    'Utilisez Convert.ToDouble() pour la conversion',
-                    'N\'oubliez pas les symboles ° dans l\'affichage'
+                    'Utilisez l\'opérateur modulo (%)',
+                    'Si nombre % 2 == 0, le nombre est pair',
+                    'Sinon, le nombre est impair'
                 ],
-                'points': 20
+                'points': 25
+            },
+            {
+                'title': 'Boucles For',
+                'description': 'Introduction aux boucles for en C#.',
+                'difficulty': 'beginner',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 5,
+                'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            Console.Write(i + " ");\n        }\n        Console.WriteLine();\n    }\n}',
+                'test_cases': [
+                    {'input': '5\n', 'output': 'Entrez un nombre: 1 2 3 4 5 '},
+                    {'input': '3\n', 'output': 'Entrez un nombre: 1 2 3 '}
+                ],
+                'hints': [
+                    'Utilisez une boucle for',
+                    'La variable i commence à 1',
+                    'Affichez chaque nombre suivi d\'un espace'
+                ],
+                'points': 30
+            },
+            {
+                'title': 'Table de Multiplication',
+                'description': 'Utiliser les boucles imbriquées en C#.',
+                'difficulty': 'intermediate',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 6,
+                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
+                'test_cases': [
+                    {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\n2\t4\t6\n3\t6\t9\n'}
+                ],
+                'hints': [
+                    'Utilisez deux boucles for imbriquées',
+                    'Utilisez \\t pour aligner les colonnes',
+                    'Multipliez les compteurs i et j'
+                ],
+                'points': 35
+            },
+            {
+                'title': 'Calcul de Moyenne',
+                'description': 'Travailler avec les tableaux en C#.',
+                'difficulty': 'intermediate',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 7,
+                'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Combien de nombres? ");\n        n = Convert.ToInt32(Console.ReadLine());\n        double[] nombres = new double[n];\n        double somme = 0;\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Nombre {i + 1}: ");\n            nombres[i] = Convert.ToDouble(Console.ReadLine());\n            somme += nombres[i];\n        }\n        Console.WriteLine($"Moyenne: {somme / n}");\n    }\n}',
+                'test_cases': [
+                    {'input': '3\n10\n20\n30\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Moyenne: 20'}
+                ],
+                'hints': [
+                    'Utilisez un tableau pour stocker les nombres',
+                    'Calculez la somme des nombres',
+                    'Divisez la somme par n pour la moyenne'
+                ],
+                'points': 40
+            },
+            {
+                'title': 'Plus Grand Nombre',
+                'description': 'Travailler avec les conditions et les boucles.',
+                'difficulty': 'intermediate',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 8,
+                'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Combien de nombres? ");\n        n = Convert.ToInt32(Console.ReadLine());\n        double max;\n        Console.Write("Nombre 1: ");\n        max = Convert.ToDouble(Console.ReadLine());\n        for (int i = 2; i <= n; i++) {\n            double nombre;\n            Console.Write($"Nombre {i}: ");\n            nombre = Convert.ToDouble(Console.ReadLine());\n            if (nombre > max) {\n                max = nombre;\n            }\n        }\n        Console.WriteLine($"Le plus grand nombre est: {max}");\n    }\n}',
+                'test_cases': [
+                    {'input': '4\n5\n8\n2\n10\n', 'output': 'Combien de nombres? Nombre 1: Nombre 2: Nombre 3: Nombre 4: Le plus grand nombre est: 10'}
+                ],
+                'hints': [
+                    'Initialisez max avec le premier nombre',
+                    'Comparez chaque nouveau nombre avec max',
+                    'Mettez à jour max si nécessaire'
+                ],
+                'points': 45
+            },
+            {
+                'title': 'Calcul de Factorielle',
+                'description': 'Introduction aux fonctions en C#.',
+                'difficulty': 'intermediate',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 9,
+                'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
+                'starter_code': 'using System;\n\nclass Programme {\n    // Créez la fonction factorielle ici\n    static void Main() {\n        int nombre;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static long Factorielle(int n) {\n        if (n <= 1) return 1;\n        return n * Factorielle(n - 1);\n    }\n    static void Main() {\n        int nombre;\n        Console.Write("Entrez un nombre: ");\n        nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre < 0) {\n            Console.WriteLine("Erreur: nombre négatif");\n        } else {\n            Console.WriteLine($"{nombre}! = {Factorielle(nombre)}");\n        }\n    }\n}',
+                'test_cases': [
+                    {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
+                    {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
+                ],
+                'hints': [
+                    'Utilisez la récursion ou une boucle',
+                    'N\'oubliez pas le cas de base (0! = 1)',
+                    'Attention aux nombres négatifs'
+                ],
+                'points': 50
+            },
+            {
+                'title': 'Générateur de Motifs',
+                'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
+                'difficulty': 'intermediate',
+                'curriculum': 'ICS3U',
+                'language': 'csharp',
+                'sequence': 10,
+                'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
+                'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int hauteur;\n        // Votre code ici\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int hauteur;\n        Console.Write("Hauteur du triangle: ");\n        hauteur = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= hauteur; i++) {\n            for (int j = 1; j <= hauteur - i; j++) {\n                Console.Write(" ");\n            }\n            for (int j = 1; j <= 2 * i - 1; j++) {\n                Console.Write("*");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
+                'test_cases': [
+                    {'input': '3\n', 'output': 'Hauteur du triangle:   *\n **\n***\n'}
+                ],
+                'hints': [
+                    'Utilisez des boucles imbriquées',
+                    'Calculez les espaces et étoiles nécessaires',
+                    'La ligne i a 2*i - 1 étoiles'
+                ],
+                'points': 55
             }
         ]
 
