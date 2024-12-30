@@ -18,16 +18,28 @@
                     <div class="container-fluid">
                         <span class="navbar-brand">Code Editor</span>
                         <div class="d-flex align-items-center">
-                            {% if current_user.is_authenticated %}
                             <div class="achievements-container me-3">
-                                {% for achievement in achievements %}
-                                <span class="badge bg-success me-1" title="{{ achievement.description }}">
-                                    <i class="bi {{ achievement.badge_icon }}"></i>
-                                    {{ achievement.name }}
-                                </span>
-                                {% endfor %}
+                                {% if current_user.is_authenticated %}
+                                    {% if achievements %}
+                                        {% for achievement in achievements %}
+                                        <span class="badge bg-success me-1" data-bs-toggle="tooltip" title="{{ achievement.description }}">
+                                            <i class="bi {{ achievement.badge_icon }}"></i>
+                                            {{ achievement.name }}
+                                        </span>
+                                        {% endfor %}
+                                    {% else %}
+                                        <span class="badge bg-secondary me-1">
+                                            <i class="bi bi-trophy"></i>
+                                            No achievements yet
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-info me-1">
+                                        <i class="bi bi-person"></i>
+                                        Sign in to track achievements
+                                    </span>
+                                {% endif %}
                             </div>
-                            {% endif %}
                             <select id="languageSelect" class="form-select me-2">
                                 <option value="cpp">C++</option>
                                 <option value="csharp">C#</option>
@@ -61,5 +73,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    <script>
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    </script>
 </body>
 </html>
