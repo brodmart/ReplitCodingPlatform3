@@ -8,35 +8,20 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="mb-3">Your Curriculum Progress</h5>
-                    {% for curriculum in ['TEJ2O', 'ICS3U'] %}
+                    {% for curriculum, stats in curriculum_progress.items() %}
                     <div class="mb-4">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0">{{ curriculum }} Progress</h6>
-                            {% set curriculum_activities = grouped_activities.items()|selectattr('0.0', 'equalto', curriculum)|list %}
-                            {% set completed = namespace(count=0, total=0) %}
-                            {% for (curr, lang), activities in curriculum_activities %}
-                                {% for activity in activities %}
-                                    {% set completed.total = completed.total + 1 %}
-                                    {% if progress.get(activity.id) and progress.get(activity.id).completed %}
-                                        {% set completed.count = completed.count + 1 %}
-                                    {% endif %}
-                                {% endfor %}
-                            {% endfor %}
-                            <span class="badge bg-info">{{ completed.count }}/{{ completed.total }} Complete</span>
+                            <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Complete</span>
                         </div>
                         <div class="progress" style="height: 20px;">
-                            {% if completed.total > 0 %}
-                                {% set percentage = (completed.count / completed.total * 100)|round|int %}
-                            {% else %}
-                                {% set percentage = 0 %}
-                            {% endif %}
-                            <div class="progress-bar {% if percentage == 100 %}bg-success{% endif %}" 
+                            <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% endif %}" 
                                  role="progressbar" 
-                                 style="width: {{ percentage }}%"
-                                 aria-valuenow="{{ percentage }}" 
+                                 style="width: {{ stats.percentage }}%"
+                                 aria-valuenow="{{ stats.percentage }}" 
                                  aria-valuemin="0" 
                                  aria-valuemax="100">
-                                {{ percentage }}%
+                                {{ stats.percentage|round|int }}%
                             </div>
                         </div>
                     </div>
@@ -52,9 +37,14 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>
             {% if current_user.is_authenticated %}
-                {% set completed_count = activities|selectattr('id', 'in', progress.keys())|selectattr('id', 'in', progress|map(attribute='completed')|list)|list|length %}
+                {% set completed_count = namespace(count=0) %}
+                {% for activity in activities %}
+                    {% if progress.get(activity.id) and progress.get(activity.id).completed %}
+                        {% set completed_count.count = completed_count.count + 1 %}
+                    {% endif %}
+                {% endfor %}
                 <div class="badge bg-info fs-6">
-                    {{ completed_count }}/{{ activities|length }} Activities Completed
+                    {{ completed_count.count }}/{{ activities|length }} Activities Completed
                 </div>
             {% endif %}
         </div>

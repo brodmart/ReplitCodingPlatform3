@@ -317,15 +317,38 @@ def list_activities():
     # Get student progress if logged in
     progress = {}
     if current_user.is_authenticated:
+        student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
         progress = {
             p.activity_id: p 
-            for p in current_user.progress
+            for p in student_progress
         }
+
+    # Calculate curriculum progress
+    curriculum_progress = {}
+    if current_user.is_authenticated:
+        for curriculum in ['TEJ2O', 'ICS3U']:
+            curriculum_activities = [
+                activity
+                for (curr, _), acts in grouped_activities.items()
+                if curr == curriculum
+                for activity in acts
+            ]
+            completed = sum(
+                1 for activity in curriculum_activities
+                if progress.get(activity.id) and progress[activity.id].completed
+            )
+            total = len(curriculum_activities)
+            curriculum_progress[curriculum] = {
+                'completed': completed,
+                'total': total,
+                'percentage': (completed / total * 100) if total > 0 else 0
+            }
 
     return render_template(
         'activities.html',
         grouped_activities=grouped_activities,
-        progress=progress
+        progress=progress,
+        curriculum_progress=curriculum_progress
     )
 
 @app.route('/activity/<int:activity_id>')
@@ -484,7 +507,6 @@ def create_initial_activities():
             'hints': ['Use int for whole numbers', 'Remember to prompt for each input', 'Use + operator for addition'],
             'points': 20
         },
-
         # ICS3U/3C C# Activities (Grade 11)
         {
             'title': 'Introduction to C#',
