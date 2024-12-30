@@ -39,7 +39,7 @@
                     </li>
                     {% endif %}
                 </ul>
-                <div class="achievements-container me-3">
+                <div class="d-flex align-items-center">
                     {% if current_user.is_authenticated %}
                         {% if current_user.achievements %}
                             {% for achievement in current_user.achievements %}

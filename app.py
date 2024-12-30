@@ -319,22 +319,6 @@ def list_activities():
     curriculum_progress = {}
 
     if current_user.is_authenticated:
-        # Create progress entries for all activities if they don't exist
-        for activity in activities:
-            progress_entry = StudentProgress.query.filter_by(
-                student_id=current_user.id,
-                activity_id=activity.id
-            ).first()
-
-            if not progress_entry:
-                progress_entry = StudentProgress(
-                    student_id=current_user.id,
-                    activity_id=activity.id
-                )
-                db.session.add(progress_entry)
-
-        db.session.commit()
-
         # Get all progress entries
         student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
         progress = {p.activity_id: p for p in student_progress}
@@ -358,7 +342,11 @@ def list_activities():
                 'percentage': (completed / total * 100) if total > 0 else 0
             }
 
-    logging.debug(f"Curriculum Progress: {curriculum_progress}")
+        # Add logging for debugging
+        logging.debug(f"Current User: {current_user.id}")
+        logging.debug(f"Progress: {progress}")
+        logging.debug(f"Curriculum Progress: {curriculum_progress}")
+
     return render_template(
         'activities.html',
         grouped_activities=grouped_activities,
