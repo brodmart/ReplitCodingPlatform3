@@ -725,7 +725,7 @@ def create_initial_activities():
             'sequence': 9,
             'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
             'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        stdcout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! = " << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! = " << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
             'test_cases': [
                 {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                 {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
@@ -759,56 +759,157 @@ def create_initial_activities():
         },
         # ICS3U C# Activities
         {
+            'title': 'Bonjour C#',
+            'description': 'Introduction à la programmation C# avec une sortie simple.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 1,
+            'instructions': 'Écrivez votre premier programme C# qui affiche "Bonjour le monde!" dans la console.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}',
+            'test_cases': [
+                {'input': '', 'output': 'Bonjour le monde!'}
+            ],
+            'hints': [
+                'Utilisez Console.WriteLine pour afficher du texte',
+                'N\'oubliez pas le point-virgule à la fin',
+                'Le texte doit être entre guillemets'
+            ],
+            'points': 10
+        },
+        {
+            'title': 'Variables et Types',
+            'description': 'Apprendre à utiliser les variables et les types de données en C#.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 2,
+            'instructions': 'Créez un programme qui déclare et affiche différents types de variables.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Déclarez vos variables ici\n        \n        // Affichez-les\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        int age = 20;\n        double taille = 1.75;\n        string nom = "Alice";\n\n        Console.WriteLine($"Nom: {nom}");\n        Console.WriteLine($"Age: {age} ans");\n        Console.WriteLine($"Taille: {taille} m");\n    }\n}',
+            'test_cases': [
+                {'input': '', 'output': 'Nom: Alice\nAge: 20 ans\nTaille: 1.75 m'}
+            ],
+            'hints': [
+                'Utilisez int pour les nombres entiers',
+                'double pour les nombres décimaux',
+                'string pour le texte'
+            ],
+            'points': 15
+        },
+        {
+            'title': 'Saisie et Sortie',
+            'description': 'Apprendre à lire les entrées utilisateur en C#.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 3,
+            'instructions': 'Créez un programme qui demande le nom et l\'âge de l\'utilisateur.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.Write("Entrez votre nom: ");\n        string nom = Console.ReadLine();\n\n        Console.Write("Entrez votre âge: ");\n        int age = Convert.ToInt32(Console.ReadLine());\n\n        Console.WriteLine($"Bonjour {nom}, vous avez {age} ans!");\n    }\n}',
+            'test_cases': [
+                {'input': 'Marie\n25\n', 'output': 'Entrez votre nom: Entrez votre âge: Bonjour Marie, vous avez 25 ans!'}
+            ],
+            'hints': [
+                'Console.ReadLine() lit une ligne de texte',
+                'Convert.ToInt32() convertit en nombre entier',
+                'Utilisez $ pour les chaînes interpolées'
+            ],
+            'points': 20
+        },
+        {
+            'title': 'Calculateur d\'IMC',
+            'description': 'Créer une calculatrice d\'Indice de Masse Corporelle.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 4,
+            'instructions': 'Écrivez un programme qui calcule l\'IMC à partir du poids (kg) et de la taille (m).',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.Write("Poids (kg): ");\n        double poids = Convert.ToDouble(Console.ReadLine());\n        Console.Write("Taille (m): ");\n        double taille = Convert.ToDouble(Console.ReadLine());\n        double imc = poids / (taille * taille);\n        Console.WriteLine($"Votre IMC est: {imc:F2}");\n    }\n}',
+            'test_cases': [
+                {'input': '70\n1.75\n', 'output': 'Poids (kg): Taille (m): Votre IMC est: 22.86'}
+            ],
+            'hints': [
+                'Utilisez Convert.ToDouble pour les nombres décimaux',
+                'La formule est: poids / (taille * taille)',
+                'Formatez le résultat avec :F2 pour deux décimales'
+            ],
+            'points': 25
+        },
+        {
+            'title': 'Vérificateur de Nombre',
+            'description': 'Utiliser les conditions if-else en C#.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 5,
+            'instructions': 'Créez un programme qui vérifie si un nombre est positif, négatif ou zéro.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.Write("Entrez un nombre: ");\n        int nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre > 0) {\n            Console.WriteLine("Le nombre est positif");\n        } else if (nombre < 0) {\n            Console.WriteLine("Le nombre est négatif");\n        } else {\n            Console.WriteLine("Le nombre est zéro");\n        }\n    }\n}',
+            'test_cases': [
+                {'input': '5\n', 'output': 'Entrez un nombre: Le nombre est positif'},
+                {'input': '-3\n', 'output': 'Entrez un nombre: Le nombre est négatif'},
+                {'input': '0\n', 'output': 'Entrez un nombre: Le nombre est zéro'}
+            ],
+            'hints': [
+                'Utilisez if, else if et else',
+                'Comparez avec les opérateurs >, < et ==',
+                'N\'oubliez pas de convertir l\'entrée en nombre'
+            ],
+            'points': 30
+        },
+        {
+            'title': 'Table de Multiplication',
+            'description': 'Utiliser les boucles en C#.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 6,
+            'instructions': 'Créez un programme qui affiche la table de multiplication d\'un nombre.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.Write("Entrez un nombre: ");\n        int nombre = Convert.ToInt32(Console.ReadLine());\n        Console.WriteLine($"Table de multiplication de {nombre}:");\n        for (int i = 1; i <= 10; i++) {\n            Console.WriteLine($"{nombre} x {i} = {nombre * i}");\n        }\n    }\n}',
+            'test_cases': [
+                {'input': '5\n', 'output': 'Entrez un nombre: Table de multiplication de 5:\n5 x 1 = 5\n5 x 2 = 10\n5 x 3 = 15\n5 x 4 = 20\n5 x 5 = 25\n5 x 6 = 30\n5 x 7 = 35\n5 x 8 = 40\n5 x 9 = 45\n5 x 10 = 50'}
+            ],
+            'hints': [
+                'Utilisez une boucle for',
+                'La boucle doit aller de 1 à 10',
+                'Multipliez le nombre par le compteur'
+            ],
+            'points': 35
+        },
+        {
+            'title': 'Tableau de Notes',
+            'description': 'Travailler avec les tableaux en C#.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 7,
+            'instructions': 'Créez un programme qui calcule la moyenne d\'une série de notes.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.Write("Combien de notes? ");\n        int n = Convert.ToInt32(Console.ReadLine());\n        double[] notes = new double[n];\n        double somme = 0;\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Note {i + 1}: ");\n            notes[i] = Convert.ToDouble(Console.ReadLine());\n            somme += notes[i];\n        }\n        double moyenne = somme / n;\n        Console.WriteLine($"Moyenne: {moyenne:F2}");\n    }\n}',
+            'test_cases': [
+                {'input': '3\n15\n17\n13\n', 'output': 'Combien de notes? Note 1: Note 2: Note 3: Moyenne: 15.00'}
+            ],
+            'hints': [
+                'Déclarez un tableau avec new double[n]',
+                'Utilisez une boucle pour remplir le tableau',
+                'Calculez la moyenne en divisant la somme par n'
+            ],
+            'points': 40
+        },
+        {
             'title': 'Gestion des Étudiants',
             'description': 'Créer une application de gestion des étudiants avec des structures de données.',
             'difficulty': 'intermediate',
             'curriculum': 'ICS3U',
             'language': 'csharp',
-            'sequence': 1,
+            'sequence': 8,
             'instructions': 'Créez une application qui gère une liste d\'étudiants avec leurs notes.',
-            'starter_code': '''using System;
-using System.Collections.Generic;
-
-class Programme {
-    static void Main() {
-        List<string> noms = new List<string>();
-        List<double> notes = new List<double>();
-        // Votre code ici
-    }
-}''',
-            'solution_code': '''using System;
-using System.Collections.Generic;
-
-class Programme {
-    static void Main() {
-        List<string> noms = new List<string>();
-        List<double> notes = new List<double>();
-
-        Console.Write("Nombre d'étudiants: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-
-        for (int i = 0; i < n; i++) {
-            Console.Write($"Nom de l'étudiant {i+1}: ");
-            noms.Add(Console.ReadLine());
-            Console.Write($"Note: ");
-            notes.Add(Convert.ToDouble(Console.ReadLine()));
-        }
-
-        double moyenne = 0;
-        for (int i = 0; i < n; i++) {
-            moyenne += notes[i];
-        }
-        moyenne /= n;
-
-        Console.WriteLine($"Moyenne de la classe: {moyenne:F2}");
-
-        for (int i = 0; i < n; i++) {
-            if (notes[i] > moyenne) {
-                Console.WriteLine($"{noms[i]} est au-dessus de la moyenne");
-            }
-        }
-    }
-}''',
+            'starter_code': 'using System;\nusing System.Collections.Generic;\nclass Program {\n    static void Main() {\n        List<string> noms = new List<string>();\n        List<double> notes = new List<double>();\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\nusing System.Collections.Generic;\nclass Program {\n    static void Main() {\n        List<string> noms = new List<string>();\n        List<double> notes = new List<double>();\n        Console.Write("Nombre d\'étudiants: ");\n        int n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Nom de l\'étudiant {i+1}: ");\n            noms.Add(Console.ReadLine());\n            Console.Write($"Note: ");\n            notes.Add(Convert.ToDouble(Console.ReadLine()));\n        }\n        double moyenne = 0;\n        for (int i = 0; i < n; i++) {\n            moyenne += notes[i];\n        }\n        moyenne /= n;\n        Console.WriteLine($"Moyenne de la classe: {moyenne:F2}");\n        for (int i = 0; i < n; i++) {\n            if (notes[i] > moyenne) {\n                Console.WriteLine($"{noms[i]} est au-dessus de la moyenne");\n            }\n        }\n    }\n}',
             'test_cases': [
                 {'input': '3\nAlice\n85\nBob\n92\nCarol\n78\n',
                  'output': 'Nombre d\'étudiants: Nom de l\'étudiant 1: Note: Nom de l\'étudiant 2: Note: Nom de l\'étudiant 3: Note: Moyenne de la classe: 85.00\nAlice est au-dessus de la moyenne\nBob est au-dessus de la moyenne'}
@@ -826,87 +927,10 @@ class Programme {
             'difficulty': 'advanced',
             'curriculum': 'ICS3U',
             'language': 'csharp',
-            'sequence': 2,
+            'sequence': 9,
             'instructions': 'Créez une implémentation simple d\'une liste chaînée.',
-            'starter_code': '''using System;
-
-class Node {
-    public int Data;
-    public Node Next;
-
-    public Node(int data) {
-        Data = data;
-        Next = null;
-    }
-}
-
-class LinkedList {
-    private Node head;
-
-    // Implémentez les méthodes ici
-}
-
-class Programme {
-    static void Main() {
-        LinkedList liste = new LinkedList();
-        // Votre code ici
-    }
-}''',
-            'solution_code': '''using System;
-
-class Node {
-    public int Data;
-    public Node Next;
-
-    public Node(int data) {
-        Data = data;
-        Next = null;
-    }
-}
-
-class LinkedList {
-    private Node head;
-
-    public void Add(int data) {
-        Node newNode = new Node(data);
-        if (head == null) {
-            head = newNode;
-            return;
-        }
-
-        Node current = head;
-        while (current.Next != null) {
-            current = current.Next;
-        }
-        current.Next = newNode;
-    }
-
-    public void Print() {
-        Node current = head;
-        while (current != null) {
-            Console.Write(current.Data + " ");
-            current = current.Next;
-        }
-        Console.WriteLine();
-    }
-}
-
-class Programme {
-    static void Main() {
-        LinkedList liste = new LinkedList();
-        Console.Write("Nombre d'éléments: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-
-        for (int i = 0; i < n; i++) {
-            Console.Write($"Élément {i+1}: ");
-            int valeur = Convert.ToInt32(Console.ReadLine());
-            liste.Add(valeur);
-        }
-
-        Console.Write("Liste: ");
-        liste.Print();
-    }
-}''',
+            'starter_code': 'using System;\nclass Node {\n    public int Data;\n    public Node Next;\n    public Node(int data) {\n        Data = data;\n        Next = null;\n    }\n}\nclass LinkedList {\n    private Node head;\n    // Implémentez les méthodes ici\n}\nclass Program {\n    static void Main() {\n        LinkedList liste = new LinkedList();\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\nclass Node {\n    public int Data;\n    public Node Next;\n    public Node(int data) {\n        Data = data;\n        Next = null;\n    }\n}\nclass LinkedList {\n    private Node head;\n    public void Add(int data) {\n        Node newNode = new Node(data);\n        if (head == null) {\n            head = newNode;\n            return;\n        }\n        Node current = head;\n        while (current.Next != null) {\n            current = current.Next;\n        }\n        current.Next = newNode;\n    }\n    public void Print() {\n        Node current = head;\n        while (current != null) {\n            Console.Write(current.Data + " ");\n            current = current.Next;\n        }\n        Console.WriteLine();\n    }\n}\nclass Program {\n    static void Main() {\n        LinkedList liste = new LinkedList();\n        Console.Write("Nombre d\'éléments: ");\n        int n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Élément {i+1}: ");\n            int valeur = Convert.ToInt32(Console.ReadLine());\n            liste.Add(valeur);\n        }\n        Console.Write("Liste: ");\n        liste.Print();\n    }\n}',
             'test_cases': [
                 {'input': '4\n10\n20\n30\n40\n',
                  'output': 'Nombre d\'éléments: Élément 1: Élément 2: Élément 3: Élément 4: Liste: 10 20 30 40 '}
@@ -924,64 +948,10 @@ class Programme {
             'difficulty': 'advanced',
             'curriculum': 'ICS3U',
             'language': 'csharp',
-            'sequence': 3,
+            'sequence': 10,
             'instructions': 'Implémentez un gestionnaire de tâches avec priorités.',
-            'starter_code': '''using System;
-using System.Collections.Generic;
-
-class Tache {
-    public string Description { get; set; }
-    public int Priorite { get; set; }
-
-    public Tache(string description, int priorite) {
-        Description = description;
-        Priorite = priorite;
-    }
-}
-
-class Programme {
-    static void Main() {
-        List<Tache> taches = new List<Tache>();
-        // Votre code ici
-    }
-}''',
-            'solution_code': '''using System;
-using System.Collections.Generic;
-using System.Linq;
-
-class Tache {
-    public string Description { get; set; }
-    public int Priorite { get; set; }
-
-    public Tache(string description, int priorite) {
-        Description = description;
-        Priorite = priorite;
-    }
-}
-
-class Programme {
-    static void Main() {
-        List<Tache> taches = new List<Tache>();
-
-        Console.Write("Nombre de tâches: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-
-        for (int i = 0; i < n; i++) {
-            Console.Write($"Description de la tâche {i+1}: ");
-            string description = Console.ReadLine();
-            Console.Write("Priorité (1-5): ");
-            int priorite = Convert.ToInt32(Console.ReadLine());
-            taches.Add(new Tache(description, priorite));
-        }
-
-        var tachesTriees = taches.OrderByDescending(t => t.Priorite).ToList();
-
-        Console.WriteLine("\nTâches par priorité:");
-        foreach (var tache in tachesTriees) {
-            Console.WriteLine($"[Priorité {tache.Priorite}] {tache.Description}");
-        }
-    }
-}''',
+            'starter_code': 'using System;\nusing System.Collections.Generic;\nclass Tache {\n    public string Description { get; set; }\n    public int Priorite { get; set; }\n    public Tache(string description, int priorite) {\n        Description = description;\n        Priorite = priorite;\n    }\n}\nclass Program {\n    static void Main() {\n        List<Tache> taches = new List<Tache>();\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\nusing System.Collections.Generic;\nusing System.Linq;\nclass Tache {\n    public string Description { get; set; }\n    public int Priorite { get; set; }\n    public Tache(string description, int priorite) {\n        Description = description;\n        Priorite = priorite;\n    }\n}\nclass Program {\n    static void Main() {\n        List<Tache> taches = new List<Tache>();\n        Console.Write("Nombre de tâches: ");\n        int n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Description de la tâche {i+1}: ");\n            string description = Console.ReadLine();\n            Console.Write("Priorité (1-5): ");\n            int priorite = Convert.ToInt32(Console.ReadLine());\n            taches.Add(new Tache(description, priorite));\n        }\n        var tachesTriees = taches.OrderByDescending(t => t.Priorite).ToList();\n        Console.WriteLine("\nTâches par priorité:");\n        foreach (var tache in tachesTriees) {\n            Console.WriteLine($"[Priorité {tache.Priorite}] {tache.Description}");\n        }\n    }\n}',
             'test_cases': [
                 {'input': '3\nÉtudier\n5\nJouer\n1\nDormir\n3\n',
                  'output': 'Nombre de tâches: Description de la tâche 1: Priorité (1-5): Description de la tâche 2: Priorité (1-5): Description de la tâche 3: Priorité (1-5): \nTâches par priorité:\n[Priorité 5] Étudier\n[Priorité 3] Dormir\n[Priorité 1] Jouer'}
