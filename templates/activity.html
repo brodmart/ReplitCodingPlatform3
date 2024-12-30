@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">{{ activity.title }}</h3>
+                    <div class="mt-2">
+                        <span class="badge bg-secondary">{{ activity.curriculum }}</span>
+                        <span class="badge bg-primary">{{ activity.language|upper }}</span>
+                        <span class="badge {% if activity.difficulty == 'beginner' %}bg-success{% elif activity.difficulty == 'intermediate' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ activity.difficulty }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5>Description</h5>
+                    <p>{{ activity.description }}</p>
+                    
+                    <h5>Instructions</h5>
+                    <p>{{ activity.instructions }}</p>
+
+                    {% if activity.hints %}
+                    <h5>Hints</h5>
+                    <ul class="list-group">
+                        {% for hint in activity.hints %}
+                        <li class="list-group-item">{{ hint }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+
+                    {% if progress %}
+                    <div class="mt-4">
+                        <h5>Your Progress</h5>
+                        <p>
+                            Attempts: {{ progress.attempts }}<br>
+                            Status: 
+                            {% if progress.completed %}
+                                <span class="badge bg-success">Completed</span>
+                            {% else %}
+                                <span class="badge bg-warning">In Progress</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Code Editor</h5>
+                    <div>
+                        <button id="resetButton" class="btn btn-secondary me-2">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset Code
+                        </button>
+                        <button id="submitButton" class="btn btn-primary">
+                            <i class="bi bi-play-fill"></i> Submit Solution
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="editor" style="height: 400px; border: 1px solid var(--bs-border-color);"></div>
+                    
+                    <div class="mt-4">
+                        <h5>Test Results</h5>
+                        <div id="testResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+require.config({
+    paths: {
+        'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
+    }
+});
+
+require(['vs/editor/editor.main'], function() {
+    const editor = monaco.editor.create(document.getElementById('editor'), {
+        value: {{ activity.starter_code|tojson }},
+        language: '{{ activity.language }}',
+        theme: 'vs-dark',
+        minimap: { enabled: false },
+        automaticLayout: true
+    });
+
+    document.getElementById('resetButton').addEventListener('click', function() {
+        editor.setValue({{ activity.starter_code|tojson }});
+    });
+
+    document.getElementById('submitButton').addEventListener('click', async function() {
+        const submitButton = this;
+        const testResults = document.getElementById('testResults');
+        
+        try {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Submitting...';
+
+            const response = await fetch("{{ url_for('submit_activity', activity_id=activity.id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    code: editor.getValue()
+                })
+            });
+
+            const result = await response.json();
+            
+            // Display test results
+            let html = '<div class="list-group">';
+            result.test_results.forEach((test, index) => {
+                html += `
+                    <div class="list-group-item ${test.passed ? 'list-group-item-success' : 'list-group-item-danger'}">
+                        <h6>Test Case ${index + 1}</h6>
+                        <div><strong>Input:</strong> ${test.input || '(none)'}</div>
+                        <div><strong>Expected:</strong> ${test.expected}</div>
+                        <div><strong>Actual:</strong> ${test.actual || '(no output)'}</div>
+                        ${test.error ? `<div class="text-danger"><strong>Error:</strong> ${test.error}</div>` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            testResults.innerHTML = html;
+
+            if (result.success) {
+                location.reload(); // Refresh to update progress
+            }
+        } catch (error) {
+            testResults.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = '<i class="bi bi-play-fill"></i> Submit Solution';
+        }
+    });
+});
+</script>
+{% endblock %}
