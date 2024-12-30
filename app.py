@@ -564,18 +564,19 @@ def create_initial_activities():
             ],
             'points': 10
         }
-       
     ]
 
-    # First remove dependent records
+    # Remove records in correct order to maintain referential integrity
+    TutorialProgress.query.delete()
+    TutorialStep.query.delete()
     StudentProgress.query.delete()
-    # Then remove activities
     CodingActivity.query.delete()
 
     # Create activities
     for activity_data in activities:
         activity = CodingActivity(**activity_data)
         db.session.add(activity)
+        db.session.commit()  # Commit to get activity.id
 
         # Add tutorial steps
         step1 = TutorialStep(
