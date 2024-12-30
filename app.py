@@ -252,7 +252,8 @@ def test_login():
     # Log in the test user
     login_user(test_user)
     flash('Logged in as test user')
-    return redirect(url_for('activities'))  # Redirect to activities page instead of index
+    return redirect(url_for('list_activities'))  # Fixed: using correct endpoint name
+
 
 
 @app.route('/share', methods=['POST'])
