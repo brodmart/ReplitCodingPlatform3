@@ -22,6 +22,11 @@
                         <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Editor</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'list_activities' %}active{% endif %}" href="{{ url_for('list_activities') }}">
+                            <i class="bi bi-book"></i> Activities
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if request.endpoint == 'leaderboard' %}active{% endif %}" href="{{ url_for('leaderboard') }}">
                             <i class="bi bi-trophy"></i> Leaderboard
                         </a>
@@ -36,20 +41,14 @@
                 </ul>
                 <div class="achievements-container me-3">
                     {% if current_user.is_authenticated %}
-                        {% if current_user.achievements_by_category %}
-                            {% for category, achievements in current_user.achievements_by_category.items() %}
-                            <div class="achievement-category d-inline-block me-2">
-                                <span class="badge bg-secondary text-uppercase small">{{ category }}</span>
-                                {% for achievement in achievements %}
-                                <span class="badge bg-dark border border-light me-1" 
-                                      data-bs-toggle="tooltip" 
-                                      data-bs-placement="bottom"
-                                      title="{{ achievement.description }} ({{ achievement.points }} points)">
-                                    <i class="bi {{ achievement.badge_icon }}"></i>
-                                    <span class="d-none d-md-inline">{{ achievement.name }}</span>
-                                </span>
-                                {% endfor %}
-                            </div>
+                        {% if current_user.achievements %}
+                            {% for achievement in current_user.achievements %}
+                            <span class="badge bg-success me-1" 
+                                  data-bs-toggle="tooltip" 
+                                  title="{{ achievement.achievement.description }}">
+                                <i class="bi {{ achievement.achievement.badge_icon }}"></i>
+                                {{ achievement.achievement.name }}
+                            </span>
                             {% endfor %}
                         {% else %}
                             <span class="badge bg-secondary me-1">
