@@ -474,15 +474,8 @@ def create_initial_achievements():
     db.session.commit()
 
 def create_initial_activities():
-    """Initialize database with coding activities"""
-    # First remove all related records in correct order to maintain referential integrity
-    TutorialProgress.query.delete()
-    TutorialStep.query.delete()
-    StudentProgress.query.delete()
-    CodingActivity.query.delete()
-
+    # Add the first 5 activities (TEJ2O C++)
     activities = [
-        # TEJ2O C++ Activities
         {
             'title': 'Bonjour le monde!',
             'description': 'Introduction à la programmation C++ avec une sortie simple.',
@@ -512,7 +505,6 @@ def create_initial_activities():
                 }
             ]
         },
-        # Variables et Types (C++)
         {
             'title': 'Variables et Types',
             'description': 'Apprendre à utiliser les variables et les types de données en C++.',
@@ -535,7 +527,6 @@ def create_initial_activities():
                 }
             ]
         },
-        # Structures de Contrôle (C++)
         {
             'title': 'Structures de Contrôle',
             'description': 'Apprendre à utiliser les instructions if/else en C++.',
@@ -563,7 +554,6 @@ def create_initial_activities():
                 }
             ]
         },
-        # TEJ2O C++ Activities (continued)
         {
             'title': 'Boucles en C++',
             'description': 'Maîtriser les boucles for et while en C++.',
@@ -607,88 +597,24 @@ def create_initial_activities():
                     'hint': 'Les indices commencent à 0, pas à 1'
                 }
             ]
-        },
-        {
-            'title': 'Fonctions en C++',
-            'description': 'Créer et utiliser des fonctions pour organiser le code.',
-            'difficulty': 'intermediate',
-            'curriculum': 'TEJ2O',
-            'language': 'cpp',
-            'sequence': 6,
-            'instructions': 'Créez une fonction qui calcule le carré d\'un nombre.',
-            'starter_code': '#include <iostream>\n\n// Déclarez votre fonction ici\n\nint main() {\n    // Utilisez votre fonction ici\n    return 0;\n}',
-            'solution_code': '#include <iostream>\n\nint carre(int nombre) {\n    return nombre * nombre;\n}\n\nint main() {\n    int n = 5;\n    std::cout << "Le carré de " << n << " est " << carre(n) << std::endl;\n    return 0;\n}',
-            'test_cases': [{'input': '', 'output': 'Le carré de 5 est 25'}],
-            'points': 25,
-            'tutorial_steps': [
-                {
-                    'step_number': 1,
-                    'title': 'Déclaration de fonction',
-                    'content': 'Une fonction a un type de retour, un nom et des paramètres.\n\n**Erreurs courantes:**\n- Oublier le type de retour\n- Ne pas déclarer la fonction avant de l\'utiliser\n- Oublier return',
-                    'code_snippet': 'int carre(int nombre) {\n    return nombre * nombre;\n}',
-                    'hint': 'Le type de retour doit correspondre à la valeur retournée'
-                }
-            ]
-        },
-
-        # ICS3U C# Activities (continued)
-        {
-            'title': 'Classes et Objets',
-            'description': 'Introduction à la programmation orientée objet en C#.',
-            'difficulty': 'intermediate',
-            'curriculum': 'ICS3U',
-            'language': 'csharp',
-            'sequence': 2,
-            'instructions': 'Créez une classe Étudiant avec des propriétés et des méthodes.',
-            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Créez et utilisez un étudiant ici\n    }\n}',
-            'solution_code': 'using System;\n\nclass Etudiant\n{\n    public string Nom { get; set; }\n    public int Age { get; set; }\n    \n    public void AfficherInfo()\n    {\n        Console.WriteLine($"Nom: {Nom}, Age: {Age}");\n    }\n}\n\nclass Program\n{\n    static void Main()\n    {\n        var etudiant = new Etudiant { Nom = "Alice", Age = 16 };\n        etudiant.AfficherInfo();\n    }\n}',
-            'test_cases': [{'input': '', 'output': 'Nom: Alice, Age: 16'}],
-            'points': 30,
-            'tutorial_steps': [
-                {
-                    'step_number': 1,
-                    'title': 'Création d\'une classe',
-                    'content': 'Une classe est un modèle pour créer des objets.\n\n**Erreurs courantes:**\n- Oublier les accolades\n- Ne pas déclarer les propriétés public\n- Confusion entre méthodes et propriétés',
-                    'code_snippet': 'class Etudiant\n{\n    public string Nom { get; set; }\n    public int Age { get; set; }\n}',
-                    'hint': 'Les propriétés doivent être public pour être accessibles'
-                }
-            ]
-        },
-        {
-            'title': 'Listes et Collections',
-            'description': 'Utiliser les collections génériques en C#.',
-            'difficulty': 'intermediate',
-            'curriculum': 'ICS3U',
-            'language': 'csharp',
-            'sequence': 3,
-            'instructions': 'Créez un programme qui gère une liste d\'étudiants.',
-            'starter_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program\n{\n    static void Main()\n    {\n        // Créez et gérez une liste d\'étudiants\n    }\n}',
-            'solution_code': 'using System;\nusing System.Collections.Generic;\n\nclass Program\n{\n    static void Main()\n    {\n        var etudiants = new List<string> { "Alice", "Bob", "Charlie" };\n        \n        Console.WriteLine("Liste des étudiants:");\n        foreach(var etudiant in etudiants)\n        {\n            Console.WriteLine(etudiant);\n        }\n        \n        Console.WriteLine`($"Nombre total: {etudiants.Count}");\n    }\n}',
-            'test_cases': [{'input': '', 'output': 'Liste des étudiants:\nAlice\nBob\nCharlie\nNombre total: 3'}],
-            'points': 30,
-            'tutorial_steps': [
-                {
-                    'step_number': 1,
-                    'title': 'Utilisation des Listes',
-                    'content': 'List<T> est une collection générique flexible.\n\n**Erreurs courantes:**\n- Oublier d\'importer System.Collections.Generic\n- Confusion entre Array et List\n- Accès incorrect aux éléments',
-                    'code_snippet': 'var etudiants = new List<string>();\netudiants.Add("Alice");',
-                    'hint': 'Utilisez foreach pour parcourir une liste facilement'
-                }
-            ]
         }
-
-        # More activities will be added in subsequent updates...
     ]
+
+    # First, remove all existing activities and related records
+    TutorialProgress.query.delete()
+    TutorialStep.query.delete()
+    StudentProgress.query.delete()
+    CodingActivity.query.delete()
 
     # Create activities and their tutorial steps
     for activity_data in activities:
-        # Extract tutorial steps data
+        # Extract tutorial steps data before creating activity
         tutorial_steps_data = activity_data.pop('tutorial_steps', [])
 
         # Create activity
         activity = CodingActivity(**activity_data)
         db.session.add(activity)
-        db.session.flush()  # This assigns an ID to the activity
+        db.session.flush()  # Get activity ID
 
         # Create tutorial steps
         for step_data in tutorial_steps_data:
