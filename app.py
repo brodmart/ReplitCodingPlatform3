@@ -494,57 +494,98 @@ def create_initial_activities():
             'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
             'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
             'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
+            'points': 10,
             'tutorial_steps': [
                 {
                     'step_number': 1,
                     'title': 'Comprendre la structure de base',
-                    'content': '''Dans C++, chaque programme commence par des *includes* et une fonction principale appelée `main`.
-
-Les includes sont comme des livres de référence que votre programme peut utiliser. `iostream` contient les outils pour l'entrée/sortie.
-
-**Erreurs courantes à éviter:**
-- Oublier le point-virgule après l'include
-- Mal orthographier iostream
-- Oublier les chevrons < > autour de iostream''',
+                    'content': 'Dans C++, chaque programme commence par des *includes* et une fonction principale appelée `main`.\n\nLes includes sont comme des livres de référence que votre programme peut utiliser. `iostream` contient les outils pour l\'entrée/sortie.\n\n**Erreurs courantes à éviter:**\n- Oublier le point-virgule après l\'include\n- Mal orthographier iostream\n- Oublier les chevrons < > autour de iostream',
                     'code_snippet': '#include <iostream>\n\nint main() {\n    // Le code va ici\n    return 0;\n}',
-                    'expected_output': None,
                     'hint': 'Regardez attentivement la syntaxe: #include doit être suivi de <iostream>'
                 },
                 {
                     'step_number': 2,
                     'title': 'Ajouter l\'instruction d\'affichage',
-                    'content': '''Pour afficher du texte, nous utilisons `std::cout` suivi de `<<`.
-
-Le `std::` indique que nous utilisons l'espace de noms standard de C++.
-
-**Erreurs courantes à éviter:**
-- Oublier std:: avant cout
-- Utiliser des apostrophes ' ' au lieu des guillemets " "
-- Oublier << entre cout et le texte
-- Oublier le point-virgule à la fin''',
+                    'content': 'Pour afficher du texte, nous utilisons `std::cout` suivi de `<<`.\n\nLe `std::` indique que nous utilisons l\'espace de noms standard de C++.\n\n**Erreurs courantes à éviter:**\n- Oublier std:: avant cout\n- Utiliser des apostrophes \' \' au lieu des guillemets " "\n- Oublier << entre cout et le texte\n- Oublier le point-virgule à la fin',
                     'code_snippet': '    std::cout << "Bonjour le monde!";',
-                    'expected_output': None,
                     'hint': 'Pensez à la direction des flèches <<, elles pointent vers cout'
-                },
-                {
-                    'step_number': 3,
-                    'title': 'Ajouter une nouvelle ligne',
-                    'content': '''Pour que notre sortie soit propre, ajoutons une nouvelle ligne avec `std::endl`.
-
-`endl` signifie "end line" (fin de ligne).
-
-**Erreurs courantes à éviter:**
-- Oublier le std:: avant endl
-- Oublier le << avant endl
-- Confondre endl avec \\n''',
-                    'code_snippet': '    std::cout << "Bonjour le monde!" << std::endl;',
-                    'expected_output': 'Bonjour le monde!\n',
-                    'hint': 'endl doit être précédé de << tout comme le texte'
                 }
-            ],
-            'points': 10
+            ]
         },
-        # Add more activities here...
+        # Variables et Types (C++)
+        {
+            'title': 'Variables et Types',
+            'description': 'Apprendre à utiliser les variables et les types de données en C++.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 2,
+            'instructions': 'Créez un programme qui déclare et utilise différents types de variables.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    // Déclarez vos variables ici\n    \n    // Affichez les résultats\n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int age = 16;\n    double moyenne = 85.5;\n    char grade = \'A\';\n\n    std::cout << "Age: " << age << std::endl;\n    std::cout << "Moyenne: " << moyenne << std::endl;\n    std::cout << "Note: " << grade << std::endl;\n    return 0;\n}',
+            'test_cases': [{'input': '', 'output': 'Age: 16\nMoyenne: 85.5\nNote: A'}],
+            'points': 15,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Types de données de base',
+                    'content': 'En C++, il existe plusieurs types de données fondamentaux:\n- `int`: nombres entiers\n- `double`: nombres décimaux\n- `char`: caractères simples\n- `bool`: valeurs vraies/fausses\n\n**Erreurs courantes:**\n- Utiliser des virgules au lieu des points pour les décimaux\n- Ne pas initialiser les variables\n- Utiliser des guillemets " " pour les char au lieu des apostrophes \'',
+                    'code_snippet': 'int age;      // Pour l\'âge\ndouble note;   // Pour les notes\nchar grade;    // Pour les lettres de notes',
+                    'hint': 'Pensez à initialiser vos variables avec des valeurs appropriées'
+                }
+            ]
+        },
+        # Structures de Contrôle (C++)
+        {
+            'title': 'Structures de Contrôle',
+            'description': 'Apprendre à utiliser les instructions if/else en C++.',
+            'difficulty': 'beginner',
+            'curriculum': 'TEJ2O',
+            'language': 'cpp',
+            'sequence': 3,
+            'instructions': 'Créez un programme qui utilise des structures conditionnelles pour classer des notes.',
+            'starter_code': '#include <iostream>\n\nint main() {\n    int note;\n    std::cout << "Entrez une note: ";\n    std::cin >> note;\n    \n    // Ajoutez vos conditions ici\n    \n    return 0;\n}',
+            'solution_code': '#include <iostream>\n\nint main() {\n    int note;\n    std::cout << "Entrez une note: ";\n    std::cin >> note;\n    \n    if (note >= 90) {\n        std::cout << "Excellent!" << std::endl;\n    } else if (note >= 75) {\n        std::cout << "Très bien!" << std::endl;\n    } else if (note >= 60) {\n        std::cout << "Passable" << std::endl;\n    } else {\n        std::cout << "Échec" << std::endl;\n    }\n    return 0;\n}',
+            'test_cases': [
+                {'input': '95', 'output': 'Entrez une note: Excellent!'},
+                {'input': '80', 'output': 'Entrez une note: Très bien!'},
+                {'input': '65', 'output': 'Entrez une note: Passable'},
+                {'input': '55', 'output': 'Entrez une note: Échec'}
+            ],
+            'points': 20,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Structure if/else',
+                    'content': 'Les structures conditionnelles permettent à votre programme de prendre des décisions.\n\n**Erreurs courantes:**\n- Oublier les accolades { }\n- Utiliser = au lieu de == pour la comparaison\n- Mal ordonner les conditions (commencer par les plus spécifiques)',
+                    'code_snippet': 'if (condition) {\n    // code si vrai\n} else {\n    // code si faux\n}',
+                    'hint': 'Commencez par la note la plus élevée et descendez progressivement'
+                }
+            ]
+        },
+        # ICS3U C# Activities
+        {
+            'title': 'Introduction à C#',
+            'description': 'Premiers pas avec C# et les bases de la programmation.',
+            'difficulty': 'beginner',
+            'curriculum': 'ICS3U',
+            'language': 'csharp',
+            'sequence': 1,
+            'instructions': 'Créez votre première application console C# qui affiche un message personnalisé.',
+            'starter_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Votre code ici\n    }\n}',
+            'solution_code': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Bienvenue dans le monde de C#!");\n    }\n}',
+            'test_cases': [{'input': '', 'output': 'Bienvenue dans le monde de C#!'}],
+            'points': 10,
+            'tutorial_steps': [
+                {
+                    'step_number': 1,
+                    'title': 'Structure d\'un programme C#',
+                    'content': 'Un programme C# commence toujours par des `using` qui importent les fonctionnalités nécessaires.\n\nLa classe `Program` et la méthode `Main` sont les points d\'entrée de l\'application.\n\n**Erreurs courantes:**\n- Oublier le point-virgule après using System\n- Mal placer les accolades\n- Oublier static pour Main',
+                    'code_snippet': 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        // Le code va ici\n    }\n}',
+                    'hint': 'Vérifiez que toutes les accolades sont bien appariées'
+                }
+            ]
+        }
     ]
 
     # Create activities and their tutorial steps
