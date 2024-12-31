@@ -113,12 +113,17 @@ def view_activity(activity_id):
             logging.debug(f"Parsed hints: {activity.hints}")
 
             # Handle common errors
-            if activity.common_errors:
-                if isinstance(activity.common_errors, str):
-                    activity.common_errors = json.loads(activity.common_errors)
-                elif not isinstance(activity.common_errors, list):
+            if activity.common_errors is None:
+                # Load from JSON file if exists
+                try:
+                    with open(f'activity/{activity.id}.json') as f:
+                        data = json.load(f)
+                        activity.common_errors = data.get('common_errors', [])
+                except (FileNotFoundError, json.JSONDecodeError):
                     activity.common_errors = []
-            else:
+            elif isinstance(activity.common_errors, str):
+                activity.common_errors = json.loads(activity.common_errors)
+            elif not isinstance(activity.common_errors, list):
                 activity.common_errors = []
 
             logging.debug(f"Parsed common_errors: {activity.common_errors}")
