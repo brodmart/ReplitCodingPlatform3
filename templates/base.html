@@ -134,6 +134,11 @@
     <!-- Session handler script -->
     <script src="{{ url_for('static', filename='js/session-handler.js') }}"></script>
 
+    <script>
+        window.MonacoEnvironment = { baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.33.0/min/' };
+    </script>
+    <script src="{{ url_for('static', filename='js/editor.js') }}" defer></script>
+
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
