@@ -649,7 +649,16 @@ Points à noter:
                     'Additionner les nombres comme des chaînes de caractères'
                 ],
                 'points': 20,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { int a, b; std::cout << a + b << std::endl; }", "error": "Variables non initialisées"}, {"code": "#include <iostream>\nint main() { int a = 5, b = \"3\"; std::cout << a + b << std::endl; }", "error": "Type incorrect"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { int a, b; std::cout << a + b << std::endl; }",
+                        "error": "Variables non initialisées"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { std::string a = \"5\", b = \"3\"; std::cout << a + b << std::endl; }",
+                        "error": "Type incorrect - tentative d'additionner des chaînes"
+                    }
+                ]
             },
             {
                 'title': 'Conditions Si-Sinon',
@@ -701,7 +710,16 @@ Points à noter:
                     'Oublier de demander l\'entrée à l\'utilisateur'
                 ],
                 'points': 25,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { int n; if (n > 0) std::cout << \"positif\"; }", "error": "Accolades manquantes"}, {"code": "#include <iostream>\nint main() { int n; if (n = 0) std::cout << \"zéro\"; }", "error": "Mauvaise utilisation de l\'opérateur =="}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { int n; if (n > 0) std::cout << \"positif\"; }",
+                        "error": "Accolades manquantes"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { int n; if (n = 0) std::cout << \"zéro\"; }",
+                        "error": "Mauvaise utilisation de l\'opérateur =="
+                    }
+                ]
             },
             {
                 'title': 'Boucle Simple',
@@ -742,7 +760,16 @@ Points à noter:
                     'Ne pas afficher de sortie'
                 ],
                 'points': 30,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { for (int i = 1; i < 5; i++) std::cout << i; }", "error": "Condition incorrecte"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i <= 5; i--) std::cout << i; }", "error": "Incrémentation incorrecte"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { for (int i = 1; i < 5; i++) std::cout << i; }",
+                        "error": "Condition incorrecte"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { for (int i = 1; i <= 5; i--) std::cout << i; }",
+                        "error": "Incrémentation incorrecte"
+                    }
+                ]
             },
             {
                 'title': 'Table de Multiplication',
@@ -756,16 +783,14 @@ Points à noter:
 1. Boucles imbriquées:
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
-            // instructions à répéter
-        }
+            // instructions à répéter        }
     }
 
 2. Points importants:
     - La boucle interne s'exécute entièrement pour chaque itération de la boucle externe
     - Utilisez des variables de boucle appropriées pour l'indexation
     - Assurez-vous que les boucles imbriquées sont correctement imbriquées
-</pre>''',
-                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
+</pre>''',                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '''#include <iostream>
 
@@ -775,7 +800,7 @@ int main() {
     std::cin>> n;
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
-            std::cout << i * j << "\\t";
+            std::cout << i * j << "\t";
         }
         std::cout << std::endl;
     }
@@ -796,7 +821,16 @@ int main() {
                     'Ne pas gérer correctement les sauts de ligne'
                 ],
                 'points': 35,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \"\\t\"; } } }", "error": "Multiplication incorrecte"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }", "error": "Sauts de ligne manquants"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \"\\t\"; } } }",
+                        "error": "Multiplication incorrecte"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }",
+                        "error": "Sauts de ligne manquants"
+                    }
+                ]
             },
             {
                 'title': 'Calcul de Moyenne',
@@ -841,7 +875,16 @@ int main() {
                     'Ne pas demander le nombre de nombres à l\'utilisateur'
                 ],
                 'points': 40,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { int n; double somme = 0; for (int i = 0; i < n; i++) somme += i; std::cout << somme / n; }", "error": "Variables non initialisées"}, {"code": "#include <iostream>\nint main() { int n; int somme = 0; for (int i = 0; i < n; i++) somme += i; std::cout << somme / n; }", "error": "Mauvaise gestion des types de données"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { int n; double somme = 0; for (int i = 0; i < n; i++) somme += i; std::cout << somme / n; }",
+                        "error": "Variables non initialisées"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { int n; int somme = 0; for (int i = 0; i < n; i++) somme += i; std::cout << somme / n; }",
+                        "error": "Mauvaise gestion des types de données"
+                    }
+                ]
             },
             {
                 'title': 'Plus Grand Nombre',
@@ -888,7 +931,16 @@ int main() {
                     'Ne pas afficher la sortie'
                 ],
                 'points': 45,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { int n; double max = 0; for (int i = 0; i < n; i++) { double nombre; if (nombre < max) max = nombre; } }", "error": "Mauvaise comparaison"}, {"code": "#include <iostream>\nint main() { int n; double max; for (int i = 0; i < n; i++) { double nombre; if (nombre > max) max = nombre; } }", "error": "max non initialisé"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { int n; double max = 0; for (int i = 0; i < n; i++) { double nombre; if (nombre < max) max = nombre; } }",
+                        "error": "Mauvaise comparaison"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { int n; double max; for (int i = 0; i < n; i++) { double nombre; if (nombre > max) max = nombre; } }",
+                        "error": "max non initialisé"
+                    }
+                ]
             },
             {
                 'title': 'Calculatrice de Factorielle',
@@ -933,10 +985,19 @@ int main() {
                     'Mauvaise utilisation de la récursionor boucle iterative'
                 ],
                 'points': 50,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nlong factorielle(int n) { return n * factorielle(n); }", "error": "Cas de base manquant"}, {"code": "#include <iostream>\nlong factorielle(int n) { if (n == 0) return 0; return n * factorielle(n - 1); }", "error": "Cas de base incorrect"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nlong factorielle(int n) { return n * factorielle(n); }",
+                        "error": "Cas de base manquant"
+                    },
+                    {
+                        "code": "#include <iostream>\nlong factorielle(int n) { if (n == 0) return 0; return n * factorielle(n - 1); }",
+                        "error": "Cas de base incorrect"
+                    }
+                ]
             },
             {
-                'title':'Générateur de Motifs',
+                'title': 'Générateur de Motifs',
                 'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
                 'difficulty': 'intermediate',
                 'curriculum': 'TEJ2O',
@@ -976,7 +1037,16 @@ int main() {
                     'Imbrication incorrecte des boucles'
                 ],
                 'points': 55,
-                'incorrect_examples': json.loads('[{"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) std::cout << \"*\"; } }", "error": "Triangle incorrect"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i<= 3; i++) { for (int j = 1; j <= 3; j++) std::cout << \"*\"; } }", "error": "Triangle incorrect"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) std::cout << \"*\"; } }",
+                        "error": "Triangle incorrect"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() { for (int i = 1; i<= 3; i++) { for (int j = 1; j <= 3; j++) std::cout << \"*\"; } }",
+                        "error": "Triangle incorrect"
+                    }
+                ]
             },
             # ICS3U C# Activities
             {
@@ -1021,7 +1091,16 @@ int main() {
                     'Ne pas demander l\'entrée à l\'utilisateur'
                 ],
                 'points': 25,
-                'incorrect_examples': json.loads('[{"code": "using System; class Programme { static void Main() { int n; if (n % 2 == 1) Console.WriteLine(n + \" est pair\"); } }", "error": "Message incorrect"}, {"code": "using System; class Programme { static void Main() { int n; if (n % 2 = 0) Console.WriteLine(n + \" est pair\"); } }", "error": "Mauvaise utilisation de l\'opérateur =="}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Programme { static void Main() { int n; if (n % 2 == 1) Console.WriteLine(n + \" est pair\"); } }",
+                        "error": "Message incorrect"
+                    },
+                    {
+                        "code": "using System; class Programme { static void Main() { int n; if (n % 2 = 0) Console.WriteLine(n + \" est pair\"); } }",
+                        "error": "Mauvaise utilisation de l\'opérateur =="
+                    }
+                ]
             },
             {
                 'title': 'Boucles For',
@@ -1062,7 +1141,16 @@ int main() {
                     'Ne pas afficher la sortie'
                 ],
                 'points': 30,
-                'incorrect_examples': json.loads('[{"code": "using System; class Programme { static void Main() { for (int i = 1; i < 5; i++) Console.Write(i); } }", "error": "Condition incorrecte"}, {"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 5; i--) Console.Write(i); } }", "error": "Incrémentation incorrecte"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Programme { static void Main() { for (int i = 1; i < 5; i++) Console.Write(i); } }",
+                        "error": "Condition incorrecte"
+                    },
+                    {
+                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 5; i--) Console.Write(i); } }",
+                        "error": "Incrémentation incorrecte"
+                    }
+                ]
             },
             {
                 'title': 'Table de Multiplication',
@@ -1087,7 +1175,7 @@ int main() {
 </pre>''',
                 'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
                 'test_cases': [
                     {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\n2\t4\t6\n3\t6\t9\n'}
                 ],
@@ -1103,7 +1191,16 @@ int main() {
                     'Mauvaise gestion des sauts de ligne'
                 ],
                 'points': 35,
-                'incorrect_examples': json.loads('[{"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) Console.Write(i + j + \"\\t\"); } } }", "error": "Multiplication incorrecte"}, {"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { Console.Write(i * j); } } } }", "error": "Sauts de ligne manquants"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) Console.Write(i + j + \"\\t\"); } } }",
+                        "error": "Multiplication incorrecte"
+                    },
+                    {
+                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { Console.Write(i * j); } } } }",
+                        "error": "Sauts de ligne manquants"
+                    }
+                ]
             },
             {
                 'title': 'Calcul de Moyenne',
@@ -1148,7 +1245,16 @@ int main() {
                     'Ne pas demander le nombre de nombres'
                 ],
                 'points': 40,
-                'incorrect_examples': json.loads('[{"code": "using System; class Programme { static void Main() { int n; double somme = 0; for (int i = 0; i < n; i++) somme += i; Console.WriteLine(somme / n); } }", "error": "Variables non initialisées"}, {"code": "using System; class Programme { static void Main() { int n; int somme = 0; for (int i = 0; i < n; i++) somme += i; Console.WriteLine(somme / n); } }", "error": "Mauvaise gestion des types de données"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Programme { static void Main() { int n; double somme = 0; for (int i = 0; i < n; i++) somme += i; Console.WriteLine(somme / n); } }",
+                        "error": "Variables non initialisées"
+                    },
+                    {
+                        "code": "using System; class Programme { static void Main() { int n; int somme = 0; for (int i = 0; i < n; i++) somme += i; Console.WriteLine(somme / n); } }",
+                        "error": "Mauvaise gestion des types de données"
+                    }
+                ]
             },
             {
                 'title': 'Plus Grand Nombre',
@@ -1191,11 +1297,20 @@ int main() {
                 'common_errors': [
                     'Ne pas initialiser correctement max',
                     'Mauvaise comparaison des nombres',
-                    'Ne pas gérer les cas de nombres égaux',
+                    'Ne pas gérer correctement les cas de nombres égaux',
                     'Ne pas afficher la sortie'
                 ],
                 'points': 45,
-                'incorrect_examples': json.loads('[{"code": "using System; class Programme { static void Main() { int n; double max = 0; for (int i = 0; i < n; i++) { double nombre; if (nombre < max) max = nombre; } } }", "error": "Mauvaise comparaison"}, {"code": "using System; class Programme { static void Main() { int n; double max; for (int i = 0; i < n; i++) { double nombre; if (nombre > max) max = nombre; } } }", "error": "max non initialisé"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Programme { static void Main() { int n; double max = 0; for (int i = 0; i < n; i++) { double nombre; if (nombre < max) max = nombre; } } }",
+                        "error": "Mauvaise comparaison"
+                    },
+                    {
+                        "code": "using System; class Programme { static void Main() { int n; double max; for (int i = 0; i < n; i++) { double nombre; if (nombre > max) max = nombre; } } }",
+                        "error": "max non initialisé"
+                    }
+                ]
             },
             {
                 'title': 'Calcul de Factorielle',
@@ -1240,7 +1355,16 @@ int main() {
                     'Mauvaise utilisation de la récursion ou boucle iterative'
                 ],
                 'points': 50,
-                'incorrect_examples': json.loads('[{"code": "using System; class Programme { static long Factorielle(int n) { return n * Factorielle(n); } }", "error": "Cas de base manquant"}, {"code": "using System; class Programme { static long Factorielle(int n) { if (n == 0) return 0; return n * Factorielle(n - 1); } }", "error": "Cas de base incorrect"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Programme { static long Factorielle(int n) { return n * Factorielle(n); } }",
+                        "error": "Cas de base manquant"
+                    },
+                    {
+                        "code": "using System; class Programme { static long Factorielle(int n) { if (n == 0) return 0; return n * Factorielle(n - 1); } }",
+                        "error": "Cas de base incorrect"
+                    }
+                ]
             },
             {
                 'title': 'Générateur de Motifs',
@@ -1265,12 +1389,10 @@ int main() {
    - Console.WriteLine() pour passer à la ligne suivante
 </pre>''',
                 'instructions': 'Créez un programme qui affiche un triangle d\'étoiles basé sur la hauteur donnée.',
-                'starter_code': '''using System;
-
-class Programme {
+                'starter_code': '''using System;\n\nclass Programme {
     static void Main() {
         // Votre code ici
-    }
+        }
 }''',
                 'solution_code': '''using System;
 
@@ -1299,19 +1421,19 @@ class Programme {
                     'Mauvaise imbrication des boucles',
                     'Oublier le saut de ligne',
                     'Mauvais compteur de boucle',
-                    'Imbrication incorrecte des boucles'
+                    'Imbrication incorrecte desboucles'
                 ],
                 'points': 55,
-                'incorrect_examples': json.loads('''[
+                'incorrect_examples': [
                     {
-                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) Console.Write(\"*\"); } } }",
+                        "code": "using System;\nclass Programme {\n    static void Main() {\n        for (int i = 1; i <= 3; i++) {\n            for (int j = 1; j <= i; j++)\n                Console.Write(\"*\");\n        }\n    }\n}",
                         "error": "Triangle incorrect - manque les sauts de ligne"
                     },
                     {
-                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) Console.Write(\"*\"); Console.WriteLine(); } } }",
+                        "code": "using System;\nclass Programme {\n    static void Main() {\n        for (int i = 1; i <= 3; i++) {\n            for (int j = 1; j <= 3; j++)\n                Console.Write(\"*\");\n            Console.WriteLine();\n        }\n    }\n}",
                         "error": "Triangle incorrect - nombre fixe d'étoiles par ligne"
                     }
-                ]''')
+                ]
             },
             {
                 'title': 'Gestion des Étudiants',
@@ -1399,7 +1521,16 @@ class Programme {
                     'Mauvaise utilisation des modificateurs d\'accès'
                 ],
                 'points': 60,
-                'incorrect_examples': json.loads('[{"code": "using System; class Etudiant { public string Nom; public int Age; }", "error": "Propriétés incomplètes"}, {"code": "using System; class Etudiant { public string Nom { get; set; } public int Age { get; set; } public double Moyenne { get; set; } }", "error": "Moyenne non encapsulée"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Etudiant { public string Nom; public int Age; }",
+                        "error": "Propriétés incomplètes"
+                    },
+                    {
+                        "code": "using System; class Etudiant { public string Nom { get; set; } public int Age { get; set; } public double Moyenne { get; set; } }",
+                        "error": "Moyenne non encapsulée"
+                    }
+                ]
             },
             {
                 'title': 'Liste Chaînée Simple',
@@ -1522,7 +1653,16 @@ class Programme {
                     'Ne pas parcourir correctement la liste'
                 ],
                 'points': 65,
-                'incorrect_examples': json.loads('[{"code": "using System; class Noeud { public int Valeur; }", "error": "Noeud incomplet"}, {"code": "using System; class ListeChainee { public void Ajouter(int valeur) { } }", "error": "Méthode Ajouter incomplète"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; class Noeud { public int Valeur; }",
+                        "error": "Noeud incomplet"
+                    },
+                    {
+                        "code": "using System; class ListeChainee { public void Ajouter(int valeur) { } }",
+                        "error": "Méthode Ajouter incomplète"
+                    }
+                ]
             },
             {
                 'title': 'Gestionnaire de Tâches',
@@ -1618,7 +1758,16 @@ class Programme {
                     'Ne pas afficher correctement la sortie'
                 ],
                 'points': 70,
-                'incorrect_examples': json.loads('[{"code": "using System; using System.Collections.Generic; class Tache { public string Description; }", "error": "Tache incomplète"}, {"code": "using System; using System.Collections.Generic; class Programme { static void Main() { List<Tache> taches = new List<Tache>(); taches.Sort(); } }", "error": "Tri incorrect"}]')
+                'incorrect_examples': [
+                    {
+                        "code": "using System; using System.Collections.Generic; class Tache { public string Description; }",
+                        "error": "Tache incomplète"
+                    },
+                    {
+                        "code": "using System; using System.Collections.Generic; class Programme { static void Main() { List<Tache> taches = new List<Tache>(); taches.Sort(); } }",
+                        "error": "Tri incorrect"
+                    }
+                ]
             }
         ]
 
@@ -1658,11 +1807,14 @@ def register():
         return redirect(url_for('index'))
     form = RegisterForm()
     if form.validate_on_submit():
+        if Student.query.filter_by(email=form.email.data).first():
+            flash('Cet email est déjà utilisé.', 'danger')
+            return render_template('register.html', form=form)
         user = Student(
             username=form.username.data,
-            email=form.email.data,
-            password_hash=generate_password_hash(form.password.data)
+            email=form.email.data
         )
+        user.password_hash = generate_password_hash(form.password.data)
         db.session.add(user)
         db.session.commit()
         flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
