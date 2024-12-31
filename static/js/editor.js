@@ -179,7 +179,7 @@ async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const loadingOverlay = document.getElementById('loadingOverlay');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     if (!window.codeEditor) {
         console.error('Editor not initialized');
