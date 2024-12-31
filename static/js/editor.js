@@ -267,12 +267,12 @@ async function executeCode() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
     if (!csrfTokenMeta) {
-        console.error('CSRF token meta tag not found');
+        output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
         return;
     }
     const csrfToken = csrfTokenMeta.getAttribute('content');
     if (!csrfToken) {
-        console.error('CSRF token is empty');
+        output.innerHTML = '<pre class="error">Erreur: CSRF token vide</pre>';
         return;
     }
     const currentLanguage = document.getElementById('languageSelect').value;

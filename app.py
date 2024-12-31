@@ -47,7 +47,8 @@ db.init_app(app)
 # Setup CSRF protection
 logger.info("Setting up CSRF protection...")
 from flask_wtf.csrf import CSRFProtect
-csrf = CSRFProtect(app)
+csrf = CSRFProtect()
+csrf.init_app(app)
 
 # Initialize Flask-Login
 logger.info("Initializing Flask-Login...")
