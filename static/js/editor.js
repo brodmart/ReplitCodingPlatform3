@@ -304,9 +304,10 @@ async function executeCode() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'include',
+            credentials: 'same-origin',
             body: JSON.stringify({
                 code: window.codeEditor.getValue(),
                 language: document.getElementById('editor').getAttribute('data-language') || 'cpp'
