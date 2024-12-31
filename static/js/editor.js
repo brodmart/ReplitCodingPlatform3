@@ -226,21 +226,30 @@ window.monacoEditor = monacoEditor;
 async function initializeBootstrap(maxRetries = 3, baseDelay = 500) {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
-            // Check if Bootstrap is loaded
-            if (typeof bootstrap !== 'undefined') {
-                // Initialize tooltips
-                const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-                tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
-                return true;
-            }
+            // Wait for bootstrap:ready event
+            await new Promise((resolve, reject) => {
+                if (typeof bootstrap !== 'undefined') {
+                    resolve();
+                } else {
+                    // Listen for the bootstrap:ready event
+                    const timeout = setTimeout(() => {
+                        document.removeEventListener('bootstrap:ready', handler);
+                        reject(new Error('Bootstrap initialization timeout'));
+                    }, baseDelay * Math.pow(2, attempt));
 
-            // Wait with exponential backoff
-            const delay = baseDelay * Math.pow(2, attempt);
-            await new Promise(resolve => setTimeout(resolve, delay));
+                    const handler = () => {
+                        clearTimeout(timeout);
+                        resolve();
+                    };
+
+                    document.addEventListener('bootstrap:ready', handler, { once: true });
+                }
+            });
+            return true;
         } catch (error) {
             console.warn(`Bootstrap initialization attempt ${attempt + 1} failed:`, error);
             if (attempt === maxRetries - 1) {
-                throw new Error('Failed to initialize Bootstrap after multiple attempts. Please check your internet connection and refresh the page.');
+                throw new Error('Failed to initialize Bootstrap after multiple attempts');
             }
         }
     }
@@ -306,6 +315,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         // First, ensure Bootstrap is initialized
         await initializeBootstrap();
+        console.log('Bootstrap initialized successfully');
 
         const editorElement = document.getElementById('editor');
         if (!editorElement) {
