@@ -99,123 +99,18 @@ const monacoEditor = {
         return '';
     },
 
-    // Enhanced error handling utilities
     handleExecutionError: function(error) {
         const output = document.getElementById('output');
         if (output) {
-            if (typeof error === 'object' && error.error_details) {
-                output.innerHTML = this.formatErrorWithDetails(error);
-            } else {
-                output.innerHTML = this.formatError(error.message || 'Une erreur inattendue est survenue');
-            }
+            output.innerHTML = this.formatError(error.message || 'Une erreur inattendue est survenue');
         }
     },
 
-    formatErrorWithDetails: function(error) {
-        const details = error.error_details;
-        const errorType = details.type || 'unknown';
-
-        switch (errorType) {
-            case 'error':
-                return this.formatCompilerError(error);
-            case 'runtime_error':
-                return this.formatRuntimeError(error);
-            case 'timeout':
-                return this.formatTimeoutError(error);
-            default:
-                return this.formatGenericError(error);
-        }
-    },
-
-    formatCompilerError: function(error) {
-        const details = error.error_details;
-        let suggestion = '';
-
-        // Add specific suggestions for common errors
-        if (error.full_error && error.full_error.includes('std::end')) {
-            suggestion = `
-                <div class="alert alert-info mt-2">
-                    <i class="bi bi-lightbulb"></i>
-                    Conseil: Vous voulez probablement utiliser <code>std::endl</code> au lieu de <code>std::end</code>
-                    pour ajouter un retour à la ligne.
-                </div>`;
-        }
-
-        return `
-            <div class="alert alert-danger">
-                <h5 class="alert-heading">
-                    <i class="bi bi-exclamation-triangle"></i> 
-                    Erreur de Compilation
-                    ${details.line ? `<small class="text-muted">(Ligne ${details.line})</small>` : ''}
-                </h5>
-                <hr>
-                <p class="mb-2"><strong>${details.message}</strong></p>
-                ${suggestion}
-                <div class="mt-3">
-                    <small class="text-muted">
-                        Vérifiez:
-                        <ul class="mt-1 mb-0">
-                            <li>La syntaxe de votre code (points-virgules, parenthèses)</li>
-                            <li>Les noms des fonctions et variables</li>
-                            <li>Les bibliothèques incluses</li>
-                        </ul>
-                    </small>
-                </div>
-            </div>`;
-    },
-
-    formatRuntimeError: function(error) {
-        return `
-            <div class="alert alert-danger">
-                <h5 class="alert-heading">
-                    <i class="bi bi-exclamation-circle"></i> 
-                    Erreur d'Exécution
-                </h5>
-                <hr>
-                <p class="mb-2">${error.error_details.message}</p>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        Cette erreur s'est produite pendant l'exécution de votre programme.
-                        Vérifiez la logique de votre code et les valeurs utilisées.
-                    </small>
-                </div>
-            </div>`;
-    },
-
-    formatTimeoutError: function(error) {
-        return `
-            <div class="alert alert-warning">
-                <h5 class="alert-heading">
-                    <i class="bi bi-clock-history"></i> 
-                    Timeout d'Exécution
-                </h5>
-                <hr>
-                <p class="mb-2">${error.error}</p>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        Votre programme a dépassé la limite de temps d'exécution.
-                        Vérifiez s'il y a des boucles infinies ou des opérations trop longues.
-                    </small>
-                </div>
-            </div>`;
-    },
-
-    formatGenericError: function(error) {
-        return `
-            <div class="alert alert-danger">
-                <h5 class="alert-heading">
-                    <i class="bi bi-exclamation-circle"></i> 
-                    Erreur Système
-                </h5>
-                <hr>
-                <p class="mb-2">${error.error}</p>
-                <div class="mt-2">
-                    <small class="text-muted">
-                        Une erreur inattendue s'est produite.
-                        Si le problème persiste, contactez le support technique.
-                    </small>
-                </div>
-            </div>`;
+    formatError: function(error) {
+        return `<div class="alert alert-danger">
+            <strong>Erreur:</strong><br>
+            <pre class="mb-0">${error}</pre>
+        </div>`;
     }
 };
 
@@ -250,7 +145,7 @@ async function executeCode() {
         const result = await response.json();
 
         if (result.error) {
-            output.innerHTML = monacoEditor.formatErrorWithDetails(result);
+            output.innerHTML = monacoEditor.formatError(result.error);
         } else {
             output.innerHTML = result.output || 'Programme exécuté avec succès sans sortie.';
         }

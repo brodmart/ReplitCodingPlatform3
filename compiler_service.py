@@ -65,13 +65,10 @@ def _compile_and_run_cpp(code, temp_dir, input_data=None):
         )
 
         if compile_process.returncode != 0:
-            error_info = format_compiler_error(compile_process.stderr)
             return {
                 'success': False,
                 'output': '',
-                'error': error_info['formatted_message'],
-                'error_details': error_info['error_details'],
-                'full_error': error_info['full_error']
+                'error': compile_process.stderr
             }
 
         # Execute
@@ -83,17 +80,6 @@ def _compile_and_run_cpp(code, temp_dir, input_data=None):
             timeout=5
         )
 
-        if run_process.stderr:
-            return {
-                'success': False,
-                'output': run_process.stdout,
-                'error': 'Erreur d\'exécution: ' + run_process.stderr,
-                'error_details': {
-                    'type': 'runtime_error',
-                    'message': run_process.stderr
-                }
-            }
-
         return {
             'success': True,
             'output': run_process.stdout,
@@ -104,22 +90,14 @@ def _compile_and_run_cpp(code, temp_dir, input_data=None):
         return {
             'success': False,
             'output': '',
-            'error': 'Le programme a dépassé la limite de temps d\'exécution (5 secondes)',
-            'error_details': {
-                'type': 'timeout',
-                'message': 'Timeout après 5 secondes'
-            }
+            'error': 'Execution timed out'
         }
     except Exception as e:
         logging.error(f"Compilation/execution error: {str(e)}")
         return {
             'success': False,
             'output': '',
-            'error': f'Erreur inattendue: {str(e)}',
-            'error_details': {
-                'type': 'system_error',
-                'message': str(e)
-            }
+            'error': str(e)
         }
 
 def _compile_and_run_csharp(code, temp_dir, input_data=None):
