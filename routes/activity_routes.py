@@ -87,6 +87,7 @@ def view_activity(activity_id):
             activity=activity,
             progress=progress
         )
+
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error in view_activity: {str(e)}")
