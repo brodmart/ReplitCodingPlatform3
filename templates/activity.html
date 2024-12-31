@@ -324,28 +324,22 @@
 
 {% block extra_scripts %}
 <script>
-let bootstrapLoadAttempts = 0;
-const maxAttempts = 3;
-
-function waitForBootstrap() {
-    return new Promise((resolve, reject) => {
-        function checkBootstrap() {
+async function initializeWithRetry(maxRetries = 3) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
             if (typeof bootstrap !== 'undefined') {
-                resolve();
-                return;
+                // Initialize tooltips after Bootstrap is loaded
+                const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+                return true;
             }
-
-            bootstrapLoadAttempts++;
-            if (bootstrapLoadAttempts >= maxAttempts) {
-                reject(new Error('Bootstrap failed to load after multiple attempts'));
-                return;
-            }
-
-            setTimeout(checkBootstrap, 500);
+            await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+            console.error('Bootstrap initialization attempt failed:', error);
+            if (attempt === maxRetries - 1) throw error;
         }
-
-        checkBootstrap();
-    });
+    }
+    return false;
 }
 
 async function initializeEditor() {

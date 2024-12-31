@@ -18,7 +18,8 @@ const monacoEditor = {
             // Only load Monaco once
             if (!this.loaderPromise) {
                 this.loaderPromise = new Promise((resolveLoader) => {
-                    if (window.monaco) {
+                    if (window.monaco && !window._monacoLoaded) {
+                        window._monacoLoaded = true;
                         resolveLoader();
                         return;
                     }
