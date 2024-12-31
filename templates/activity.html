@@ -355,23 +355,11 @@ async function initializeEditor() {
 
         // Initialize Monaco editor
         const editorElement = document.getElementById('editor');
-        const rawValue = editorElement.getAttribute('data-initial-value');
-        let initialValue = '';
-        if (rawValue) {
-            try {
-                // Remove any escaped quotes and then parse
-                initialValue = JSON.parse(rawValue.replace(/\\"/g, '"'));
-            } catch (e) {
-                console.error('Error parsing initial value:', e);
-                initialValue = rawValue;
-            }
-        }
-        const editorLanguage = editorElement.getAttribute('data-language');
+        const rawValue = {{ activity.starter_code|tojson|safe }};
+        const editorLanguage = '{{ activity.language }}';
         
-        // Ensure we have valid content
-        if (!initialValue && editorLanguage) {
-            initialValue = window.monacoEditor.getDefaultCode(editorLanguage);
-        }
+        // Set initial value directly without parsing
+        const initialValue = rawValue || window.monacoEditor.getDefaultCode(editorLanguage);
         
         const editor = await window.monacoEditor.initialize('editor', {
             value: initialValue || '',
