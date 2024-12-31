@@ -1,4 +1,3 @@
-
 const monacoEditor = {
     initialized: false,
     instances: new Map(),
@@ -166,6 +165,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (editor) {
+            window.codeEditor = editor; // Make editor globally accessible
             setupEditorControls(editor);
         }
     } catch (error) {
@@ -173,3 +173,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         monacoEditor.showErrorMessage(error);
     }
 });
+
+
+async function executeCode() {
+    const runButton = document.getElementById('runButton');
+    const output = document.getElementById('output');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+
+    if (!window.codeEditor) {
+        console.error('Editor not initialized');
+        return;
+    }
+
+    try {
+        runButton.disabled = true;
+        loadingOverlay.classList.add('show');
+        
+        const response = await fetch('/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                code: window.codeEditor.getValue(),
+                language: document.getElementById('languageSelect')?.value || 'cpp'
+            })
+        });
+
+        const result = await response.json();
+        if (output) {
+            output.innerHTML = `<pre class="${result.success ? 'success' : 'error'}">${result.output || result.error}</pre>`;
+        }
+    } catch (error) {
+        if (output) {
+            output.innerHTML = `<pre class="error">Erreur d'exécution: ${error.message}</pre>`;
+        }
+    } finally {
+        runButton.disabled = false;
+        loadingOverlay.classList.remove('show');
+    }
+}
