@@ -1,7 +1,6 @@
-
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from urllib.parse import urlparse
 from sqlalchemy.exc import SQLAlchemyError
 from models import Student
@@ -14,7 +13,7 @@ auth = Blueprint('auth', __name__)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-    
+
     form = LoginForm()
     if form.validate_on_submit():
         try:
@@ -28,12 +27,12 @@ def login():
                 return redirect(next_page)
             flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
             return render_template('login.html', form=form), 401
-            
+
         except SQLAlchemyError as e:
             db.session.rollback()
             flash('Une erreur de serveur est survenue. Veuillez réessayer.', 'error')
             return render_template('login.html', form=form), 500
-            
+
     return render_template('login.html', form=form)
 
 @auth.route('/logout')
@@ -50,15 +49,16 @@ def logout():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
+
     form = RegisterForm()
     if form.validate_on_submit():
-        user = Student(
-            username=form.username.data,
-            email=form.email.data,
-            password_hash=generate_password_hash(form.password.data)
-        )
-        db.session.add(user)
         try:
+            user = Student(
+                username=form.username.data,
+                email=form.email.data,
+                password_hash=generate_password_hash(form.password.data)
+            )
+            db.session.add(user)
             db.session.commit()
             flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
             return redirect(url_for('auth.login'))

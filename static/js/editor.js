@@ -31,17 +31,25 @@ const monacoEditor = {
                     return;
                 }
 
-                const script = document.createElement('script');
-                script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
-                script.onload = () => {
-                    require.config({
-                        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-                    });
+                // Prevent duplicate module definitions
+                if (!window.require) {
+                    const script = document.createElement('script');
+                    script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
+                    script.onload = () => {
+                        require.config({
+                            paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                        });
+                        require(['vs/editor/editor.main'], () => {
+                            resolve(window.monaco);
+                        });
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    // If require is already defined, just load Monaco
                     require(['vs/editor/editor.main'], () => {
                         resolve(window.monaco);
                     });
-                };
-                document.head.appendChild(script);
+                }
             });
         }
         return this.loaderPromise;
@@ -63,7 +71,8 @@ const monacoEditor = {
                 bracketPairColorization: { enabled: true },
                 suggestOnTriggerCharacters: true,
                 wordBasedSuggestions: 'on',
-                folding: true
+                folding: true,
+                fixedOverflowWidgets: true // Fix for suggestion widget overflow
             };
 
             const editorInstance = monaco.editor.create(
@@ -74,6 +83,21 @@ const monacoEditor = {
             this.instances.set(elementId, editorInstance);
             this.setupEditorEventHandlers(editorInstance, elementId);
             this.initialized = true;
+
+            // Add error boundary integration
+            if (window.errorBoundary) {
+                editorInstance.onDidChangeModelContent(() => {
+                    try {
+                        this.saveEditorState(elementId, editorInstance.getValue());
+                    } catch (error) {
+                        window.errorBoundary.handleError({
+                            type: 'editor_error',
+                            message: 'Failed to save editor state',
+                            error: error
+                        });
+                    }
+                });
+            }
 
             return editorInstance;
         } catch (error) {
@@ -87,14 +111,12 @@ const monacoEditor = {
         let changeTimeout;
         const disposables = [];
 
-        // Handle content changes
+        // Handle content changes with debouncing
         disposables.push(
             editorInstance.onDidChangeModelContent(() => {
                 if (changeTimeout) clearTimeout(changeTimeout);
                 changeTimeout = setTimeout(() => {
-                    // Save content to localStorage
                     this.saveEditorState(elementId, editorInstance.getValue());
-                    // Trigger any additional content change handlers
                     this.onContentChanged(editorInstance);
                 }, 300);
             })
@@ -106,7 +128,13 @@ const monacoEditor = {
 
     setupResizeHandler(editorInstance, elementId) {
         const resizeHandler = () => {
-            if (editorInstance) editorInstance.layout();
+            if (editorInstance) {
+                try {
+                    editorInstance.layout();
+                } catch (error) {
+                    console.error('Editor resize error:', error);
+                }
+            }
         };
         window.addEventListener('resize', resizeHandler);
         this.instances.set(elementId + '_resize', resizeHandler);
@@ -115,18 +143,22 @@ const monacoEditor = {
     dispose(elementId) {
         const instance = this.instances.get(elementId);
         if (instance) {
-            const disposables = this.instances.get(elementId + '_disposables') || [];
-            disposables.forEach(d => d.dispose());
+            try {
+                const disposables = this.instances.get(elementId + '_disposables') || [];
+                disposables.forEach(d => d.dispose());
 
-            const resizeHandler = this.instances.get(elementId + '_resize');
-            if (resizeHandler) {
-                window.removeEventListener('resize', resizeHandler);
+                const resizeHandler = this.instances.get(elementId + '_resize');
+                if (resizeHandler) {
+                    window.removeEventListener('resize', resizeHandler);
+                }
+
+                instance.dispose();
+                this.instances.delete(elementId);
+                this.instances.delete(elementId + '_disposables');
+                this.instances.delete(elementId + '_resize');
+            } catch (error) {
+                console.error('Error disposing editor:', error);
             }
-
-            instance.dispose();
-            this.instances.delete(elementId);
-            this.instances.delete(elementId + '_disposables');
-            this.instances.delete(elementId + '_resize');
         }
     },
 
@@ -145,6 +177,13 @@ const monacoEditor = {
             localStorage.setItem(`editor_${elementId}`, content);
         } catch (error) {
             console.error('Failed to save editor state:', error);
+            if (window.errorBoundary) {
+                window.errorBoundary.handleError({
+                    type: 'editor_error',
+                    message: 'Failed to save editor state',
+                    error: error
+                });
+            }
         }
     },
 
@@ -172,7 +211,7 @@ const monacoEditor = {
 // Make monacoEditor globally accessible
 window.monacoEditor = monacoEditor;
 
-// Initialize editor when DOM is loaded
+// Initialize editor when DOM is loaded with error handling
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
@@ -190,6 +229,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('Editor initialization failed:', error);
         monacoEditor.showErrorMessage(error);
+        if (window.errorBoundary) {
+            window.errorBoundary.handleError({
+                type: 'editor_error',
+                message: 'Failed to initialize editor',
+                error: error
+            });
+        }
     }
 });
 
@@ -236,6 +282,10 @@ async function executeCode() {
             })
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
         if (output) {
             output.innerHTML = `<pre class="${result.success ? 'success' : 'error'}">${result.output || result.error}</pre>`;
@@ -243,6 +293,13 @@ async function executeCode() {
     } catch (error) {
         if (output) {
             output.innerHTML = `<pre class="error">Erreur d'exécution: ${error.message}</pre>`;
+        }
+        if (window.errorBoundary) {
+            window.errorBoundary.handleError({
+                type: 'execution_error',
+                message: 'Failed to execute code',
+                error: error
+            });
         }
     } finally {
         runButton.disabled = false;
