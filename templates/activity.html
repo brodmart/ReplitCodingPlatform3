@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
 <style>
@@ -307,19 +308,23 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Create editor instance
         const editor = monaco.editor.create(editorElement, {
             value: {{ activity.starter_code|tojson }},
             language: '{{ activity.language }}',
             theme: 'vs-dark',
             minimap: { enabled: false },
-            automaticLayout: true
-        });
-
-        // Real-time syntax validation
-        let validationTimeout;
-        editor.onKeyUp(() => {
-            clearTimeout(validationTimeout);
-            validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
+            automaticLayout: true,
+            fontSize: 14,
+            scrollBeyondLastLine: false,
+            renderWhitespace: 'selection',
+            padding: { top: 10, bottom: 10 },
+            formatOnType: true,
+            formatOnPaste: true,
+            autoIndent: 'full',
+            bracketPairColorization: { enabled: true },
+            suggestOnTriggerCharacters: true,
+            wordBasedSuggestions: 'on'
         });
 
         // Reset button handler
@@ -334,17 +339,31 @@ document.addEventListener('DOMContentLoaded', function() {
         const submitButton = document.getElementById('submitButton');
         if (submitButton) {
             submitButton.addEventListener('click', async function() {
-                await handleSubmission(editor, this);
+                await handleSubmission(editor.getValue(), this);
             });
         }
+
+        // Real-time syntax validation
+        let validationTimeout;
+        editor.onDidChangeModelContent(() => {
+            clearTimeout(validationTimeout);
+            validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
+        });
+
+        // Make editor accessible globally for other functions
+        window.activityEditor = editor;
     });
 
-    // Highlight code examples
-    Prism.highlightAll();
+    // Highlight code examples when accordion items are shown
+    document.querySelectorAll('.accordion-collapse').forEach(item => {
+        item.addEventListener('shown.bs.collapse', function() {
+            Prism.highlightAll();
+        });
+    });
 });
 
 // Helper functions
-async function handleSubmission(editor, submitButton) {
+async function handleSubmission(code, submitButton) {
     const testResults = document.getElementById('testResults');
     if (!testResults) return;
 
@@ -358,7 +377,7 @@ async function handleSubmission(editor, submitButton) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                code: editor.getValue()
+                code: code
             })
         });
 
@@ -449,5 +468,6 @@ async function validateCode(code) {
         console.error('Error validating code:', error);
     }
 }
+Prism.highlightAll();
 </script>
 {% endblock %}
