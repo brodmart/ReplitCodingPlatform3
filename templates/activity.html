@@ -5,124 +5,109 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
 <style>
-.syntax-helper {
-    position: fixed;
-    right: 20px;
-    top: 80px;
-    width: 300px;
-    z-index: 1000;
-    display: none;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
+    #editor {
+        width: 100%;
+        height: 400px;
+        border: 1px solid var(--bs-border-color);
+        border-radius: 4px;
+    }
 
-.syntax-helper.show {
-    display: block;
-}
+    .syntax-helper {
+        position: fixed;
+        right: 20px;
+        top: 80px;
+        width: 300px;
+        z-index: 1000;
+        display: none;
+    }
 
-.syntax-content {
-    font-family: monospace;
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 5px;
-    color: #212529;
-    font-size: 0.9rem;
-    line-height: 1.5;
-}
+    .syntax-helper.show {
+        display: block;
+    }
 
-.syntax-content pre {
-    margin: 0;
-    white-space: pre-wrap;
-    background-color: #e9ecef;
-    padding: 10px;
-    border-radius: 4px;
-    color: #212529;
-}
+    .syntax-content {
+        font-family: monospace;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+    }
 
-.syntax-content h6 {
-    color: #0d6efd;
-    margin-bottom: 1rem;
-}
+    .real-time-feedback {
+        margin-top: 10px;
+        padding: 10px;
+        border-left: 4px solid;
+    }
 
-.real-time-feedback {
-    margin-top: 10px;
-    padding: 10px;
-    border-left: 4px solid;
-}
+    .feedback-error {
+        border-color: #dc3545;
+        background-color: #f8d7da;
+    }
 
-.feedback-error {
-    border-color: #dc3545;
-    background-color: #f8d7da;
-}
+    .feedback-success {
+        border-color: #28a745;
+        background-color: #d4edda;
+    }
+    .learning-objective {
+        background-color: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 15px;
+        margin-bottom: 20px;
+        color: #212529;
+        border-radius: 4px;
+    }
 
-.feedback-success {
-    border-color: #28a745;
-    background-color: #d4edda;
-}
+    .learning-objective h5 {
+        color: #0d6efd;
+        margin-bottom: 10px;
+    }
 
-.learning-objective {
-    background-color: #f8f9fa;
-    border-left: 4px solid #0d6efd;
-    padding: 15px;
-    margin-bottom: 20px;
-    color: #212529;
-    border-radius: 4px;
-}
+    .learning-objective p {
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
 
-.learning-objective h5 {
-    color: #0d6efd;
-    margin-bottom: 10px;
-}
+    .section-title {
+        color: #0d6efd;
+        margin: 1.5rem 0 1rem 0;
+        font-weight: 600;
+    }
 
-.learning-objective p {
-    margin-bottom: 0;
-    line-height: 1.5;
-}
+    .incorrect-examples {
+        margin-top: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+    .accordion-button {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
 
-.accordion-body pre {
-    background-color: #2d2d2d;
-    padding: 1rem;
-    border-radius: 4px;
-    margin: 0.5rem 0;
-    color: #ccc;
-}
+    .accordion-button:not(.collapsed) {
+        background-color: #e9ecef;
+        color: #0d6efd;
+    }
+    .accordion-body pre {
+        background-color: #2d2d2d;
+        padding: 1rem;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+        color: #ccc;
+    }
 
-.accordion-body code {
-    color: inherit;
-    font-family: monospace;
-    white-space: pre-wrap;
-}
-
-.example-explanation {
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background-color: rgba(220, 53, 69, 0.1);
-    border-left: 4px solid #dc3545;
-    border-radius: 0.25rem;
-}
-
-.section-title {
-    color: #0d6efd;
-    margin: 1.5rem 0 1rem 0;
-    font-weight: 600;
-}
-
-.incorrect-examples {
-    margin-top: 1.5rem;
-    border: 1px solid #dee2e6;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    background-color: rgba(220, 53, 69, 0.05);
-}
-
-.accordion-button {
-    background-color: #f8f9fa;
-    color: #212529;
-}
-
-.accordion-button:not(.collapsed) {
-    background-color: #e9ecef;
-    color: #0d6efd;
-}
+    .accordion-body code {
+        color: inherit;
+        font-family: monospace;
+        white-space: pre-wrap;
+    }
+    .example-explanation {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: rgba(220, 53, 69, 0.1);
+        border-left: 4px solid #dc3545;
+        border-radius: 0.25rem;
+    }
 </style>
 {% endblock %}
 
@@ -154,12 +139,14 @@
                     <p>{{ activity.instructions }}</p>
 
                     {% if activity.hints %}
-                    <h5>Indices</h5>
-                    <ul class="list-group">
-                        {% for hint in activity.hints %}
-                        <li class="list-group-item">{{ hint }}</li>
-                        {% endfor %}
-                    </ul>
+                    <div class="mt-3">
+                        <h5>Indices</h5>
+                        <ul class="list-group">
+                            {% for hint in activity.hints %}
+                            <li class="list-group-item">{{ hint }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
                     {% endif %}
 
                     {% if activity.common_errors %}
@@ -227,11 +214,10 @@
                         </p>
                     </div>
                     {% endif %}
-                    <button class="btn btn-info mb-3" onclick="toggleSyntaxHelper()">
+                    <button class="btn btn-info mt-3" onclick="toggleSyntaxHelper()">
                         <i class="bi bi-lightbulb"></i> Aide Syntaxe
                     </button>
 
-                    <!-- Syntax Helper Popup -->
                     <div class="card syntax-helper" id="syntaxHelper">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">Guide de Syntaxe</h5>
@@ -262,11 +248,8 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div id="editor" style="height: 400px; border: 1px solid var(--bs-border-color);"></div>
-
-                    <!-- Real-time feedback section -->
+                    <div id="editor"></div>
                     <div id="realTimeFeedback" class="mt-3"></div>
-
                     <div class="mt-4">
                         <h5>Résultats des Tests</h5>
                         <div id="testResults"></div>
@@ -282,19 +265,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-cpp.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-csharp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Bootstrap components
-    const accordionElements = document.querySelectorAll('.accordion-collapse');
-    if (accordionElements.length > 0) {
-        accordionElements.forEach(element => {
-            new bootstrap.Collapse(element, {
-                toggle: false
-            });
-        });
-    }
-
-    // Configure Monaco Editor
     require.config({
         paths: {
             'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
@@ -308,7 +281,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Create editor instance
         const editor = monaco.editor.create(editorElement, {
             value: {{ activity.starter_code|tojson }},
             language: '{{ activity.language }}',
@@ -327,7 +299,6 @@ document.addEventListener('DOMContentLoaded', function() {
             wordBasedSuggestions: 'on'
         });
 
-        // Reset button handler
         const resetButton = document.getElementById('resetButton');
         if (resetButton) {
             resetButton.addEventListener('click', function() {
@@ -335,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Submit button handler
         const submitButton = document.getElementById('submitButton');
         if (submitButton) {
             submitButton.addEventListener('click', async function() {
@@ -343,18 +313,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Real-time syntax validation
         let validationTimeout;
         editor.onDidChangeModelContent(() => {
             clearTimeout(validationTimeout);
             validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
         });
 
-        // Make editor accessible globally for other functions
         window.activityEditor = editor;
     });
 
-    // Highlight code examples when accordion items are shown
+    //This part was in the original but not included in the edited
+    const accordionElements = document.querySelectorAll('.accordion-collapse');
+    if (accordionElements.length > 0) {
+        accordionElements.forEach(element => {
+            new bootstrap.Collapse(element, {
+                toggle: false
+            });
+        });
+    }
+
     document.querySelectorAll('.accordion-collapse').forEach(item => {
         item.addEventListener('shown.bs.collapse', function() {
             Prism.highlightAll();
@@ -362,7 +339,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Helper functions
 async function handleSubmission(code, submitButton) {
     const testResults = document.getElementById('testResults');
     if (!testResults) return;
@@ -439,14 +415,8 @@ async function validateCode(code) {
 
         const result = await response.json();
         const feedbackDiv = document.getElementById('realTimeFeedback');
-        const syntaxContent = document.querySelector('.syntax-content');
 
         if (!feedbackDiv) return;
-
-        // Update syntax helper content
-        if (result.syntax_help && syntaxContent) {
-            syntaxContent.innerHTML = result.syntax_help;
-        }
 
         if (result.errors && result.errors.length > 0) {
             feedbackDiv.innerHTML = `
@@ -460,7 +430,7 @@ async function validateCode(code) {
         } else {
             feedbackDiv.innerHTML = `
                 <div class="real-time-feedback feedback-success">
-                    <i class="bi-check-circle"></i> La syntaxe semble correcte!
+                    <i class="bi bi-check-circle"></i> La syntaxe semble correcte!
                 </div>
             `;
         }
@@ -468,6 +438,7 @@ async function validateCode(code) {
         console.error('Error validating code:', error);
     }
 }
+
 Prism.highlightAll();
 </script>
 {% endblock %}
