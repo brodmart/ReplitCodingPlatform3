@@ -355,9 +355,19 @@ async function initializeEditor() {
 
         // Initialize Monaco editor
         const editorElement = document.getElementById('editor');
-        // Parse the JSON-encoded initial value
-        const initialValue = JSON.parse(editorElement.getAttribute('data-initial-value') || '""');
+        let initialValue = '';
+        try {
+            initialValue = JSON.parse(editorElement.getAttribute('data-initial-value') || '""');
+        } catch (e) {
+            console.error('Error parsing initial value:', e);
+            initialValue = editorElement.getAttribute('data-initial-value') || '';
+        }
         const editorLanguage = editorElement.getAttribute('data-language');
+        
+        // Ensure we have valid content
+        if (!initialValue && editorLanguage) {
+            initialValue = window.monacoEditor.getDefaultCode(editorLanguage);
+        }
         
         const editor = await window.monacoEditor.initialize('editor', {
             value: initialValue || '',
