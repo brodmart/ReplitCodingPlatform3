@@ -93,6 +93,8 @@ const monacoEditor = {
             this.instances.set(elementId, editorInstance);
             this.setupEditorEventHandlers(editorInstance, elementId);
             this.initialized = true;
+            document.getElementById('editor').setAttribute('data-language', options.language);
+            window.codeEditor = editorInstance;
 
             // Add error boundary integration
             if (window.errorBoundary) {

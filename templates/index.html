@@ -126,12 +126,17 @@ async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const language = document.getElementById('languageSelect').value;
+    const editor = window.codeEditor;
 
-    if (!runButton || !output || !window.codeEditor) return;
+    if (!runButton || !output || !editor) {
+        console.error('Required elements not found');
+        return;
+    }
 
     try {
         runButton.disabled = true;
         runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Exécution...';
+        output.innerHTML = 'Executing...';
 
         const response = await fetch('/execute', {
             method: 'POST',
