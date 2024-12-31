@@ -346,12 +346,12 @@ async function initializeWithRetry(maxRetries = 3) {
 async function initializeEditor() {
     try {
         await require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-        await require(['vs/editor/editor.main'], async () => {
+        require(['vs/editor/editor.main'], function() {
             const editorElement = document.getElementById('editor');
             const code = {{ activity.starter_code|tojson|safe }};
             const language = '{{ activity.language }}';
             
-            const editor = await window.monacoEditor.initialize('editor', {
+            const editor = monaco.editor.create(document.getElementById('editor'), {
                 value: code || '',
                 language: language || 'cpp',
                 theme: 'vs-dark',
@@ -360,13 +360,15 @@ async function initializeEditor() {
                 minimap: { enabled: true }
             });
 
-            // Store editor instance globally
             window.activityEditor = editor;
             window.codeEditor = editor;
-
-            // Set up event handlers and validation
-            setupEventHandlers(editor);
-            setupValidation(editor);
+            
+            if (typeof setupEventHandlers === 'function') {
+                setupEventHandlers(editor);
+            }
+            if (typeof setupValidation === 'function') {
+                setupValidation(editor);
+            }
         });
     } catch (error) {
         console.error('Failed to initialize editor:', error);
@@ -377,6 +379,9 @@ async function initializeEditor() {
         }
     }
 }
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeEditor);
 
             // Initialize Bootstrap components after editor
             const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
