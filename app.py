@@ -23,6 +23,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key_123")
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes session timeout
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Database configuration
 logger.info("Configuring database connection...")
@@ -60,7 +61,7 @@ login_manager.login_message_category = 'info'
 def load_user(id):
     try:
         return Student.query.get(int(id))
-    except SQLAlchemyError as e:
+    except (SQLAlchemyError, ValueError) as e:
         logger.error(f"Error loading user: {str(e)}")
         return None
 
@@ -80,7 +81,7 @@ def index():
     except SQLAlchemyError as e:
         logger.error(f"Database error in index route: {str(e)}")
         flash('Une erreur est survenue lors du chargement de la page.', 'error')
-        return render_template('index.html', achievements=[])
+        return render_template('index.html', achievements=[]), 500
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
@@ -127,7 +128,7 @@ def my_shared_codes():
     except SQLAlchemyError as e:
         logger.error(f"Database error in my_shared_codes: {str(e)}")
         flash('Une erreur est survenue lors du chargement de vos codes partagés.', 'error')
-        return render_template('my_shares.html', shared_codes=[])
+        return render_template('my_shares.html', shared_codes=[]), 500
 
 # Error handlers
 @app.errorhandler(404)
@@ -138,6 +139,10 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('errors/500.html'), 500
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+    return jsonify({'error': 'Le fichier est trop volumineux'}), 413
 
 @app.route('/log-error', methods=['POST'])
 def log_error():
