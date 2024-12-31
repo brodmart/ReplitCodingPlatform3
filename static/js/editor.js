@@ -224,19 +224,24 @@ const monacoEditor = {
 window.monacoEditor = monacoEditor;
 
 // Initialize editor when DOM is loaded with error handling
+// Single editor instance management
+let editorInstance = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
     try {
-        const editor = await monacoEditor.initialize('editor', {
-            value: editorElement.getAttribute('data-initial-value') || '',
-            language: editorElement.getAttribute('data-language') || 'cpp'
-        });
-
-        if (editor) {
-            window.codeEditor = editor;
-            setupEditorControls();
+        if (!editorInstance) {
+            editorInstance = await monacoEditor.initialize('editor', {
+                value: editorElement.getAttribute('data-initial-value') || '',
+                language: editorElement.getAttribute('data-language') || 'cpp'
+            });
+            
+            if (editorInstance) {
+                window.codeEditor = editorInstance;
+                setupEditorControls();
+            }
         }
     } catch (error) {
         console.error('Editor initialization failed:', error);
@@ -265,7 +270,7 @@ async function executeCode() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-    if (!window.codeEditor) {
+    if (!editorInstance) {
         console.error('Editor not initialized');
         return;
     }
