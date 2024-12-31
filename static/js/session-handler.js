@@ -1,18 +1,16 @@
-// Session management and timeout handling
+
 class SessionHandler {
     constructor(options = {}) {
-        this.timeoutWarning = options.timeoutWarning || 5 * 60 * 1000; // 5 minutes before timeout
-        this.sessionTimeout = options.sessionTimeout || 30 * 60 * 1000; // 30 minutes total
+        this.timeoutWarning = options.timeoutWarning || 5 * 60 * 1000;
+        this.sessionTimeout = options.sessionTimeout || 30 * 60 * 1000;
         this.warningDisplayed = false;
         this.setupSessionHandling();
     }
 
     setupSessionHandling() {
-        // Reset timer on user activity
         ['click', 'keypress', 'scroll', 'mousemove'].forEach(event => {
             document.addEventListener(event, () => this.resetTimer());
         });
-
         this.startTimer();
     }
 
@@ -35,11 +33,7 @@ class SessionHandler {
         const warningDiv = document.createElement('div');
         warningDiv.className = 'alert alert-warning alert-dismissible fade show session-warning';
         warningDiv.setAttribute('role', 'alert');
-        warningDiv.style.position = 'fixed';
-        warningDiv.style.top = '20px';
-        warningDiv.style.left = '50%';
-        warningDiv.style.transform = 'translateX(-50%)';
-        warningDiv.style.zIndex = '9999';
+        warningDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999;';
         warningDiv.innerHTML = `
             <strong>Attention!</strong> Votre session va expirer dans 5 minutes.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -64,9 +58,7 @@ class SessionHandler {
         try {
             const response = await fetch('/extend-session', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.ok) {
@@ -98,5 +90,4 @@ class SessionHandler {
     }
 }
 
-// Initialize session handler
 window.sessionHandler = new SessionHandler();
