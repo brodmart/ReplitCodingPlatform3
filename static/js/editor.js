@@ -1,23 +1,17 @@
+
 const monacoEditor = {
     initialized: false,
     instances: new Map(),
     loaderPromise: null,
 
     async initialize(elementId, options = {}) {
+        if (window.monaco) {
+            return this.createEditor(elementId, options);
+        }
+        
         try {
-            const editorElement = document.getElementById(elementId);
-            if (!editorElement) {
-                throw new Error(`Editor element with id '${elementId}' not found`);
-            }
-
-            const language = options.language || editorElement.getAttribute('data-language') || 'cpp';
-            options.language = language;
-            
-            this.dispose(elementId);
             await this.loadMonaco();
-            const editor = this.createEditor(elementId, options);
-            this.setInitialValue(editor, options);
-            return editor;
+            return this.createEditor(elementId, options);
         } catch (error) {
             console.error('Editor initialization error:', error);
             this.showErrorMessage(error);
@@ -33,256 +27,82 @@ const monacoEditor = {
                     return;
                 }
 
-                // Prevent duplicate module definitions
-                if (!window.require) {
-                    const script = document.createElement('script');
-                    script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
-                    script.onload = () => {
-                        if (!window.monaco) {  // Only configure if Monaco isn't already loaded
-                            require.config({
-                                paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-                            });
-                            require(['vs/editor/editor.main'], () => {
-                                resolve(window.monaco);
-                            });
-                        } else {
-                            resolve(window.monaco);
-                        }
-                    };
-                    document.head.appendChild(script);
-                } else {
-                    // If require is already defined, check if Monaco is already loaded
-                    if (window.monaco) {
+                const script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
+                script.onload = () => {
+                    require.config({
+                        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                    });
+                    require(['vs/editor/editor.main'], () => {
                         resolve(window.monaco);
-                    } else {
-                        require(['vs/editor/editor.main'], () => {
-                            resolve(window.monaco);
-                        });
-                    }
-                }
+                    });
+                };
+                document.head.appendChild(script);
             });
         }
         return this.loaderPromise;
     },
 
     createEditor(elementId, options) {
-        try {
-            const defaultOptions = {
-                theme: 'vs-dark',
-                minimap: { enabled: false },
-                automaticLayout: true,
-                fontSize: 14,
-                scrollBeyondLastLine: false,
-                renderWhitespace: 'selection',
-                padding: { top: 10, bottom: 10 },
-                formatOnType: true,
-                formatOnPaste: true,
-                autoIndent: 'full',
-                bracketPairColorization: { enabled: true },
-                suggestOnTriggerCharacters: true,
-                wordBasedSuggestions: 'on',
-                folding: true,
-                fixedOverflowWidgets: true // Fix for suggestion widget overflow
-            };
-
-            const editorInstance = monaco.editor.create(
-                document.getElementById(elementId), 
-                { ...defaultOptions, ...options }
-            );
-
-            this.instances.set(elementId, editorInstance);
-            this.setupEditorEventHandlers(editorInstance, elementId);
-            this.initialized = true;
-            document.getElementById('editor').setAttribute('data-language', options.language);
-            window.codeEditor = editorInstance;
-
-            // Add error boundary integration
-            if (window.errorBoundary) {
-                editorInstance.onDidChangeModelContent(() => {
-                    try {
-                        this.saveEditorState(elementId, editorInstance.getValue());
-                    } catch (error) {
-                        window.errorBoundary.handleError({
-                            type: 'editor_error',
-                            message: 'Failed to save editor state',
-                            error: error
-                        });
-                    }
-                });
-            }
-
-            return editorInstance;
-        } catch (error) {
-            console.error('Editor creation error:', error);
-            this.showErrorMessage(error);
-            throw error;
+        const editorElement = document.getElementById(elementId);
+        if (!editorElement) {
+            throw new Error(`Editor element with id '${elementId}' not found`);
         }
-    },
 
-    setupEditorEventHandlers(editorInstance, elementId) {
-        let changeTimeout;
-        const disposables = [];
-
-        // Handle content changes with debouncing
-        disposables.push(
-            editorInstance.onDidChangeModelContent(() => {
-                if (changeTimeout) clearTimeout(changeTimeout);
-                changeTimeout = setTimeout(() => {
-                    this.saveEditorState(elementId, editorInstance.getValue());
-                    this.onContentChanged(editorInstance);
-                }, 300);
-            })
-        );
-
-        this.instances.set(elementId + '_disposables', disposables);
-        this.setupResizeHandler(editorInstance, elementId);
-    },
-
-    setupResizeHandler(editorInstance, elementId) {
-        const resizeHandler = () => {
-            if (editorInstance) {
-                try {
-                    editorInstance.layout();
-                } catch (error) {
-                    console.error('Editor resize error:', error);
-                }
-            }
+        const defaultOptions = {
+            value: options.value || this.getDefaultCode(options.language || 'cpp'),
+            language: options.language || 'cpp',
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            automaticLayout: true,
+            fontSize: 14
         };
-        window.addEventListener('resize', resizeHandler);
-        this.instances.set(elementId + '_resize', resizeHandler);
-    },
 
-    dispose(elementId) {
-        const instance = this.instances.get(elementId);
-        if (instance) {
-            try {
-                const disposables = this.instances.get(elementId + '_disposables') || [];
-                disposables.forEach(d => d.dispose());
-
-                const resizeHandler = this.instances.get(elementId + '_resize');
-                if (resizeHandler) {
-                    window.removeEventListener('resize', resizeHandler);
-                }
-
-                instance.dispose();
-                this.instances.delete(elementId);
-                this.instances.delete(elementId + '_disposables');
-                this.instances.delete(elementId + '_resize');
-            } catch (error) {
-                console.error('Error disposing editor:', error);
-            }
-        }
+        const editor = monaco.editor.create(editorElement, defaultOptions);
+        this.instances.set(elementId, editor);
+        window.codeEditor = editor;
+        return editor;
     },
 
     getDefaultCode(language) {
         const templates = {
-            cpp: `#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}`,
-            csharp: `using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}`,
-            python: `print("Bonjour le monde!")`,
-            javascript: `console.log("Bonjour le monde!");`
+            cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
+            python: 'print("Bonjour le monde!")',
+            javascript: 'console.log("Bonjour le monde!");'
         };
-        const defaultCode = templates[language];
-        if (!defaultCode) {
-            console.error(`No template found for language: ${language}`);
-            return templates['cpp']; // Fallback to C++
-        }
-        return defaultCode;
-    },
-
-    setInitialValue(editor, options) {
-        const initialValue = options.value || this.getDefaultCode(options.language);
-        if (initialValue) {
-            editor.setValue(initialValue);
-            editor.getModel().setValue(initialValue);
-        }
-    },
-
-    saveEditorState(elementId, content) {
-        try {
-            localStorage.setItem(`editor_${elementId}`, content);
-        } catch (error) {
-            console.error('Failed to save editor state:', error);
-            if (window.errorBoundary) {
-                window.errorBoundary.handleError({
-                    type: 'editor_error',
-                    message: 'Failed to save editor state',
-                    error: error
-                });
-            }
-        }
-    },
-
-    onContentChanged(editorInstance) {
-        // This can be extended to handle content changes
-        console.log('Editor content changed');
+        return templates[language] || templates.cpp;
     },
 
     showErrorMessage(error) {
         const errorContainer = document.getElementById('errorContainer');
         if (errorContainer) {
-            errorContainer.style.display = 'block';
-            errorContainer.innerHTML = `
-                <div class="alert alert-danger">
-                    <h6 class="mb-2">
-                        <i class="bi bi-exclamation-triangle-fill"></i> Erreur d'initialisation
-                    </h6>
-                    <p class="mb-0">${error.message}</p>
-                </div>
-            `;
+            errorContainer.innerHTML = `<div class="alert alert-danger">Editor error: ${error.message}</div>`;
         }
     }
 };
 
-// Make monacoEditor globally accessible
 window.monacoEditor = monacoEditor;
 
-// Initialize editor when DOM is loaded with error handling
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
-    if (!editorElement || window.codeEditor) return;
+    if (!editorElement) return;
 
     try {
         const language = editorElement.getAttribute('data-language') || 'cpp';
-        const initialValue = editorElement.getAttribute('data-initial-value') || monacoEditor.getDefaultCode(language);
+        const editor = await monacoEditor.initialize('editor', { language });
         
-        if (!window.monaco) {
-            const editor = await monacoEditor.initialize('editor', {
-                value: initialValue,
-                language: language
-            });
-
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect) {
             languageSelect.addEventListener('change', () => {
                 const newLanguage = languageSelect.value;
                 monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-                editorElement.setAttribute('data-language', newLanguage);
                 editor.setValue(monacoEditor.getDefaultCode(newLanguage));
             });
-            
-            if (editor) {
-                window.codeEditor = editor;
-                setupEditorControls();
-            }
         }
     } catch (error) {
         console.error('Editor initialization failed:', error);
-        monacoEditor.showErrorMessage(error);
-        if (window.errorBoundary) {
-            window.errorBoundary.handleError({
-                type: 'editor_error',
-                message: 'Failed to initialize editor',
-                error: error
-            });
-        }
     }
 });
-
-// Setup editor controls
-function setupEditorControls() {
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
-}
 
 async function executeCode() {
     if (!window.codeEditor) {
@@ -290,100 +110,26 @@ async function executeCode() {
         return;
     }
 
-    const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     
-    if (!csrfTokenMeta) {
+    if (!csrfToken) {
         if (output) output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
-        return;
-    }
-    const csrfToken = csrfTokenMeta.getAttribute('content');
-    if (!csrfToken) {
-        output.innerHTML = '<pre class="error">Erreur: CSRF token vide</pre>';
-        return;
-    }
-    const currentLanguage = document.getElementById('languageSelect').value;
-
-    if (!window.codeEditor) {
-        console.error('Editor not initialized');
-        return;
-    }
-
-    const currentCode = window.codeEditor.getValue();
-    if (!currentCode) {
-        console.error('No code to execute');
-        return;
-    }
-
-    if (!csrfToken) {
-        console.error('CSRF token not found');
-        if (output) {
-            output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
-        }
         return;
     }
 
     try {
-        runButton.disabled = true;
-        if (loadingOverlay) loadingOverlay.classList.add('show');
-
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const response = await fetch('/execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-CSRFToken': csrfToken
             },
-            credentials: 'same-origin',
             body: JSON.stringify({
                 code: window.codeEditor.getValue(),
                 language: document.getElementById('editor').getAttribute('data-language') || 'cpp'
             })
         });
-
-        if (!response.ok) {
-            const result = await response.json();
-            let errorMessage = 'Une erreur est survenue:\n\n';
-            
-            if (result.error_details) {
-                errorMessage += `📍 Ligne ${result.error_details.line}: ${result.error_details.message}\n\n`;
-                
-                // Add common solutions based on error type
-                if (result.error_details.message.includes('undeclared')) {
-                    errorMessage += '💡 Solutions possibles:\n';
-                    errorMessage += '- Vérifiez si la variable est déclarée avant utilisation\n';
-                    errorMessage += '- Vérifiez l\'orthographe du nom de la variable\n';
-                    errorMessage += '- Ajoutez l\'include nécessaire\n';
-                } else if (result.error_details.message.includes('expected')) {
-                    errorMessage += '💡 Solutions possibles:\n';
-                    errorMessage += '- Vérifiez les accolades manquantes {}\n';
-                    errorMessage += '- Vérifiez les points-virgules manquants ;\n';
-                    errorMessage += '- Vérifiez la syntaxe de la structure de contrôle\n';
-                }
-                
-                errorMessage += '\n🔍 Code concerné:\n';
-                errorMessage += `${result.error_details.context || 'Non disponible'}\n`;
-            } else {
-                switch (response.status) {
-                    case 400:
-                        errorMessage += '❌ Le code contient des erreurs de syntaxe.\n';
-                        break;
-                    case 401:
-                        errorMessage += '🔒 Authentification requise.\n';
-                        break;
-                    case 413:
-                        errorMessage += '📏 Le code dépasse la taille limite.\n';
-                        break;
-                    default:
-                        errorMessage += `⚠️ Erreur ${response.status}\n`;
-                }
-            }
-            
-            throw new Error(errorMessage);
-        }
 
         const result = await response.json();
         if (output) {
@@ -393,15 +139,5 @@ async function executeCode() {
         if (output) {
             output.innerHTML = `<pre class="error">Erreur d'exécution: ${error.message}</pre>`;
         }
-        if (window.errorBoundary) {
-            window.errorBoundary.handleError({
-                type: 'execution_error',
-                message: 'Failed to execute code',
-                error: error
-            });
-        }
-    } finally {
-        runButton.disabled = false;
-        if (loadingOverlay) loadingOverlay.classList.remove('show');
     }
 }
