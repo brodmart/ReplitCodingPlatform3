@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from urllib.parse import urlparse
@@ -213,3 +213,16 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
+@app.route('/extend-session', methods=['POST'])
+@login_required
+def extend_session():
+    """Extend the user's session"""
+    try:
+        # Refresh the session
+        session.permanent = True
+        session.modified = True
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        logger.error(f"Error extending session: {str(e)}")
+        return jsonify({'error': 'Failed to extend session'}), 500
