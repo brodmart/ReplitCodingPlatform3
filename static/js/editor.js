@@ -1,25 +1,13 @@
 
-// Single editor instance
 let editor = null;
 
-// Configure Monaco loader
-require.config({
-    paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-});
-
-// Initialize editor only once
-function initEditor() {
-    if (editor) return;
-    
+require(['vs/editor/editor.main'], function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    const initialValue = editorElement.dataset.initialValue || '// Your code here';
-    const language = editorElement.dataset.language || 'cpp';
-
     editor = monaco.editor.create(editorElement, {
-        value: initialValue,
-        language: language,
+        value: '// Your code here',
+        language: 'cpp',
         theme: 'vs-dark',
         minimap: { enabled: false },
         automaticLayout: true,
@@ -32,9 +20,13 @@ function initEditor() {
             monaco.editor.setModelLanguage(editor.getModel(), this.value);
         });
     }
-}
 
-// Execute code function
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
+});
+
 async function executeCode() {
     if (!editor) return;
 
@@ -46,9 +38,6 @@ async function executeCode() {
         console.error('CSRF token not available');
         return;
     }
-
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
     try {
         const response = await fetch('/execute', {
@@ -71,17 +60,5 @@ async function executeCode() {
         if (output) {
             output.innerHTML = `<pre class="error">Error: ${error.message}</pre>`;
         }
-    } finally {
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
 }
-
-// Wait for Monaco to load then initialize
-require(['vs/editor/editor.main'], function() {
-    initEditor();
-    
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
-});
