@@ -1,25 +1,12 @@
 
-// Single editor instance
 let editor = null;
 
-// Wait for Monaco to be loaded
-window.MonacoEnvironment = {
-    getWorkerUrl: function(workerId, label) {
-        return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-            self.MonacoEnvironment = {
-                baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
-            };
-            importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
-        )}`;
-    }
-};
+require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
-// Initialize editor once DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const editorElement = document.getElementById('editor');
     if (!editorElement || editor) return;
 
-    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
     require(['vs/editor/editor.main'], () => {
         editor = monaco.editor.create(editorElement, {
             value: '// Your code here',
@@ -30,20 +17,20 @@ document.addEventListener('DOMContentLoaded', () => {
             scrollBeyondLastLine: false
         });
 
-        // Language selection
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
             languageSelect.addEventListener('change', () => {
-                monaco.editor.setModelLanguage(editor.getModel(), languageSelect.value);
+                if (editor) {
+                    monaco.editor.setModelLanguage(editor.getModel(), languageSelect.value);
+                }
             });
         }
 
-        // Run button
         const runButton = document.getElementById('runButton');
         if (runButton) {
             runButton.addEventListener('click', async () => {
                 const output = document.getElementById('output');
-                if (!output) return;
+                if (!output || !editor) return;
 
                 try {
                     const response = await fetch('/execute', {
@@ -68,8 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Cleanup
-window.addEventListener('unload', () => {
+window.addEventListener('beforeunload', () => {
     if (editor) {
         editor.dispose();
         editor = null;
