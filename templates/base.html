@@ -48,13 +48,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-light {% if request.endpoint == 'list_activities' %}active{% endif %}" href="{{ url_for('list_activities') }}">
+                        <a class="nav-link text-light {% if request.endpoint == 'activities.list_activities' %}active{% endif %}" href="{{ url_for('activities.list_activities') }}">
                             <i class="bi bi-book"></i> Activités
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-light {% if request.endpoint == 'leaderboard' %}active{% endif %}" href="{{ url_for('leaderboard') }}">
-                            <i class="bi bi-trophy"></i> Classement
                         </a>
                     </li>
                     {% if current_user.is_authenticated %}
@@ -73,14 +68,14 @@
                                 {{ current_user.username }}
                             </span>
                         </div>
-                        <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">
+                        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">
                             <i class="bi bi-box-arrow-right"></i> Déconnexion
                         </a>
                     {% else %}
-                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-sm me-2">
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-sm me-2">
                             <i class="bi bi-box-arrow-in-right"></i> Connexion
                         </a>
-                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-sm">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm">
                             <i class="bi bi-person-plus"></i> Inscription
                         </a>
                     {% endif %}

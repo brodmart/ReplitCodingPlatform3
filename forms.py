@@ -4,7 +4,7 @@ from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationE
 from models import Student
 
 class LoginForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    username = StringField('Nom d\'utilisateur', validators=[DataRequired()])
     password = PasswordField('Mot de passe', validators=[DataRequired()])
     remember_me = BooleanField('Se souvenir de moi')
     submit = SubmitField('Connexion')
@@ -17,12 +17,12 @@ class RegisterForm(FlaskForm):
         validators=[DataRequired(), EqualTo('password', message='Les mots de passe doivent correspondre')])
     submit = SubmitField('S\'inscrire')
 
-    def validate_email(self, email):
-        user = Student.query.filter_by(email=email.data).first()
-        if user:
-            raise ValidationError('Cet email est déjà utilisé.')
-
     def validate_username(self, username):
         user = Student.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('Ce nom d\'utilisateur est déjà pris.')
+
+    def validate_email(self, email):
+        user = Student.query.filter_by(email=email.data).first()
+        if user:
+            raise ValidationError('Cet email est déjà utilisé.')
