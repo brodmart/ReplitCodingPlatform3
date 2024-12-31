@@ -304,8 +304,7 @@ async function executeCode() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'X-CSRFToken': csrfToken
+                'X-CSRF-TOKEN': csrfToken
             },
             credentials: 'include',
             body: JSON.stringify({

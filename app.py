@@ -49,6 +49,9 @@ logger.info("Setting up CSRF protection...")
 from flask_wtf.csrf import CSRFProtect
 csrf = CSRFProtect()
 csrf.init_app(app)
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_TIME_LIMIT'] = None
+
 
 # Initialize Flask-Login
 logger.info("Initializing Flask-Login...")
