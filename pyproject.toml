@@ -17,5 +17,4 @@ dependencies = [
     "trafilatura>=2.0.0",
     "flask-caching>=2.3.0",
     "flask-limiter>=3.9.2",
-    "redis>=5.2.1",
 ]

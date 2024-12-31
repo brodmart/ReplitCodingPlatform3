@@ -20,19 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-@app.after_request
-def add_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Content-Security-Policy'] = "default-src 'self'"
-    return response
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
-app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes
 
 # Initialize caching
 from flask_caching import Cache
@@ -114,14 +102,9 @@ def index():
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-from flask_limiter.util import get_remote_address
-from redis import Redis
-
-redis_client = Redis(host='localhost', port=6379, db=0)
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    storage_uri="redis://localhost:6379",
     default_limits=["200 per day", "50 per hour"]
 )
 
