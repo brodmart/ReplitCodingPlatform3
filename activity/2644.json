@@ -1,0 +1,17 @@
+
+{
+  "common_errors": [
+    "Oublier de convertir les entrées en nombres",
+    "Ne pas gérer les erreurs de saisie non-numériques",
+    "Confusion entre division entière et flottante",
+    "Oublier d'initialiser les variables",
+    "Mauvais type de données pour les calculs",
+    "Ne pas vérifier la division par zéro",
+    "Dépassement de capacité dans les calculs"
+  ],
+  "hints": [
+    "Utilisez int pour les nombres entiers",
+    "L'opérateur + additionne les nombres",
+    "Affichez chaque invite avant de lire l'entrée"
+  ]
+}
