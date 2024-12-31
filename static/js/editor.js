@@ -1,16 +1,16 @@
 
+// Single editor instance
 let editor = null;
 let initialized = false;
 
+// Initialize Monaco only once
 function initMonaco() {
-    if (initialized) return;
+    if (initialized || !document.getElementById('editor')) return;
     
-    const editorElement = document.getElementById('editor');
-    if (!editorElement) return;
-
     require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-    window.MonacoEnvironment = {
-        getWorkerUrl: function() {
+    
+    window.MonacoEnvironment = { 
+        getWorkerUrl: () => {
             return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
                 self.MonacoEnvironment = {
                     baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
@@ -20,8 +20,10 @@ function initMonaco() {
         }
     };
 
-    require(['vs/editor/editor.main'], function() {
-        editor = monaco.editor.create(editorElement, {
+    require(['vs/editor/editor.main'], () => {
+        if (!document.getElementById('editor')) return;
+        
+        editor = monaco.editor.create(document.getElementById('editor'), {
             value: '// Your code here',
             language: 'cpp',
             theme: 'vs-dark',
@@ -69,10 +71,14 @@ function initMonaco() {
     });
 }
 
-// Initialize only once when DOM is loaded
-document.addEventListener('DOMContentLoaded', initMonaco);
+// Initialize once when DOM is loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMonaco);
+} else {
+    initMonaco();
+}
 
-// Cleanup
+// Clean up on page unload
 window.addEventListener('beforeunload', () => {
     if (editor) {
         editor.dispose();
