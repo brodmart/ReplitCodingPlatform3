@@ -126,7 +126,18 @@
 
     <!-- Initialize Bootstrap components -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Ensure Bootstrap is loaded before initializing components
+        function waitForBootstrap(callback) {
+            if (typeof bootstrap !== 'undefined') {
+                callback();
+            } else {
+                // Wait for script to load
+                document.querySelector('script[src*="bootstrap.bundle.min.js"]').addEventListener('load', callback);
+            }
+        }
+
+        // Initialize Bootstrap components once loaded
+        waitForBootstrap(function() {
             // Initialize tooltips
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.forEach(function(tooltipTriggerEl) {
@@ -141,6 +152,7 @@
 
             // Dispatch bootstrap:ready event
             document.dispatchEvent(new Event('bootstrap:ready'));
+            console.log('Bootstrap initialized successfully');
         });
     </script>
 

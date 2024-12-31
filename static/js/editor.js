@@ -3,8 +3,27 @@ const monacoEditor = {
     initialized: false,
     instances: new Map(),
 
+    // Wait for bootstrap to be ready
+    waitForBootstrap: function() {
+        return new Promise((resolve) => {
+            const check = () => {
+                if (typeof bootstrap !== 'undefined') {
+                    resolve();
+                } else {
+                    // Wait for bootstrap:ready event
+                    document.addEventListener('bootstrap:ready', resolve, { once: true });
+                }
+            };
+            check();
+        });
+    },
+
     initialize: async function(elementId, options = {}) {
         try {
+            // First, wait for Bootstrap to be ready
+            await this.waitForBootstrap();
+            console.log('Bootstrap is ready, initializing editor...');
+
             // Check if element exists
             const editorElement = document.getElementById(elementId);
             if (!editorElement) {
@@ -54,8 +73,10 @@ const monacoEditor = {
                         this.setupEditorEventHandlers(editorInstance, elementId);
                         editor = editorInstance;
                         this.initialized = true;
+                        console.log('Editor initialized successfully');
                         resolve(editorInstance);
                     } catch (error) {
+                        console.error('Failed to create editor instance:', error);
                         reject(error);
                     }
                 });
@@ -175,32 +196,20 @@ class Program {
 // Make monacoEditor globally available
 window.monacoEditor = monacoEditor;
 
-
 // Initialize editor when document is ready
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        // Wait for Bootstrap to be ready
-        const bootstrapReady = new Promise((resolve) => {
-            if (typeof bootstrap !== 'undefined') {
-                resolve();
-            } else {
-                document.addEventListener('bootstrap:ready', () => resolve(), { once: true });
-            }
-        });
-
-        await bootstrapReady;
-        console.log('Bootstrap initialized successfully');
-
         const editorElement = document.getElementById('editor');
         if (!editorElement) {
             console.warn('Editor element not found, might be on a different page');
             return;
         }
 
-        // Initialize Monaco editor
+        // Initialize Monaco editor with the initial values
         const initialValue = editorElement.getAttribute('data-initial-value') || '';
         const language = editorElement.getAttribute('data-language') || 'cpp';
 
+        // Initialize the editor
         await monacoEditor.initialize('editor', {
             value: initialValue,
             language: language,
@@ -209,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             minimap: { enabled: true }
         });
 
-        console.log('Editor initialized successfully');
+        console.log('Editor initialization complete');
 
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
@@ -274,7 +283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <i class="bi bi-exclamation-triangle-fill"></i> Erreur d'initialisation
                     </h6>
                     <p class="mb-0">${error.message}</p>
-                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="location.reload()">
+                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="window.location.reload()">
                         <i class="bi bi-arrow-clockwise"></i> Rafraîchir la page
                     </button>
                 </div>
