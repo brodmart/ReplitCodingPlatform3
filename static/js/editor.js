@@ -3,24 +3,41 @@ require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-e
 
 let editor = null;
 
-require(['vs/editor/editor.main'], function() {
-    if (!editor) {
-        editor = monaco.editor.create(document.getElementById('editor'), {
-            value: '// Your code here',
-            language: 'cpp',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14
-        });
-
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect) {
-            languageSelect.addEventListener('change', function() {
-                monaco.editor.setModelLanguage(editor.getModel(), this.value);
-            });
-        }
+window.MonacoEnvironment = {
+    getWorkerUrl: function() {
+        return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+            self.MonacoEnvironment = {
+                baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
+            };
+            importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
+        )}`;
     }
+};
+
+// Initialize editor only once when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    const editorElement = document.getElementById('editor');
+    if (!editorElement) return;
+
+    require(['vs/editor/editor.main'], function() {
+        if (!editor) {
+            editor = monaco.editor.create(editorElement, {
+                value: '// Your code here',
+                language: 'cpp',
+                theme: 'vs-dark',
+                minimap: { enabled: false },
+                automaticLayout: true,
+                fontSize: 14
+            });
+
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                languageSelect.addEventListener('change', function() {
+                    monaco.editor.setModelLanguage(editor.getModel(), this.value);
+                });
+            }
+        }
+    });
 });
 
 async function executeCode() {
@@ -62,6 +79,7 @@ async function executeCode() {
     }
 }
 
+// Set up run button handler
 document.addEventListener('DOMContentLoaded', function() {
     const runButton = document.getElementById('runButton');
     if (runButton) {
