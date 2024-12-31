@@ -12,7 +12,8 @@
             bootstrapCSS: false,
             bootstrapJS: false,
             retryCount: 0,
-            maxRetries: 3
+            maxRetries: 5,  // Increased retry attempts
+            initialized: false
         };
 
         // Enhanced error logging
@@ -35,48 +36,59 @@
 
         // Enhanced fallback loader with retry mechanism
         function loadLocalBootstrap() {
+            console.log('Attempting to load local Bootstrap...');
+
             if (window.resourceStatus.retryCount >= window.resourceStatus.maxRetries) {
                 logResourceError('Bootstrap', 'Maximum retry attempts reached');
                 return;
             }
             window.resourceStatus.retryCount++;
 
-            if (!window.resourceStatus.bootstrapCSS) {
-                const link = document.createElement('link');
-                link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
-                link.type = "text/css";
-                link.rel = "stylesheet";
-                link.onload = () => {
-                    window.resourceStatus.bootstrapCSS = true;
-                    console.log('Local Bootstrap CSS loaded successfully');
-                };
-                link.onerror = () => logResourceError('Bootstrap CSS local fallback');
-                document.head.appendChild(link);
-            }
+            return new Promise((resolve, reject) => {
+                if (!window.resourceStatus.bootstrapCSS) {
+                    const link = document.createElement('link');
+                    link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
+                    link.type = "text/css";
+                    link.rel = "stylesheet";
+                    link.onload = () => {
+                        window.resourceStatus.bootstrapCSS = true;
+                        console.log('Local Bootstrap CSS loaded successfully');
+                        resolve();
+                    };
+                    link.onerror = () => {
+                        logResourceError('Bootstrap CSS local fallback');
+                        reject();
+                    };
+                    document.head.appendChild(link);
+                }
 
-            if (!window.resourceStatus.bootstrapJS) {
-                const script = document.createElement('script');
-                script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
-                script.onload = () => {
-                    window.resourceStatus.bootstrapJS = true;
-                    console.log('Local Bootstrap JS loaded successfully');
-                    document.dispatchEvent(new Event('bootstrap:loaded'));
-                };
-                script.onerror = () => logResourceError('Bootstrap JS local fallback');
-                document.body.appendChild(script);
-            }
+                if (!window.resourceStatus.bootstrapJS) {
+                    const script = document.createElement('script');
+                    script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
+                    script.onload = () => {
+                        window.resourceStatus.bootstrapJS = true;
+                        console.log('Local Bootstrap JS loaded successfully');
+                        document.dispatchEvent(new Event('bootstrap:loaded'));
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        logResourceError('Bootstrap JS local fallback');
+                        reject();
+                    };
+                    document.body.appendChild(script);
+                }
+            });
         }
 
         // Preload local resources
-        fetch("{{ url_for('static', filename='css/bootstrap.min.css') }}")
-            .then(response => response.blob())
-            .then(() => console.log('Local Bootstrap CSS cached'))
-            .catch(err => console.warn('Failed to cache local Bootstrap CSS:', err));
-
-        fetch("{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}")
-            .then(response => response.blob())
-            .then(() => console.log('Local Bootstrap JS cached'))
-            .catch(err => console.warn('Failed to cache local Bootstrap JS:', err));
+        Promise.all([
+            fetch("{{ url_for('static', filename='css/bootstrap.min.css') }}")
+                .then(response => response.blob())
+                .then(() => console.log('Local Bootstrap CSS cached')),
+            fetch("{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}")
+                .then(response => response.blob())
+                .then(() => console.log('Local Bootstrap JS cached'))
+        ]).catch(err => console.warn('Failed to cache local Bootstrap resources:', err));
     </script>
 
     <!-- Bootstrap CSS with enhanced error handling -->
@@ -210,6 +222,8 @@
     <script>
         // Enhanced Bootstrap components initialization
         function initializeBootstrapComponents() {
+            console.log('Attempting to initialize Bootstrap components...');
+
             try {
                 if (!window.resourceStatus.bootstrapJS || typeof bootstrap === 'undefined') {
                     if (window.resourceStatus.retryCount < window.resourceStatus.maxRetries) {
@@ -233,6 +247,17 @@
                     new bootstrap.Popover(popoverTriggerEl);
                 });
 
+                // Re-initialize dropdown triggers
+                document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(function(element) {
+                    new bootstrap.Dropdown(element);
+                });
+
+                // Re-initialize collapse triggers
+                document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(function(element) {
+                    new bootstrap.Collapse(element, { toggle: false });
+                });
+
+                window.resourceStatus.initialized = true;
                 console.log('Bootstrap components initialized successfully');
             } catch (error) {
                 logResourceError('Bootstrap components', error);
@@ -242,16 +267,10 @@
             }
         }
 
-        // Global loading indicator functions
-        window.showLoading = function() {
-            document.getElementById('loading-indicator').classList.add('show');
-        };
-        window.hideLoading = function() {
-            document.getElementById('loading-indicator').classList.remove('show');
-        };
-
-        // Wait for DOM and Bootstrap with retry mechanism
+        // Wait for DOM and Bootstrap with enhanced retry mechanism
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded, checking Bootstrap status...');
+
             if (window.resourceStatus.bootstrapJS) {
                 initializeBootstrapComponents();
             } else {
@@ -259,10 +278,23 @@
                 // Fallback if event never fires
                 setTimeout(function() {
                     if (!window.resourceStatus.bootstrapJS) {
-                        loadLocalBootstrap();
+                        console.log('Bootstrap not loaded after timeout, attempting local fallback...');
+                        loadLocalBootstrap().then(initializeBootstrapComponents);
                     }
                 }, 2000);
             }
+        });
+
+        // Re-initialize on dynamic content changes
+        const observer = new MutationObserver(function(mutations) {
+            if (window.resourceStatus.initialized) {
+                initializeBootstrapComponents();
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
         });
     </script>
 
