@@ -23,6 +23,7 @@
         justify-content: center;
         align-items: center;
         z-index: 1000;
+        backdrop-filter: blur(3px);
     }
 
     .loading-overlay.show {
@@ -32,6 +33,9 @@
     .loading-spinner {
         text-align: center;
         color: white;
+        padding: 20px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.5);
     }
 
     .error-message {
@@ -41,6 +45,7 @@
         background-color: rgba(220, 53, 69, 0.1);
         border: 1px solid #dc3545;
         color: #dc3545;
+        animation: fadeIn 0.3s ease-in-out;
     }
 
     .syntax-helper {
@@ -50,11 +55,19 @@
         width: 300px;
         z-index: 1000;
         display: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
     }
 
     .syntax-helper.show {
         display: block;
     }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
     .incorrect-examples {
         margin-top: 1.5rem;
         border: 1px solid #dee2e6;
@@ -62,34 +75,45 @@
         padding: 1rem;
         background-color: rgba(220, 53, 69, 0.05);
     }
-    .accordion-button {
-        background-color: #f8f9fa;
-        color: #212529;
+
+    .test-result {
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.3s ease;
     }
 
-    .accordion-button:not(.collapsed) {
-        background-color: #e9ecef;
-        color: #0d6efd;
+    .test-result.passed {
+        border-left: 4px solid #198754;
     }
-    .accordion-body pre {
-        background-color: #2d2d2d;
-        padding: 1rem;
-        border-radius: 4px;
+
+    .test-result.failed {
+        border-left: 4px solid #dc3545;
+    }
+
+    .test-result pre {
         margin: 0.5rem 0;
+        padding: 0.5rem;
+        background: #2d2d2d;
+        border-radius: 4px;
         color: #ccc;
     }
 
-    .accordion-body code {
-        color: inherit;
+    .console-output {
+        max-height: 200px;
+        overflow-y: auto;
         font-family: monospace;
         white-space: pre-wrap;
+        word-wrap: break-word;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-top: 1rem;
     }
-    .example-explanation {
-        margin-top: 0.5rem;
-        padding: 0.5rem;
-        background-color: rgba(220, 53, 69, 0.1);
-        border-left: 4px solid #dc3545;
-        border-radius: 0.25rem;
+
+    #realTimeFeedback {
+        transition: all 0.3s ease;
     }
 </style>
 {% endblock %}
@@ -124,24 +148,37 @@
                     {% if activity.hints %}
                     <div class="mt-3">
                         <h5>Indices</h5>
-                        <ul class="list-group">
+                        <div class="accordion" id="hintsAccordion">
                             {% for hint in activity.hints %}
-                            <li class="list-group-item">{{ hint }}</li>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#hint{{ loop.index }}">
+                                        Indice {{ loop.index }}
+                                    </button>
+                                </h2>
+                                <div id="hint{{ loop.index }}" class="accordion-collapse collapse" 
+                                     data-bs-parent="#hintsAccordion">
+                                    <div class="accordion-body">{{ hint }}</div>
+                                </div>
+                            </div>
                             {% endfor %}
-                        </ul>
+                        </div>
                     </div>
                     {% endif %}
 
                     {% if activity.common_errors %}
-                    <h5 class="section-title">Erreurs Courantes à Éviter</h5>
-                    <ul class="list-group">
-                        {% for error in activity.common_errors %}
-                        <li class="list-group-item list-group-item-danger">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            {{ error }}
-                        </li>
-                        {% endfor %}
-                    </ul>
+                    <div class="mt-4">
+                        <h5>Erreurs Courantes à Éviter</h5>
+                        <div class="list-group">
+                            {% for error in activity.common_errors %}
+                            <div class="list-group-item list-group-item-danger">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                {{ error }}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
                     {% endif %}
 
                     {% if activity.incorrect_examples %}
@@ -186,8 +223,17 @@
                     {% if progress %}
                     <div class="mt-4">
                         <h5>Votre Progression</h5>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar {% if progress.completed %}bg-success{% else %}bg-warning{% endif %}"
+                                 role="progressbar"
+                                 style="width: {{ (progress.attempts / activity.max_attempts) * 100 }}%"
+                                 aria-valuenow="{{ progress.attempts }}"
+                                 aria-valuemin="0"
+                                 aria-valuemax="{{ activity.max_attempts }}">
+                                {{ progress.attempts }}/{{ activity.max_attempts }} tentatives
+                            </div>
+                        </div>
                         <p>
-                            Tentatives: {{ progress.attempts }}<br>
                             Statut: 
                             {% if progress.completed %}
                                 <span class="badge bg-success">Terminé</span>
@@ -197,21 +243,6 @@
                         </p>
                     </div>
                     {% endif %}
-                    <button class="btn btn-info mt-3" onclick="toggleSyntaxHelper()">
-                        <i class="bi bi-lightbulb"></i> Aide Syntaxe
-                    </button>
-
-                    <div class="card syntax-helper" id="syntaxHelper">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Guide de Syntaxe</h5>
-                            <button type="button" class="btn-close" onclick="toggleSyntaxHelper()"></button>
-                        </div>
-                        <div class="card-body">
-                            <div class="syntax-content">
-                                {{ activity.syntax_help|safe }}
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -221,11 +252,20 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Éditeur de Code</h5>
-                    <div>
-                        <button id="resetButton" class="btn btn-secondary me-2" title="Réinitialiser le code">
+                    <div class="btn-group">
+                        <button id="resetButton" class="btn btn-secondary" 
+                                title="Réinitialiser le code"
+                                data-bs-toggle="tooltip">
                             <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
                         </button>
-                        <button id="submitButton" class="btn btn-primary" title="Exécuter et soumettre le code">
+                        <button id="formatButton" class="btn btn-info" 
+                                title="Formater le code"
+                                data-bs-toggle="tooltip">
+                            <i class="bi bi-text-left"></i> Formater
+                        </button>
+                        <button id="submitButton" class="btn btn-primary" 
+                                title="Exécuter et soumettre le code"
+                                data-bs-toggle="tooltip">
                             <i class="bi bi-play-fill"></i> Soumettre
                         </button>
                     </div>
@@ -242,7 +282,11 @@
                     </div>
 
                     <div id="editor"></div>
+
+                    <!-- Real-time feedback -->
                     <div id="realTimeFeedback" class="mt-3"></div>
+
+                    <!-- Test Results -->
                     <div class="mt-4">
                         <h5>Résultats des Tests</h5>
                         <div id="testResults"></div>
@@ -250,8 +294,23 @@
 
                     <!-- Error message container -->
                     <div id="errorContainer" class="error-message" style="display: none;">
-                        <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill"></i> Erreur</h6>
+                        <h6 class="mb-2">
+                            <i class="bi bi-exclamation-triangle-fill"></i> Erreur
+                        </h6>
                         <div id="errorMessage"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Syntax Helper -->
+            <div class="card syntax-helper" id="syntaxHelper">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Guide de Syntaxe</h5>
+                    <button type="button" class="btn-close" onclick="toggleSyntaxHelper()"></button>
+                </div>
+                <div class="card-body">
+                    <div class="syntax-content">
+                        {{ activity.syntax_help|safe }}
                     </div>
                 </div>
             </div>
@@ -268,7 +327,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         const editor = await window.monacoEditor.initialize('editor', {
             value: {{ activity.starter_code|tojson }},
             language: '{{ activity.language }}',
-            readOnly: false
+            readOnly: false,
+            wordWrap: 'on',
+            minimap: { enabled: true }
         });
 
         // Store editor instance globally for access in other functions
@@ -277,8 +338,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Set up event handlers
         setupEventHandlers(editor);
 
-        // Set up real-time validation
+        // Set up real-time validation with debounce
         setupValidation(editor);
+
+        // Initialize tooltips
+        const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+
     } catch (error) {
         console.error('Failed to initialize editor:', error);
         showError('Erreur lors de l\'initialisation de l\'éditeur. Veuillez rafraîchir la page.');
@@ -286,21 +352,45 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 function setupEventHandlers(editor) {
+    // Reset button handler with confirmation
     const resetButton = document.getElementById('resetButton');
     if (resetButton) {
         resetButton.addEventListener('click', function() {
-            if (confirm('Êtes-vous sûr de vouloir réinitialiser le code? Toutes vos modifications seront perdues.')) {
+            const confirmReset = confirm('Êtes-vous sûr de vouloir réinitialiser le code? Toutes vos modifications seront perdues.');
+            if (confirmReset) {
                 editor.setValue({{ activity.starter_code|tojson }});
+                editor.setPosition({ lineNumber: 1, column: 1 });
+                editor.focus();
             }
         });
     }
 
-    const submitButton = document.getElementById('submitButton');
-    if (submitButton) {
-        submitButton.addEventListener('click', async function() {
-            await handleSubmission(editor.getValue(), this);
+    // Format button handler
+    const formatButton = document.getElementById('formatButton');
+    if (formatButton) {
+        formatButton.addEventListener('click', async function() {
+            try {
+                await editor.getAction('editor.action.formatDocument').run();
+                showNotification('success', 'Code formaté avec succès');
+            } catch (error) {
+                showNotification('error', 'Erreur lors du formatage du code');
+            }
         });
     }
+
+    // Submit button handler
+    const submitButton = document.getElementById('submitButton');
+    if (submitButton) {
+        submitButton.addEventListener('click', () => handleSubmission(editor.getValue(), submitButton));
+    }
+
+    // Keyboard shortcuts
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
+        submitButton?.click();
+    });
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+        formatButton?.click();
+    });
 }
 
 function setupValidation(editor) {
@@ -314,10 +404,10 @@ function setupValidation(editor) {
 async function handleSubmission(code, submitButton) {
     const testResults = document.getElementById('testResults');
     const loadingOverlay = document.getElementById('loadingOverlay');
-    if (!testResults) return;
+    if (!testResults || !loadingOverlay) return;
 
     try {
-        // Show loading overlay
+        // Show loading overlay with blur effect
         loadingOverlay.classList.add('show');
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Soumission en cours...';
@@ -327,9 +417,7 @@ async function handleSubmission(code, submitButton) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                code: code
-            })
+            body: JSON.stringify({ code: code })
         });
 
         // Check if response is JSON
@@ -348,18 +436,21 @@ async function handleSubmission(code, submitButton) {
             throw new Error(result.error || 'Une erreur est survenue lors de la soumission');
         }
 
-        displayTestResults(result, testResults);
+        displayTestResults(result);
 
         if (result.success) {
-            location.reload();
+            showNotification('success', 'Activité complétée avec succès!');
+            setTimeout(() => location.reload(), 1500);
         }
     } catch (error) {
+        console.error('Submission error:', error);
         showError(error.message);
-        testResults.innerHTML = `<div class="alert alert-danger">
-            <strong>Erreur:</strong><br>
-            <pre class="mb-0">${error.message}</pre>
-            ${!{{ current_user.is_authenticated|tojson }} ? '<hr><p>Veuillez vous <a href="{{ url_for("auth.login") }}">connecter</a> pour soumettre votre code.</p>' : ''}
-        </div>`;
+        testResults.innerHTML = `
+            <div class="alert alert-danger">
+                <strong>Erreur lors de la soumission:</strong><br>
+                <pre class="mb-0">${error.message}</pre>
+                ${!{{ current_user.is_authenticated|tojson }} ? '<hr><p>Veuillez vous <a href="{{ url_for("auth.login") }}">connecter</a> pour soumettre votre code.</p>' : ''}
+            </div>`;
     } finally {
         loadingOverlay.classList.remove('show');
         submitButton.disabled = false;
@@ -367,16 +458,32 @@ async function handleSubmission(code, submitButton) {
     }
 }
 
-function showError(message) {
+function showError(message, duration = 5000) {
     const errorContainer = document.getElementById('errorContainer');
     const errorMessage = document.getElementById('errorMessage');
     if (errorContainer && errorMessage) {
         errorMessage.textContent = message;
         errorContainer.style.display = 'block';
-        setTimeout(() => {
-            errorContainer.style.display = 'none';
-        }, 5000);
+        if (duration > 0) {
+            setTimeout(() => {
+                errorContainer.style.display = 'none';
+            }, duration);
+        }
     }
+}
+
+function showNotification(type, message, duration = 3000) {
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    toast.style.top = '20px';
+    toast.style.right = '20px';
+    toast.style.zIndex = '1050';
+    toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), duration);
 }
 
 async function validateCode(code) {
@@ -408,7 +515,13 @@ async function validateCode(code) {
                 <div class="alert alert-warning">
                     <h6><i class="bi bi-exclamation-triangle"></i> Erreurs détectées:</h6>
                     <ul class="mb-0">
-                        ${result.errors.map(error => `<li>${error.message_fr}<br><small class="text-muted">${error.message_en}</small></li>`).join('')}
+                        ${result.errors.map(error => `
+                            <li>
+                                ${error.message_fr}
+                                <br>
+                                <small class="text-muted">${error.message_en}</small>
+                            </li>
+                        `).join('')}
                     </ul>
                 </div>
             `;
@@ -425,21 +538,46 @@ async function validateCode(code) {
     }
 }
 
-function displayTestResults(result, testResults) {
-    let html = '<div class="list-group">';
+function displayTestResults(result) {
+    const testResults = document.getElementById('testResults');
+    if (!testResults) return;
+
+    let html = '';
     result.test_results.forEach((test, index) => {
         html += `
-            <div class="list-group-item ${test.passed ? 'list-group-item-success' : 'list-group-item-danger'}">
-                <h6>Test ${index + 1}</h6>
-                <div><strong>Entrée:</strong> ${test.input || '(aucune)'}</div>
-                <div><strong>Attendu:</strong> ${test.expected}</div>
-                <div><strong>Obtenu:</strong> ${test.actual || '(pas de sortie)'}</div>
-                ${test.error ? `<div class="text-danger"><strong>Erreur:</strong> ${test.error}</div>` : ''}
+            <div class="test-result ${test.passed ? 'passed' : 'failed'} card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">
+                        <i class="bi bi-${test.passed ? 'check-circle-fill text-success' : 'x-circle-fill text-danger'}"></i>
+                        Test ${index + 1}
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Entrée:</strong>
+                            <pre>${test.input || '(aucune)'}</pre>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Attendu:</strong>
+                            <pre>${test.expected}</pre>
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Obtenu:</strong>
+                            <pre>${test.actual || '(pas de sortie)'}</pre>
+                        </div>
+                    </div>
+                    ${test.error ? `
+                        <div class="alert alert-danger mt-2 mb-0">
+                            <strong>Erreur:</strong> ${test.error}
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         `;
     });
-    html += '</div>';
     testResults.innerHTML = html;
+
+    // Scroll to results
+    testResults.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function toggleSyntaxHelper() {
