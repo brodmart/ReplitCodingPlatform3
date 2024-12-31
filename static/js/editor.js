@@ -11,13 +11,13 @@ const monacoEditor = {
             }
 
             const language = options.language || editorElement.getAttribute('data-language') || 'cpp';
-            const initialValue = options.value || this.getDefaultCode(language);
-            options.value = initialValue;
             options.language = language;
-
+            
             this.dispose(elementId);
             await this.loadMonaco();
-            return this.createEditor(elementId, options);
+            const editor = this.createEditor(elementId, options);
+            this.setInitialValue(editor, options);
+            return editor;
         } catch (error) {
             console.error('Editor initialization error:', error);
             this.showErrorMessage(error);
@@ -181,7 +181,20 @@ const monacoEditor = {
             python: `print("Bonjour le monde!")`,
             javascript: `console.log("Bonjour le monde!");`
         };
-        return templates[language] || '';
+        const defaultCode = templates[language];
+        if (!defaultCode) {
+            console.error(`No template found for language: ${language}`);
+            return templates['cpp']; // Fallback to C++
+        }
+        return defaultCode;
+    },
+
+    setInitialValue(editor, options) {
+        const initialValue = options.value || this.getDefaultCode(options.language);
+        if (initialValue) {
+            editor.setValue(initialValue);
+            editor.getModel().setValue(initialValue);
+        }
     },
 
     saveEditorState(elementId, content) {
