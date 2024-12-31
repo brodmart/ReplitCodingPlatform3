@@ -21,11 +21,10 @@ def login():
             login_user(user, remember=form.remember_me.data)
             next_page = request.args.get('next')
             if not next_page or urlparse(next_page).netloc != '':
-                next_page = url_for('list_activities')
+                next_page = url_for('index')
             return redirect(next_page)
         flash('Invalid username or password', 'error')
-        return render_template('login.html', form=form)
-    return render_template('login.html', form=LoginForm())
+    return render_template('login.html', form=form)
 
 @auth.route('/logout')
 @login_required
