@@ -3,6 +3,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 <style>
     .editor-container {
         height: calc(100vh - 56px);
@@ -65,85 +66,129 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+document.addEventListener('DOMContentLoaded', function() {
+    const languageSelect = document.getElementById('languageSelect');
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
 
-    require(['vs/editor/editor.main'], function() {
-        var editor = monaco.editor.create(document.getElementById('editor'), {
-            value: '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
-            language: 'cpp',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true
-        });
-
-        // Language change handler
-        document.getElementById('languageSelect').addEventListener('change', function(e) {
-            const language = e.target.value;
-            monaco.editor.setModelLanguage(editor.getModel(), language);
-            if (language === 'cpp') {
-                editor.setValue('#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}');
-            } else {
-                editor.setValue('using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}');
-            }
-        });
-
-        // Run button handler
-        document.getElementById('runButton').addEventListener('click', function() {
-            const code = editor.getValue();
-            const language = document.getElementById('languageSelect').value;
-
-            fetch('/execute', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, language })
-            })
-            .then(response => response.json())
-            .then(data => {
-                const output = document.getElementById('output');
-                if (data.error) {
-                    output.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                } else {
-                    output.innerHTML = data.output || 'Programme exécuté avec succès.';
-                }
-            })
-            .catch(error => {
-                document.getElementById('output').innerHTML = `<div class="alert alert-danger">Erreur: ${error.message}</div>`;
-            });
-        });
-
-        // Share button handler
-        const shareButton = document.getElementById('shareButton');
-        if (shareButton) {
-            shareButton.addEventListener('click', function() {
-                const code = editor.getValue();
-                const language = document.getElementById('languageSelect').value;
-
-                fetch('/share', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code, language })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert('Erreur: ' + data.error);
-                    } else {
-                        alert('Code partagé avec succès!');
-                    }
-                })
-                .catch(error => {
-                    alert('Erreur: ' + error.message);
-                });
-            });
-        }
+    // Initialize Monaco editor with default configuration
+    const editor = window.monacoEditor.initialize('editor', {
+        value: window.monacoEditor.getDefaultCode(initialLanguage),
+        language: initialLanguage
     });
 
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
+    // Language change handler
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function(e) {
+            const language = e.target.value;
+            monaco.editor.setModelLanguage(window.codeEditor.getModel(), language);
+            window.codeEditor.setValue(window.monacoEditor.getDefaultCode(language));
+        });
+    }
+
+    // Run button handler
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
+
+    // Share button handler
+    const shareButton = document.getElementById('shareButton');
+    if (shareButton) {
+        shareButton.addEventListener('click', shareCode);
+    }
+});
+
+async function executeCode() {
+    const runButton = document.getElementById('runButton');
+    const output = document.getElementById('output');
+    const language = document.getElementById('languageSelect').value;
+
+    if (!runButton || !output) return;
+
+    try {
+        runButton.disabled = true;
+        runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Exécution...';
+
+        const response = await fetch('/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: window.codeEditor.getValue(),
+                language: language
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+            output.innerHTML = formatError(result.error);
+        } else {
+            output.innerHTML = result.output || 'Programme exécuté avec succès sans sortie.';
+        }
+    } catch (error) {
+        output.innerHTML = formatError(error.message);
+    } finally {
+        runButton.disabled = false;
+        runButton.innerHTML = '<i class="bi bi-play-fill"></i> Exécuter';
+    }
+}
+
+function formatError(error) {
+    return `<div class="alert alert-danger">
+        <strong>Erreur:</strong><br>
+        <pre class="mb-0">${error}</pre>
+    </div>`;
+}
+
+async function shareCode() {
+    const shareButton = document.getElementById('shareButton');
+    if (!shareButton) return;
+
+    const code = window.codeEditor.getValue();
+    const language = document.getElementById('languageSelect').value;
+
+    try {
+        shareButton.disabled = true;
+        shareButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Partage...';
+
+        const response = await fetch('/share', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                code: code,
+                language: language
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.error) {
+            showNotification('error', 'Erreur lors du partage du code: ' + result.error);
+        } else {
+            showNotification('success', 'Code partagé avec succès!');
+        }
+    } catch (error) {
+        showNotification('error', 'Erreur lors du partage du code: ' + error.message);
+    } finally {
+        shareButton.disabled = false;
+        shareButton.innerHTML = '<i class="bi bi-share"></i> Partager';
+    }
+}
+
+function showNotification(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-toast`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
 </script>
 {% endblock %}

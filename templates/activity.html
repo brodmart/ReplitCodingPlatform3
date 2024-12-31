@@ -3,7 +3,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 <style>
     #editor {
         width: 100%;
@@ -25,28 +25,6 @@
         display: block;
     }
 
-    .syntax-content {
-        font-family: monospace;
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 5px;
-    }
-
-    .real-time-feedback {
-        margin-top: 10px;
-        padding: 10px;
-        border-left: 4px solid;
-    }
-
-    .feedback-error {
-        border-color: #dc3545;
-        background-color: #f8d7da;
-    }
-
-    .feedback-success {
-        border-color: #28a745;
-        background-color: #d4edda;
-    }
     .learning-objective {
         background-color: #f8f9fa;
         border-left: 4px solid #0d6efd;
@@ -262,67 +240,38 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-cpp.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-csharp.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    require.config({
-        paths: {
-            'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
-        }
+    // Initialize Monaco editor with activity-specific configuration
+    const editor = window.monacoEditor.initialize('editor', {
+        value: {{ activity.starter_code|tojson }},
+        language: '{{ activity.language }}',
+        readOnly: false
     });
 
-    require(['vs/editor/editor.main'], function() {
-        const editorElement = document.getElementById('editor');
-        if (!editorElement) {
-            console.error('Editor element not found');
-            return;
-        }
-
-        const editor = monaco.editor.create(editorElement, {
-            value: {{ activity.starter_code|tojson }},
-            language: '{{ activity.language }}',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14,
-            scrollBeyondLastLine: false,
-            renderWhitespace: 'selection',
-            padding: { top: 10, bottom: 10 },
-            formatOnType: true,
-            formatOnPaste: true,
-            autoIndent: 'full',
-            bracketPairColorization: { enabled: true },
-            suggestOnTriggerCharacters: true,
-            wordBasedSuggestions: 'on'
+    // Set up event handlers
+    const resetButton = document.getElementById('resetButton');
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            window.codeEditor.setValue({{ activity.starter_code|tojson }});
         });
+    }
 
-        const resetButton = document.getElementById('resetButton');
-        if (resetButton) {
-            resetButton.addEventListener('click', function() {
-                editor.setValue({{ activity.starter_code|tojson }});
-            });
-        }
-
-        const submitButton = document.getElementById('submitButton');
-        if (submitButton) {
-            submitButton.addEventListener('click', async function() {
-                await handleSubmission(editor.getValue(), this);
-            });
-        }
-
-        let validationTimeout;
-        editor.onDidChangeModelContent(() => {
-            clearTimeout(validationTimeout);
-            validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
+    const submitButton = document.getElementById('submitButton');
+    if (submitButton) {
+        submitButton.addEventListener('click', async function() {
+            await handleSubmission(window.codeEditor.getValue(), this);
         });
+    }
 
-        window.activityEditor = editor;
+    let validationTimeout;
+    editor.onDidChangeModelContent(() => {
+        clearTimeout(validationTimeout);
+        validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
     });
 
-    //This part was in the original but not included in the edited
+    window.activityEditor = editor;
+
     const accordionElements = document.querySelectorAll('.accordion-collapse');
     if (accordionElements.length > 0) {
         accordionElements.forEach(element => {
@@ -438,7 +387,9 @@ async function validateCode(code) {
         console.error('Error validating code:', error);
     }
 }
-
-Prism.highlightAll();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-cpp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-csharp.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
