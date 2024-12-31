@@ -283,6 +283,16 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-csharp.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Bootstrap components
+    const accordionElements = document.querySelectorAll('.accordion-collapse');
+    if (accordionElements.length > 0) {
+        accordionElements.forEach(element => {
+            new bootstrap.Collapse(element, {
+                toggle: false
+            });
+        });
+    }
+
     // Configure Monaco Editor
     require.config({
         paths: {
@@ -329,11 +339,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-        new bootstrap.Tooltip(tooltipTriggerEl)
-    });
+    // Highlight code examples
+    Prism.highlightAll();
 });
 
 // Helper functions

@@ -396,12 +396,13 @@ def view_activity(activity_id):
         try:
             if isinstance(activity.incorrect_examples, str):
                 activity.incorrect_examples = json.loads(activity.incorrect_examples)
-            app.logger.debug(f"Loaded incorrect examples for activity {activity_id}: {activity.incorrect_examples}")
-        except json.JSONDecodeError:
-            app.logger.error(f"Failed to parse incorrect_examples for activity {activity_id}")
+            app.logger.debug(f"Loaded incorrect examples: {activity.incorrect_examples}")
+        except json.JSONDecodeError as e:
+            app.logger.error(f"Failed to parse incorrect_examples for activity {activity_id}: {str(e)}")
             activity.incorrect_examples = []
     else:
         app.logger.debug(f"No incorrect examples found for activity {activity_id}")
+        activity.incorrect_examples = []
 
     return render_template(
         'activity.html',
@@ -799,7 +800,7 @@ Points à noter:
 int main() {
     int n;
     std::cout << "Entrez un nombre: ";
-    std::cin>> n;
+    std::cin >> n;
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
             std::cout << i * j << "\\t";
@@ -817,20 +818,20 @@ int main() {
                     'Multipliez les compteurs i et j'
                 ],
                 'common_errors': [
-                    'Mauvaise imbrication des boucles',
-                    'Mauvaise utilisation de \\t pour l\'alignement',
-                    'Calcul incorrect du produit',
-                    'Ne pas gérer correctement les sauts de ligne'
+                    'Mauvaise initialisation des boucles',
+                    'Oublier les accolades dans les boucles imbriquées',
+                    'Mauvaise indentation du code',
+                    'Ne pas afficher de séparateur entre les nombres'
                 ],
                 'points': 35,
                 'incorrect_examples': [
                     {
-                        "code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \"\\t\"; } } }",
-                        "error": "Multiplication incorrecte"
+                        "code": "#include <iostream>\nint main() {\n    for(int i=1; i<=3; i++)\n        for(int j=1; j<=3; j++)\n            std::cout << i*j;\n    return 0;\n}",
+                        "error": "Pas de séparateur entre les nombres et pas de retour à la ligne"
                     },
                     {
-                        "code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }",
-                        "error": "Sauts de ligne manquants"
+                        "code": "#include <iostream>\nint main() {\n    for(int i=0; i<3; i++) {\n        for(int j=0; j<3; j++) {\n            std::cout << i*j << \"\\t\";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}",
+                        "error": "Initialisation incorrecte (commence à 0 au lieu de 1)"
                     }
                 ]
             },
@@ -970,7 +971,7 @@ int main() {
 </pre>''',
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n                std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\    }\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n                std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
                 'test_cases': [
                     {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                     {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
@@ -984,7 +985,7 @@ int main() {
                     'Cas de base incorrect pour la récursion',
                     'Dépassement de pile pour les grands nombres',
                     'Ne pas gérer les nombres négatifs',
-                    'Mauvaise utilisation de la récursionor boucle iterative'
+                    'Mauvaise utilisation de la récursion ou boucle iterative'
                 ],
                 'points': 50,
                 'incorrect_examples': [
@@ -1299,7 +1300,7 @@ int main() {
                 'common_errors': [
                     'Ne pas initialiser correctement max',
                     'Mauvaise comparaison des nombres',
-                    'Ne pas gérer les cas de nombres égaux',
+                    'Ne pas gérer correctement les cas de nombres égaux',
                     'Ne pas afficher la sortie'
                 ],
                 'points': 45,
@@ -1395,9 +1396,7 @@ int main() {
 
 class Programme {
     static void Main() {
-        // Votre code ici
-    }
-}''',
+        //pre>''',
                 'solution_code': '''using System;
 
 class Programme {
@@ -1406,7 +1405,7 @@ class Programme {
         int hauteur = Convert.ToInt32(Console.ReadLine());
 
         for (int i = 1; i <= hauteur; i++) {
-            for (int j = 1; j<previous_generation> <= i; j++) {
+            for (int j = 1; j <= i; j++) {
                 Console.Write("*");
             }
             Console.WriteLine();
