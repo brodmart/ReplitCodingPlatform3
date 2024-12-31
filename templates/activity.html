@@ -10,10 +10,35 @@
     width: 300px;
     z-index: 1000;
     display: none;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 .syntax-helper.show {
     display: block;
+}
+
+.syntax-content {
+    font-family: monospace;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    color: #212529;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.syntax-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    background-color: #e9ecef;
+    padding: 10px;
+    border-radius: 4px;
+    color: #212529;
+}
+
+.syntax-content h6 {
+    color: #0d6efd;
+    margin-bottom: 1rem;
 }
 
 .real-time-feedback {
@@ -58,18 +83,6 @@
     border-left: 4px solid #0d6efd;
     padding: 10px;
     margin-bottom: 20px;
-}
-
-.syntax-content {
-    font-family: monospace;
-    background-color: #f8f9fa;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.syntax-content pre {
-    margin: 0;
-    white-space: pre-wrap;
 }
 </style>
 {% endblock %}
