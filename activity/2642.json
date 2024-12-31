@@ -3,7 +3,7 @@
   "common_errors": [
     "Oublier le point-virgule après les instructions",
     "Oublier d'inclure iostream",
-    "Ne pas utiliser std:: ou oublier using namespace std",
+    "Oublier using namespace std",
     "Mauvaise utilisation de cout",
     "Oublier le return 0 dans main()",
     "Confusion entre endl et '\\n'",

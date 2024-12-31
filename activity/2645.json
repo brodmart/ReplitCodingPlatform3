@@ -4,7 +4,7 @@
     "Oublier le point-virgule à la fin des instructions",
     "Mauvaise utilisation des cin et cout",
     "Oublier d'inclure iostream",
-    "Ne pas utiliser std:: ou oublier using namespace std",
+    "Oublier using namespace std",
     "Confusion entre endl et '\\n'",
     "Mauvaise capture des entrées utilisateur",
     "Oublier de vérifier la validité des entrées"
