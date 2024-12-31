@@ -316,20 +316,43 @@ async function executeCode() {
         });
 
         if (!response.ok) {
-            let errorMessage = 'Une erreur est survenue. ';
-            switch (response.status) {
-                case 400:
-                    errorMessage += 'Veuillez vérifier que votre code est valide et réessayer.';
-                    break;
-                case 401:
-                    errorMessage += 'Vous devez être connecté pour exécuter du code.';
-                    break;
-                case 413:
-                    errorMessage += 'Le code est trop long. Veuillez réduire sa taille.';
-                    break;
-                default:
-                    errorMessage += `Code d'erreur: ${response.status}. Réessayez plus tard.`;
+            const result = await response.json();
+            let errorMessage = 'Une erreur est survenue:\n\n';
+            
+            if (result.error_details) {
+                errorMessage += `📍 Ligne ${result.error_details.line}: ${result.error_details.message}\n\n`;
+                
+                // Add common solutions based on error type
+                if (result.error_details.message.includes('undeclared')) {
+                    errorMessage += '💡 Solutions possibles:\n';
+                    errorMessage += '- Vérifiez si la variable est déclarée avant utilisation\n';
+                    errorMessage += '- Vérifiez l\'orthographe du nom de la variable\n';
+                    errorMessage += '- Ajoutez l\'include nécessaire\n';
+                } else if (result.error_details.message.includes('expected')) {
+                    errorMessage += '💡 Solutions possibles:\n';
+                    errorMessage += '- Vérifiez les accolades manquantes {}\n';
+                    errorMessage += '- Vérifiez les points-virgules manquants ;\n';
+                    errorMessage += '- Vérifiez la syntaxe de la structure de contrôle\n';
+                }
+                
+                errorMessage += '\n🔍 Code concerné:\n';
+                errorMessage += `${result.error_details.context || 'Non disponible'}\n`;
+            } else {
+                switch (response.status) {
+                    case 400:
+                        errorMessage += '❌ Le code contient des erreurs de syntaxe.\n';
+                        break;
+                    case 401:
+                        errorMessage += '🔒 Authentification requise.\n';
+                        break;
+                    case 413:
+                        errorMessage += '📏 Le code dépasse la taille limite.\n';
+                        break;
+                    default:
+                        errorMessage += `⚠️ Erreur ${response.status}\n`;
+                }
             }
+            
             throw new Error(errorMessage);
         }
 

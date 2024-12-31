@@ -89,9 +89,14 @@ html, body {
     color: #dc3545;
     background-color: rgba(220, 53, 69, 0.1);
     border-left: 4px solid #dc3545;
-    padding: 1rem;
-    margin: 0.5rem 0;
-    border-radius: 4px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     font-family: 'Consolas', 'Monaco', monospace;
     white-space: pre-wrap;
     word-break: break-word;
