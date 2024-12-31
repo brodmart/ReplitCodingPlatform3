@@ -3,6 +3,7 @@
 
 {% block extra_head %}
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.css" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
@@ -38,5 +39,18 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+<script>
+window.MonacoEnvironment = {
+    getWorkerUrl: function(workerId, label) {
+        return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+            self.MonacoEnvironment = {
+                baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
+            };
+            importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
+        )}`;
+    }
+};
+</script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 {% endblock %}
