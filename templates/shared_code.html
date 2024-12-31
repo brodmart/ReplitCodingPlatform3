@@ -1,9 +1,7 @@
+
 {% extends "base.html" %}
 
 {% block extra_head %}
-<script>
-    var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' } };
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 {% endblock %}
 
@@ -34,21 +32,29 @@
 
 {% block extra_scripts %}
 <script>
+window.MonacoEnvironment = {
+    getWorkerUrl: function(workerId, label) {
+        return `https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js`;
+    }
+};
+
 require.config({
     paths: {
         'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
     }
 });
 
-require(['vs/editor/editor.main'], function() {
-    const editor = monaco.editor.create(document.getElementById('sharedEditor'), {
-        value: {{ shared_code.code|tojson }},
-        language: '{{ shared_code.language }}',
-        theme: 'vs-dark',
-        readOnly: true,
-        minimap: { enabled: false },
-        automaticLayout: true,
-        fontSize: 14
+window.addEventListener('load', function() {
+    require(['vs/editor/editor.main'], function() {
+        const editor = monaco.editor.create(document.getElementById('sharedEditor'), {
+            value: {{ shared_code.code|tojson }},
+            language: '{{ shared_code.language }}',
+            theme: 'vs-dark',
+            readOnly: true,
+            minimap: { enabled: false },
+            automaticLayout: true,
+            fontSize: 14
+        });
     });
 });
 </script>
