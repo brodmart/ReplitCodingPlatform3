@@ -355,14 +355,11 @@ async function initializeEditor() {
     }
 
     try {
-        // Wait for Monaco to be loaded
-        await window.monacoLoaded;
-
-        const editorElement = document.getElementById('editor');
-        const code = {{ activity.starter_code|tojson|safe }};
-        const language = '{{ activity.language }}';
-
-        editorInstance = monaco.editor.create(document.getElementById('editor'), {
+        await window.monacoEditor.initialize('editor', {
+            value: {{ activity.starter_code|tojson|safe }},
+            language: '{{ activity.language }}',
+            theme: 'vs-dark'
+        });
             value: code || '',
             language: language || 'cpp',
             theme: 'vs-dark',

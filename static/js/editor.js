@@ -179,20 +179,24 @@ async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const loadingOverlay = document.getElementById('loadingOverlay');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     if (!window.codeEditor) {
         console.error('Editor not initialized');
         return;
     }
 
+    if (!csrfToken) {
+        console.error('CSRF token not found');
+        if (output) {
+            output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
+        }
+        return;
+    }
+
     try {
         runButton.disabled = true;
         if (loadingOverlay) loadingOverlay.classList.add('show');
-        
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
-        }
 
         const response = await fetch('/execute', {
             method: 'POST',
