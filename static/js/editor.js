@@ -1,17 +1,29 @@
 let editor;
 const monacoEditor = {
-    initialize: function(elementId, options = {}) {
-        return new Promise((resolve, reject) => {
-            require.config({
-                paths: {
-                    'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
-                }
-            });
+    // Keep track of initialization state
+    initialized: false,
 
-            require(['vs/editor/editor.main'], function() {
-                try {
+    initialize: function(elementId, options = {}) {
+        // Prevent duplicate initialization
+        if (this.initialized) {
+            console.warn('Monaco Editor already initialized');
+            return Promise.resolve(editor);
+        }
+
+        return new Promise((resolve, reject) => {
+            // Only configure require.js once
+            if (!window.requirejs) {
+                require.config({
+                    paths: {
+                        'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
+                    }
+                });
+            }
+
+            try {
+                require(['vs/editor/editor.main'], () => {
                     const defaultOptions = {
-                        value: options.value || monacoEditor.getDefaultCode(options.language || 'cpp'),
+                        value: options.value || this.getDefaultCode(options.language || 'cpp'),
                         language: options.language || 'cpp',
                         theme: 'vs-dark',
                         minimap: { enabled: false },
@@ -37,20 +49,34 @@ const monacoEditor = {
                         autoClosingQuotes: 'always'
                     };
 
+                    const editorElement = document.getElementById(elementId);
+                    if (!editorElement) {
+                        throw new Error(`Editor element with id '${elementId}' not found`);
+                    }
+
                     // Create editor instance
-                    editor = monaco.editor.create(document.getElementById(elementId), {
+                    editor = monaco.editor.create(editorElement, {
                         ...defaultOptions,
                         ...options
                     });
 
-                    // Store editor instance globally
+                    // Store editor instance globally and mark as initialized
                     window.codeEditor = editor;
+                    this.initialized = true;
+
+                    // Add resize handler
+                    window.addEventListener('resize', () => {
+                        if (editor) {
+                            editor.layout();
+                        }
+                    });
+
                     resolve(editor);
-                } catch (error) {
-                    console.error('Editor initialization error:', error);
-                    reject(error);
-                }
-            });
+                });
+            } catch (error) {
+                console.error('Editor initialization error:', error);
+                reject(error);
+            }
         });
     },
 
@@ -71,38 +97,36 @@ const monacoEditor = {
             return `using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}`;
         }
         return '';
+    },
+
+    // Add error handling utilities
+    handleExecutionError: function(error) {
+        const output = document.getElementById('output');
+        if (output) {
+            output.innerHTML = this.formatError(error.message || 'Une erreur inattendue est survenue');
+        }
+    },
+
+    formatError: function(error) {
+        return `<div class="alert alert-danger">
+            <strong>Erreur:</strong><br>
+            <pre class="mb-0">${error}</pre>
+        </div>`;
     }
 };
 
 // Make monacoEditor globally available
 window.monacoEditor = monacoEditor;
 
-// Set up event handlers
-const languageSelect = document.getElementById('languageSelect');
-if (languageSelect) {
-    languageSelect.addEventListener('change', function(e) {
-        const language = e.target.value;
-        monaco.editor.setModelLanguage(editor.getModel(), language);
-        monacoEditor.setValue(monacoEditor.getDefaultCode(language));
-    });
-}
-
-const runButton = document.getElementById('runButton');
-if (runButton) {
-    runButton.addEventListener('click', executeCode);
-}
-
-const shareButton = document.getElementById('shareButton');
-if (shareButton) {
-    shareButton.addEventListener('click', shareCode);
-}
-
 async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
-    const language = document.getElementById('languageSelect').value;
+    const languageSelect = document.getElementById('languageSelect');
 
-    if (!runButton || !output) return;
+    if (!runButton || !output || !languageSelect || !window.codeEditor) {
+        console.error('Required elements not found');
+        return;
+    }
 
     try {
         runButton.disabled = true;
@@ -114,39 +138,32 @@ async function executeCode() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                code: monacoEditor.getValue(),
-                language: language
+                code: window.codeEditor.getValue(),
+                language: languageSelect.value
             })
         });
 
         const result = await response.json();
 
         if (result.error) {
-            output.innerHTML = formatError(result.error);
+            output.innerHTML = monacoEditor.formatError(result.error);
         } else {
             output.innerHTML = result.output || 'Programme exécuté avec succès sans sortie.';
         }
     } catch (error) {
-        output.innerHTML = formatError(error.message);
+        monacoEditor.handleExecutionError(error);
     } finally {
         runButton.disabled = false;
         runButton.innerHTML = '<i class="bi bi-play-fill"></i> Exécuter';
     }
 }
 
-function formatError(error) {
-    return `<div class="alert alert-danger">
-        <strong>Erreur:</strong><br>
-        <pre class="mb-0">${error}</pre>
-    </div>`;
-}
-
 async function shareCode() {
     const shareButton = document.getElementById('shareButton');
-    if (!shareButton) return;
-
-    const code = monacoEditor.getValue();
-    const language = document.getElementById('languageSelect').value;
+    if (!shareButton || !window.codeEditor) {
+        console.error('Required elements not found');
+        return;
+    }
 
     try {
         shareButton.disabled = true;
@@ -158,8 +175,8 @@ async function shareCode() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                code: code,
-                language: language
+                code: window.codeEditor.getValue(),
+                language: document.getElementById('languageSelect').value
             })
         });
 
@@ -189,9 +206,24 @@ function showNotification(type, message) {
     setTimeout(() => alertDiv.remove(), 5000);
 }
 
-// Handle window resizing
-window.addEventListener('resize', function() {
-    if (editor) {
-        editor.layout();
-    }
-});
+// Set up event handlers
+const languageSelect = document.getElementById('languageSelect');
+if (languageSelect) {
+    languageSelect.addEventListener('change', function(e) {
+        const language = e.target.value;
+        if (editor) {
+            monaco.editor.setModelLanguage(editor.getModel(), language);
+            monacoEditor.setValue(monacoEditor.getDefaultCode(language));
+        }
+    });
+}
+
+const runButton = document.getElementById('runButton');
+if (runButton) {
+    runButton.addEventListener('click', executeCode);
+}
+
+const shareButton = document.getElementById('shareButton');
+if (shareButton) {
+    shareButton.addEventListener('click', shareCode);
+}
