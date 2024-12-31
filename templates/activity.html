@@ -2,6 +2,7 @@
 
 {% block extra_head %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css" rel="stylesheet" />
 <style>
 .syntax-helper {
     position: fixed;
@@ -75,6 +76,28 @@
     margin-bottom: 0;
     line-height: 1.5;
 }
+
+.accordion-body pre {
+    background-color: #2d2d2d;
+    padding: 1rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    color: #ccc;
+}
+
+.accordion-body code {
+    color: inherit;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+
+.example-explanation {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 4px solid #dc3545;
+    border-radius: 0.25rem;
+}
 </style>
 {% endblock %}
 
@@ -141,8 +164,9 @@
                                     <div class="alert alert-danger">
                                         <h6 class="alert-heading">Code incorrect :</h6>
                                         <pre><code class="language-{{ activity.language }}">{{ example.code }}</code></pre>
-                                        <hr>
-                                        <p class="mb-0"><strong>Explication :</strong> {{ example.explanation }}</p>
+                                        <div class="example-explanation">
+                                            <strong>Explication :</strong> {{ example.explanation }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -217,6 +241,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-cpp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-csharp.min.js"></script>
 <script>
 require.config({
     paths: {
