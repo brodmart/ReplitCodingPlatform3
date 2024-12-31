@@ -92,12 +92,6 @@ def view_activity(activity_id):
         logging.error(f"Error in view_activity: {str(e)}")
         return render_template('errors/500.html'), 500
 
-    return render_template(
-        'activity.html',
-        activity=activity,
-        progress=progress
-    )
-
 @activities.route('/activity/<int:activity_id>/submit', methods=['POST'])
 @login_required
 def submit_activity(activity_id):
