@@ -458,10 +458,11 @@ async function handleSubmission(code, submitButton) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Soumission en cours...';
 
-        const response = await fetch("{{ url_for('activities.submit_activity', activity_id=activity.id) }}", {
+        const response = await fetch(window.location.pathname + "/submit", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
             },
             body: JSON.stringify({ code: code })
         });

@@ -101,6 +101,8 @@ def view_activity(activity_id):
 @activities.route('/activity/<int:activity_id>/submit', methods=['POST'])
 @login_required
 def submit_activity(activity_id):
+    if request.method != 'POST':
+        return redirect(url_for('activities.view_activity', activity_id=activity_id))
     """Submit a solution for a coding activity"""
     activity = CodingActivity.query.get_or_404(activity_id)
     code = request.json.get('code', '')
