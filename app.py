@@ -22,15 +22,6 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 
-@app.after_request
-def add_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
-    return response
-
-
 # Initialize caching
 from flask_caching import Cache
 cache = Cache(config={
@@ -60,9 +51,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 10,
     'pool_timeout': 30,
     'pool_recycle': 1800,
-    'pool_pre_ping': True,  # Enable connection health checks
-    'max_retries': 3,       # Number of connection retry attempts
-    'retry_interval': 2     # Seconds between retries
 }
 
 logger.info("Initializing database...")
@@ -114,14 +102,10 @@ def index():
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-import redis
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
-
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="redis://localhost:6379"
+    default_limits=["200 per day", "50 per hour"]
 )
 
 @app.route('/execute', methods=['POST'])
