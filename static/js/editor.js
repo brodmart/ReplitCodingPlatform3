@@ -265,7 +265,8 @@ async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const loadingOverlay = document.getElementById('loadingOverlay');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
     const currentLanguage = document.getElementById('languageSelect').value;
 
     if (!window.codeEditor) {
@@ -295,8 +296,10 @@ async function executeCode() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
                 'X-CSRFToken': csrfToken
             },
+            credentials: 'include',
             body: JSON.stringify({
                 code: window.codeEditor.getValue(),
                 language: document.getElementById('editor').getAttribute('data-language') || 'cpp'
