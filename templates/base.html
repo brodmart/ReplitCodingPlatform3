@@ -5,184 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Éditeur de Code en Ligne</title>
 
-    <script>
-        // Resource loading status tracking
-        window.resourceStatus = {
-            bootstrapCSS: false,
-            bootstrapJS: false,
-            retryCount: 0,
-            maxRetries: 3,
-            initialized: false,
-            loadingTimeout: null
-        };
-
-        // Enhanced error logging
-        function logResourceError(resource, error) {
-            console.error(`Failed to load ${resource}:`, error);
-            showResourceError(`Erreur de chargement de ${resource}`);
-        }
-
-        // Error notification
-        function showResourceError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'alert alert-warning error-boundary-alert';
-            errorDiv.innerHTML = `
-                <strong>Attention:</strong> ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            document.body.appendChild(errorDiv);
-            setTimeout(() => errorDiv.remove(), 5000);
-        }
-
-        // Enhanced fallback loader with retry mechanism
-        async function loadLocalBootstrap(forceReload = false) {
-            if (forceReload) {
-                window.resourceStatus.bootstrapCSS = false;
-                window.resourceStatus.bootstrapJS = false;
-            }
-
-            if (window.resourceStatus.retryCount >= window.resourceStatus.maxRetries) {
-                logResourceError('Bootstrap', 'Maximum retry attempts reached');
-                return Promise.reject(new Error('Maximum retry attempts reached'));
-            }
-            window.resourceStatus.retryCount++;
-
-            const loadCSS = new Promise((resolveCSS, reject) => {
-                if (window.resourceStatus.bootstrapCSS && !forceReload) {
-                    resolveCSS();
-                    return;
-                }
-
-                const link = document.createElement('link');
-                link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
-                link.type = "text/css";
-                link.rel = "stylesheet";
-                link.onload = () => {
-                    window.resourceStatus.bootstrapCSS = true;
-                    resolveCSS();
-                };
-                link.onerror = () => reject(new Error('Failed to load Bootstrap CSS'));
-                document.head.appendChild(link);
-            });
-
-            const loadJS = new Promise((resolveJS, reject) => {
-                if (window.resourceStatus.bootstrapJS && !forceReload) {
-                    resolveJS();
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
-                script.onload = () => {
-                    window.resourceStatus.bootstrapJS = true;
-                    document.dispatchEvent(new Event('bootstrap:loaded'));
-                    resolveJS();
-                };
-                script.onerror = () => reject(new Error('Failed to load Bootstrap JS'));
-                document.body.appendChild(script);
-            });
-
-            try {
-                await Promise.all([loadCSS, loadJS]);
-                return Promise.resolve();
-            } catch (error) {
-                console.error('Failed to load local Bootstrap:', error);
-                return Promise.reject(error);
-            }
-        }
-
-        // Initialize Bootstrap components with improved error handling
-        function initializeBootstrapComponents() {
-            if (!window.resourceStatus.bootstrapJS || !window.resourceStatus.bootstrapCSS) {
-                return false;
-            }
-
-            try {
-                // Initialize all tooltips
-                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-                    new bootstrap.Tooltip(el);
-                });
-
-                // Initialize all popovers
-                document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
-                    new bootstrap.Popover(el);
-                });
-
-                // Initialize dropdowns
-                document.querySelectorAll('[data-bs-toggle="dropdown"]').forEach(el => {
-                    new bootstrap.Dropdown(el);
-                });
-
-                window.resourceStatus.initialized = true;
-                return true;
-            } catch (error) {
-                console.error('Failed to initialize Bootstrap components:', error);
-                return false;
-            }
-        }
-
-        // Handle Bootstrap loading errors
-        window.addEventListener('bootstrap:load-error', async () => {
-            console.log('Bootstrap load error detected, attempting recovery...');
-            try {
-                await loadLocalBootstrap(true);
-                if (initializeBootstrapComponents()) {
-                    console.log('Bootstrap recovery successful');
-                }
-            } catch (error) {
-                console.error('Bootstrap recovery failed:', error);
-            }
-        });
-
-        // Main initialization
-        document.addEventListener('DOMContentLoaded', () => {
-            const maxWaitTime = 5000; // 5 seconds maximum wait time
-            let initAttempts = 0;
-            const maxInitAttempts = 10;
-
-            function attemptInit() {
-                if (initAttempts >= maxInitAttempts) {
-                    console.error('Failed to initialize after maximum attempts');
-                    return;
-                }
-
-                if (window.resourceStatus.bootstrapJS && window.resourceStatus.bootstrapCSS) {
-                    if (initializeBootstrapComponents()) {
-                        console.log('Bootstrap initialized successfully');
-                        clearTimeout(window.resourceStatus.loadingTimeout);
-                        return;
-                    }
-                }
-
-                initAttempts++;
-                setTimeout(attemptInit, 500);
-            }
-
-            // Start initialization attempts
-            attemptInit();
-
-            // Set timeout for fallback
-            window.resourceStatus.loadingTimeout = setTimeout(async () => {
-                if (!window.resourceStatus.initialized) {
-                    console.log('Bootstrap initialization timeout, attempting local fallback...');
-                    try {
-                        await loadLocalBootstrap(true);
-                        initializeBootstrapComponents();
-                    } catch (error) {
-                        console.error('Fallback failed:', error);
-                    }
-                }
-            }, maxWaitTime);
-        });
-    </script>
-
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
           rel="stylesheet" 
           integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" 
-          crossorigin="anonymous"
-          onload="window.resourceStatus.bootstrapCSS = true;"
-          onerror="loadLocalBootstrap()">
+          crossorigin="anonymous">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
@@ -299,9 +126,7 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
             integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" 
-            crossorigin="anonymous"
-            onload="window.resourceStatus.bootstrapJS = true; document.dispatchEvent(new Event('bootstrap:loaded'));"
-            onerror="loadLocalBootstrap()"></script>
+            crossorigin="anonymous"></script>
 
     <!-- Error boundary script -->
     <script src="{{ url_for('static', filename='js/error-boundary.js') }}"></script>
