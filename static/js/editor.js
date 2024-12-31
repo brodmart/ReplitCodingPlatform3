@@ -316,7 +316,21 @@ async function executeCode() {
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            let errorMessage = 'Une erreur est survenue. ';
+            switch (response.status) {
+                case 400:
+                    errorMessage += 'Veuillez vérifier que votre code est valide et réessayer.';
+                    break;
+                case 401:
+                    errorMessage += 'Vous devez être connecté pour exécuter du code.';
+                    break;
+                case 413:
+                    errorMessage += 'Le code est trop long. Veuillez réduire sa taille.';
+                    break;
+                default:
+                    errorMessage += `Code d'erreur: ${response.status}. Réessayez plus tard.`;
+            }
+            throw new Error(errorMessage);
         }
 
         const result = await response.json();
