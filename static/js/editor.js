@@ -187,13 +187,18 @@ async function executeCode() {
 
     try {
         runButton.disabled = true;
-        loadingOverlay.classList.add('show');
+        if (loadingOverlay) loadingOverlay.classList.add('show');
         
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
         const response = await fetch('/execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
                 code: window.codeEditor.getValue(),
