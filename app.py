@@ -172,6 +172,6 @@ def extend_session():
         return jsonify({'error': 'Failed to extend session'}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
+    port = 3000  # Changed to match .replit configuration
     logger.info(f"Starting Flask server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
