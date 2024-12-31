@@ -7,7 +7,7 @@
     "Déréférencement de pointeur null",
     "Delete mal utilisé",
     "Confusion entre pointeur et tableau",
-    "Double libération de mémoire"
+    "Double libération de mémoire",
     "Signature de méthode incorrecte",
     "Mauvaise utilisation des paramètres optionnels",
     "Confusion entre méthodes statiques et d'instance",

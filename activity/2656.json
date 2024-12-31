@@ -7,7 +7,7 @@
     "Contraintes non respectées",
     "Instanciation ambiguë",
     "Récursion infinie",
-    "Meta-programmation incorrecte"
+    "Meta-programmation incorrecte",
     "Syntaxe template incorrecte",
     "Spécialisation mal définie",
     "Type constraints manquants",

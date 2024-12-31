@@ -7,7 +7,7 @@
     "Mauvaise initialisation",
     "Break mal placé",
     "Continue mal utilisé",
-    "Variables de boucle mal gérées"
+    "Variables de boucle mal gérées",
     "Accès hors limites du tableau",
     "Oublier d'initialiser le tableau",
     "Confusion entre index et valeur",

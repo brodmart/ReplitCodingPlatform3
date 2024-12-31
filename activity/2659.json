@@ -1,4 +1,3 @@
-
 {
   "common_errors": [
     "STL mal utilisé",
@@ -7,7 +6,7 @@
     "Container mal choisi",
     "Complexité non optimale",
     "Mémoire mal gérée",
-    "Comparateur incorrect"
+    "Comparateur incorrect",
     "Oublier le mot-clé public",
     "Accesseurs mal définis",
     "Validation manquante",
