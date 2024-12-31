@@ -1,24 +1,39 @@
 
-// Wait for document to load
+// Initialize editor only once
+let editor = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    // Only load Monaco once
+    if (typeof monaco === 'undefined') {
+        require.config({ 
+            paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+        });
 
-    window.MonacoEnvironment = {
-        getWorkerUrl: function(workerId, label) {
-            return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                self.MonacoEnvironment = {
-                    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
-                };
-                importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
-            )}`;
+        window.MonacoEnvironment = {
+            getWorkerUrl: function(workerId, label) {
+                return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+                    self.MonacoEnvironment = {
+                        baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
+                    };
+                    importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
+                )}`;
+            }
+        };
+
+        require(['vs/editor/editor.main'], initEditor);
+    } else {
+        initEditor();
+    }
+
+    function initEditor() {
+        if (editor) {
+            editor.dispose();
         }
-    };
 
-    require(['vs/editor/editor.main'], function() {
-        const editor = monaco.editor.create(editorElement, {
+        editor = monaco.editor.create(editorElement, {
             value: '// Your code here',
             language: 'cpp',
             theme: 'vs-dark',
@@ -27,20 +42,22 @@ document.addEventListener('DOMContentLoaded', function() {
             scrollBeyondLastLine: false
         });
 
-        // Language selection
+        // Handle language selection
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
             languageSelect.addEventListener('change', function() {
-                monaco.editor.setModelLanguage(editor.getModel(), this.value);
+                if (editor) {
+                    monaco.editor.setModelLanguage(editor.getModel(), this.value);
+                }
             });
         }
 
-        // Run button
+        // Handle run button
         const runButton = document.getElementById('runButton');
         if (runButton) {
             runButton.addEventListener('click', async function() {
                 const output = document.getElementById('output');
-                if (!output) return;
+                if (!output || !editor) return;
 
                 try {
                     const response = await fetch('/execute', {
@@ -62,5 +79,5 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-    });
+    }
 });
