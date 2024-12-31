@@ -57,23 +57,25 @@ def index():
 def execute_code():
     """Execute code and return the result"""
     if not request.is_json:
-        return jsonify({'error': 'Invalid request format'}), 400
+        return jsonify({'error': 'Format de requête invalide'}), 400
 
     code = request.json.get('code')
     language = request.json.get('language')
 
     if not code or not language:
-        return jsonify({'error': 'Missing code or language parameter'}), 400
+        return jsonify({'error': 'Code ou langage manquant'}), 400
 
     if language not in ['cpp', 'csharp']:
-        return jsonify({'error': 'Unsupported language'}), 400
+        return jsonify({'error': 'Langage non supporté'}), 400
 
     try:
         result = compile_and_run(code=code, language=language)
 
         if not result.get('success', False):
             return jsonify({
-                'error': result.get('error', 'Une erreur est survenue lors de l\'exécution')
+                'error': result.get('error', 'Une erreur est survenue lors de l\'exécution'),
+                'error_details': result.get('error_details', None),
+                'full_error': result.get('full_error', '')
             }), 400
 
         return jsonify({
@@ -84,7 +86,11 @@ def execute_code():
     except Exception as e:
         logger.error(f"Error executing code: {str(e)}")
         return jsonify({
-            'error': 'Une erreur inattendue est survenue lors de l\'exécution'
+            'error': 'Une erreur inattendue est survenue lors de l\'exécution',
+            'error_details': {
+                'type': 'system_error',
+                'message': str(e)
+            }
         }), 500
 
 @app.route('/validate_code', methods=['POST'])

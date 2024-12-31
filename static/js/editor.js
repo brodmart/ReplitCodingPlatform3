@@ -103,46 +103,42 @@ const monacoEditor = {
     handleExecutionError: function(error) {
         const output = document.getElementById('output');
         if (output) {
-            output.innerHTML = this.formatError(error.message || 'Une erreur inattendue est survenue');
+            if (typeof error === 'object' && error.error_details) {
+                output.innerHTML = this.formatErrorWithDetails(error);
+            } else {
+                output.innerHTML = this.formatError(error.message || 'Une erreur inattendue est survenue');
+            }
         }
     },
 
-    // Improved error formatting with specific handlers for different error types
-    formatError: function(errorText) {
-        // Handle C++ specific errors
-        if (errorText.includes('error:')) {
-            return this.formatCompilerError(errorText);
+    formatErrorWithDetails: function(error) {
+        const details = error.error_details;
+        const errorType = details.type || 'unknown';
+
+        switch (errorType) {
+            case 'error':
+                return this.formatCompilerError(error);
+            case 'runtime_error':
+                return this.formatRuntimeError(error);
+            case 'timeout':
+                return this.formatTimeoutError(error);
+            default:
+                return this.formatGenericError(error);
         }
-        // Handle runtime errors
-        return this.formatRuntimeError(errorText);
     },
 
-    formatCompilerError: function(errorText) {
-        const lines = errorText.split('\n');
-        let mainError = '';
-        let lineNumber = '';
+    formatCompilerError: function(error) {
+        const details = error.error_details;
         let suggestion = '';
 
-        // Extract relevant information from error message
-        for (const line of lines) {
-            if (line.includes('error:')) {
-                const parts = line.split('error:');
-                if (parts.length > 1) {
-                    mainError = parts[1].trim();
-                    // Extract line number if available
-                    const match = parts[0].match(/program\.cpp:(\d+):/);
-                    if (match) {
-                        lineNumber = match[1];
-                    }
-                }
-                // Add specific suggestions for common errors
-                if (line.includes('std::end')) {
-                    suggestion = 'Vous vouliez probablement utiliser "std::endl" pour un retour à la ligne.';
-                } else if (line.includes('undefined reference')) {
-                    suggestion = 'Vérifiez que vous avez inclus tous les fichiers d\'en-tête nécessaires.';
-                }
-                break;
-            }
+        // Add specific suggestions for common errors
+        if (error.full_error && error.full_error.includes('std::end')) {
+            suggestion = `
+                <div class="alert alert-info mt-2">
+                    <i class="bi bi-lightbulb"></i>
+                    Conseil: Vous voulez probablement utiliser <code>std::endl</code> au lieu de <code>std::end</code>
+                    pour ajouter un retour à la ligne.
+                </div>`;
         }
 
         return `
@@ -150,11 +146,11 @@ const monacoEditor = {
                 <h5 class="alert-heading">
                     <i class="bi bi-exclamation-triangle"></i> 
                     Erreur de Compilation
-                    ${lineNumber ? `<small class="text-muted">(Ligne ${lineNumber})</small>` : ''}
+                    ${details.line ? `<small class="text-muted">(Ligne ${details.line})</small>` : ''}
                 </h5>
                 <hr>
-                <p class="mb-2"><strong>${mainError}</strong></p>
-                ${suggestion ? `<p class="mb-2 text-info"><i class="bi bi-lightbulb"></i> ${suggestion}</p>` : ''}
+                <p class="mb-2"><strong>${details.message}</strong></p>
+                ${suggestion}
                 <div class="mt-3">
                     <small class="text-muted">
                         Vérifiez:
@@ -176,11 +172,47 @@ const monacoEditor = {
                     Erreur d'Exécution
                 </h5>
                 <hr>
-                <p class="mb-2">${error}</p>
+                <p class="mb-2">${error.error_details.message}</p>
                 <div class="mt-2">
                     <small class="text-muted">
                         Cette erreur s'est produite pendant l'exécution de votre programme.
                         Vérifiez la logique de votre code et les valeurs utilisées.
+                    </small>
+                </div>
+            </div>`;
+    },
+
+    formatTimeoutError: function(error) {
+        return `
+            <div class="alert alert-warning">
+                <h5 class="alert-heading">
+                    <i class="bi bi-clock-history"></i> 
+                    Timeout d'Exécution
+                </h5>
+                <hr>
+                <p class="mb-2">${error.error}</p>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Votre programme a dépassé la limite de temps d'exécution.
+                        Vérifiez s'il y a des boucles infinies ou des opérations trop longues.
+                    </small>
+                </div>
+            </div>`;
+    },
+
+    formatGenericError: function(error) {
+        return `
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-circle"></i> 
+                    Erreur Système
+                </h5>
+                <hr>
+                <p class="mb-2">${error.error}</p>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Une erreur inattendue s'est produite.
+                        Si le problème persiste, contactez le support technique.
                     </small>
                 </div>
             </div>`;
@@ -218,7 +250,7 @@ async function executeCode() {
         const result = await response.json();
 
         if (result.error) {
-            output.innerHTML = monacoEditor.formatError(result.error);
+            output.innerHTML = monacoEditor.formatErrorWithDetails(result);
         } else {
             output.innerHTML = result.output || 'Programme exécuté avec succès sans sortie.';
         }
