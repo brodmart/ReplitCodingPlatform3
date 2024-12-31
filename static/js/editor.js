@@ -226,13 +226,21 @@ window.monacoEditor = monacoEditor;
 // Initialize editor when DOM is loaded with error handling
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
+    const languageSelect = document.getElementById('languageSelect');
     if (!editorElement || window.codeEditor) return;
 
     try {
         if (!window.monaco) {
             const editor = await monacoEditor.initialize('editor', {
                 value: editorElement.getAttribute('data-initial-value') || '',
-                language: editorElement.getAttribute('data-language') || 'cpp'
+                language: languageSelect.value || 'cpp'
+            });
+
+            languageSelect.addEventListener('change', () => {
+                const newLanguage = languageSelect.value;
+                monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+                editorElement.setAttribute('data-language', newLanguage);
+                editor.setValue(monacoEditor.getDefaultCode(newLanguage));
             });
             
             if (editor) {
