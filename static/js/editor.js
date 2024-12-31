@@ -100,9 +100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 languageSelect.addEventListener('change', () => {
                     const newLanguage = languageSelect.value;
                     monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-                    if (!editor.getValue().trim()) {
-                        editor.setValue(monacoEditor.getDefaultCode(newLanguage));
-                    }
+                    editor.setValue(monacoEditor.getDefaultCode(newLanguage));
                 });
             }
 
