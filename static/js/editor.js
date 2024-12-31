@@ -108,9 +108,51 @@ const monacoEditor = {
     },
 
     formatError: function(error) {
+        // Check if it's a compilation error
+        if (error.includes('error:')) {
+            const lines = error.split('\n');
+            let formattedError = '';
+            let errorMessage = '';
+            let errorLine = '';
+
+            for (const line of lines) {
+                if (line.includes('error:')) {
+                    // Extract the main error message
+                    errorMessage = line.split('error:')[1].trim();
+                    // Get the line number if available
+                    const match = line.match(/program\.cpp:(\d+):/);
+                    if (match) {
+                        errorLine = `Ligne ${match[1]}: `;
+                    }
+                    break;
+                }
+            }
+
+            // Create a user-friendly error message
+            formattedError = `
+                <div class="alert alert-danger">
+                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Erreur de Compilation</h5>
+                    <hr>
+                    <p class="mb-1"><strong>${errorLine}</strong>${errorMessage}</p>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Conseil: Vérifiez la syntaxe de votre code. Les erreurs courantes incluent:
+                            <ul class="mt-1">
+                                <li>Points-virgules manquants</li>
+                                <li>Parenthèses non fermées</li>
+                                <li>Fautes de frappe dans les noms de fonctions</li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>`;
+            return formattedError;
+        }
+
+        // For runtime errors
         return `<div class="alert alert-danger">
-            <strong>Erreur:</strong><br>
-            <pre class="mb-0">${error}</pre>
+            <h5 class="alert-heading"><i class="bi bi-exclamation-circle"></i> Erreur d'Exécution</h5>
+            <hr>
+            <p class="mb-0">${error}</p>
         </div>`;
     }
 };
