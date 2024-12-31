@@ -12,7 +12,10 @@ from compiler_service import compile_and_run
 from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
@@ -21,22 +24,32 @@ app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes session timeout
 
-# Setup CSRF protection
-from flask_wtf.csrf import CSRFProtect
-csrf = CSRFProtect(app)
-
 # Database configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+logger.info("Configuring database connection...")
+database_url = os.environ.get("DATABASE_URL")
+if not database_url:
+    logger.error("DATABASE_URL environment variable is not set!")
+    raise RuntimeError("DATABASE_URL must be set")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 10,
-    'max_overflow': 20,
+    'pool_size': 5,
+    'max_overflow': 10,
     'pool_timeout': 30,
     'pool_recycle': 1800,
 }
 
-# Initialize extensions
+logger.info("Initializing database...")
 db.init_app(app)
+
+# Setup CSRF protection
+logger.info("Setting up CSRF protection...")
+from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)
+
+# Initialize Flask-Login
+logger.info("Initializing Flask-Login...")
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
@@ -52,8 +65,10 @@ def load_user(id):
         return None
 
 # Register blueprints
+logger.info("Registering blueprints...")
 for blueprint in blueprints:
     app.register_blueprint(blueprint)
+    logger.debug(f"Registered blueprint: {blueprint.name}")
 
 @app.route('/')
 def index():
@@ -135,11 +150,14 @@ def log_error():
     return jsonify({'status': 'success'}), 200
 
 # Initialize database
+logger.info("Creating database tables...")
 with app.app_context():
     try:
         db.create_all()
+        logger.info("Database tables created successfully")
     except SQLAlchemyError as e:
         logger.error(f"Failed to initialize database: {str(e)}")
+        raise
 
 @app.route('/extend-session', methods=['POST'])
 @login_required
@@ -154,19 +172,20 @@ def extend_session():
         return jsonify({'error': 'Failed to extend session'}), 500
 
 if __name__ == '__main__':
-    # Get port from environment or use default
-    port = int(os.environ.get('PORT', 5001))  # Changed default port to 5001
+    port = int(os.environ.get('PORT', 5000))
+    logger.info(f"Starting Flask server on port {port}")
     try:
         app.run(host='0.0.0.0', port=port, debug=True)
     except OSError as e:
         if 'Address already in use' in str(e):
-            logger.error(f"Port {port} is already in use. Trying alternative ports...")
-            # Try another port
-            for alt_port in range(5002, 5010):
+            logger.warning(f"Port {port} is already in use. Trying alternative ports...")
+            for alt_port in range(5001, 5010):
                 try:
+                    logger.info(f"Attempting to start on port {alt_port}")
                     app.run(host='0.0.0.0', port=alt_port, debug=True)
                     break
                 except OSError:
                     continue
         else:
-            raise e
+            logger.error(f"Failed to start server: {str(e)}")
+            raise
