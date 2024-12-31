@@ -281,7 +281,10 @@
                         </div>
                     </div>
 
-                    <div id="editor"></div>
+                    <div id="editor" 
+                         data-initial-value="{{ activity.starter_code|tojson }}"
+                         data-language="{{ activity.language }}">
+                    </div>
 
                     <!-- Real-time feedback -->
                     <div id="realTimeFeedback" class="mt-3"></div>
