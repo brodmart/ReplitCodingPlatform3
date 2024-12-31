@@ -66,6 +66,12 @@ def view_activity(activity_id):
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
 
+        # Add debug logging for initial data
+        logging.debug(f"Activity {activity_id} data:")
+        logging.debug(f"Raw hints: {activity.hints}")
+        logging.debug(f"Raw common_errors: {activity.common_errors}")
+        logging.debug(f"Type of common_errors: {type(activity.common_errors)}")
+
         # Get student's progress for this activity
         progress = None
         initial_code = activity.starter_code
@@ -95,30 +101,33 @@ def view_activity(activity_id):
 
         # Parse JSON fields if they exist
         try:
-            # Add debug logging
-            logging.debug(f"Raw hints: {activity.hints}")
-            logging.debug(f"Raw common_errors: {activity.common_errors}")
-
-            # Parse hints
-            if isinstance(activity.hints, str):
-                activity.hints = json.loads(activity.hints)
-
-            # Parse common errors
-            if isinstance(activity.common_errors, str):
-                activity.common_errors = json.loads(activity.common_errors)
-            elif activity.common_errors is None:
-                activity.common_errors = []
+            # Handle hints
+            if activity.hints:
+                if isinstance(activity.hints, str):
+                    activity.hints = json.loads(activity.hints)
+                elif not isinstance(activity.hints, list):
+                    activity.hints = []
+            else:
+                activity.hints = []
 
             logging.debug(f"Parsed hints: {activity.hints}")
+
+            # Handle common errors
+            if activity.common_errors:
+                if isinstance(activity.common_errors, str):
+                    activity.common_errors = json.loads(activity.common_errors)
+                elif not isinstance(activity.common_errors, list):
+                    activity.common_errors = []
+            else:
+                activity.common_errors = []
+
             logging.debug(f"Parsed common_errors: {activity.common_errors}")
+            logging.debug(f"Final type of common_errors: {type(activity.common_errors)}")
 
         except (json.JSONDecodeError, TypeError) as e:
             logging.error(f"JSON parsing error: {str(e)}")
-            # If JSON parsing fails, ensure we have empty lists
-            if not isinstance(activity.hints, list):
-                activity.hints = []
-            if not isinstance(activity.common_errors, list):
-                activity.common_errors = []
+            activity.hints = []
+            activity.common_errors = []
 
         return render_template(
             'activity.html',
