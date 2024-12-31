@@ -66,7 +66,7 @@ const monacoEditor = {
 
     getDefaultCode(language) {
         const templates = {
-            cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
+            cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Bonjour le monde!" << endl;\n    return 0;\n}',
             csharp: 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}'
         };
         return templates[language] || templates.cpp;
