@@ -239,14 +239,16 @@ window.monacoEditor = monacoEditor;
 // Initialize editor when DOM is loaded with error handling
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
-    const languageSelect = document.getElementById('languageSelect');
     if (!editorElement || window.codeEditor) return;
 
     try {
+        const language = editorElement.getAttribute('data-language') || 'cpp';
+        const initialValue = editorElement.getAttribute('data-initial-value') || monacoEditor.getDefaultCode(language);
+        
         if (!window.monaco) {
             const editor = await monacoEditor.initialize('editor', {
-                value: editorElement.getAttribute('data-initial-value') || '',
-                language: languageSelect.value || 'cpp'
+                value: initialValue,
+                language: language
             });
 
             languageSelect.addEventListener('change', () => {
@@ -283,12 +285,18 @@ function setupEditorControls() {
 }
 
 async function executeCode() {
+    if (!window.codeEditor) {
+        console.error('Editor not initialized');
+        return;
+    }
+
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
+    
     if (!csrfTokenMeta) {
-        output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
+        if (output) output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
         return;
     }
     const csrfToken = csrfTokenMeta.getAttribute('content');
