@@ -6,11 +6,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import Student
 from forms import LoginForm, RegisterForm
 from database import db
-from app import limiter
 
 auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
