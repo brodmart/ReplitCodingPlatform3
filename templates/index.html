@@ -75,7 +75,8 @@
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         const languageSelect = document.getElementById('languageSelect');
-        const initialLanguage = languageSelect?.value || 'cpp';
+        languageSelect.value = 'cpp'; // Force initial selection to cpp
+        const initialLanguage = 'cpp';
         
         const editor = await window.monacoEditor.initialize('editor', {
             language: initialLanguage,
