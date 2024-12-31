@@ -1,34 +1,52 @@
 
 let editor = null;
 
-require(['vs/editor/editor.main'], function() {
-    const editorElement = document.getElementById('editor');
-    if (!editorElement) return;
-
-    editor = monaco.editor.create(editorElement, {
-        value: '// Your code here',
-        language: 'cpp',
-        theme: 'vs-dark',
-        minimap: { enabled: false },
-        automaticLayout: true,
-        fontSize: 14
+// Wait for Monaco to be loaded
+window.addEventListener('load', function() {
+    require.config({
+        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
     });
 
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            monaco.editor.setModelLanguage(editor.getModel(), this.value);
-        });
-    }
+    require(['vs/editor/editor.main'], function() {
+        const editorElement = document.getElementById('editor');
+        if (!editorElement) return;
 
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
+        try {
+            editor = monaco.editor.create(editorElement, {
+                value: '// Your code here',
+                language: 'cpp',
+                theme: 'vs-dark',
+                minimap: { enabled: false },
+                automaticLayout: true,
+                fontSize: 14
+            });
+
+            // Set up language change handler
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                languageSelect.addEventListener('change', function() {
+                    if (editor && editor.getModel()) {
+                        monaco.editor.setModelLanguage(editor.getModel(), this.value);
+                    }
+                });
+            }
+
+            // Set up run button handler
+            const runButton = document.getElementById('runButton');
+            if (runButton) {
+                runButton.addEventListener('click', executeCode);
+            }
+        } catch (error) {
+            console.error('Editor initialization failed:', error);
+        }
+    });
 });
 
 async function executeCode() {
-    if (!editor) return;
+    if (!editor) {
+        console.error('Editor not initialized');
+        return;
+    }
 
     const output = document.getElementById('output');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -40,16 +58,16 @@ async function executeCode() {
     }
 
     try {
+        const code = editor.getValue();
+        const language = languageSelect ? languageSelect.value : 'cpp';
+
         const response = await fetch('/execute', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({
-                code: editor.getValue(),
-                language: languageSelect ? languageSelect.value : 'cpp'
-            })
+            body: JSON.stringify({ code, language })
         });
 
         const result = await response.json();
@@ -60,5 +78,6 @@ async function executeCode() {
         if (output) {
             output.innerHTML = `<pre class="error">Error: ${error.message}</pre>`;
         }
+        console.error('Code execution failed:', error);
     }
 }
