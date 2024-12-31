@@ -538,7 +538,16 @@ Points à noter:
                     'Oublier les guillemets autour du texte à afficher'
                 ],
                 'points': 10,
-                'incorrect_examples': '[{"code": "#include <iostream>\nint main() { std::cout << \"Salutations!\" << std::endl; }", "error": "Message incorrect"}, {"code": "#include <iostream>\nint main() { std::cout << \"Bonjour le monde\" << std::endl; }", "error": "Point d\'exclamation manquant"}]'
+                'incorrect_examples': '''[
+                    {
+                        "code": "#include <iostream>\nint main() {\n    std::cout << \"Salutations!\" << std::endl;\n    return 0;\n}",
+                        "error": "Message incorrect"
+                    },
+                    {
+                        "code": "#include <iostream>\nint main() {\n    std::cout << \"Bonjour le monde\" << std::endl;\n    return 0;\n}",
+                        "error": "Point d'exclamation manquant"
+                    }
+                ]'''
             },
             {
                 'title': 'Saisie Utilisateur',
@@ -587,7 +596,6 @@ Points à noter:
                 ],
                 'points': 15,
                 'incorrect_examples': '[{"code": "#include <iostream>\nint main() { std::string nom; std::cin >> nom; std::cout << \"Bonjour, \" << nom << \"!\" << std::endl; }", "error": "Utilisation incorrecte de cin"}, {"code": "#include <iostream>\nint main() { std::string nom; std::getline(std::cin, nom); std::cout << nom << std::endl; }", "error": "Message incorrect"}]'
-
             },
             {
                 'title': 'Calculatrice Simple',
@@ -766,8 +774,7 @@ Points à noter:
                     'Ne pas gérer correctement les sauts de ligne'
                 ],
                 'points': 35,
-                'incorrect_examples': '[{"code": "#include <iostream>\\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \\"\\\\t\\"; } }", "error": "Multiplication incorrecte"}, {"code": "#include <iostream>\\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }", "error": "Sauts de ligne manquants"}]'
-
+                'incorrect_examples': '[{"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \"\\t\"; } } }", "error": "Multiplication incorrecte"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }", "error": "Sauts de ligne manquants"}]'
             },
             {
                 'title': 'Calcul de Moyenne',
@@ -1254,7 +1261,16 @@ Points à noter:
                     'Imbrication incorrecte des boucles'
                 ],
                 'points': 55,
-                'incorrect_examples': '[{"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) Console.Write(\"*\"); } } }", "error": "Triangle incorrect"}, {"code": "using System; class Programme { static void Main() { for (int i = 1; i<= 3; i++) { for (int j = 1; j <= 3; j++) Console.Write(\"*\"); } } }", "error": "Triangle incorrect"}]'
+                'incorrect_examples': '''[
+                    {
+                        "code": "using System; class Programme { static void Main() { for (int i =1; i <= 3; i++) { for (int j = 1; j <= i; j++) Console.Write(\"*\\\"); } } }",
+                        "error": "Triangle incorrect"
+                    },
+                    {
+                        "code": "using System; classProgramme { static void Main() { for (int i = 1; i<= 3; i++) { for (int j = 1; j <= 3; j++) Console.Write(\"*\\\"); } } }",
+                        "error": "Triangle incorrect"
+                    }
+                ]'''
             },
             {
                 'title': 'Gestion des Étudiants',
@@ -1282,45 +1298,52 @@ Points à noter:
 </pre>''',
                 'instructions': 'Créez une classe Étudiant avec des propriétés et des méthodes pour gérer les informations des étudiants.',
                 'starter_code': '''using System;
-\n\nclass Etudiant {
-    // Ajoutez les propriétés ici
-\n\n    // Ajoutez les méthodes ici
-}
-\n\nclass Programme {
-    static void Main() {
-        // Votre code ici
-    }
-}''',
+1292:
+1293:class Etudiant {
+1294:    // Ajoutez les propriétés ici
+1295:
+1296:    // Ajoutez les méthodes ici
+1297:}
+1298:
+1299:class Programme {
+1300:    static void Main() {
+1301:        // Votre code ici
+1302:    }
+1303:}''',
                 'solution_code': '''using System;
-\n\nclass Etudiant {
-    public string Nom { get; set; }
-    public int Age { get; set; }
-    public double Moyenne { get; private set; }
-    private int nombreNotes = 0;
-    private double sommeNotes = 0;
-\n\n    public void AjouterNote(double note) {
-        if (note >= 0 && note <= 100) {
-            sommeNotes += note;
-            nombreNotes++;
-            Moyenne = sommeNotes / nombreNotes;
-        }
-    }
-\n\n    public string ObtenirInformations() {
-        return $"Nom: {Nom}, Age: {Age}, Moyenne: {Moyenne:F1}";
-    }
-}
-\n\nclass Programme {
-    static void Main() {
-        Etudiant etudiant = new Etudiant();
-        Console.Write("Nom de l'étudiant: ");
-        etudiant.Nom = Console.ReadLine();
-        Console.Write("Age de l'étudiant: ");
-        etudiant.Age = Convert.ToInt32(Console.ReadLine());
-        Console.Write("Note: ");
-        etudiant.AjouterNote(Convert.ToDouble(Console.ReadLine()));
-        Console.WriteLine(etudiant.ObtenirInformations());
-    }
-}''',
+1305:
+1306:class Etudiant {
+1307:    public string Nom { get; set; }
+1308:    public int Age { get; set; }
+1309:    public double Moyenne { get; private set; }
+1310:    private int nombreNotes = 0;
+1311:    private double sommeNotes = 0;
+1312:
+1313:    public void AjouterNote(double note) {
+1314:        if (note >= 0 && note <= 100) {
+1315:            sommeNotes += note;
+1316:            nombreNotes++;
+1317:            Moyenne = sommeNotes / nombreNotes;
+1318:        }
+1319:    }
+1320:
+1321:    public string ObtenirInformations() {
+1322:        return $"Nom: {Nom}, Age: {Age}, Moyenne: {Moyenne:F1}";
+1323:    }
+1324:}
+1325:
+1326:class Programme {
+1327:    static void Main() {
+1328:        Etudiant etudiant = new Etudiant();
+1329:        Console.Write("Nom de l'étudiant: ");
+1330:        etudiant.Nom = Console.ReadLine();
+1331:        Console.Write("Age de l'étudiant: ");
+1332:        etudiant.Age = Convert.ToInt32(Console.ReadLine());
+1333:        Console.Write("Note: ");
+1334:        etudiant.AjouterNote(Convert.ToDouble(Console.ReadLine()));
+1335:        Console.WriteLine(etudiant.ObtenirInformations());
+1336:    }
+1337:}''',
                 'test_cases': [
                     {'input': 'Marie\n16\n85\n', 'output': 'Nom de l\'étudiant: Age de l\'étudiant: Note: Nom: Marie, Age: 16, Moyenne: 85.0'}
                 ],
@@ -1368,69 +1391,82 @@ Points à noter:
 </pre>''',
                 'instructions': 'Créez une liste chaînée simple avec des opérations de base (ajout et affichage).',
                 'starter_code': '''using System;
-\n\nclass Noeud {
-    public int Valeur;
-    public Noeud Suivant;
-\n\n    public Noeud(int valeur) {
-        Valeur = valeur;
-        Suivant = null;
-    }
-}
-\n\nclass ListeChainee {
-    private Noeud tete;
-\n\n    // Implémentez les méthodes Ajouter et Afficher
-}
-\n\nclass Programme {
-    static void Main() {
-        // Votre code ici
-    }
-}''',
+1385:
+1386:class Noeud {
+1387:    public int Valeur;
+1388:    public Noeud Suivant;
+1389:
+1390:    public Noeud(int valeur) {
+1391:        Valeur = valeur;
+1392:        Suivant = null;
+1393:    }
+1394:}
+1395:
+1396:class ListeChainee {
+1397:    private Noeud tete;
+1398:
+1399:    // Implémentez les méthodes Ajouter et Afficher
+1400:}
+1401:
+1402:class Programme {
+1403:    static void Main() {
+1404:        // Votre code ici
+1405:    }
+1406:}''',
                 'solution_code': '''using System;
-\n\nclass Noeud {
-    public int Valeur;
-    public Noeud Suivant;
-\n\n    public Noeud(int valeur) {
-        Valeur = valeur;
-        Suivant = null;
-    }
-}
-\n\nclass ListeChainee {
-    private Noeud tete;
-\n\n    public void Ajouter(int valeur) {
-        Noeud nouveau = new Noeud(valeur);
-        if (tete == null) {
-            tete = nouveau;
-        } else {
-            Noeud courant = tete;
-            while (courant.Suivant != null) {
-                courant = courant.Suivant;
-            }
-            courant.Suivant = nouveau;
-        }
-    }
-\n\n    public void Afficher() {
-        Noeud courant = tete;
-        while (courant != null) {
-            Console.Write(courant.Valeur + " ");
-            courant = courant.Suivant;
-        }
-        Console.WriteLine();
-    }
-}
-\n\nclass Programme {
-    static void Main() {
-        ListeChainee liste = new ListeChainee();
-        Console.Write("Nombre d'éléments: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-\n\n        for (int i = 0; i < n; i++) {
-            Console.Write($"Élément {i + 1}: ");
-            int valeur = Convert.ToInt32(Console.ReadLine());
-            liste.Ajouter(valeur);
-        }
-\n\n        Console.Write("Liste: ");
-        liste.Afficher();
-    }
-}''',
+1408:
+1409:class Noeud {
+1410:    public int Valeur;
+1411:    public Noeud Suivant;
+1412:
+1413:    public Noeud(int valeur) {
+1414:        Valeur = valeur;
+1415:        Suivant = null;
+1416:    }
+1417:}
+1418:
+1419:class ListeChainee {
+1420:    private Noeud tete;
+1421:
+1422:    public void Ajouter(int valeur) {
+1423:        Noeud nouveau = new Noeud(valeur);
+1424:        if (tete == null) {
+1425:            tete = nouveau;
+1426:        } else {
+1427:            Noeud courant = tete;
+1428:            while (courant.Suivant != null) {
+1429:                courant = courant.Suivant;
+1430:            }
+1431:            courant.Suivant = nouveau;
+1432:        }
+1433:    }
+1434:
+1435:    public void Afficher() {
+1436:        Noeud courant = tete;
+1437:        while (courant != null) {
+1438:            Console.Write(courant.Valeur + " ");
+1439:            courant = courant.Suivant;
+1440:        }
+1441:        Console.WriteLine();
+1442:    }
+1443:}
+1444:
+1445:class Programme {
+1446:    static void Main() {
+1447:        ListeChainee liste = new ListeChainee();
+1448:        Console.Write("Nombre d'éléments: ");
+1449:        int n = Convert.ToInt32(Console.ReadLine());
+1450:
+1451:        for (int i = 0; i < n; i++) {
+1452:            Console.Write($"Élément {i + 1}: ");
+1453:            int valeur = Convert.ToInt32(Console.ReadLine());
+1454:            liste.Ajouter(valeur);
+1455:        }
+1456:
+1457:        Console.Write("Liste: ");
+1458:        liste.Afficher();
+1459:    }
+1460:}''',
                 'test_cases': [
                     {'input': '3\n10\n20\n30\n', 'output': 'Nombre d\'éléments: Élément 1: Élément 2: Élément 3: Liste: 10 20 30 '}
                 ],
@@ -1475,47 +1511,57 @@ Points à noter:
 </pre>''',
                 'instructions': 'Créez un gestionnaire de tâches qui permet d\'ajouter et d\'afficher des tâches avec leurs priorités.',
                 'starter_code': '''using System;
-using System.Collections.Generic;
-\n\nclass Tache {
-    // Implémentez la classe Tache
-}
-\n\nclass Programme {
-    static void Main() {
-        // Votre code ici
-    }
-}''',
+1505:using System.Collections.Generic;
+1506:
+1507:class Tache {
+1508:    // Implémentez la classe Tache
+1509:}
+1510:
+1511:class Programme {
+1512:    static void Main() {
+1513:        // Votre code ici
+1514:    }
+1515:}''',
                 'solution_code': '''using System;
-using System.Collections.Generic;
-\n\nclass Tache {
-    public string Description { get; set; }
-    public int Priorite { get; set; }
-\n\n    public Tache(string description, int priorite) {
-        Description = description;
-        Priorite = priorite;
-    }
-\n\n    public override string ToString() {
-        return $"[Priorité: {Priorite}] {Description}";
-    }
-}
-\n\nclass Programme {
-    static void Main() {
-        List<Tache> taches = new List<Tache>();
-\n\n        Console.Write("Nombre de tâches: ");
-        int n = Convert.ToInt32(Console.ReadLine());
-\n\n        for (int i = 0; i < n; i++) {
-            Console.Write($"Description de la tâche {i + 1}: ");
-            string description = Console.ReadLine();
-            Console.Write("Priorité (1-5): ");
-            int priorite = Convert.ToInt32(Console.ReadLine());
-            taches.Add(new Tache(description, priorite));
-        }
-\n\n        taches.Sort((a, b) => b.Priorite.CompareTo(a.Priorite));
-\n\n        Console.WriteLine("\nListe des tâches par priorité:");
-        foreach (var tache in taches) {
-            Console.WriteLine(tache);
-        }
-    }
-}''',
+1517:using System.Collections.Generic;
+1518:
+1519:class Tache {
+1520:    public string Description { get; set; }
+1521:    public int Priorite { get; set; }
+1522:
+1523:    public Tache(string description, int priorite) {
+1524:        Description = description;
+1525:        Priorite = priorite;
+1526:    }
+1527:
+1528:    public override string ToString() {
+1529:        return $"[Priorité: {Priorite}] {Description}";
+1530:    }
+1531:}
+1532:
+1533:class Programme {
+1534:    static void Main() {
+1535:        List<Tache> taches = new List<Tache>();
+1536:
+1537:        Console.Write("Nombre de tâches: ");
+1538:        int n = Convert.ToInt32(Console.ReadLine());
+1539:
+1540:        for (int i = 0; i < n; i++) {
+1541:            Console.Write($"Description de la tâche {i + 1}: ");
+1542:            string description = Console.ReadLine();
+1543:            Console.Write("Priorité (1-5): ");
+1544:            int priorite = Convert.ToInt32(Console.ReadLine());
+1545:            taches.Add(new Tache(description, priorite));
+1546:        }
+1547:
+1548:        taches.Sort((a, b) => b.Priorite.CompareTo(a.Priorite));
+1549:
+1550:        Console.WriteLine("\nListe des tâches par priorité:");
+1551:        foreach (var tache in taches) {
+1552:            Console.WriteLine(tache);
+1553:        }
+1554:    }
+1555:}''',
                 'test_cases': [
                     {'input': '2\nÉtudier pour l\'examen\n5\nFaire les courses\n3\n', 
                      'output': 'Nombre de tâches: Description de la tâche 1: Priorité (1-5): Description de la tâche 2: Priorité (1-5): \nListe des tâches par priorité:\n[Priorité: 5] Étudier pour l\'examen\n[Priorité: 3] Faire les courses'}
@@ -1558,9 +1604,9 @@ def login():
         return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
-        student = Student.query.filter_by(email=form.email.data).first()
-        if student and check_password_hash(student.password_hash, form.password.data):
-            login_user(student, remember=form.remember_me.data)
+        user = Student.query.filter_by(email=form.email.data).first()
+        if user and check_password_hash(user.password_hash, form.password.data):
+            login_user(user)
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('index'))
         flash('Email ou mot de passe incorrect.', 'danger')
@@ -1572,13 +1618,12 @@ def register():
         return redirect(url_for('index'))
     form = RegisterForm()
     if form.validate_on_submit():
-        hashed_password = generate_password_hash(form.password.data)
-        student = Student(
+        user = Student(
             username=form.username.data,
             email=form.email.data,
-            password_hash=hashed_password
+            password_hash=generate_password_hash(form.password.data)
         )
-        db.session.add(student)
+        db.session.add(user)
         db.session.commit()
         flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
         return redirect(url_for('login'))
@@ -1589,8 +1634,6 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
-
-# Add these routes after the existing routes
 
 @app.route('/validate_code', methods=['POST'])
 def validate_code():
@@ -1614,13 +1657,13 @@ def validate_code():
     if language == 'cpp':
         if '#include' not in code:
             errors.append({
-                'message_fr': 'Il manque les inclusions de bibliothèques nécessaires',
-                'message_en': 'Missing required library includes'
+                'message_fr': 'N\'oubliez pas d\'inclure les bibliothèques nécessaires',
+                'message_en': 'Don\'t forget to include necessary libraries'
             })
         if 'main()' not in code:
             errors.append({
-                'message_fr': 'La fonction main() est manquante',
-                'message_en': 'Missing main() function'
+                'message_fr': 'La fonction main() est requise',
+                'message_en': 'The main() function is required'
             })
         if code.count('{') != code.count('}'):
             errors.append({
