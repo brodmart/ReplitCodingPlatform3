@@ -3,9 +3,7 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
-<!-- Add Bootstrap JavaScript before the editor initialization -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/editor.js') }}" defer></script>
 <style>
     #editor {
         width: 100%;
@@ -154,12 +152,12 @@
                             {% for hint in activity.hints %}
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                                             data-bs-target="#hint{{ loop.index }}">
                                         Indice {{ loop.index }}
                                     </button>
                                 </h2>
-                                <div id="hint{{ loop.index }}" class="accordion-collapse collapse" 
+                                <div id="hint{{ loop.index }}" class="accordion-collapse collapse"
                                      data-bs-parent="#hintsAccordion">
                                     <div class="accordion-body">{{ hint }}</div>
                                 </div>
@@ -193,13 +191,13 @@
                             {% for example in activity.incorrect_examples %}
                             <div class="accordion-item">
                                 <h2 class="accordion-header">
-                                    <button class="accordion-button collapsed" type="button" 
-                                            data-bs-toggle="collapse" 
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse"
                                             data-bs-target="#example{{ loop.index }}">
                                         Exemple d'erreur #{{ loop.index }}
                                     </button>
                                 </h2>
-                                <div id="example{{ loop.index }}" class="accordion-collapse collapse" 
+                                <div id="example{{ loop.index }}" class="accordion-collapse collapse"
                                      data-bs-parent="#incorrectExamples">
                                     <div class="accordion-body">
                                         <div class="mb-3">
@@ -236,7 +234,7 @@
                             </div>
                         </div>
                         <p>
-                            Statut: 
+                            Statut:
                             {% if progress.completed %}
                                 <span class="badge bg-success">Terminé</span>
                             {% else %}
@@ -255,17 +253,17 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Éditeur de Code</h5>
                     <div class="btn-group">
-                        <button id="resetButton" class="btn btn-secondary" 
+                        <button id="resetButton" class="btn btn-secondary"
                                 title="Réinitialiser le code"
                                 data-bs-toggle="tooltip">
                             <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
                         </button>
-                        <button id="formatButton" class="btn btn-info" 
+                        <button id="formatButton" class="btn btn-info"
                                 title="Formater le code"
                                 data-bs-toggle="tooltip">
                             <i class="bi bi-text-left"></i> Formater
                         </button>
-                        <button id="submitButton" class="btn btn-primary" 
+                        <button id="submitButton" class="btn btn-primary"
                                 title="Exécuter et soumettre le code"
                                 data-bs-toggle="tooltip">
                             <i class="bi bi-play-fill"></i> Soumettre
@@ -323,18 +321,40 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        // Wait for Bootstrap to be fully loaded
-        if (typeof bootstrap === 'undefined') {
-            throw new Error('Bootstrap not loaded. Please refresh the page.');
+let bootstrapLoadAttempts = 0;
+const maxAttempts = 3;
+
+function waitForBootstrap() {
+    return new Promise((resolve, reject) => {
+        function checkBootstrap() {
+            if (typeof bootstrap !== 'undefined') {
+                resolve();
+                return;
+            }
+
+            bootstrapLoadAttempts++;
+            if (bootstrapLoadAttempts >= maxAttempts) {
+                reject(new Error('Bootstrap failed to load after multiple attempts'));
+                return;
+            }
+
+            setTimeout(checkBootstrap, 500);
         }
 
-        // Initialize tooltips first
+        checkBootstrap();
+    });
+}
+
+async function initializeEditor() {
+    try {
+        // Wait for Bootstrap to be available
+        await waitForBootstrap();
+
+        // Initialize tooltips
         const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
         tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
 
-        // Initialize Monaco editor with activity-specific configuration
+        // Initialize Monaco editor
         const editor = await window.monacoEditor.initialize('editor', {
             value: {{ activity.starter_code|tojson }},
             language: '{{ activity.language }}',
@@ -343,13 +363,11 @@ document.addEventListener('DOMContentLoaded', async function() {
             minimap: { enabled: true }
         });
 
-        // Store editor instance globally for access in other functions
+        // Store editor instance globally
         window.activityEditor = editor;
 
-        // Set up event handlers
+        // Set up event handlers and validation
         setupEventHandlers(editor);
-
-        // Set up real-time validation with debounce
         setupValidation(editor);
 
     } catch (error) {
@@ -363,14 +381,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <i class="bi bi-exclamation-triangle-fill"></i> Erreur d'initialisation
                     </h6>
                     <p class="mb-0">${error.message}</p>
-                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="location.reload()">
+                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="window.location.reload()">
                         <i class="bi bi-arrow-clockwise"></i> Rafraîchir la page
                     </button>
                 </div>
             `;
         }
     }
-});
+}
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeEditor);
 
 function setupEventHandlers(editor) {
     // Reset button handler with confirmation
