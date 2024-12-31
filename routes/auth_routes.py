@@ -45,3 +45,25 @@ def logout():
     except Exception as e:
         flash('Erreur lors de la déconnexion', 'error')
     return redirect(url_for('index'))
+
+@auth.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegisterForm()
+    if form.validate_on_submit():
+        user = Student(
+            username=form.username.data,
+            email=form.email.data,
+            password_hash=generate_password_hash(form.password.data)
+        )
+        db.session.add(user)
+        try:
+            db.session.commit()
+            flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
+            return redirect(url_for('auth.login'))
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('Une erreur est survenue lors de la création du compte.', 'error')
+            return render_template('register.html', form=form)
+    return render_template('register.html', form=form)

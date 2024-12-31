@@ -197,27 +197,7 @@ def login():
         return redirect(next_page)
     return render_template('login.html', form=form)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = RegisterForm()
-    if form.validate_on_submit():
-        user = Student(
-            username=form.username.data,
-            email=form.email.data,
-            password_hash=generate_password_hash(form.password.data)
-        )
-        db.session.add(user)
-        try:
-            db.session.commit()
-            flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
-            return redirect(url_for('login'))
-        except SQLAlchemyError as e:
-            logger.error(f"Database error during registration: {str(e)}")
-            flash('Une erreur est survenue lors de la création du compte.', 'error')
-            return render_template('register.html', form=form)
-    return render_template('register.html', form=form)
+
 
 @app.route('/logout')
 @login_required
