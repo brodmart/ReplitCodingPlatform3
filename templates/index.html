@@ -11,18 +11,14 @@
         <div class="col-md-8">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <div>
-                        <select id="languageSelect" class="form-select form-select-sm" style="width: auto;">
-                            <option value="cpp">C++</option>
-                            <option value="python">Python</option>
-                            <option value="javascript">JavaScript</option>
-                        </select>
-                    </div>
-                    <div>
-                        <button id="runButton" class="btn btn-primary btn-sm">
-                            <i class="bi bi-play-fill"></i> Exécuter
-                        </button>
-                    </div>
+                    <select id="languageSelect" class="form-select form-select-sm" style="width: auto;">
+                        <option value="cpp">C++</option>
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                    </select>
+                    <button id="runButton" class="btn btn-primary btn-sm">
+                        <i class="bi bi-play-fill"></i> Exécuter
+                    </button>
                 </div>
                 <div class="card-body p-0">
                     <div id="editor" style="height: calc(100vh - 200px);"></div>
@@ -31,9 +27,7 @@
         </div>
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-header">
-                    Console
-                </div>
+                <div class="card-header">Console</div>
                 <div class="card-body">
                     <div id="output" class="console-output"></div>
                 </div>
@@ -46,17 +40,17 @@
 {% block extra_scripts %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <script>
-    window.require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-    window.MonacoEnvironment = {
-        getWorkerUrl: function() {
-            return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                self.MonacoEnvironment = {
-                    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
-                };
-                importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
-            )}`;
-        }
-    };
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        window.editor = monaco.editor.create(document.getElementById('editor'), {
+            value: '// Your code here',
+            language: 'cpp',
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            automaticLayout: true,
+            fontSize: 14
+        });
+    });
 </script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 {% endblock %}

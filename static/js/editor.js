@@ -1,76 +1,12 @@
 
-// Single editor instance
-let editor = null;
-
-// Initialize editor only once
-async function initializeEditor(elementId, options = {}) {
-    if (!document.getElementById(elementId)) return;
-    
-    try {
-        await new Promise((resolve) => {
-            require(['vs/editor/editor.main'], resolve);
-        });
-        
-        const defaultOptions = {
-            value: options.value || getDefaultCode(options.language || 'cpp'),
-            language: options.language || 'cpp',
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14
-        };
-
-        editor = monaco.editor.create(document.getElementById(elementId), defaultOptions);
-        window.codeEditor = editor;
-        
-        setupLanguageSelect(editor);
-        setupRunButton();
-        
-        return editor;
-    } catch (error) {
-        console.error('Editor initialization error:', error);
-        showErrorMessage(error);
-    }
-}
-
-function getDefaultCode(language) {
-    const templates = {
-        cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Bonjour le monde!" << endl;\n    return 0;\n}',
-        csharp: 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}'
-    };
-    return templates[language] || templates.cpp;
-}
-
-function setupLanguageSelect(editor) {
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect && editor) {
-        languageSelect.addEventListener('change', () => {
-            const newLanguage = languageSelect.value;
-            monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-            editor.setValue(getDefaultCode(newLanguage));
-        });
-    }
-}
-
-function setupRunButton() {
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
-}
-
+// Editor execution logic
 async function executeCode() {
-    if (!editor) {
-        console.error('Editor not initialized');
-        return;
-    }
-
     const output = document.getElementById('output');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const languageSelect = document.getElementById('languageSelect');
     
-    if (!csrfToken) {
-        if (output) output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
+    if (!window.editor || !csrfToken) {
+        console.error('Editor or CSRF token not available');
         return;
     }
 
@@ -82,7 +18,7 @@ async function executeCode() {
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                code: editor.getValue(),
+                code: window.editor.getValue(),
                 language: languageSelect ? languageSelect.value : 'cpp'
             })
         });
@@ -98,22 +34,20 @@ async function executeCode() {
     }
 }
 
-function showErrorMessage(error) {
-    const errorContainer = document.getElementById('errorContainer');
-    if (errorContainer) {
-        errorContainer.innerHTML = `<div class="alert alert-danger">Editor error: ${error.message}</div>`;
-    }
-}
+// Set up event listeners when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    const runButton = document.getElementById('runButton');
+    const languageSelect = document.getElementById('languageSelect');
 
-// Initialize editor when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    const editorElement = document.getElementById('editor');
-    if (editorElement) {
-        const language = editorElement.getAttribute('data-language') || 'cpp';
-        const initialValue = editorElement.getAttribute('data-initial-value') || '';
-        initializeEditor('editor', {
-            language,
-            value: initialValue || getDefaultCode(language)
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
+
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            if (window.editor) {
+                monaco.editor.setModelLanguage(window.editor.getModel(), this.value);
+            }
         });
     }
 });
