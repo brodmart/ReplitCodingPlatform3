@@ -354,9 +354,13 @@ async function initializeEditor() {
         tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
 
         // Initialize Monaco editor
+        const editorElement = document.getElementById('editor');
+        const initialValue = editorElement.getAttribute('data-initial-value');
+        const editorLanguage = editorElement.getAttribute('data-language');
+        
         const editor = await window.monacoEditor.initialize('editor', {
-            value: {{ activity.starter_code|tojson }},
-            language: '{{ activity.language }}',
+            value: initialValue || '',
+            language: editorLanguage || 'cpp',
             readOnly: false,
             wordWrap: 'on',
             minimap: { enabled: true }
@@ -364,6 +368,7 @@ async function initializeEditor() {
 
         // Store editor instance globally
         window.activityEditor = editor;
+        window.codeEditor = editor;  // Ensure compatibility with execution handler
 
         // Set up event handlers and validation
         setupEventHandlers(editor);
