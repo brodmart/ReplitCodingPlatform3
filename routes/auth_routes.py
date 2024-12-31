@@ -1,12 +1,12 @@
+
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 from urllib.parse import urlparse
-from sqlalchemy.exc import IntegrityError
-
+from sqlalchemy.exc import SQLAlchemyError
 from models import Student
-from database import db
 from forms import LoginForm, RegisterForm
+from database import db
 
 auth = Blueprint('auth', __name__)
 
@@ -19,23 +19,19 @@ def login():
     if form.validate_on_submit():
         try:
             user = Student.query.filter_by(username=form.username.data).first()
-            if not user:
-                flash('Utilisateur non trouvé', 'error')
-                return render_template('login.html', form=form), 401
+            if user and check_password_hash(user.password_hash, form.password.data):
+                login_user(user, remember=form.remember_me.data)
+                next_page = request.args.get('next')
+                if not next_page or urlparse(next_page).netloc != '':
+                    next_page = url_for('index')
+                flash('Connexion réussie!', 'success')
+                return redirect(next_page)
+            flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
+            return render_template('login.html', form=form), 401
             
-            if not check_password_hash(user.password_hash, form.password.data):
-                flash('Mot de passe incorrect', 'error')
-                return render_template('login.html', form=form), 401
-                
-            login_user(user, remember=form.remember_me.data)
-            next_page = request.args.get('next')
-            if not next_page or urlparse(next_page).netloc != '':
-                next_page = url_for('index')
-            flash('Connexion réussie!', 'success')
-            return redirect(next_page)
-            
-        except Exception as e:
-            flash('Une erreur est survenue. Veuillez réessayer.', 'error')
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            flash('Une erreur de serveur est survenue. Veuillez réessayer.', 'error')
             return render_template('login.html', form=form), 500
             
     return render_template('login.html', form=form)
@@ -43,24 +39,9 @@ def login():
 @auth.route('/logout')
 @login_required
 def logout():
-    logout_user()
+    try:
+        logout_user()
+        flash('Vous avez été déconnecté avec succès', 'success')
+    except Exception as e:
+        flash('Erreur lors de la déconnexion', 'error')
     return redirect(url_for('index'))
-
-@auth.route('/register', methods=['GET', 'POST'])
-def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        user = Student(
-            username=form.username.data,
-            email=form.email.data,
-            password_hash=generate_password_hash(form.password.data)
-        )
-        db.session.add(user)
-        try:
-            db.session.commit()
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('auth.login'))
-        except IntegrityError:
-            db.session.rollback()
-            flash('Username or email already exists.', 'error')
-    return render_template('register.html', form=form)

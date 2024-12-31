@@ -7,9 +7,15 @@ from models import Student
 class LoginForm(FlaskForm):
     """Form for user login"""
     username = StringField('Nom d\'utilisateur', 
-                         validators=[DataRequired()])
+                         validators=[
+                             DataRequired(message='Ce champ est requis'),
+                             Length(min=2, max=64, message='Le nom d\'utilisateur doit contenir entre 2 et 64 caractères')
+                         ])
     password = PasswordField('Mot de passe', 
-                           validators=[DataRequired()])
+                           validators=[
+                               DataRequired(message='Ce champ est requis'),
+                               Length(min=6, message='Le mot de passe doit contenir au moins 6 caractères')
+                           ])
     remember_me = BooleanField('Se souvenir de moi')
     submit = SubmitField('Connexion')
 
