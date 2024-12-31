@@ -160,6 +160,19 @@ def not_found_error(error):
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
+
+
+@app.route('/log-error', methods=['POST'])
+def log_error():
+    """Handle client-side error logging"""
+    if not request.is_json:
+        return jsonify({'status': 'error', 'message': 'Invalid format'}), 400
+        
+    error_data = request.json
+    logger.error(f"Client error: {error_data}")
+    return jsonify({'status': 'success'}), 200
+
+
     return render_template('errors/500.html'), 500
 
 # Initialize database
