@@ -5,13 +5,26 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!editorElement) return;
 
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+
+    window.MonacoEnvironment = {
+        getWorkerUrl: function(workerId, label) {
+            return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+                self.MonacoEnvironment = {
+                    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
+                };
+                importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
+            )}`;
+        }
+    };
+
     require(['vs/editor/editor.main'], function() {
         const editor = monaco.editor.create(editorElement, {
             value: '// Your code here',
             language: 'cpp',
             theme: 'vs-dark',
             minimap: { enabled: false },
-            automaticLayout: true
+            automaticLayout: true,
+            scrollBeyondLastLine: false
         });
 
         // Language selection
