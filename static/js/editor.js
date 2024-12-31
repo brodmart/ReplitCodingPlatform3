@@ -1,40 +1,58 @@
 
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+
+    // Load Monaco
+    require(['vs/editor/editor.main'], function() {
+        initializeEditor();
+    });
+});
+
 let editor = null;
-let isEditorInitialized = false;
+let languageSelect = null;
 
 function initializeEditor() {
-    if (isEditorInitialized) return;
-    
-    const editorElement = document.getElementById('editor');
-    if (!editorElement) return;
-
     try {
-        require(['vs/editor/editor.main'], function() {
-            editor = monaco.editor.create(editorElement, {
-                value: '// Your code here',
-                language: 'cpp',
-                theme: 'vs-dark',
-                minimap: { enabled: false },
-                automaticLayout: true,
-                fontSize: 14
-            });
+        const editorElement = document.getElementById('editor');
+        languageSelect = document.getElementById('languageSelect');
+        
+        if (!editorElement) {
+            console.error('Editor element not found');
+            return;
+        }
 
-            const languageSelect = document.getElementById('languageSelect');
-            if (languageSelect) {
-                languageSelect.addEventListener('change', function() {
-                    if (editor && editor.getModel()) {
-                        monaco.editor.setModelLanguage(editor.getModel(), this.value);
-                    }
-                });
-            }
-
-            const runButton = document.getElementById('runButton');
-            if (runButton) {
-                runButton.addEventListener('click', executeCode);
-            }
-
-            isEditorInitialized = true;
+        editor = monaco.editor.create(editorElement, {
+            value: '// Your code here',
+            language: languageSelect ? languageSelect.value : 'cpp',
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            automaticLayout: true,
+            fontSize: 14,
+            scrollBeyondLastLine: false
         });
+
+        // Set up event listeners
+        if (languageSelect) {
+            languageSelect.addEventListener('change', function() {
+                if (editor && editor.getModel()) {
+                    monaco.editor.setModelLanguage(editor.getModel(), this.value);
+                }
+            });
+        }
+
+        const runButton = document.getElementById('runButton');
+        if (runButton) {
+            runButton.addEventListener('click', executeCode);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (editor) {
+                editor.layout();
+            }
+        });
+
     } catch (error) {
         console.error('Editor initialization failed:', error);
     }
@@ -47,17 +65,19 @@ async function executeCode() {
     }
 
     const output = document.getElementById('output');
-    const languageSelect = document.getElementById('languageSelect');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-
-    if (!csrfToken) {
-        console.error('CSRF token not available');
+    if (!output) {
+        console.error('Output element not found');
         return;
     }
 
     try {
         const code = editor.getValue();
         const language = languageSelect ? languageSelect.value : 'cpp';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
 
         const response = await fetch('/execute', {
             method: 'POST',
@@ -69,16 +89,14 @@ async function executeCode() {
         });
 
         const result = await response.json();
-        if (output) {
-            output.innerHTML = `<pre class="${result.success ? 'success' : 'error'}">${result.output || result.error}</pre>`;
+        
+        if (result.error) {
+            output.innerHTML = `<pre class="error">${result.error}</pre>`;
+        } else {
+            output.innerHTML = `<pre>${result.output}</pre>`;
         }
     } catch (error) {
-        if (output) {
-            output.innerHTML = `<pre class="error">Error: ${error.message}</pre>`;
-        }
         console.error('Code execution failed:', error);
+        output.innerHTML = `<pre class="error">Error: ${error.message}</pre>`;
     }
 }
-
-// Initialize editor when DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeEditor);
