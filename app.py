@@ -655,8 +655,8 @@ Points à noter:
                         "error": "Variables non initialisées"
                     },
                     {
-                        "code": "#include <iostream>\nint main() { std::string a = \"5\", b = \"3\"; std::cout << a + b << std::endl; }",
-                        "error": "Type incorrect - tentative d'additionner des chaînes"
+                        "code": "#include <iostream>\nint main() { int a = 5, b = \"3\"; std::cout << a + b << std::endl; }",
+                        "error": "Type incorrect"
                     }
                 ]
             },
@@ -717,7 +717,7 @@ Points à noter:
                     },
                     {
                         "code": "#include <iostream>\nint main() { int n; if (n = 0) std::cout << \"zéro\"; }",
-                        "error": "Mauvaise utilisation de l\'opérateur =="
+                        "error": "Mauvaise utilisation de l'opérateur =="
                     }
                 ]
             },
@@ -783,14 +783,16 @@ Points à noter:
 1. Boucles imbriquées:
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
-            // instructions à répéter        }
+            // instructions à répéter
+        }
     }
 
 2. Points importants:
     - La boucle interne s'exécute entièrement pour chaque itération de la boucle externe
     - Utilisez des variables de boucle appropriées pour l'indexation
     - Assurez-vous que les boucles imbriquées sont correctement imbriquées
-</pre>''',                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
+</pre>''',
+                'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '''#include <iostream>
 
@@ -800,7 +802,7 @@ int main() {
     std::cin>> n;
     for (int i = 1; i <= n; i++) {
         for (int j = 1; j <= n; j++) {
-            std::cout << i * j << "\t";
+            std::cout << i * j << "\\t";
         }
         std::cout << std::endl;
     }
@@ -997,7 +999,7 @@ int main() {
                 ]
             },
             {
-                'title': 'Générateur de Motifs',
+                'title':'Générateur de Motifs',
                 'description': 'Utiliser les boucles imbriquées pour créer des motifs.',
                 'difficulty': 'intermediate',
                 'curriculum': 'TEJ2O',
@@ -1175,7 +1177,7 @@ int main() {
 </pre>''',
                 'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
-                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
+                'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
                 'test_cases': [
                     {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\n2\t4\t6\n3\t6\t9\n'}
                 ],
@@ -1297,7 +1299,7 @@ int main() {
                 'common_errors': [
                     'Ne pas initialiser correctement max',
                     'Mauvaise comparaison des nombres',
-                    'Ne pas gérer correctement les cas de nombres égaux',
+                    'Ne pas gérer les cas de nombres égaux',
                     'Ne pas afficher la sortie'
                 ],
                 'points': 45,
@@ -1389,10 +1391,12 @@ int main() {
    - Console.WriteLine() pour passer à la ligne suivante
 </pre>''',
                 'instructions': 'Créez un programme qui affiche un triangle d\'étoiles basé sur la hauteur donnée.',
-                'starter_code': '''using System;\n\nclass Programme {
+                'starter_code': '''using System;
+
+class Programme {
     static void Main() {
         // Votre code ici
-        }
+    }
 }''',
                 'solution_code': '''using System;
 
@@ -1402,7 +1406,7 @@ class Programme {
         int hauteur = Convert.ToInt32(Console.ReadLine());
 
         for (int i = 1; i <= hauteur; i++) {
-            for (int j = 1; j <= i; j++) {
+            for (int j = 1; j<previous_generation> <= i; j++) {
                 Console.Write("*");
             }
             Console.WriteLine();
@@ -1418,19 +1422,19 @@ class Programme {
                     'Ajoutez un saut de ligne après chaque ligne'
                 ],
                 'common_errors': [
-                    'Mauvaise imbrication des boucles',
+                    'Mauvaise imbricationdes boucles',
                     'Oublier le saut de ligne',
                     'Mauvais compteur de boucle',
-                    'Imbrication incorrecte desboucles'
+                    'Imbrication incorrecte des boucles'
                 ],
                 'points': 55,
                 'incorrect_examples': [
                     {
-                        "code": "using System;\nclass Programme {\n    static void Main() {\n        for (int i = 1; i <= 3; i++) {\n            for (int j = 1; j <= i; j++)\n                Console.Write(\"*\");\n        }\n    }\n}",
+                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) Console.Write(\"*\"); } } }",
                         "error": "Triangle incorrect - manque les sauts de ligne"
                     },
                     {
-                        "code": "using System;\nclass Programme {\n    static void Main() {\n        for (int i = 1; i <= 3; i++) {\n            for (int j = 1; j <= 3; j++)\n                Console.Write(\"*\");\n            Console.WriteLine();\n        }\n    }\n}",
+                        "code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) Console.Write(\"*\"); Console.WriteLine(); } } }",
                         "error": "Triangle incorrect - nombre fixe d'étoiles par ligne"
                     }
                 ]
@@ -1794,11 +1798,14 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = Student.query.filter_by(email=form.email.data).first()
-        if user and check_password_hash(user.password_hash, form.password.data):
-            login_user(user)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
-        flash('Email ou mot de passe incorrect.', 'danger')
+        if user is None or not check_password_hash(user.password_hash, form.password.data):
+            flash('Email ou mot de passe incorrect.', 'danger')
+            return redirect(url_for('login'))
+        login_user(user)
+        next_page = request.args.get('next')
+        if not next_page or url_parse(next_page).netloc != '':
+            next_page = url_for('index')
+        return redirect(next_page)
     return render_template('login.html', form=form)
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -1807,14 +1814,11 @@ def register():
         return redirect(url_for('index'))
     form = RegisterForm()
     if form.validate_on_submit():
-        if Student.query.filter_by(email=form.email.data).first():
-            flash('Cet email est déjà utilisé.', 'danger')
-            return render_template('register.html', form=form)
         user = Student(
             username=form.username.data,
-            email=form.email.data
+            email=form.email.data,
+            password_hash=generate_password_hash(form.password.data)
         )
-        user.password_hash = generate_password_hash(form.password.data)
         db.session.add(user)
         db.session.commit()
         flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
