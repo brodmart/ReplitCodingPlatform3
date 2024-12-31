@@ -359,6 +359,14 @@ async function initializeEditor() {
                 wordWrap: 'on',
                 minimap: { enabled: true }
             });
+
+            // Store editor instance globally
+            window.activityEditor = editor;
+            window.codeEditor = editor;
+
+            // Set up event handlers and validation
+            setupEventHandlers(editor);
+            setupValidation(editor);
         });
     } catch (error) {
         console.error('Failed to initialize editor:', error);
