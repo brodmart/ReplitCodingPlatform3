@@ -265,7 +265,7 @@ async function executeCode() {
     const loadingOverlay = document.getElementById('loadingOverlay');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-    if (!editorInstance) {
+    if (!window.codeEditor) {
         console.error('Editor not initialized');
         return;
     }
