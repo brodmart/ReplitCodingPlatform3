@@ -300,6 +300,7 @@ async function executeCode() {
         runButton.disabled = true;
         if (loadingOverlay) loadingOverlay.classList.add('show');
 
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const response = await fetch('/execute', {
             method: 'POST',
             headers: {
