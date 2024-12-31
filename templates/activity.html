@@ -226,11 +226,11 @@
                         <div class="progress mb-2" style="height: 20px;">
                             <div class="progress-bar {% if progress.completed %}bg-success{% else %}bg-warning{% endif %}"
                                  role="progressbar"
-                                 style="width: {{ (progress.attempts / activity.max_attempts) * 100 }}%"
+                                 style="width: {{ ((progress.attempts / (activity.max_attempts or 10)) * 100)|round|int }}%"
                                  aria-valuenow="{{ progress.attempts }}"
                                  aria-valuemin="0"
-                                 aria-valuemax="{{ activity.max_attempts }}">
-                                {{ progress.attempts }}/{{ activity.max_attempts }} tentatives
+                                 aria-valuemax="{{ activity.max_attempts or 10 }}">
+                                {{ progress.attempts }}/{{ activity.max_attempts or 10 }} tentatives
                             </div>
                         </div>
                         <p>

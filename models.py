@@ -100,6 +100,7 @@ class CodingActivity(db.Model):
     incorrect_examples = db.Column(db.JSON)               # Array of {code, explanation} pairs showing common mistakes
     syntax_help = db.Column(db.Text)                      # Syntax help content
     points = db.Column(db.Integer, default=10)
+    max_attempts = db.Column(db.Integer, default=10)       # Maximum number of attempts allowed
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
