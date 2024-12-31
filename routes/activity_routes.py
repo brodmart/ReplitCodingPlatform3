@@ -65,7 +65,8 @@ def view_activity(activity_id):
     """View a specific coding activity"""
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
-    if activity.sequence == 2648:
+        
+        if activity.sequence == 2648:
         activity.starter_code = """#include <iostream>
 #include <vector>
 using namespace std;
