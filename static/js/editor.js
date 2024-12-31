@@ -226,17 +226,19 @@ window.monacoEditor = monacoEditor;
 // Initialize editor when DOM is loaded with error handling
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
-    if (!editorElement) return;
+    if (!editorElement || window.codeEditor) return;
 
     try {
-        const editor = await monacoEditor.initialize('editor', {
-            value: editorElement.getAttribute('data-initial-value') || '',
-            language: editorElement.getAttribute('data-language') || 'cpp'
-        });
-        
-        if (editor) {
-            window.codeEditor = editor;
-            setupEditorControls();
+        if (!window.monaco) {
+            const editor = await monacoEditor.initialize('editor', {
+                value: editorElement.getAttribute('data-initial-value') || '',
+                language: editorElement.getAttribute('data-language') || 'cpp'
+            });
+            
+            if (editor) {
+                window.codeEditor = editor;
+                setupEditorControls();
+            }
         }
     } catch (error) {
         console.error('Editor initialization failed:', error);
