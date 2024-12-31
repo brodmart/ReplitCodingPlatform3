@@ -95,13 +95,30 @@ def view_activity(activity_id):
 
         # Parse JSON fields if they exist
         try:
+            # Add debug logging
+            logging.debug(f"Raw hints: {activity.hints}")
+            logging.debug(f"Raw common_errors: {activity.common_errors}")
+
+            # Parse hints
             if isinstance(activity.hints, str):
                 activity.hints = json.loads(activity.hints)
+
+            # Parse common errors
             if isinstance(activity.common_errors, str):
                 activity.common_errors = json.loads(activity.common_errors)
-        except (json.JSONDecodeError, TypeError):
-            # If JSON parsing fails, use the raw string
-            pass
+            elif activity.common_errors is None:
+                activity.common_errors = []
+
+            logging.debug(f"Parsed hints: {activity.hints}")
+            logging.debug(f"Parsed common_errors: {activity.common_errors}")
+
+        except (json.JSONDecodeError, TypeError) as e:
+            logging.error(f"JSON parsing error: {str(e)}")
+            # If JSON parsing fails, ensure we have empty lists
+            if not isinstance(activity.hints, list):
+                activity.hints = []
+            if not isinstance(activity.common_errors, list):
+                activity.common_errors = []
 
         return render_template(
             'activity.html',
