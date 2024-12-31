@@ -42,8 +42,14 @@ def format_compiler_error(error_text):
 import resource
 def compile_and_run(code, language, input_data=None):
     def limit_resources():
+        # 1 second CPU time
         resource.setrlimit(resource.RLIMIT_CPU, (1, 1))
-        resource.setrlimit(resource.RLIMIT_AS, (500 * 1024 * 1024, 500 * 1024 * 1024))
+        # 100MB memory limit
+        resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, 100 * 1024 * 1024))
+        # No child processes
+        resource.setrlimit(resource.RLIMIT_NPROC, (0, 0))
+        # No file writing
+        resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
     with tempfile.TemporaryDirectory() as temp_dir:
         if language == 'cpp':
             return _compile_and_run_cpp(code, temp_dir, input_data)

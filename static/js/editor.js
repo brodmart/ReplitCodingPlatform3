@@ -100,7 +100,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 languageSelect.addEventListener('change', () => {
                     const newLanguage = languageSelect.value;
                     monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+                    if (editor && monacoEditor) {
                     editor.setValue(monacoEditor.getDefaultCode(newLanguage));
+                } else {
+                    console.error('Editor not properly initialized');
+                    location.reload();
+                }
                 });
             }
 

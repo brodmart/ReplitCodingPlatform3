@@ -99,7 +99,17 @@ def index():
         flash('Une erreur est survenue lors du chargement de la page.', 'error')
         return render_template('index.html', achievements=[]), 500
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
+
 @app.route('/execute', methods=['POST'])
+@limiter.limit("20 per minute")
 def execute_code():
     """Execute code and return the result"""
     if not request.is_json:

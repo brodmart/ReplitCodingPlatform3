@@ -16,4 +16,5 @@ dependencies = [
     "wtforms>=3.2.1",
     "trafilatura>=2.0.0",
     "flask-caching>=2.3.0",
+    "flask-limiter>=3.9.2",
 ]
