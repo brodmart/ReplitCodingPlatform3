@@ -67,35 +67,40 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const languageSelect = document.getElementById('languageSelect');
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
 
-    // Initialize Monaco editor with default configuration
-    const editor = window.monacoEditor.initialize('editor', {
-        value: window.monacoEditor.getDefaultCode(initialLanguage),
-        language: initialLanguage
-    });
-
-    // Language change handler
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function(e) {
-            const language = e.target.value;
-            monaco.editor.setModelLanguage(window.codeEditor.getModel(), language);
-            window.codeEditor.setValue(window.monacoEditor.getDefaultCode(language));
+    try {
+        // Initialize Monaco editor with default configuration
+        const editor = await window.monacoEditor.initialize('editor', {
+            language: initialLanguage,
+            value: window.monacoEditor.getDefaultCode(initialLanguage)
         });
-    }
+        window.codeEditor = editor; // Assign to global variable
 
-    // Run button handler
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
+        // Language change handler
+        if (languageSelect) {
+            languageSelect.addEventListener('change', function(e) {
+                const language = e.target.value;
+                monaco.editor.setModelLanguage(editor.getModel(), language);
+                editor.setValue(window.monacoEditor.getDefaultCode(language));
+            });
+        }
 
-    // Share button handler
-    const shareButton = document.getElementById('shareButton');
-    if (shareButton) {
-        shareButton.addEventListener('click', shareCode);
+        // Run button handler
+        const runButton = document.getElementById('runButton');
+        if (runButton) {
+            runButton.addEventListener('click', executeCode);
+        }
+
+        // Share button handler
+        const shareButton = document.getElementById('shareButton');
+        if (shareButton) {
+            shareButton.addEventListener('click', shareCode);
+        }
+    } catch (error) {
+        console.error('Failed to initialize editor:', error);
     }
 });
 
@@ -104,7 +109,7 @@ async function executeCode() {
     const output = document.getElementById('output');
     const language = document.getElementById('languageSelect').value;
 
-    if (!runButton || !output) return;
+    if (!runButton || !output || !window.codeEditor) return;
 
     try {
         runButton.disabled = true;
@@ -145,10 +150,7 @@ function formatError(error) {
 
 async function shareCode() {
     const shareButton = document.getElementById('shareButton');
-    if (!shareButton) return;
-
-    const code = window.codeEditor.getValue();
-    const language = document.getElementById('languageSelect').value;
+    if (!shareButton || !window.codeEditor) return;
 
     try {
         shareButton.disabled = true;
@@ -160,8 +162,8 @@ async function shareCode() {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                code: code,
-                language: language
+                code: window.codeEditor.getValue(),
+                language: document.getElementById('languageSelect').value
             })
         });
 

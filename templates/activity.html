@@ -241,51 +241,55 @@
 
 {% block extra_scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Monaco editor with activity-specific configuration
-    const editor = window.monacoEditor.initialize('editor', {
-        value: {{ activity.starter_code|tojson }},
-        language: '{{ activity.language }}',
-        readOnly: false
-    });
-
-    // Set up event handlers
-    const resetButton = document.getElementById('resetButton');
-    if (resetButton) {
-        resetButton.addEventListener('click', function() {
-            window.codeEditor.setValue({{ activity.starter_code|tojson }});
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Initialize Monaco editor with activity-specific configuration
+        const editor = await window.monacoEditor.initialize('editor', {
+            value: {{ activity.starter_code|tojson }},
+            language: '{{ activity.language }}',
+            readOnly: false
         });
-    }
 
-    const submitButton = document.getElementById('submitButton');
-    if (submitButton) {
-        submitButton.addEventListener('click', async function() {
-            await handleSubmission(window.codeEditor.getValue(), this);
+        // Set up event handlers
+        const resetButton = document.getElementById('resetButton');
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                editor.setValue({{ activity.starter_code|tojson }});
+            });
+        }
+
+        const submitButton = document.getElementById('submitButton');
+        if (submitButton) {
+            submitButton.addEventListener('click', async function() {
+                await handleSubmission(editor.getValue(), this);
+            });
+        }
+
+        let validationTimeout;
+        editor.onDidChangeModelContent(() => {
+            clearTimeout(validationTimeout);
+            validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
         });
-    }
 
-    let validationTimeout;
-    editor.onDidChangeModelContent(() => {
-        clearTimeout(validationTimeout);
-        validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
-    });
+        window.activityEditor = editor;
 
-    window.activityEditor = editor;
+        const accordionElements = document.querySelectorAll('.accordion-collapse');
+        if (accordionElements.length > 0) {
+            accordionElements.forEach(element => {
+                new bootstrap.Collapse(element, {
+                    toggle: false
+                });
+            });
+        }
 
-    const accordionElements = document.querySelectorAll('.accordion-collapse');
-    if (accordionElements.length > 0) {
-        accordionElements.forEach(element => {
-            new bootstrap.Collapse(element, {
-                toggle: false
+        document.querySelectorAll('.accordion-collapse').forEach(item => {
+            item.addEventListener('shown.bs.collapse', function() {
+                Prism.highlightAll();
             });
         });
+    } catch (error) {
+        console.error('Failed to initialize editor:', error);
     }
-
-    document.querySelectorAll('.accordion-collapse').forEach(item => {
-        item.addEventListener('shown.bs.collapse', function() {
-            Prism.highlightAll();
-        });
-    });
 });
 
 async function handleSubmission(code, submitButton) {
