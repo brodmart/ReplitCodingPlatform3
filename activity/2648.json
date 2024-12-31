@@ -1,4 +1,17 @@
+
 {
+  "title": "Calcul de moyenne",
+  "description": "Écrivez un programme qui lit une série de nombres et calcule leur moyenne",
+  "difficulty": "beginner",
+  "curriculum": "basics",
+  "language": "cpp",
+  "sequence": 2648,
+  "instructions": "Écrivez un programme qui:\n1. Demande à l'utilisateur combien de nombres il veut entrer\n2. Lit ces nombres\n3. Calcule et affiche leur moyenne",
+  "hints": [
+    "Utilisez une boucle pour lire les nombres",
+    "Gardez une variable pour la somme",
+    "Divisez la somme par n pour la moyenne"
+  ],
   "common_errors": [
     "Condition de boucle incorrecte",
     "Incrémentation manquante",
@@ -15,5 +28,12 @@
     "Non-vérification des limites du tableau",
     "Initialisation incorrecte des éléments"
   ],
-  "starter_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    int n;\n    cout << \"Entrez le nombre de valeurs: \";\n    cin >> n;\n    \n    vector<double> nombres;\n    // TODO: Lire les nombres et calculer la moyenne\n    \n    return 0;\n}"
+  "starter_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    int n;\n    cout << \"Entrez le nombre de valeurs: \";\n    cin >> n;\n    \n    vector<double> nombres;\n    // TODO: Lire les nombres et calculer la moyenne\n    \n    return 0;\n}",
+  "solution_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    int n;\n    cout << \"Entrez le nombre de valeurs: \";\n    cin >> n;\n    \n    vector<double> nombres(n);\n    double somme = 0;\n    \n    for(int i = 0; i < n; i++) {\n        cout << \"Entrez le nombre \" << i+1 << \": \";\n        cin >> nombres[i];\n        somme += nombres[i];\n    }\n    \n    double moyenne = somme / n;\n    cout << \"La moyenne est: \" << moyenne << endl;\n    \n    return 0;\n}",
+  "test_cases": [
+    {
+      "input": "3\n1\n2\n3\n",
+      "expected_output": "2"
+    }
+  ]
 }
