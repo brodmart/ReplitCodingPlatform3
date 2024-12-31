@@ -1,23 +1,29 @@
 
-// Monaco Editor initialization
 let editor = null;
 
 require(['vs/editor/editor.main'], function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    const language = editorElement.getAttribute('data-language') || 'cpp';
-    const initialValue = editorElement.getAttribute('data-initial-value') || getDefaultCode(language);
-
+    const languageSelect = document.getElementById('languageSelect');
+    const language = languageSelect ? languageSelect.value : 'cpp';
+    
     editor = monaco.editor.create(editorElement, {
-        value: initialValue,
+        value: getDefaultCode(language),
         language: language,
         theme: 'vs-dark',
         minimap: { enabled: false },
         automaticLayout: true,
         fontSize: 14
     });
-    window.codeEditor = editor;
+
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            const newLanguage = languageSelect.value;
+            monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+            editor.setValue(getDefaultCode(newLanguage));
+        });
+    }
 });
 
 function getDefaultCode(language) {
@@ -67,8 +73,3 @@ async function executeCode() {
         }
     }
 }
-
-// Initialize editor when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    require(['vs/editor/editor.main'], function() {});
-});

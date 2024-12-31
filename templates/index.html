@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 {% extends "base.html" %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/editor/editor.main.css">
 <meta name="csrf-token" content="{{ csrf_token() }}">
+<script>var require = { paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' } };</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 <style>
@@ -34,9 +36,10 @@
                     <div class="d-flex align-items-center">
                         <select id="languageSelect" class="form-select me-2">
                             <option value="cpp">C++</option>
-                            <option value="csharp">C#</option>
+                            <option value="python">Python</option>
+                            <option value="javascript">JavaScript</option>
                         </select>
-                        <button id="runButton" class="btn btn-success me-2">
+                        <button onclick="executeCode()" class="btn btn-success me-2">
                             <i class="bi bi-play-fill"></i> Exécuter
                         </button>
                         {% if current_user.is_authenticated %}
