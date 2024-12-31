@@ -113,13 +113,13 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
 import redis
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
+redis_client = redis.Redis(host='0.0.0.0', port=6379, db=0)
 
 limiter = Limiter(
     app=app,
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="redis://localhost:6379"
+    storage_uri="redis://0.0.0.0:6379"
 )
 
 @app.route('/execute', methods=['POST'])
