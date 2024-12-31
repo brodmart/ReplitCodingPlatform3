@@ -67,8 +67,7 @@ const monacoEditor = {
     getDefaultCode(language) {
         const templates = {
             cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
-            python: 'print("Bonjour le monde!")',
-            javascript: 'console.log("Bonjour le monde!");'
+            csharp: 'using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}'
         };
         return templates[language] || templates.cpp;
     },
@@ -101,10 +100,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 languageSelect.addEventListener('change', () => {
                     const newLanguage = languageSelect.value;
                     monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-                    if (!editor.getValue()) {
+                    if (!editor.getValue().trim()) {
                         editor.setValue(monacoEditor.getDefaultCode(newLanguage));
                     }
                 });
+            }
+
+            const runButton = document.getElementById('runButton');
+            if (runButton) {
+                runButton.addEventListener('click', executeCode);
             }
         }
     } catch (error) {
@@ -113,13 +117,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function executeCode() {
-    if (!window.codeEditor) {
+    const editor = window.codeEditor;
+    if (!editor) {
         console.error('Editor not initialized');
         return;
     }
 
     const output = document.getElementById('output');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const languageSelect = document.getElementById('languageSelect');
     
     if (!csrfToken) {
         if (output) output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
@@ -134,8 +140,8 @@ async function executeCode() {
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                code: window.codeEditor.getValue(),
-                language: document.getElementById('editor').getAttribute('data-language') || 'cpp'
+                code: editor.getValue(),
+                language: languageSelect ? languageSelect.value : 'cpp'
             })
         });
 
