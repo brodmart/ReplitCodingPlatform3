@@ -98,6 +98,30 @@
     border-left: 4px solid #dc3545;
     border-radius: 0.25rem;
 }
+
+.section-title {
+    color: #0d6efd;
+    margin: 1.5rem 0 1rem 0;
+    font-weight: 600;
+}
+
+.incorrect-examples {
+    margin-top: 1.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    background-color: rgba(220, 53, 69, 0.05);
+}
+
+.accordion-button {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+.accordion-button:not(.collapsed) {
+    background-color: #e9ecef;
+    color: #0d6efd;
+}
 </style>
 {% endblock %}
 
@@ -138,7 +162,7 @@
                     {% endif %}
 
                     {% if activity.common_errors %}
-                    <h5 class="mt-4">Erreurs Courantes à Éviter</h5>
+                    <h5 class="section-title">Erreurs Courantes à Éviter</h5>
                     <ul class="list-group">
                         {% for error in activity.common_errors %}
                         <li class="list-group-item list-group-item-danger">
@@ -150,28 +174,34 @@
                     {% endif %}
 
                     {% if activity.incorrect_examples %}
-                    <h5 class="mt-4">Exemples d'Erreurs Communes</h5>
-                    <div class="accordion" id="incorrectExamples">
-                        {% for example in activity.incorrect_examples %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example{{ loop.index }}">
-                                    Exemple {{ loop.index }}
-                                </button>
-                            </h2>
-                            <div id="example{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#incorrectExamples">
-                                <div class="accordion-body">
-                                    <div class="alert alert-danger">
-                                        <h6 class="alert-heading">Code incorrect :</h6>
-                                        <pre><code class="language-{{ activity.language }}">{{ example.code }}</code></pre>
-                                        <div class="example-explanation">
-                                            <strong>Explication :</strong> {{ example.explanation }}
+                    <div class="incorrect-examples">
+                        <h5 class="section-title">
+                            <i class="bi bi-code-slash me-2"></i>
+                            Exemples d'Erreurs Communes
+                        </h5>
+                        <div class="accordion" id="incorrectExamples">
+                            {% for example in activity.incorrect_examples %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#example{{ loop.index }}">
+                                        <i class="bi bi-x-circle me-2 text-danger"></i>
+                                        Exemple d'erreur {{ loop.index }}
+                                    </button>
+                                </h2>
+                                <div id="example{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#incorrectExamples">
+                                    <div class="accordion-body">
+                                        <div class="alert alert-danger">
+                                            <h6 class="alert-heading">Code incorrect :</h6>
+                                            <pre><code class="language-{{ activity.language }}">{{ example.code }}</code></pre>
+                                            <div class="example-explanation">
+                                                <strong>Explication :</strong> {{ example.explanation }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
                     {% endif %}
 
