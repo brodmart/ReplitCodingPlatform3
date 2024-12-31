@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Oublier de vérifier la validité des entrées",
+    "Mauvaise utilisation de cin",
+    "Ne pas vider le buffer après la saisie",
+    "Confusion entre les types de données",
+    "Oublier d'inclure iostream",
+    "Mauvaise gestion des espaces dans les entrées",
+    "Ne pas gérer les erreurs de saisie"
+  ]
+}
