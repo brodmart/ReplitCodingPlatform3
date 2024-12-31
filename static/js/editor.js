@@ -36,19 +36,27 @@ const monacoEditor = {
                     const script = document.createElement('script');
                     script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
                     script.onload = () => {
-                        require.config({
-                            paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-                        });
-                        require(['vs/editor/editor.main'], () => {
+                        if (!window.monaco) {  // Only configure if Monaco isn't already loaded
+                            require.config({
+                                paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                            });
+                            require(['vs/editor/editor.main'], () => {
+                                resolve(window.monaco);
+                            });
+                        } else {
                             resolve(window.monaco);
-                        });
+                        }
                     };
                     document.head.appendChild(script);
                 } else {
-                    // If require is already defined, just load Monaco
-                    require(['vs/editor/editor.main'], () => {
+                    // If require is already defined, check if Monaco is already loaded
+                    if (window.monaco) {
                         resolve(window.monaco);
-                    });
+                    } else {
+                        require(['vs/editor/editor.main'], () => {
+                            resolve(window.monaco);
+                        });
+                    }
                 }
             });
         }
