@@ -1,10 +1,9 @@
-
 {
   "common_errors": [
     "Oublier le point-virgule à la fin des instructions",
     "Mauvaise utilisation des cin et cout",
     "Oublier d'inclure iostream",
-    "Oublier using namespace std",
+    "Oublier using namespace std en haut du fichier",
     "Confusion entre endl et '\\n'",
     "Mauvaise capture des entrées utilisateur",
     "Oublier de vérifier la validité des entrées"
