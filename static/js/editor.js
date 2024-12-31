@@ -1,17 +1,15 @@
 
 let editor = null;
+let isEditorInitialized = false;
 
-// Wait for Monaco to be loaded
-window.addEventListener('load', function() {
-    require.config({
-        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-    });
+function initializeEditor() {
+    if (isEditorInitialized) return;
+    
+    const editorElement = document.getElementById('editor');
+    if (!editorElement) return;
 
-    require(['vs/editor/editor.main'], function() {
-        const editorElement = document.getElementById('editor');
-        if (!editorElement) return;
-
-        try {
+    try {
+        require(['vs/editor/editor.main'], function() {
             editor = monaco.editor.create(editorElement, {
                 value: '// Your code here',
                 language: 'cpp',
@@ -21,7 +19,6 @@ window.addEventListener('load', function() {
                 fontSize: 14
             });
 
-            // Set up language change handler
             const languageSelect = document.getElementById('languageSelect');
             if (languageSelect) {
                 languageSelect.addEventListener('change', function() {
@@ -31,16 +28,17 @@ window.addEventListener('load', function() {
                 });
             }
 
-            // Set up run button handler
             const runButton = document.getElementById('runButton');
             if (runButton) {
                 runButton.addEventListener('click', executeCode);
             }
-        } catch (error) {
-            console.error('Editor initialization failed:', error);
-        }
-    });
-});
+
+            isEditorInitialized = true;
+        });
+    } catch (error) {
+        console.error('Editor initialization failed:', error);
+    }
+}
 
 async function executeCode() {
     if (!editor) {
@@ -49,9 +47,9 @@ async function executeCode() {
     }
 
     const output = document.getElementById('output');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const languageSelect = document.getElementById('languageSelect');
-    
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
     if (!csrfToken) {
         console.error('CSRF token not available');
         return;
@@ -81,3 +79,6 @@ async function executeCode() {
         console.error('Code execution failed:', error);
     }
 }
+
+// Initialize editor when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeEditor);
