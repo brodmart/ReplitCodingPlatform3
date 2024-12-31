@@ -65,6 +65,21 @@ def view_activity(activity_id):
     """View a specific coding activity"""
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
+    if activity.sequence == 2648:
+        activity.starter_code = """#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cout << "Entrez le nombre de valeurs: ";
+    cin >> n;
+    
+    vector<double> nombres;
+    // TODO: Lire les nombres et calculer la moyenne
+    
+    return 0;
+}"""
 
         # Add debug logging for initial data
         logging.debug(f"Activity {activity_id} data:")
@@ -152,6 +167,21 @@ def submit_activity(activity_id):
         return redirect(url_for('activities.view_activity', activity_id=activity_id))
     """Submit a solution for a coding activity"""
     activity = CodingActivity.query.get_or_404(activity_id)
+    if activity.sequence == 2648:
+        activity.starter_code = """#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    int n;
+    cout << "Entrez le nombre de valeurs: ";
+    cin >> n;
+    
+    vector<double> nombres;
+    // TODO: Lire les nombres et calculer la moyenne
+    
+    return 0;
+}"""
     code = request.json.get('code', '')
 
     if not code:
