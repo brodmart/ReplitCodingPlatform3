@@ -6,6 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import Student
 from forms import LoginForm, RegisterForm
 from database import db
+from app import limiter
 
 auth = Blueprint('auth', __name__)
 
