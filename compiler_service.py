@@ -39,7 +39,11 @@ def format_compiler_error(error_text):
         'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
     }
 
+import resource
 def compile_and_run(code, language, input_data=None):
+    def limit_resources():
+        resource.setrlimit(resource.RLIMIT_CPU, (1, 1))
+        resource.setrlimit(resource.RLIMIT_AS, (500 * 1024 * 1024, 500 * 1024 * 1024))
     with tempfile.TemporaryDirectory() as temp_dir:
         if language == 'cpp':
             return _compile_and_run_cpp(code, temp_dir, input_data)
@@ -77,7 +81,8 @@ def _compile_and_run_cpp(code, temp_dir, input_data=None):
             input=input_data,
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=3,
+    preexec_fn=os.setsid
         )
 
         return {
@@ -130,7 +135,8 @@ def _compile_and_run_csharp(code, temp_dir, input_data=None):
             input=input_data,
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=3,
+    preexec_fn=os.setsid
         )
 
         return {

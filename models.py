@@ -5,10 +5,13 @@ from flask_login import UserMixin
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
+    __table_args__ = (
+        db.Index('idx_student_username_email', 'username', 'email'),
+    )
     # Basic user information
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    username = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256))
     
     # Student progress tracking

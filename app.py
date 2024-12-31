@@ -9,6 +9,15 @@ from models import Student, CodingActivity, SharedCode
 from routes import blueprints
 from forms import LoginForm, RegisterForm
 from compiler_service import compile_and_run
+
+from flask_caching import Cache
+
+cache = Cache(config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
+cache.init_app(app)
+
 from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging
@@ -19,8 +28,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key_123")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 app.config['SESSION_COOKIE_SECURE'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = 1800
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max-size
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes session timeout
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
