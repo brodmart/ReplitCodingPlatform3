@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr" data-bs-theme="dark">
 <head>
@@ -131,11 +132,23 @@
     <!-- Error boundary script -->
     <script src="{{ url_for('static', filename='js/error-boundary.js') }}"></script>
 
-    <!-- Monaco Editor -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
-    
     <!-- Session handler script -->
     <script src="{{ url_for('static', filename='js/session-handler.js') }}"></script>
+
+    <!-- Monaco Editor -->
+    <script>
+        window.MonacoEnvironment = {
+            getWorkerUrl: function(workerId, label) {
+                return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+                    self.MonacoEnvironment = {
+                        baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
+                    };
+                    importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
+                )}`;
+            }
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
 
     <!-- Editor script -->
     <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
