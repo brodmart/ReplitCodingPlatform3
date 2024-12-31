@@ -1,20 +1,31 @@
 
+// Global editor instance
 let editor = null;
+let initialized = false;
 
+// Configure Monaco loader
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize editor once
+function initEditor() {
+    if (initialized) return;
+    
     const editorElement = document.getElementById('editor');
-    if (!editorElement || editor) return;
+    if (!editorElement) return;
 
-    require(['vs/editor/editor.main'], () => {
+    require(['vs/editor/editor.main'], function() {
+        if (editor) {
+            editor.dispose();
+        }
+
         editor = monaco.editor.create(editorElement, {
             value: '// Your code here',
             language: 'cpp',
             theme: 'vs-dark',
             minimap: { enabled: false },
             automaticLayout: true,
-            scrollBeyondLastLine: false
+            scrollBeyondLastLine: false,
+            fontSize: 14
         });
 
         const languageSelect = document.getElementById('languageSelect');
@@ -52,12 +63,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-    });
-});
 
+        initialized = true;
+    });
+}
+
+// Initialize editor when DOM is loaded
+document.addEventListener('DOMContentLoaded', initEditor);
+
+// Cleanup on page unload
 window.addEventListener('beforeunload', () => {
     if (editor) {
         editor.dispose();
         editor = null;
+        initialized = false;
     }
 });
