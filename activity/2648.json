@@ -1,4 +1,3 @@
-
 {
   "common_errors": [
     "Condition de boucle incorrecte",
@@ -15,5 +14,6 @@
     "Mauvaise utilisation de sizeof avec les tableaux",
     "Non-vérification des limites du tableau",
     "Initialisation incorrecte des éléments"
-  ]
+  ],
+  "starter_code": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    int n;\n    cout << \"Entrez le nombre de valeurs: \";\n    cin >> n;\n    \n    vector<double> nombres;\n    // TODO: Lire les nombres et calculer la moyenne\n    \n    return 0;\n}"
 }
