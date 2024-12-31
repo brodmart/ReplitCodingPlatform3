@@ -7,7 +7,7 @@
     "This mal capturé",
     "Lifetime des variables",
     "Return type déduit incorrect",
-    "Mutable mal utilisé"
+    "Mutable mal utilisé",
     "Await manquant",
     "Deadlock dans UI",
     "ConfigureAwait mal utilisé",

@@ -7,7 +7,7 @@
     "Copy elision manquée",
     "Std::forward mal utilisé",
     "Return value optimization",
-    "Temporary object lifetime"
+    "Temporary object lifetime",
     "Delete mal apparié avec new",
     "Smart pointer mal choisi",
     "Cycle de référence",

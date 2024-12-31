@@ -7,7 +7,7 @@
     "Thread non synchronisé",
     "Condition variable mal utilisée",
     "Atomic mal compris",
-    "Fuite de thread"
+    "Fuite de thread",
     "Itérateur invalidé",
     "Mauvais choix de conteneur",
     "Algorithme STL mal utilisé",
