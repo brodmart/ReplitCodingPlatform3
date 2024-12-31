@@ -355,12 +355,16 @@ async function initializeEditor() {
 
         // Initialize Monaco editor
         const editorElement = document.getElementById('editor');
+        const rawValue = editorElement.getAttribute('data-initial-value');
         let initialValue = '';
-        try {
-            initialValue = JSON.parse(editorElement.getAttribute('data-initial-value') || '""');
-        } catch (e) {
-            console.error('Error parsing initial value:', e);
-            initialValue = editorElement.getAttribute('data-initial-value') || '';
+        if (rawValue) {
+            try {
+                // Remove any escaped quotes and then parse
+                initialValue = JSON.parse(rawValue.replace(/\\"/g, '"'));
+            } catch (e) {
+                console.error('Error parsing initial value:', e);
+                initialValue = rawValue;
+            }
         }
         const editorLanguage = editorElement.getAttribute('data-language');
         
