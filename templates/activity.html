@@ -250,6 +250,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             readOnly: false
         });
 
+        // Store editor instance globally for access in other functions
+        window.activityEditor = editor;
+
         // Set up event handlers
         const resetButton = document.getElementById('resetButton');
         if (resetButton) {
@@ -270,8 +273,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             clearTimeout(validationTimeout);
             validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
         });
-
-        window.activityEditor = editor;
     } catch (error) {
         console.error('Failed to initialize editor:', error);
     }
@@ -285,7 +286,7 @@ async function handleSubmission(code, submitButton) {
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Soumission en cours...';
 
-        const response = await fetch("{{ url_for('submit_activity', activity_id=activity.id) }}", {
+        const response = await fetch("{{ url_for('activities.submit_activity', activity_id=activity.id) }}", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -300,7 +301,7 @@ async function handleSubmission(code, submitButton) {
         if (!contentType || !contentType.includes("application/json")) {
             // If not JSON, likely redirected to login page
             if (response.redirected || response.status === 302) {
-                window.location.href = response.url; // Redirect to login page
+                window.location.href = response.url;
                 return;
             }
             throw new Error('Server error: Invalid response format');
@@ -321,35 +322,11 @@ async function handleSubmission(code, submitButton) {
         testResults.innerHTML = `<div class="alert alert-danger">
             <strong>Erreur:</strong><br>
             <pre class="mb-0">${error.message}</pre>
-            ${!{{ current_user.is_authenticated|tojson }} ? '<hr><p>Veuillez vous <a href="{{ url_for("login") }}">connecter</a> pour soumettre votre code.</p>' : ''}
+            ${!{{ current_user.is_authenticated|tojson }} ? '<hr><p>Veuillez vous <a href="{{ url_for("auth.login") }}">connecter</a> pour soumettre votre code.</p>' : ''}
         </div>`;
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="bi bi-play-fill"></i> Soumettre';
-    }
-}
-
-function displayTestResults(result, testResults) {
-    let html = '<div class="list-group">';
-    result.test_results.forEach((test, index) => {
-        html += `
-            <div class="list-group-item ${test.passed ? 'list-group-item-success' : 'list-group-item-danger'}">
-                <h6>Test ${index + 1}</h6>
-                <div><strong>Entrée:</strong> ${test.input || '(aucune)'}</div>
-                <div><strong>Attendu:</strong> ${test.expected}</div>
-                <div><strong>Obtenu:</strong> ${test.actual || '(pas de sortie)'}</div>
-                ${test.error ? `<div class="text-danger"><strong>Erreur:</strong> ${test.error}</div>` : ''}
-            </div>
-        `;
-    });
-    html += '</div>';
-    testResults.innerHTML = html;
-}
-
-function toggleSyntaxHelper() {
-    const helper = document.getElementById('syntaxHelper');
-    if (helper) {
-        helper.classList.toggle('show');
     }
 }
 
@@ -398,6 +375,30 @@ async function validateCode(code) {
                 </div>
             `;
         }
+    }
+}
+
+function displayTestResults(result, testResults) {
+    let html = '<div class="list-group">';
+    result.test_results.forEach((test, index) => {
+        html += `
+            <div class="list-group-item ${test.passed ? 'list-group-item-success' : 'list-group-item-danger'}">
+                <h6>Test ${index + 1}</h6>
+                <div><strong>Entrée:</strong> ${test.input || '(aucune)'}</div>
+                <div><strong>Attendu:</strong> ${test.expected}</div>
+                <div><strong>Obtenu:</strong> ${test.actual || '(pas de sortie)'}</div>
+                ${test.error ? `<div class="text-danger"><strong>Erreur:</strong> ${test.error}</div>` : ''}
+            </div>
+        `;
+    });
+    html += '</div>';
+    testResults.innerHTML = html;
+}
+
+function toggleSyntaxHelper() {
+    const helper = document.getElementById('syntaxHelper');
+    if (helper) {
+        helper.classList.toggle('show');
     }
 }
 </script>
