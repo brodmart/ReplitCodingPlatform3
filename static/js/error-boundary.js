@@ -31,15 +31,24 @@ class ErrorBoundary {
             });
         });
 
-        // Handle network errors
+        // Handle network errors with improved resource loading detection
         window.addEventListener('error', (event) => {
             if (event.target && (event.target.tagName === 'SCRIPT' || event.target.tagName === 'LINK')) {
+                const resourceType = event.target.tagName === 'SCRIPT' ? 'script' : 'stylesheet';
+                const resourceUrl = event.target.src || event.target.href;
+
                 this.handleError({
                     type: 'resource_error',
-                    message: `Failed to load resource: ${event.target.src || event.target.href}`,
-                    source: event.target.src || event.target.href,
-                    timestamp: new Date().toISOString()
+                    message: `Failed to load ${resourceType}: ${resourceUrl}`,
+                    source: resourceUrl,
+                    timestamp: new Date().toISOString(),
+                    target: event.target.tagName
                 });
+
+                // Attempt to recover from Bootstrap resource failures
+                if (resourceUrl.includes('bootstrap')) {
+                    window.dispatchEvent(new CustomEvent('bootstrap:load-error'));
+                }
             }
         }, true);
 
@@ -108,7 +117,8 @@ class ErrorBoundary {
     showErrorMessage(error) {
         const errorContainer = document.createElement('div');
         errorContainer.className = 'error-boundary-alert';
-        errorContainer.innerHTML = `
+
+        let errorContent = `
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <strong>${this.getErrorTitle(error)}</strong>
                 <p>${this.formatErrorMessage(error)}</p>
@@ -117,6 +127,7 @@ class ErrorBoundary {
             </div>
         `;
 
+        errorContainer.innerHTML = errorContent;
         document.body.appendChild(errorContainer);
 
         // Auto-remove after 5 seconds unless it's critical
@@ -145,7 +156,7 @@ class ErrorBoundary {
     formatErrorMessage(error) {
         switch (error.type) {
             case 'resource_error':
-                return 'Impossible de charger une ressource nécessaire. Veuillez rafraîchir la page.';
+                return 'Impossible de charger une ressource nécessaire. Tentative de récupération en cours...';
             case 'editor_error':
                 return 'L\'éditeur a rencontré une erreur. Vos modifications ont été sauvegardées.';
             case 'unhandled_rejection':
