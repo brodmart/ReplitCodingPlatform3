@@ -1,76 +1,69 @@
 
-let editor = null;
-
-require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-
-require(['vs/editor/editor.main'], function() {
+document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    const languageSelect = document.getElementById('languageSelect');
-    const language = languageSelect ? languageSelect.value : 'cpp';
-    
-    editor = monaco.editor.create(editorElement, {
-        value: getDefaultCode(language),
-        language: language,
-        theme: 'vs-dark',
-        minimap: { enabled: false },
-        automaticLayout: true,
-        fontSize: 14
-    });
+    const language = editorElement.dataset.language || 'cpp';
+    const initialValue = editorElement.dataset.initialValue || '';
 
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const newLanguage = languageSelect.value;
-            monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-            editor.setValue(getDefaultCode(newLanguage));
+    require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
+    window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+
+    let proxy = URL.createObjectURL(new Blob([`
+        self.MonacoEnvironment = {
+            baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
+        };
+        importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
+    `], { type: 'text/javascript' }));
+
+    require(['vs/editor/editor.main'], function() {
+        window.editor = monaco.editor.create(editorElement, {
+            value: initialValue,
+            language: language,
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            automaticLayout: true
         });
-    }
+    });
 });
 
-function getDefaultCode(language) {
-    const templates = {
-        cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello World!" << endl;\n    return 0;\n}',
-        csharp: 'using System;\n\nclass Program {\n    static void Main(string[] args) {\n        Console.WriteLine("Hello World!");\n    }\n}'
-    };
-    return templates[language] || templates.cpp;
-}
+function executeCode() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const outputDiv = document.getElementById('output');
+    const code = window.editor.getValue();
 
-async function executeCode() {
-    if (!editor) {
-        console.error('Editor not initialized');
-        return;
-    }
+    loadingOverlay.style.display = 'flex';
+    outputDiv.innerHTML = '';
 
-    const output = document.getElementById('output');
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    const languageSelect = document.getElementById('languageSelect');
-    
-    if (!csrfToken) {
-        if (output) output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
-        return;
-    }
-
-    try {
-        const response = await fetch('/execute', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            },
-            body: JSON.stringify({
-                code: editor.getValue(),
-                language: languageSelect ? languageSelect.value : 'cpp'
-            })
-        });
-
-        const result = await response.json();
-        if (output) {
-            output.innerHTML = `<pre class="${result.success ? 'success' : 'error'}">${result.output || result.error}</pre>`;
+    fetch(window.location.pathname + '/submit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: code })
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingOverlay.style.display = 'none';
+        let output = '<div class="test-results">';
+        
+        if (data.test_results) {
+            data.test_results.forEach((result, index) => {
+                output += `<div class="test-case ${result.passed ? 'passed' : 'failed'}">`;
+                output += `<h6>Test Case ${index + 1}</h6>`;
+                if (result.input) output += `<p>Input: ${result.input}</p>`;
+                output += `<p>Expected: ${result.expected}</p>`;
+                output += `<p>Actual: ${result.actual || 'No output'}</p>`;
+                if (result.error) output += `<p class="error">Error: ${result.error}</p>`;
+                output += '</div>';
+            });
         }
-    } catch (error) {
-        if (output) {
-            output.innerHTML = `<pre class="error">Erreur d'exécution: ${error.message}</pre>`;
-        }
-    }
+        
+        output += '</div>';
+        outputDiv.innerHTML = output;
+    })
+    .catch(error => {
+        loadingOverlay.style.display = 'none';
+        outputDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    });
 }
