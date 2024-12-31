@@ -350,7 +350,7 @@ async function initializeEditor() {
 
     try {
         // Wait for Monaco to be loaded
-        await loadMonaco();
+        await window.monacoLoaded;
 
         const editorElement = document.getElementById('editor');
         const code = {{ activity.starter_code|tojson|safe }};
