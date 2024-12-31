@@ -723,7 +723,7 @@ Syntaxe nécessaire:
                 'sequence': 9,
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\    }\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n                std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\    }\n    return 0;\n}',
                 'test_cases': [
                     {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                     {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
@@ -1233,16 +1233,21 @@ def logout():
 @app.route('/validate_code', methods=['POST'])
 def validate_code():
     """
-    Validate code syntax in real-time and provide bilingual feedback
+    Validate code syntax in real-time and provide bilingual feedback and syntax help
     """
     code = request.json.get('code', '')
     language = request.json.get('language', '')
     activity_id = request.json.get('activity_id')
 
     if not code or not language:
-        return jsonify({'errors': []})
+        return jsonify({'errors': [], 'syntax_help': ''})
+
+    activity = CodingActivity.query.get(activity_id)
+    if not activity:
+        return jsonify({'errors': [], 'syntax_help': ''})
 
     errors = []
+    syntax_help = ""
 
     # Basic syntax validation for C++
     if language == 'cpp':
@@ -1274,6 +1279,69 @@ def validate_code():
                 'message_en': 'Check your braces - some are missing'
             })
 
+        # Provide specific syntax help based on activity
+        if activity.title == "Bonjour le monde!":
+            syntax_help = """
+<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Inclusion de bibliothèque:
+   #include &lt;iostream&gt;    // Pour l'entrée/sortie
+
+2. Fonction principale:
+   int main() {
+       // Votre code ici
+       return 0;
+   }
+
+3. Afficher du texte:
+   std::cout << "votre texte" << std::endl;
+
+4. Points importants:
+   - N'oubliez pas le point-virgule (;) après chaque instruction
+   - Les guillemets ("") sont nécessaires pour le texte
+   - std::endl ajoute une nouvelle ligne
+</pre>
+"""
+        elif activity.title == "Saisie Utilisateur":
+            syntax_help = """
+<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Inclusions:
+   #include &lt;iostream&gt;    // Pour l'entrée/sortie
+   #include &lt;string&gt;     // Pour les chaînes de caractères
+
+2. Déclarer une variable texte:
+   std::string nom;
+
+3. Lire une ligne de texte:
+   std::getline(std::cin, nom);
+
+4. Afficher avec une variable:
+   std::cout << "Bonjour, " << nom << "!" << std::endl;
+</pre>
+"""
+        elif activity.title == "Calculatrice Simple":
+            syntax_help = """
+<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer des variables numériques:
+   int nombre1, nombre2;
+
+2. Lire un nombre:
+   std::cin >> nombre1;
+
+3. Opérations mathématiques:
+   + : addition       (a + b)
+   - : soustraction   (a - b)
+   * : multiplication (a * b)
+   / : division       (a / b)
+
+4. Afficher le résultat:
+   std::cout << "Résultat: " << (nombre1 + nombre2);
+</pre>
+"""
+
     return jsonify({
-        'errors': errors
+        'errors': errors,
+        'syntax_help': syntax_help
     })

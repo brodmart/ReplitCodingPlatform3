@@ -31,6 +31,7 @@
     border-color: #28a745;
     background-color: #d4edda;
 }
+
 .example-code {
     background-color: #2d2d2d;
     color: #ffffff;
@@ -57,6 +58,18 @@
     border-left: 4px solid #0d6efd;
     padding: 10px;
     margin-bottom: 20px;
+}
+
+.syntax-content {
+    font-family: monospace;
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.syntax-content pre {
+    margin: 0;
+    white-space: pre-wrap;
 }
 </style>
 {% endblock %}
@@ -199,6 +212,13 @@ require(['vs/editor/editor.main'], function() {
         automaticLayout: true
     });
 
+    // Real-time syntax validation
+    let validationTimeout;
+    editor.onKeyUp(() => {
+        clearTimeout(validationTimeout);
+        validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
+    });
+
     document.getElementById('resetButton').addEventListener('click', function() {
         editor.setValue({{ activity.starter_code|tojson }});
     });
@@ -260,9 +280,13 @@ function copyExampleCode() {
         }, 2000);
     });
 }
+
 function toggleSyntaxHelper() {
     const helper = document.getElementById('syntaxHelper');
     helper.classList.toggle('show');
+    if (helper.classList.contains('show')) {
+        validateCode(document.querySelector('#editor').getValue());
+    }
 }
 
 async function validateCode(code) {
@@ -281,6 +305,12 @@ async function validateCode(code) {
 
         const result = await response.json();
         const feedbackDiv = document.getElementById('realTimeFeedback');
+        const syntaxContent = document.querySelector('.syntax-content');
+
+        // Update syntax helper content
+        if (result.syntax_help) {
+            syntaxContent.innerHTML = result.syntax_help;
+        }
 
         if (result.errors.length > 0) {
             feedbackDiv.innerHTML = `
