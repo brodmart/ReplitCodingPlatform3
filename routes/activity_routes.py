@@ -62,24 +62,35 @@ def list_activities():
 @activities.route('/activity/<int:activity_id>')
 def view_activity(activity_id):
     """View a specific coding activity"""
-    activity = CodingActivity.query.get_or_404(activity_id)
+    try:
+        activity = CodingActivity.query.get_or_404(activity_id)
 
-    # Get student's progress for this activity
-    progress = None
-    if current_user.is_authenticated:
-        progress = StudentProgress.query.filter_by(
-            student_id=current_user.id,
-            activity_id=activity_id
-        ).first()
-
-        # Create progress entry if it doesn't exist
-        if not progress:
-            progress = StudentProgress(
+        # Get student's progress for this activity
+        progress = None
+        if current_user.is_authenticated:
+            progress = StudentProgress.query.filter_by(
                 student_id=current_user.id,
                 activity_id=activity_id
-            )
-            db.session.add(progress)
-            db.session.commit()
+            ).first()
+
+            # Create progress entry if it doesn't exist
+            if not progress:
+                progress = StudentProgress(
+                    student_id=current_user.id,
+                    activity_id=activity_id
+                )
+                db.session.add(progress)
+                db.session.commit()
+
+        return render_template(
+            'activity.html',
+            activity=activity,
+            progress=progress
+        )
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Error in view_activity: {str(e)}")
+        return render_template('errors/500.html'), 500
 
     return render_template(
         'activity.html',
