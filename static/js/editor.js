@@ -266,7 +266,15 @@ async function executeCode() {
     const output = document.getElementById('output');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const csrfTokenMeta = document.querySelector('meta[name="csrf-token"]');
-    const csrfToken = csrfTokenMeta ? csrfTokenMeta.getAttribute('content') : '';
+    if (!csrfTokenMeta) {
+        console.error('CSRF token meta tag not found');
+        return;
+    }
+    const csrfToken = csrfTokenMeta.getAttribute('content');
+    if (!csrfToken) {
+        console.error('CSRF token is empty');
+        return;
+    }
     const currentLanguage = document.getElementById('languageSelect').value;
 
     if (!window.codeEditor) {
