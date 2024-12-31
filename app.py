@@ -396,9 +396,12 @@ def view_activity(activity_id):
         try:
             if isinstance(activity.incorrect_examples, str):
                 activity.incorrect_examples = json.loads(activity.incorrect_examples)
+            app.logger.debug(f"Loaded incorrect examples for activity {activity_id}: {activity.incorrect_examples}")
         except json.JSONDecodeError:
             app.logger.error(f"Failed to parse incorrect_examples for activity {activity_id}")
             activity.incorrect_examples = []
+    else:
+        app.logger.debug(f"No incorrect examples found for activity {activity_id}")
 
     return render_template(
         'activity.html',
@@ -734,20 +737,20 @@ Points à noter:
                 'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
 <pre>
 1. Boucles imbriquées:
-   for (int i = 1; i <= n; i++) {
-       for (int j = 1; j <= n; j++) {
-           // instructions à répéter
-       }
-   }
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= n; j++) {
+            // instructions à répéter
+        }
+    }
 
 2. Points importants:
-   - La boucle interne s'exécute entièrement pour chaque itération de la boucle externe
-   - Utilisez des variables de boucle appropriées pour l'indexation
-   - Assurez-vous que les boucles imbriquées sont correctement imbriquées
+    - La boucle interne s'exécute entièrement pour chaque itération de la boucle externe
+    - Utilisez des variables de boucle appropriées pour l'indexation
+    - Assurez-vous que les boucles imbriquées sont correctement imbriquées
 </pre>''',
                 'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= n; j++) {\n            std::cout << i * j << "\\t";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
+                'solution_code': '''#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= n; j++) {\n            std::cout << i * j << "\\t";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}''',
                 'test_cases': [
                     {'input': '3\n', 'output': 'Entrez un nombre: 1\t2\t3\t\n2\t4\t6\t\n3\t6\t9\t\n'}
                 ],
@@ -763,7 +766,8 @@ Points à noter:
                     'Ne pas gérer correctement les sauts de ligne'
                 ],
                 'points': 35,
-                'incorrect_examples': '[{"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \"\\t\"; } }", "error": "Multiplication incorrecte"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }", "error": "Sauts de ligne manquants"}]'
+                'incorrect_examples': '[{"code": "#include <iostream>\\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <=3; j++) std::cout << i + j << \\"\\\\t\\"; } }", "error": "Multiplication incorrecte"}, {"code": "#include <iostream>\\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) { std::cout << i * j; } } }", "error": "Sauts de ligne manquants"}]'
+
             },
             {
                 'title': 'Calcul de Moyenne',
@@ -943,7 +947,7 @@ Points à noter:
                     'Imbrication incorrecte des boucles'
                 ],
                 'points': 55,
-                'incorrect_examples': '[{"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) std::cout << \"*\"; } }", "error": "Triangle incorrect"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) std::cout << \"*\"; } }", "error": "Triangle incorrect"}]'
+                'incorrect_examples': '[{"code": "#include <iostream>\nint main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) std::cout << \"*\"; } }", "error": "Triangle incorrect"}, {"code": "#include <iostream>\nint main() { for (int i = 1; i<= 3; i++) { for (int j = 1; j <= 3; j++) std::cout << \"*\"; } }", "error": "Triangle incorrect"}]'
             },
             # ICS3U C# Activities - Continue with the next part
             {
@@ -1250,7 +1254,7 @@ Points à noter:
                     'Imbrication incorrecte des boucles'
                 ],
                 'points': 55,
-                'incorrect_examples': '[{"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) Console.Write(\"*\"); } } }", "error": "Triangle incorrect"}, {"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= 3; j++) Console.Write(\"*\"); } } }", "error": "Triangle incorrect"}]'
+                'incorrect_examples': '[{"code": "using System; class Programme { static void Main() { for (int i = 1; i <= 3; i++) { for (int j = 1; j <= i; j++) Console.Write(\"*\"); } } }", "error": "Triangle incorrect"}, {"code": "using System; class Programme { static void Main() { for (int i = 1; i<= 3; i++) { for (int j = 1; j <= 3; j++) Console.Write(\"*\"); } } }", "error": "Triangle incorrect"}]'
             },
             {
                 'title': 'Gestion des Étudiants',
