@@ -169,7 +169,6 @@
                         </div>
                         {% endif %}
 
-                        {% if activity.common_errors %}
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="errorsHeader">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#errorsCollapse" aria-expanded="false" aria-controls="errorsCollapse">
@@ -180,17 +179,22 @@
                                 <div class="accordion-body">
                                     <div class="common-errors-section">
                                         <ul class="list-unstyled mb-0">
-                                        {% for error in activity.common_errors %}
+                                        {% if activity.common_errors %}
+                                            {% for error in activity.common_errors %}
                                             <li class="mb-2">
                                                 <i class="bi bi-x-circle text-danger me-2"></i> {{ error }}
                                             </li>
-                                        {% endfor %}
+                                            {% endfor %}
+                                        {% else %}
+                                            <li class="mb-2 text-muted">
+                                                <i class="bi bi-info-circle me-2"></i> Pas d'erreurs communes listées pour cette activité.
+                                            </li>
+                                        {% endif %}
                                         </ul>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        {% endif %}
                     </div>
 
                     <div class="row g-3">
