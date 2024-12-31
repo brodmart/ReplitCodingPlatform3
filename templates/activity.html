@@ -71,7 +71,15 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    .incorrect-examples {
+    .hints-section {
+        margin-top: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background-color: rgba(25, 135, 84, 0.05);
+    }
+
+    .common-errors-section {
         margin-top: 1.5rem;
         border: 1px solid #dee2e6;
         border-radius: 0.5rem;
@@ -134,6 +142,43 @@
                 </div>
                 <div class="card-body">
                     <p class="mb-3">{{ activity.description }}</p>
+
+                    <div class="accordion mb-4" id="activityAccordion">
+                        {% if activity.hints %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hintsCollapse">
+                                    <i class="bi bi-lightbulb me-2"></i> Indices
+                                </button>
+                            </h2>
+                            <div id="hintsCollapse" class="accordion-collapse collapse" data-bs-parent="#activityAccordion">
+                                <div class="accordion-body">
+                                    <div class="hints-section">
+                                        {{ activity.hints|safe }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if activity.common_errors %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#errorsCollapse">
+                                    <i class="bi bi-exclamation-triangle me-2"></i> Erreurs Communes
+                                </button>
+                            </h2>
+                            <div id="errorsCollapse" class="accordion-collapse collapse" data-bs-parent="#activityAccordion">
+                                <div class="accordion-body">
+                                    <div class="common-errors-section">
+                                        {{ activity.common_errors|safe }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-8">
                             <div class="card">
