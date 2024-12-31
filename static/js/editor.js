@@ -1,92 +1,160 @@
 
-// Initialize Monaco Editor
-document.addEventListener('DOMContentLoaded', function() {
+const monacoEditor = {
+    initialized: false,
+    instances: new Map(),
+    loaderPromise: null,
+
+    async initialize(elementId, options = {}) {
+        if (!document.getElementById(elementId)) return null;
+        
+        if (window.monaco) {
+            return this.createEditor(elementId, options);
+        }
+        
+        try {
+            await this.loadMonaco();
+            return this.createEditor(elementId, options);
+        } catch (error) {
+            console.error('Editor initialization error:', error);
+            this.showErrorMessage(error);
+            throw error;
+        }
+    },
+
+    async loadMonaco() {
+        if (!this.loaderPromise) {
+            this.loaderPromise = new Promise((resolve) => {
+                if (window.monaco) {
+                    resolve(window.monaco);
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
+                script.onload = () => {
+                    require.config({
+                        paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                    });
+                    require(['vs/editor/editor.main'], () => {
+                        resolve(window.monaco);
+                    });
+                };
+                document.head.appendChild(script);
+            });
+        }
+        return this.loaderPromise;
+    },
+
+    createEditor(elementId, options) {
+        const editorElement = document.getElementById(elementId);
+        if (!editorElement) return null;
+
+        const defaultOptions = {
+            value: options.value || this.getDefaultCode(options.language || 'cpp'),
+            language: options.language || 'cpp',
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            automaticLayout: true,
+            fontSize: 14
+        };
+
+        const editor = monaco.editor.create(editorElement, defaultOptions);
+        this.instances.set(elementId, editor);
+        window.codeEditor = editor;
+        return editor;
+    },
+
+    getDefaultCode(language) {
+        const templates = {
+            cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Bonjour le monde!" << endl;\n    return 0;\n}',
+            csharp: 'using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}'
+        };
+        return templates[language] || templates.cpp;
+    },
+
+    showErrorMessage(error) {
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.innerHTML = `<div class="alert alert-danger">Editor error: ${error.message}</div>`;
+        }
+    }
+};
+
+window.monacoEditor = monacoEditor;
+
+document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    const language = editorElement.dataset.language || 'cpp';
-    const initialValue = editorElement.dataset.initialValue || '';
-
-    // Create script element for loader
-    const loaderScript = document.createElement('script');
-    loaderScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js';
-    loaderScript.onload = function() {
-        require.config({
-            paths: {
-                'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
-            }
+    try {
+        const language = editorElement.getAttribute('data-language') || 'cpp';
+        const initialValue = editorElement.getAttribute('data-initial-value') || '';
+        const editor = await monacoEditor.initialize('editor', { 
+            language,
+            value: initialValue || monacoEditor.getDefaultCode(language)
         });
-
-        window.MonacoEnvironment = {
-            getWorkerUrl: function(workerId, label) {
-                return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                    self.MonacoEnvironment = {
-                        baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
-                    };
-                    importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
-                )}`;
+        
+        if (editor) {
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                languageSelect.addEventListener('change', () => {
+                    const newLanguage = languageSelect.value;
+                    monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+                    if (editor && monacoEditor) {
+                    editor.setValue(monacoEditor.getDefaultCode(newLanguage));
+                } else {
+                    console.error('Editor not properly initialized');
+                    location.reload();
+                }
+                });
             }
-        };
 
-        require(['vs/editor/editor.main'], function() {
-            window.editor = monaco.editor.create(editorElement, {
-                value: initialValue || '',
-                language: language,
-                theme: 'vs-dark',
-                minimap: { enabled: false },
-                automaticLayout: true,
-                fontSize: 14
-            });
-        });
-    };
-    document.body.appendChild(loaderScript);
+            const runButton = document.getElementById('runButton');
+            if (runButton) {
+                runButton.addEventListener('click', executeCode);
+            }
+        }
+    } catch (error) {
+        console.error('Editor initialization failed:', error);
+    }
 });
 
-function executeCode() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const outputDiv = document.getElementById('output');
-    
-    if (!window.editor) {
+async function executeCode() {
+    const editor = window.codeEditor;
+    if (!editor) {
         console.error('Editor not initialized');
         return;
     }
 
-    const code = window.editor.getValue();
+    const output = document.getElementById('output');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const languageSelect = document.getElementById('languageSelect');
+    
+    if (!csrfToken) {
+        if (output) output.innerHTML = '<pre class="error">Erreur: CSRF token manquant</pre>';
+        return;
+    }
 
-    loadingOverlay.style.display = 'flex';
-    outputDiv.innerHTML = '';
+    try {
+        const response = await fetch('/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                code: editor.getValue(),
+                language: languageSelect ? languageSelect.value : 'cpp'
+            })
+        });
 
-    fetch(window.location.pathname + '/submit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken
-        },
-        body: JSON.stringify({ code: code })
-    })
-    .then(response => response.json())
-    .then(data => {
-        loadingOverlay.style.display = 'none';
-        let output = '<div class="test-results">';
-        
-        if (data.test_results) {
-            data.test_results.forEach((result, index) => {
-                output += `<div class="test-case ${result.passed ? 'passed' : 'failed'}">`;
-                output += `<h6>Test Case ${index + 1}</h6>`;
-                if (result.input) output += `<p>Input: ${result.input}</p>`;
-                output += `<p>Expected: ${result.expected}</p>`;
-                output += `<p>Actual: ${result.actual || 'No output'}</p>`;
-                if (result.error) output += `<p class="error">Error: ${result.error}</p>`;
-                output += '</div>';
-            });
+        const result = await response.json();
+        if (output) {
+            output.innerHTML = `<pre class="${result.success ? 'success' : 'error'}">${result.output || result.error}</pre>`;
         }
-        
-        output += '</div>';
-        outputDiv.innerHTML = output;
-    })
-    .catch(error => {
-        loadingOverlay.style.display = 'none';
-        outputDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
-    });
+    } catch (error) {
+        if (output) {
+            output.innerHTML = `<pre class="error">Erreur d'exécution: ${error.message}</pre>`;
+        }
+    }
 }
