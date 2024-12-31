@@ -351,14 +351,13 @@ async function initializeEditor() {
     }
 
     try {
-        await window.monacoEditor.initialize('editor', {
+        editorInstance = await window.monacoEditor.initialize('editor', {
             value: {{ activity.starter_code|tojson|safe }},
             language: '{{ activity.language }}',
-            theme: 'vs-dark'
-        });
-            value: code || '',
-            language: language || 'cpp',
             theme: 'vs-dark',
+            automaticLayout: true
+        });
+        window.codeEditor = editorInstance;
             readOnly: false,
             wordWrap: 'on',
             minimap: { enabled: true }
