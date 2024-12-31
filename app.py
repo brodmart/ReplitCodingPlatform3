@@ -485,28 +485,20 @@ def create_initial_activities():
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 1,
-                'instructions': '''Écrivez votre premier programme C++ qui affiche "Bonjour le monde!" dans la console.
+                'example_code': '''// Exemple de programme qui affiche un message
+#include <iostream>    // Inclure la bibliothèque pour l'entrée/sortie
 
-Syntaxe nécessaire:
-1. Inclusion de bibliothèque:
-   #include <iostream>     // Pour utiliser cout et endl
+int main() {
+    // Utilisation de cout pour afficher du texte
+    std::cout << "Salut tout le monde!" << std::endl;
+    return 0;
+}''',
+                'instructions': '''Modifiez le programme exemple pour afficher "Bonjour le monde!" au lieu de "Salut tout le monde!".
 
-2. Point d'entrée du programme:
-   int main() {           // Fonction principale
-      // Code ici
-      return 0;           // Retourne 0 pour indiquer succès
-   }
-
-3. Affichage:
-   std::cout << "texte"   // Pour afficher du texte
-   << std::endl;          // Pour aller à la ligne
-
-4. Structure complète:
-   #include <iostream>
-   int main() {
-       std::cout << "texte" << std::endl;
-       return 0;
-   }''',
+Points à noter:
+1. Le message doit être exactement "Bonjour le monde!"
+2. N'oubliez pas le point d'exclamation
+3. Conservez le reste du code tel quel''',
                 'starter_code': '#include <iostream>\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}',
                 'test_cases': [{'input': '', 'output': 'Bonjour le monde!'}],
@@ -519,8 +511,7 @@ Syntaxe nécessaire:
                     'Oublier le point-virgule à la fin de l\'instruction cout',
                     'Écrire "iostream.h" au lieu de <iostream>',
                     'Oublier d\'utiliser std:: devant cout',
-                    'Oublier les guillemets autour du texte à afficher',
-                    'Utiliser printf au lieu de cout'
+                    'Oublier les guillemets autour du texte à afficher'
                 ],
                 'points': 10
             },
@@ -532,7 +523,6 @@ Syntaxe nécessaire:
                 'language': 'cpp',
                 'sequence': 2,
                 'instructions': '''Créez un programme qui demande le nom de l'utilisateur et affiche un message de bienvenue personnalisé.
-
 Syntaxe nécessaire:
 - Pour déclarer une variable texte: 
     std::string nom;
@@ -733,7 +723,7 @@ Syntaxe nécessaire:
                 'sequence': 9,
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
-                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        stdcout << nombre << "! =" << factorielle(nombre) << std::endl;\n    }\n    return 0;\n}',
+                'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\    }\n    return 0;\n}',
                 'test_cases': [
                     {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                     {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}

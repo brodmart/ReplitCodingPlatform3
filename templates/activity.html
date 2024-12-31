@@ -31,6 +31,33 @@
     border-color: #28a745;
     background-color: #d4edda;
 }
+.example-code {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-family: monospace;
+    position: relative;
+}
+
+.example-code pre {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.example-code .copy-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+.learning-objective {
+    background-color: #f8f9fa;
+    border-left: 4px solid #0d6efd;
+    padding: 10px;
+    margin-bottom: 20px;
+}
 </style>
 {% endblock %}
 
@@ -53,28 +80,21 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <h5>Description</h5>
-                    <p>{{ activity.description }}</p>
+                    <div class="learning-objective">
+                        <h5>Objectif d'apprentissage</h5>
+                        <p>{{ activity.description }}</p>
+                    </div>
+
+                    <h5>Code exemple</h5>
+                    <div class="example-code">
+                        <button class="btn btn-sm btn-secondary copy-btn" onclick="copyExampleCode()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                        <pre><code id="exampleCode">{{ activity.example_code }}</code></pre>
+                    </div>
 
                     <h5>Instructions</h5>
                     <p>{{ activity.instructions }}</p>
-
-                    <button class="btn btn-info mb-3" onclick="toggleSyntaxHelper()">
-                        <i class="bi bi-lightbulb"></i> Aide Syntaxe
-                    </button>
-
-                    <!-- Syntax Helper Popup -->
-                    <div class="card syntax-helper" id="syntaxHelper">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0">Guide de Syntaxe</h5>
-                            <button type="button" class="btn-close" onclick="toggleSyntaxHelper()"></button>
-                        </div>
-                        <div class="card-body">
-                            <div class="syntax-content">
-                                <!-- Dynamic content will be loaded here -->
-                            </div>
-                        </div>
-                    </div>
 
                     {% if activity.hints %}
                     <h5>Indices</h5>
@@ -111,6 +131,22 @@
                         </p>
                     </div>
                     {% endif %}
+                    <button class="btn btn-info mb-3" onclick="toggleSyntaxHelper()">
+                        <i class="bi bi-lightbulb"></i> Aide Syntaxe
+                    </button>
+
+                    <!-- Syntax Helper Popup -->
+                    <div class="card syntax-helper" id="syntaxHelper">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Guide de Syntaxe</h5>
+                            <button type="button" class="btn-close" onclick="toggleSyntaxHelper()"></button>
+                        </div>
+                        <div class="card-body">
+                            <div class="syntax-content">
+                                <!-- Dynamic content will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -161,13 +197,6 @@ require(['vs/editor/editor.main'], function() {
         theme: 'vs-dark',
         minimap: { enabled: false },
         automaticLayout: true
-    });
-
-    // Real-time syntax validation
-    let validationTimeout;
-    editor.onKeyUp(() => {
-        clearTimeout(validationTimeout);
-        validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
     });
 
     document.getElementById('resetButton').addEventListener('click', function() {
@@ -221,13 +250,21 @@ require(['vs/editor/editor.main'], function() {
     });
 });
 
-// Toggle syntax helper
+function copyExampleCode() {
+    const codeElement = document.getElementById('exampleCode');
+    navigator.clipboard.writeText(codeElement.textContent).then(() => {
+        const copyBtn = document.querySelector('.copy-btn');
+        copyBtn.innerHTML = '<i class="bi bi-check"></i>';
+        setTimeout(() => {
+            copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+        }, 2000);
+    });
+}
 function toggleSyntaxHelper() {
     const helper = document.getElementById('syntaxHelper');
     helper.classList.toggle('show');
 }
 
-// Real-time code validation
 async function validateCode(code) {
     try {
         const response = await fetch('/validate_code', {
