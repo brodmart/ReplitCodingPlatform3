@@ -325,36 +325,29 @@
 
 {% block extra_scripts %}
 <script>
-async function initializeWithRetry(maxRetries = 3) {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-            if (typeof bootstrap !== 'undefined') {
-                // Initialize tooltips after Bootstrap is loaded
-                const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-                tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
-                return true;
-            }
-            await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-            console.error('Bootstrap initialization attempt failed:', error);
-            if (attempt === maxRetries - 1) throw error;
-        }
-    }
-    return false;
-}
+let editorInstance = null;
 
 async function initializeEditor() {
+    if (editorInstance) {
+        return;
+    }
+
     try {
-        await require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-        require(['vs/editor/editor.main'], function() {
-            const editorElement = document.getElementById('editor');
-            const code = {{ activity.starter_code|tojson|safe }};
-            const language = '{{ activity.language }}';
+        if (!window.monaco) {
+            await new Promise((resolve) => {
+                require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+                require(['vs/editor/editor.main'], resolve);
+            });
+        }
+
+        const editorElement = document.getElementById('editor');
+        const code = {{ activity.starter_code|tojson|safe }};
+        const language = '{{ activity.language }}';
             
-            const editor = monaco.editor.create(document.getElementById('editor'), {
-                value: code || '',
-                language: language || 'cpp',
-                theme: 'vs-dark',
+        editorInstance = monaco.editor.create(document.getElementById('editor'), {
+            value: code || '',
+            language: language || 'cpp',
+            theme: 'vs-dark',
                 readOnly: false,
                 wordWrap: 'on',
                 minimap: { enabled: true }
@@ -384,8 +377,10 @@ async function initializeEditor() {
 document.addEventListener('DOMContentLoaded', initializeEditor);
 
             // Initialize Bootstrap components after editor
-            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+            if (typeof bootstrap !== 'undefined') {
+                const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+            }
         });
     }
             wordWrap: 'on',
