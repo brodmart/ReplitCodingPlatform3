@@ -4,11 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Éditeur de Code en Ligne</title>
+
+    <!-- Local Bootstrap fallback -->
+    <script>
+        // Check if Bootstrap CSS is loaded
+        window.bootstrapCSSLoaded = false;
+        window.bootstrapJSLoaded = false;
+
+        function loadLocalBootstrap() {
+            if (!window.bootstrapCSSLoaded) {
+                var link = document.createElement('link');
+                link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
+                link.type = "text/css";
+                link.rel = "stylesheet";
+                document.head.appendChild(link);
+            }
+            if (!window.bootstrapJSLoaded) {
+                var script = document.createElement('script');
+                script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
+                document.body.appendChild(script);
+                script.onload = function() {
+                    window.bootstrapJSLoaded = true;
+                    document.dispatchEvent(new Event('bootstrap:loaded'));
+                };
+            }
+        }
+    </script>
+
     <!-- Bootstrap CSS with fallback -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
+          rel="stylesheet" 
           integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" 
           crossorigin="anonymous"
-          onerror="handleBootstrapError()">
+          onload="window.bootstrapCSSLoaded = true;"
+          onerror="loadLocalBootstrap()">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
@@ -121,26 +151,42 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Core Bootstrap Bundle with error handling -->
+    <!-- Core Bootstrap Bundle with improved error handling -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
             integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" 
             crossorigin="anonymous"
-            onerror="handleBootstrapError()"></script>
+            onload="window.bootstrapJSLoaded = true; document.dispatchEvent(new Event('bootstrap:loaded'));"
+            onerror="loadLocalBootstrap()"></script>
 
     <!-- Base scripts -->
     <script>
-        // Bootstrap error handling
-        function handleBootstrapError() {
-            console.error('Erreur de chargement de Bootstrap. Tentative de chargement du CDN de secours...');
-            // Try loading from alternate CDN
-            const alternateBootstrapCSS = document.createElement('link');
-            alternateBootstrapCSS.href = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css';
-            alternateBootstrapCSS.rel = 'stylesheet';
-            document.head.appendChild(alternateBootstrapCSS);
+        // Initialize Bootstrap components
+        function initializeBootstrapComponents() {
+            try {
+                if (typeof bootstrap === 'undefined') {
+                    console.error('Bootstrap not loaded, retrying in 500ms...');
+                    setTimeout(initializeBootstrapComponents, 500);
+                    return;
+                }
 
-            const alternateBootstrapJS = document.createElement('script');
-            alternateBootstrapJS.src = 'https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js';
-            document.body.appendChild(alternateBootstrapJS);
+                // Initialize all tooltips
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+                    new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+
+                // Initialize all popovers
+                var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+                popoverTriggerList.forEach(function(popoverTriggerEl) {
+                    new bootstrap.Popover(popoverTriggerEl);
+                });
+
+                console.log('Bootstrap components initialized successfully');
+            } catch (error) {
+                console.error('Error initializing Bootstrap components:', error);
+                // Retry initialization after a delay
+                setTimeout(initializeBootstrapComponents, 500);
+            }
         }
 
         // Global loading indicator functions
@@ -151,32 +197,18 @@
             document.getElementById('loading-indicator').classList.remove('show');
         };
 
-        // Initialize Bootstrap components
-        function initializeBootstrapComponents() {
-            try {
-                // Initialize all tooltips
-                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                if (typeof bootstrap !== 'undefined') {
-                    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
-                        new bootstrap.Tooltip(tooltipTriggerEl);
-                    });
-                    console.log('Bootstrap initialized successfully');
-                } else {
-                    console.error('Bootstrap not loaded properly');
-                    handleBootstrapError();
-                }
-            } catch (error) {
-                console.error('Error initializing Bootstrap components:', error);
-                handleBootstrapError();
-            }
-        }
-
-        // Wait for DOM and Bootstrap
+        // Wait for DOM and Bootstrap with retry mechanism
         document.addEventListener('DOMContentLoaded', function() {
-            if (typeof bootstrap !== 'undefined') {
+            if (window.bootstrapJSLoaded) {
                 initializeBootstrapComponents();
             } else {
                 document.addEventListener('bootstrap:loaded', initializeBootstrapComponents);
+                // Fallback if event never fires
+                setTimeout(function() {
+                    if (!window.bootstrapJSLoaded) {
+                        loadLocalBootstrap();
+                    }
+                }, 2000);
             }
         });
     </script>
