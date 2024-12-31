@@ -355,7 +355,8 @@ async function initializeEditor() {
 
         // Initialize Monaco editor
         const editorElement = document.getElementById('editor');
-        const initialValue = editorElement.getAttribute('data-initial-value');
+        // Parse the JSON-encoded initial value
+        const initialValue = JSON.parse(editorElement.getAttribute('data-initial-value') || '""');
         const editorLanguage = editorElement.getAttribute('data-language');
         
         const editor = await window.monacoEditor.initialize('editor', {
