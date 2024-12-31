@@ -75,27 +75,6 @@
     margin-bottom: 0;
     line-height: 1.5;
 }
-
-.example-code {
-    background-color: #2d2d2d;
-    color: #ffffff;
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 20px;
-    font-family: monospace;
-    position: relative;
-}
-
-.example-code pre {
-    margin: 0;
-    white-space: pre-wrap;
-}
-
-.example-code .copy-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-}
 </style>
 {% endblock %}
 
@@ -121,14 +100,6 @@
                     <div class="learning-objective">
                         <h5>Objectif d'apprentissage</h5>
                         <p>{{ activity.description }}</p>
-                    </div>
-
-                    <h5>Code exemple</h5>
-                    <div class="example-code">
-                        <button class="btn btn-sm btn-secondary copy-btn" onclick="copyExampleCode()">
-                            <i class="bi bi-clipboard"></i>
-                        </button>
-                        <pre><code id="exampleCode">{{ activity.example_code }}</code></pre>
                     </div>
 
                     <h5>Instructions</h5>
@@ -294,17 +265,6 @@ require(['vs/editor/editor.main'], function() {
         }
     });
 });
-
-function copyExampleCode() {
-    const codeElement = document.getElementById('exampleCode');
-    navigator.clipboard.writeText(codeElement.textContent).then(() => {
-        const copyBtn = document.querySelector('.copy-btn');
-        copyBtn.innerHTML = '<i class="bi bi-check"></i>';
-        setTimeout(() => {
-            copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
-        }, 2000);
-    });
-}
 
 function toggleSyntaxHelper() {
     const helper = document.getElementById('syntaxHelper');
