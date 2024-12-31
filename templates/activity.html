@@ -345,26 +345,26 @@ async function initializeWithRetry(maxRetries = 3) {
 
 async function initializeEditor() {
     try {
-        // Initialize Monaco editor first
-        const editorElement = document.getElementById('editor');
-        const code = {{ activity.starter_code|tojson|safe }};
-        const language = '{{ activity.language }}';
-        
-        const editor = await window.monacoEditor.initialize('editor', {
-            value: code,
-            language: language,
-            theme: 'vs-dark',
-            readOnly: false,
-            wordWrap: 'on',
-            minimap: { enabled: true }
-        });
+        await require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+        await require(['vs/editor/editor.main'], async () => {
+            const editorElement = document.getElementById('editor');
+            const code = {{ activity.starter_code|tojson|safe }};
+            const language = '{{ activity.language }}';
+            
+            const editor = await window.monacoEditor.initialize('editor', {
+                value: code || '',
+                language: language || 'cpp',
+                theme: 'vs-dark',
+                readOnly: false,
+                wordWrap: 'on',
+                minimap: { enabled: true }
+            });
 
-        // Initialize Bootstrap components after editor
-        const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-        tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
-            value: initialValue || '',
-            language: editorLanguage || 'cpp',
-            readOnly: false,
+            // Initialize Bootstrap components after editor
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+        });
+    }
             wordWrap: 'on',
             minimap: { enabled: true }
         });

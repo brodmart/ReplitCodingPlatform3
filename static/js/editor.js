@@ -11,6 +11,10 @@ const monacoEditor = {
                 reject(new Error(`Editor element with id '${elementId}' not found`));
                 return;
             }
+            
+            // Ensure we have valid initial content
+            const initialValue = options.value || this.getDefaultCode(options.language || 'cpp');
+            options.value = initialValue;
 
             // Cleanup existing instance if present
             this.dispose(elementId);
