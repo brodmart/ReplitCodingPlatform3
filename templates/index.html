@@ -99,8 +99,11 @@ function setupEventHandlers(editor) {
         languageSelect.addEventListener('change', async function(e) {
             const language = e.target.value;
             const model = editor.getModel();
-            monaco.editor.setModelLanguage(model, language);
-            editor.setValue(window.monacoEditor.getDefaultCode(language));
+            if (model) {
+                monaco.editor.setModelLanguage(model, language);
+                editor.setValue(window.monacoEditor.getDefaultCode(language));
+                document.getElementById('editor').setAttribute('data-language', language);
+            }
         });
     }
 

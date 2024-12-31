@@ -10,8 +10,10 @@ const monacoEditor = {
                 throw new Error(`Editor element with id '${elementId}' not found`);
             }
 
-            const initialValue = options.value || this.getDefaultCode(options.language || 'cpp');
+            const language = options.language || editorElement.getAttribute('data-language') || 'cpp';
+            const initialValue = options.value || this.getDefaultCode(language);
             options.value = initialValue;
+            options.language = language;
 
             this.dispose(elementId);
             await this.loadMonaco();
