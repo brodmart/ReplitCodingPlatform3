@@ -7,69 +7,101 @@ require.config({
 });
 
 require(['vs/editor/editor.main'], function() {
-    // Configure C++ language features
-    monaco.languages.cpp = monaco.languages.cpp || {};
-    monaco.languages.cpp.languageConfiguration = {
-        comments: {
-            lineComment: '//',
-            blockComment: ['/*', '*/']
-        },
+    // Define C++ language configuration
+    monaco.languages.register({ id: 'cpp' });
+    monaco.languages.setMonarchTokensProvider('cpp', {
+        defaultToken: '',
+        tokenPostfix: '.cpp',
         brackets: [
-            ['{', '}'],
-            ['[', ']'],
-            ['(', ')']
+            { open: '{', close: '}', token: 'delimiter.curly' },
+            { open: '[', close: ']', token: 'delimiter.square' },
+            { open: '(', close: ')', token: 'delimiter.parenthesis' },
+            { open: '<', close: '>', token: 'delimiter.angle' }
         ],
-        autoClosingPairs: [
-            { open: '{', close: '}' },
-            { open: '[', close: ']' },
-            { open: '(', close: ')' },
-            { open: '"', close: '"' },
-            { open: "'", close: "'" }
-        ]
-    };
-
-    // Configure C# language features
-    monaco.languages.csharp = monaco.languages.csharp || {};
-    monaco.languages.csharp.languageConfiguration = {
-        comments: {
-            lineComment: '//',
-            blockComment: ['/*', '*/']
-        },
-        brackets: [
-            ['{', '}'],
-            ['[', ']'],
-            ['(', ')']
+        keywords: [
+            'class', 'namespace', 'template', 'struct', 'using',
+            'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break',
+            'continue', 'return', 'typedef', 'static', 'enum', 'union',
+            'void', 'const', 'bool', 'int', 'float', 'double', 'char', 'unsigned',
+            'signed', 'short', 'long', 'volatile', 'inline', 'virtual', 'public',
+            'private', 'protected', 'friend', 'operator', 'explicit', 'extern',
+            'register', 'mutable', 'asm', 'true', 'false', 'new', 'delete',
+            'default', 'throw', 'try', 'catch', 'sizeof', 'dynamic_cast',
+            'static_cast', 'const_cast', 'reinterpret_cast', 'typeid', 'typename',
+            'this', 'template', 'nullptr', 'goto', 'auto'
         ],
-        autoClosingPairs: [
-            { open: '{', close: '}' },
-            { open: '[', close: ']' },
-            { open: '(', close: ')' },
-            { open: '"', close: '"' },
-            { open: "'", close: "'" }
-        ]
-    };
+        operators: [
+            '=', '>', '<', '!', '~', '?', ':',
+            '==', '<=', '>=', '!=', '&&', '||', '++', '--',
+            '+', '-', '*', '/', '&', '|', '^', '%', '<<',
+            '>>', '>>>', '+=', '-=', '*=', '/=', '&=', '|=',
+            '^=', '%=', '<<=', '>>=', '>>>='
+        ],
+        symbols: /[=><!~?:&|+\-*\/\^%]+/,
+        escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+        tokenizer: {
+            root: [
+                [/[a-z_$][\w$]*/, {
+                    cases: {
+                        '@keywords': 'keyword',
+                        '@default': 'identifier'
+                    }
+                }],
+                [/[A-Z][\w\$]*/, 'type.identifier'],
+                { include: '@whitespace' },
+                [/[{}()\[\]]/, '@brackets'],
+                [/[<>](?!@symbols)/, '@brackets'],
+                [/@symbols/, {
+                    cases: {
+                        '@operators': 'operator',
+                        '@default': ''
+                    }
+                }],
+                [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
+                [/0[xX][0-9a-fA-F]+/, 'number.hex'],
+                [/\d+/, 'number'],
+                [/[;,.]/, 'delimiter'],
+                [/"([^"\\]|\\.)*$/, 'string.invalid'],
+                [/"/, { token: 'string.quote', bracket: '@open', next: '@string' }],
+                [/'[^\\']'/, 'string'],
+                [/(')(@escapes)(')/, ['string', 'string.escape', 'string']],
+                [/'/, 'string.invalid']
+            ],
+            comment: [
+                [/[^\/*]+/, 'comment'],
+                [/\/\*/, 'comment', '@push'],
+                ["\\*/", 'comment', '@pop'],
+                [/[\/*]/, 'comment']
+            ],
+            string: [
+                [/[^\\"]+/, 'string'],
+                [/@escapes/, 'string.escape'],
+                [/\\./, 'string.escape.invalid'],
+                [/"/, { token: 'string.quote', bracket: '@close', next: '@pop' }]
+            ],
+            whitespace: [
+                [/[ \t\r\n]+/, 'white'],
+                [/\/\*/, 'comment', '@comment'],
+                [/\/\/.*$/, 'comment'],
+            ],
+        }
+    });
 
+    // Create editor instance
     editor = monaco.editor.create(document.getElementById('editor'), {
         value: getDefaultCode('cpp'),
         language: 'cpp',
         theme: 'vs-dark',
-        minimap: {
-            enabled: false
-        },
+        minimap: { enabled: false },
         automaticLayout: true,
         fontSize: 14,
         scrollBeyondLastLine: false,
         renderWhitespace: 'selection',
-        padding: {
-            top: 10,
-            bottom: 10
-        },
+        padding: { top: 10, bottom: 10 },
         formatOnType: true,
         formatOnPaste: true,
         autoIndent: 'full',
-        bracketPairColorization: {
-            enabled: true
-        },
+        bracketPairColorization: { enabled: true },
         suggestOnTriggerCharacters: true,
         wordBasedSuggestions: 'on',
         folding: true,
@@ -80,44 +112,28 @@ require(['vs/editor/editor.main'], function() {
         roundedSelection: false,
         tabCompletion: 'on',
         autoClosingBrackets: 'always',
-        autoClosingQuotes: 'always',
-        snippets: true,
-        suggest: {
-            snippetsPreventQuickSuggestions: false
-        },
-        // Add intelligent code completion
-        quickSuggestions: {
-            other: true,
-            comments: true,
-            strings: true
-        }
+        autoClosingQuotes: 'always'
     });
 
-    // Set up language change handler
-    document.getElementById('languageSelect')?.addEventListener('change', function(e) {
-        const language = e.target.value;
-        const currentState = editor.saveViewState();
-        const model = editor.getModel();
-        monaco.editor.setModelLanguage(model, language);
-        editor.setValue(getDefaultCode(language));
-        if (currentState) {
-            editor.restoreViewState(currentState);
-        }
-        editor.focus();
-    });
+    // Set up event handlers
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function(e) {
+            const language = e.target.value;
+            monaco.editor.setModelLanguage(editor.getModel(), language);
+            editor.setValue(getDefaultCode(language));
+        });
+    }
 
-    // Set up execution handler
-    document.getElementById('runButton')?.addEventListener('click', executeCode);
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
 
-    // Set up share handler
-    document.getElementById('shareButton')?.addEventListener('click', shareCode);
-
-    // Add real-time syntax validation
-    let validationTimeout;
-    editor.onDidChangeModelContent(() => {
-        clearTimeout(validationTimeout);
-        validationTimeout = setTimeout(validateSyntax, 500);
-    });
+    const shareButton = document.getElementById('shareButton');
+    if (shareButton) {
+        shareButton.addEventListener('click', shareCode);
+    }
 });
 
 function getDefaultCode(language) {
@@ -176,6 +192,13 @@ async function executeCode() {
     }
 }
 
+function formatError(error) {
+    return `<div class="alert alert-danger">
+        <strong>Erreur:</strong><br>
+        <pre class="mb-0">${error}</pre>
+    </div>`;
+}
+
 async function shareCode() {
     const shareButton = document.getElementById('shareButton');
     if (!shareButton) return;
@@ -194,10 +217,7 @@ async function shareCode() {
             },
             body: JSON.stringify({
                 code: code,
-                language: language,
-                title: 'Code Partagé',
-                description: '',
-                is_public: true
+                language: language
             })
         });
 
@@ -206,8 +226,7 @@ async function shareCode() {
         if (result.error) {
             showNotification('error', 'Erreur lors du partage du code: ' + result.error);
         } else {
-            await navigator.clipboard.writeText(result.share_url);
-            showNotification('success', 'Code partagé avec succès! Lien copié dans le presse-papiers.');
+            showNotification('success', 'Code partagé avec succès!');
         }
     } catch (error) {
         showNotification('error', 'Erreur lors du partage du code: ' + error.message);
@@ -217,16 +236,9 @@ async function shareCode() {
     }
 }
 
-function formatError(error) {
-    return `<div class="alert alert-danger">
-        <strong>Erreur:</strong><br>
-        <pre class="mb-0">${error}</pre>
-    </div>`;
-}
-
 function showNotification(type, message) {
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-toast`;
     alertDiv.innerHTML = `
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -235,43 +247,7 @@ function showNotification(type, message) {
     setTimeout(() => alertDiv.remove(), 5000);
 }
 
-async function validateSyntax() {
-    const code = editor.getValue();
-    const language = document.getElementById('languageSelect').value;
-
-    try {
-        const response = await fetch('/validate_syntax', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code, language })
-        });
-
-        const result = await response.json();
-        updateEditorDecorations(result.errors || []);
-    } catch (error) {
-        console.error('Error validating syntax:', error);
-    }
-}
-
-function updateEditorDecorations(errors) {
-    const decorations = errors.map(error => ({
-        range: new monaco.Range(
-            error.line,
-            error.column,
-            error.line,
-            error.column + (error.length || 1)
-        ),
-        options: {
-            inlineClassName: 'squiggly-error',
-            hoverMessage: { value: `${error.message_fr}\n${error.message_en}` }
-        }
-    }));
-
-    editor.deltaDecorations([], decorations);
-}
-
+// Handle window resizing
 window.addEventListener('resize', function() {
     if (editor) {
         editor.layout();
