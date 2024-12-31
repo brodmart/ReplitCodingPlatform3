@@ -345,7 +345,7 @@ async function initializeWithRetry(maxRetries = 3) {
 async function initializeEditor() {
     try {
         // Wait for Bootstrap to be available
-        await waitForBootstrap();
+        await initializeWithRetry();
 
         // Initialize tooltips
         const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
