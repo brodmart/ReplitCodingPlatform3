@@ -1,3 +1,4 @@
+
 const monacoEditor = {
     initialized: false,
     instances: new Map(),
@@ -25,7 +26,24 @@ const monacoEditor = {
 
     async loadMonaco() {
         if (!this.loaderPromise) {
-            this.loaderPromise = window.monacoLoaded;
+            this.loaderPromise = new Promise((resolve) => {
+                if (window.monaco) {
+                    resolve(window.monaco);
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
+                script.onload = () => {
+                    require.config({
+                        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                    });
+                    require(['vs/editor/editor.main'], () => {
+                        resolve(window.monaco);
+                    });
+                };
+                document.head.appendChild(script);
+            });
         }
         return this.loaderPromise;
     },
@@ -112,33 +130,13 @@ const monacoEditor = {
 
     getDefaultCode(language) {
         const templates = {
-            cpp: `#include <iostream>
-
-int main() {
-    std::cout << "Bonjour le monde!" << std::endl;
-    return 0;
-}`,
-            csharp: `using System;
-
-class Program {
-    static void Main() {
-        Console.WriteLine("Bonjour le monde!");
-    }
-}`
+            cpp: `#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}`,
+            python: `print("Bonjour le monde!")`,
+            javascript: `console.log("Bonjour le monde!");`
         };
         return templates[language] || '';
     },
 
-    showNotification(type, message) {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show notification-toast`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alertDiv);
-        setTimeout(() => alertDiv.remove(), 5000);
-    },
     showErrorMessage(error) {
         const errorContainer = document.getElementById('errorContainer');
         if (errorContainer) {
@@ -149,9 +147,6 @@ class Program {
                         <i class="bi bi-exclamation-triangle-fill"></i> Erreur d'initialisation
                     </h6>
                     <p class="mb-0">${error.message}</p>
-                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="location.reload()">
-                        <i class="bi bi-arrow-clockwise"></i> Rafraîchir la page
-                    </button>
                 </div>
             `;
         }
@@ -175,41 +170,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     } catch (error) {
         console.error('Editor initialization failed:', error);
-        showErrorMessage(error);
-    }
-});
-
-function setupEditorControls(editor) {
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.addEventListener('change', (e) => {
-            const language = e.target.value;
-            monaco.editor.setModelLanguage(editor.getModel(), language);
-            loadSavedContent(editor, language);
-        });
-    }
-
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
-
-    const shareButton = document.getElementById('shareButton');
-    if (shareButton) {
-        shareButton.addEventListener('click', () => shareCode(editor, shareButton));
-    }
-}
-
-function loadSavedContent(editor, language) {
-    const savedContent = localStorage.getItem(`editor_${language}_content`);
-    editor.setValue(savedContent || monacoEditor.getDefaultCode(language));
-}
-
-
-window.addEventListener('beforeunload', () => {
-    for (const [elementId] of monacoEditor.instances) {
-        if (!elementId.includes('_')) {
-            monacoEditor.dispose(elementId);
-        }
+        monacoEditor.showErrorMessage(error);
     }
 });
