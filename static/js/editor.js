@@ -1,7 +1,9 @@
 
-require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-
 let editor = null;
+
+require.config({ 
+    paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+});
 
 window.MonacoEnvironment = {
     getWorkerUrl: function() {
@@ -14,31 +16,31 @@ window.MonacoEnvironment = {
     }
 };
 
-// Initialize editor only once when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+function initializeEditor() {
     const editorElement = document.getElementById('editor');
-    if (!editorElement) return;
+    if (!editorElement || editor) return;
 
     require(['vs/editor/editor.main'], function() {
-        if (!editor) {
-            editor = monaco.editor.create(editorElement, {
-                value: '// Your code here',
-                language: 'cpp',
-                theme: 'vs-dark',
-                minimap: { enabled: false },
-                automaticLayout: true,
-                fontSize: 14
-            });
+        const initialValue = editorElement.dataset.initialValue || '// Your code here';
+        const language = editorElement.dataset.language || 'cpp';
+        
+        editor = monaco.editor.create(editorElement, {
+            value: initialValue,
+            language: language,
+            theme: 'vs-dark',
+            minimap: { enabled: false },
+            automaticLayout: true,
+            fontSize: 14
+        });
 
-            const languageSelect = document.getElementById('languageSelect');
-            if (languageSelect) {
-                languageSelect.addEventListener('change', function() {
-                    monaco.editor.setModelLanguage(editor.getModel(), this.value);
-                });
-            }
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect) {
+            languageSelect.addEventListener('change', function() {
+                monaco.editor.setModelLanguage(editor.getModel(), this.value);
+            });
         }
     });
-});
+}
 
 async function executeCode() {
     if (!editor) {
@@ -54,6 +56,9 @@ async function executeCode() {
         console.error('CSRF token not available');
         return;
     }
+
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'flex';
 
     try {
         const response = await fetch('/execute', {
@@ -76,11 +81,14 @@ async function executeCode() {
         if (output) {
             output.innerHTML = `<pre class="error">Error: ${error.message}</pre>`;
         }
+    } finally {
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
     }
 }
 
-// Set up run button handler
 document.addEventListener('DOMContentLoaded', function() {
+    initializeEditor();
+    
     const runButton = document.getElementById('runButton');
     if (runButton) {
         runButton.addEventListener('click', executeCode);
