@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, request, jsonify, flash
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 from models import CodingActivity, StudentProgress
 from database import db
 from datetime import datetime
 from compiler_service import compile_and_run
 import logging
+import json
 
 activities = Blueprint('activities', __name__)
 
@@ -67,11 +68,17 @@ def view_activity(activity_id):
 
         # Get student's progress for this activity
         progress = None
+        initial_code = activity.starter_code
+
         if current_user.is_authenticated:
             progress = StudentProgress.query.filter_by(
                 student_id=current_user.id,
                 activity_id=activity_id
             ).first()
+
+            # If there's a last submission, use that as initial code
+            if progress and progress.last_submission:
+                initial_code = progress.last_submission
 
             # Create progress entry if it doesn't exist
             if not progress:
@@ -82,7 +89,26 @@ def view_activity(activity_id):
                 db.session.add(progress)
                 db.session.commit()
 
-        return render_template('activity.html', activity=activity, progress=progress)
+        # If no initial code is set, use the starter code or empty string
+        if not initial_code:
+            initial_code = activity.starter_code or ''
+
+        # Parse JSON fields if they exist
+        try:
+            if isinstance(activity.hints, str):
+                activity.hints = json.loads(activity.hints)
+            if isinstance(activity.common_errors, str):
+                activity.common_errors = json.loads(activity.common_errors)
+        except (json.JSONDecodeError, TypeError):
+            # If JSON parsing fails, use the raw string
+            pass
+
+        return render_template(
+            'activity.html',
+            activity=activity,
+            progress=progress,
+            initial_code=initial_code
+        )
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error in view_activity: {str(e)}")
