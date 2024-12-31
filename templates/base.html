@@ -7,36 +7,84 @@
 
     <!-- Local Bootstrap fallback -->
     <script>
-        // Check if Bootstrap CSS is loaded
-        window.bootstrapCSSLoaded = false;
-        window.bootstrapJSLoaded = false;
+        // Resource loading status tracking
+        window.resourceStatus = {
+            bootstrapCSS: false,
+            bootstrapJS: false,
+            retryCount: 0,
+            maxRetries: 3
+        };
 
+        // Enhanced error logging
+        function logResourceError(resource, error) {
+            console.error(`Failed to load ${resource}:`, error);
+            showResourceError(`Erreur de chargement de ${resource}`);
+        }
+
+        // Error notification
+        function showResourceError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-warning error-boundary-alert';
+            errorDiv.innerHTML = `
+                <strong>Attention:</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        // Enhanced fallback loader with retry mechanism
         function loadLocalBootstrap() {
-            if (!window.bootstrapCSSLoaded) {
-                var link = document.createElement('link');
+            if (window.resourceStatus.retryCount >= window.resourceStatus.maxRetries) {
+                logResourceError('Bootstrap', 'Maximum retry attempts reached');
+                return;
+            }
+            window.resourceStatus.retryCount++;
+
+            if (!window.resourceStatus.bootstrapCSS) {
+                const link = document.createElement('link');
                 link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
                 link.type = "text/css";
                 link.rel = "stylesheet";
+                link.onload = () => {
+                    window.resourceStatus.bootstrapCSS = true;
+                    console.log('Local Bootstrap CSS loaded successfully');
+                };
+                link.onerror = () => logResourceError('Bootstrap CSS local fallback');
                 document.head.appendChild(link);
             }
-            if (!window.bootstrapJSLoaded) {
-                var script = document.createElement('script');
+
+            if (!window.resourceStatus.bootstrapJS) {
+                const script = document.createElement('script');
                 script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
-                document.body.appendChild(script);
-                script.onload = function() {
-                    window.bootstrapJSLoaded = true;
+                script.onload = () => {
+                    window.resourceStatus.bootstrapJS = true;
+                    console.log('Local Bootstrap JS loaded successfully');
                     document.dispatchEvent(new Event('bootstrap:loaded'));
                 };
+                script.onerror = () => logResourceError('Bootstrap JS local fallback');
+                document.body.appendChild(script);
             }
         }
+
+        // Preload local resources
+        fetch("{{ url_for('static', filename='css/bootstrap.min.css') }}")
+            .then(response => response.blob())
+            .then(() => console.log('Local Bootstrap CSS cached'))
+            .catch(err => console.warn('Failed to cache local Bootstrap CSS:', err));
+
+        fetch("{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}")
+            .then(response => response.blob())
+            .then(() => console.log('Local Bootstrap JS cached'))
+            .catch(err => console.warn('Failed to cache local Bootstrap JS:', err));
     </script>
 
-    <!-- Bootstrap CSS with fallback -->
+    <!-- Bootstrap CSS with enhanced error handling -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" 
           rel="stylesheet" 
           integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" 
           crossorigin="anonymous"
-          onload="window.bootstrapCSSLoaded = true;"
+          onload="window.resourceStatus.bootstrapCSS = true;"
           onerror="loadLocalBootstrap()">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
@@ -151,22 +199,26 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Core Bootstrap Bundle with improved error handling -->
+    <!-- Core Bootstrap Bundle with enhanced error handling -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
             integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" 
             crossorigin="anonymous"
-            onload="window.bootstrapJSLoaded = true; document.dispatchEvent(new Event('bootstrap:loaded'));"
+            onload="window.resourceStatus.bootstrapJS = true; document.dispatchEvent(new Event('bootstrap:loaded'));"
             onerror="loadLocalBootstrap()"></script>
 
     <!-- Base scripts -->
     <script>
-        // Initialize Bootstrap components
+        // Enhanced Bootstrap components initialization
         function initializeBootstrapComponents() {
             try {
-                if (typeof bootstrap === 'undefined') {
-                    console.error('Bootstrap not loaded, retrying in 500ms...');
-                    setTimeout(initializeBootstrapComponents, 500);
-                    return;
+                if (!window.resourceStatus.bootstrapJS || typeof bootstrap === 'undefined') {
+                    if (window.resourceStatus.retryCount < window.resourceStatus.maxRetries) {
+                        console.warn('Bootstrap not loaded, retrying in 500ms...');
+                        setTimeout(initializeBootstrapComponents, 500);
+                        return;
+                    } else {
+                        throw new Error('Bootstrap failed to load after maximum retries');
+                    }
                 }
 
                 // Initialize all tooltips
@@ -183,9 +235,10 @@
 
                 console.log('Bootstrap components initialized successfully');
             } catch (error) {
-                console.error('Error initializing Bootstrap components:', error);
-                // Retry initialization after a delay
-                setTimeout(initializeBootstrapComponents, 500);
+                logResourceError('Bootstrap components', error);
+                if (window.resourceStatus.retryCount < window.resourceStatus.maxRetries) {
+                    setTimeout(initializeBootstrapComponents, 500);
+                }
             }
         }
 
@@ -199,13 +252,13 @@
 
         // Wait for DOM and Bootstrap with retry mechanism
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.bootstrapJSLoaded) {
+            if (window.resourceStatus.bootstrapJS) {
                 initializeBootstrapComponents();
             } else {
                 document.addEventListener('bootstrap:loaded', initializeBootstrapComponents);
                 // Fallback if event never fires
                 setTimeout(function() {
-                    if (!window.bootstrapJSLoaded) {
+                    if (!window.resourceStatus.bootstrapJS) {
                         loadLocalBootstrap();
                     }
                 }, 2000);
