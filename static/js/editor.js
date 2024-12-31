@@ -1,52 +1,42 @@
 
+// Single editor instance
 let editor = null;
 
-require.config({ 
+// Configure Monaco loader
+require.config({
     paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
 });
 
-window.MonacoEnvironment = {
-    getWorkerUrl: function() {
-        return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-            self.MonacoEnvironment = {
-                baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
-            };
-            importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
-        )}`;
-    }
-};
-
-function initializeEditor() {
+// Initialize editor only once
+function initEditor() {
+    if (editor) return;
+    
     const editorElement = document.getElementById('editor');
-    if (!editorElement || editor) return;
+    if (!editorElement) return;
 
-    require(['vs/editor/editor.main'], function() {
-        const initialValue = editorElement.dataset.initialValue || '// Your code here';
-        const language = editorElement.dataset.language || 'cpp';
-        
-        editor = monaco.editor.create(editorElement, {
-            value: initialValue,
-            language: language,
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14
-        });
+    const initialValue = editorElement.dataset.initialValue || '// Your code here';
+    const language = editorElement.dataset.language || 'cpp';
 
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect) {
-            languageSelect.addEventListener('change', function() {
-                monaco.editor.setModelLanguage(editor.getModel(), this.value);
-            });
-        }
+    editor = monaco.editor.create(editorElement, {
+        value: initialValue,
+        language: language,
+        theme: 'vs-dark',
+        minimap: { enabled: false },
+        automaticLayout: true,
+        fontSize: 14
     });
+
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            monaco.editor.setModelLanguage(editor.getModel(), this.value);
+        });
+    }
 }
 
+// Execute code function
 async function executeCode() {
-    if (!editor) {
-        console.error('Editor not initialized');
-        return;
-    }
+    if (!editor) return;
 
     const output = document.getElementById('output');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -86,8 +76,9 @@ async function executeCode() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeEditor();
+// Wait for Monaco to load then initialize
+require(['vs/editor/editor.main'], function() {
+    initEditor();
     
     const runButton = document.getElementById('runButton');
     if (runButton) {
