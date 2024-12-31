@@ -74,9 +74,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
     try {
+        const languageSelect = document.getElementById('languageSelect');
+        const initialLanguage = languageSelect?.value || 'cpp';
+        
         const editor = await window.monacoEditor.initialize('editor', {
-            language: document.getElementById('languageSelect')?.value || 'cpp',
-            value: window.monacoEditor.getDefaultCode('cpp')
+            language: initialLanguage,
+            value: window.monacoEditor.getDefaultCode(initialLanguage)
         });
         
         window.codeEditor = editor;
@@ -92,9 +95,10 @@ function setupEventHandlers(editor) {
     const shareButton = document.getElementById('shareButton');
 
     if (languageSelect) {
-        languageSelect.addEventListener('change', function(e) {
+        languageSelect.addEventListener('change', async function(e) {
             const language = e.target.value;
-            monaco.editor.setModelLanguage(editor.getModel(), language);
+            const model = editor.getModel();
+            monaco.editor.setModelLanguage(model, language);
             editor.setValue(window.monacoEditor.getDefaultCode(language));
         });
     }
