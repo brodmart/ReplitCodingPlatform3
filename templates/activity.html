@@ -92,50 +92,6 @@
                         </button>
                         <pre><code id="exampleCode">{{ activity.example_code }}</code></pre>
                     </div>
-                    
-                    <button class="btn btn-primary ms-2" onclick="toggleDemoMode()">
-                        <i class="bi bi-play-circle"></i> Mode Démonstration
-                    </button>
-
-                    <div class="demo-mode" id="demoMode" style="display: none;">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Code Original</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="example-code">
-                                            <pre><code id="originalCode">{{ activity.example_code }}</code></pre>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Votre Modification</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="demoEditor" style="height: 200px; border: 1px solid var(--bs-border-color);"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Résultat en Direct</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        <pre id="demoOutput" class="bg-dark text-light p-3 rounded">Le résultat s'affichera ici...</pre>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
 
                     <h5>Instructions</h5>
                     <p>{{ activity.instructions }}</p>
@@ -344,77 +300,6 @@ async function validateCode(code) {
         }
     } catch (error) {
         console.error('Error validating code:', error);
-    }
-}
-
-let demoEditor;
-
-function toggleDemoMode() {
-    const demoMode = document.getElementById('demoMode');
-    if (demoMode.style.display === 'none') {
-        demoMode.style.display = 'block';
-        if (!demoEditor) {
-            demoEditor = monaco.editor.create(document.getElementById('demoEditor'), {
-                value: {{ activity.example_code|tojson }},
-                language: '{{ activity.language }}',
-                theme: 'vs-dark',
-                minimap: { enabled: false },
-                automaticLayout: true
-            });
-
-            // Add real-time validation and output preview
-            demoEditor.onKeyUp(() => {
-                clearTimeout(window.demoTimeout);
-                window.demoTimeout = setTimeout(() => {
-                    validateAndPreviewCode(demoEditor.getValue());
-                }, 500);
-            });
-        }
-    } else {
-        demoMode.style.display = 'none';
-    }
-}
-
-async function validateAndPreviewCode(code) {
-    try {
-        // Validate syntax
-        const response = await fetch('/validate_code', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                code: code,
-                language: '{{ activity.language }}',
-                activity_id: {{ activity.id }}
-            })
-        });
-
-        const result = await response.json();
-        const outputDiv = document.getElementById('demoOutput');
-
-        if (result.errors.length > 0) {
-            outputDiv.innerHTML = `<span class="text-danger">Erreurs de syntaxe:\n${
-                result.errors.map(error => `- ${error.message_fr}`).join('\n')
-            }</span>`;
-        } else {
-            // If syntax is valid, try to compile and run
-            const runResponse = await fetch('/execute', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    code: code,
-                    language: '{{ activity.language }}'
-                })
-            });
-
-            const runResult = await runResponse.json();
-            outputDiv.innerHTML = runResult.output || runResult.error || 'Aucune sortie';
-        }
-    } catch (error) {
-        console.error('Error:', error);
     }
 }
 </script>

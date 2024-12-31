@@ -724,7 +724,7 @@ Syntaxe nécessaire:
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n        std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\    }\n    return 0;\n}',
-                ''test_cases': [
+                'test_cases': [
                     {'input': '5\n', 'output': 'Entrez un nombre: 5! = 120'},
                     {'input': '0\n', 'output': 'Entrez un nombre: 0! = 1'}
                 ],
@@ -1276,110 +1276,4 @@ def validate_code():
 
     return jsonify({
         'errors': errors
-    })@app.route('/validate_code', methods=['POST'])
-def validate_code():
-    """Validate code syntax and provide real-time feedback"""
-    try:
-        code = request.json.get('code', '')
-        language = request.json.get('language', 'cpp')
-
-        if not code:
-            return jsonify({'errors': [{'message_fr': 'Aucun code fourni', 'message_en': 'No code provided'}]})
-
-        # Execute code without input to check for syntax errors
-        result = compile_and_run(code, language)
-
-        errors = []
-        if not result.get('success', False):
-            error_msg = result.get('error', '')
-            if 'error: ' in error_msg:
-                error_msg = error_msg.split('error: ')[1].split('\n')[0]
-
-            # Map common C++ errors to user-friendly messages
-            error_mappings = {
-                'expected': {
-                    'fr': 'Erreur de syntaxe: il manque un élément attendu',
-                    'en': 'Syntax error: missing expected element'
-                },
-                'undeclared': {
-                    'fr': 'Variable non déclarée',
-                    'en': 'Undeclared variable'
-                },
-                ';': {
-                    'fr': 'Point-virgule manquant',
-                    'en': 'Missing semicolon'
-                }
-            }
-
-            friendly_message = None
-            for key, messages in error_mappings.items():
-                if key in error_msg.lower():
-                    friendly_message = messages
-                    break
-
-            if not friendly_message:
-                friendly_message = {
-                    'fr': f'Erreur: {error_msg}',
-                    'en': f'Error: {error_msg}'
-                }
-
-            errors.append({
-                'message_fr': friendly_message['fr'],
-                'message_en': friendly_message['en']
-            })
-
-        return jsonify({'errors': errors})
-
-    except Exception as e:
-        logging.error(f"Code validation error: {str(e)}")
-        return jsonify({
-            'errors': [{
-                'message_fr': f'Erreur interne: {str(e)}',
-                'message_en': f'Internal error: {str(e)}'
-            }]
-        }), 500
-
-# Initialize activities in app context
-with app.app_context():
-    create_initial_activities()
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        student = Student.query.filter_by(email=form.email.data).first()
-        if student and check_password_hash(student.password_hash, form.password.data):
-            login_user(student, remember=form.remember_me.data)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
-        flash('Email ou mot de passe incorrect.', 'danger')
-    return render_template('login.html', form=form)
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = RegisterForm()
-    if form.validate_on_submit():
-        hashed_password = generate_password_hash(form.password.data)
-        student = Student(
-            username=form.username.data,
-            email=form.email.data,
-            password_hash=hashed_password
-        )
-        db.session.add(student)
-        db.session.commit()
-        flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html', form=form)
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('index'))
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    })
