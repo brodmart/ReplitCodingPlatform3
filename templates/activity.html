@@ -156,7 +156,7 @@
                         </div>
                         <div class="card-body">
                             <div class="syntax-content">
-                                <!-- Dynamic content will be loaded here -->
+                                {{ activity.syntax_help|safe }}
                             </div>
                         </div>
                     </div>
@@ -284,9 +284,6 @@ function copyExampleCode() {
 function toggleSyntaxHelper() {
     const helper = document.getElementById('syntaxHelper');
     helper.classList.toggle('show');
-    if (helper.classList.contains('show')) {
-        validateCode(document.querySelector('#editor').getValue());
-    }
 }
 
 async function validateCode(code) {
