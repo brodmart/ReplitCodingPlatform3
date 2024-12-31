@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Oublier le mot-clé override",
+    "Mauvaise utilisation de base",
+    "Constructeurs mal chaînés",
+    "Membres private dans la classe de base",
+    "Conversion de type incorrecte",
+    "Interface mal implémentée",
+    "Masquage involontaire de membres"
+  ]
+}

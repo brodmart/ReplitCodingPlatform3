@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Déréférencement de pointeur nul",
+    "Fuite de mémoire",
+    "Confusion entre & et *",
+    "Double libération de mémoire",
+    "Pointeur non initialisé",
+    "Arithmetic de pointeur incorrecte",
+    "Oublier de libérer la mémoire"
+  ]
+}

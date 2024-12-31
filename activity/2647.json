@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Boucle infinie due à une mauvaise condition",
+    "Oublier d'incrémenter le compteur",
+    "Mauvaise initialisation des variables de boucle",
+    "Confusion entre do-while et while",
+    "Sortie prématurée de boucle avec break",
+    "Condition de continuation mal définie",
+    "Boucles imbriquées mal structurées"
+  ]
+}

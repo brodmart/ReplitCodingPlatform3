@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Catch trop général",
+    "Resources non libérées",
+    "Exception re-thrown incorrectement",
+    "Hiérarchie d'exceptions mal conçue",
+    "Noexcept mal utilisé",
+    "Stack unwinding incompris",
+    "Exception dans destructeur"
+  ]
+}

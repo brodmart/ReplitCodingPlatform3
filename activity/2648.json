@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Accès hors limites du tableau",
+    "Oublier d'initialiser le tableau",
+    "Confusion entre index et valeur",
+    "Dépassement de la taille déclarée",
+    "Mauvaise utilisation de sizeof avec les tableaux",
+    "Non-vérification des limites du tableau",
+    "Initialisation incorrecte des éléments"
+  ]
+}

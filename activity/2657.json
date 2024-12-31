@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Event handler mal attaché",
+    "Oublier de détacher les événements",
+    "Signature d'événement incorrecte",
+    "Race condition dans les événements",
+    "Mauvaise gestion des exceptions",
+    "Cycle de vie des objets mal géré",
+    "Thread-safety non respectée"
+  ]
+}

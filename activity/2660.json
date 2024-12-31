@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Fichier non fermé",
+    "Vérification d'erreur manquante",
+    "Mode d'ouverture incorrect",
+    "Buffer non vidé",
+    "Exception handling incomplet",
+    "Chemin de fichier mal formaté",
+    "Lecture au-delà de EOF"
+  ]
+}

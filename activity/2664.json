@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Delete mal apparié avec new",
+    "Smart pointer mal choisi",
+    "Cycle de référence",
+    "RAII non respecté",
+    "Move semantics incorrect",
+    "Shallow vs deep copy",
+    "Memory leak dans constructeur"
+  ]
+}

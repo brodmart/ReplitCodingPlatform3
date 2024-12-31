@@ -1,12 +1,12 @@
+
 {
   "common_errors": [
-    "Oublier le mot-clé 'public' devant les propriétés",
-    "Ne pas initialiser le tableau des notes dans le constructeur",
-    "Utiliser var au lieu de double[] pour le tableau des notes",
-    "Oublier de convertir l'entrée utilisateur avec Convert.ToDouble()",
-    "Erreur de division par zéro dans le calcul de la moyenne",
-    "Mauvaise utilisation du formatage des chaînes (String.Format ou $)",
-    "Oublier les accolades {} dans les boucles for",
-    "Confusion entre = (affectation) et == (comparaison)"
+    "Oublier le mot-clé public",
+    "Accesseurs mal définis",
+    "Validation manquante",
+    "Propriété en lecture seule mal configurée",
+    "Backing field mal utilisé",
+    "Auto-property constraints manquants",
+    "Notification de changement oubliée"
   ]
 }

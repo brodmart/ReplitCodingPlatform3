@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Syntaxe template incorrecte",
+    "Spécialisation mal définie",
+    "Type constraints manquants",
+    "Déduction de type échouée",
+    "Template recursif sans cas de base",
+    "Instanciation ambiguë",
+    "Erreurs de compilation cryptiques"
+  ]
+}

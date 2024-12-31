@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Signature de méthode incorrecte",
+    "Mauvaise utilisation des paramètres optionnels",
+    "Confusion entre méthodes statiques et d'instance",
+    "Surcharge de méthode ambiguë",
+    "Return manquant dans certains chemins",
+    "Mauvaise gestion des exceptions",
+    "Documentation XML incomplète"
+  ]
+}

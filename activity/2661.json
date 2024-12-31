@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Query syntax vs method syntax",
+    "Exécution différée mal comprise",
+    "Join condition incorrecte",
+    "Projection inefficace",
+    "Multiple énumération",
+    "Ordre des opérations incorrect",
+    "Filtres mal placés"
+  ]
+}

@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Confusion entre = (affectation) et == (comparaison)",
+    "Oublier les parenthèses dans les conditions if",
+    "Mauvaise indentation du code",
+    "Oublier les accolades dans les blocs if/else",
+    "Conditions mal formées ou illogiques",
+    "Utilisation incorrecte des opérateurs logiques && et ||",
+    "Switch case sans break"
+  ]
+}

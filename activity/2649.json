@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Utilisation de variables non initialisées",
+    "Mauvais choix de type de données",
+    "Confusion entre types valeur et référence",
+    "Conversion de type incorrecte",
+    "Non-respect des conventions de nommage",
+    "Variables déclarées mais jamais utilisées",
+    "Portée des variables mal comprise"
+  ]
+}

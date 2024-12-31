@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Itérateur invalidé",
+    "Mauvais choix de conteneur",
+    "Algorithme STL mal utilisé",
+    "Copie inutile d'objets",
+    "Range-based for mal utilisé",
+    "Auto-type déduit incorrect",
+    "Exception handling incomplet"
+  ]
+}

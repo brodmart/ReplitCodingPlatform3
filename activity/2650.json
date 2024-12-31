@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Oublier de déclarer le type de retour",
+    "Paramètres mal définis",
+    "Oublier le return dans une fonction non void",
+    "Mauvaise correspondance des types",
+    "Recursion sans condition de base",
+    "Prototype de fonction incorrect",
+    "Arguments passés dans le mauvais ordre"
+  ]
+}

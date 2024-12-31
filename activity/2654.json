@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Oublier le mot-clé public",
+    "Constructeur mal défini",
+    "This mal utilisé",
+    "Membres private inaccessibles",
+    "Destructeur manquant",
+    "Copie superficielle vs profonde",
+    "Encapsulation incorrecte"
+  ]
+}

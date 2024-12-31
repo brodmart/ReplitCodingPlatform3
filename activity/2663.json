@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Await manquant",
+    "Deadlock dans UI",
+    "ConfigureAwait mal utilisé",
+    "Exception non propagée",
+    "Async void au lieu de Task",
+    "Contexte de synchronisation perdu",
+    "Parallélisme mal géré"
+  ]
+}

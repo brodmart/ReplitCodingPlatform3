@@ -1,0 +1,12 @@
+
+{
+  "common_errors": [
+    "Mauvais choix de collection",
+    "Modification pendant l'énumération",
+    "Accès non sécurisé aux éléments",
+    "LINQ mal utilisé",
+    "Comparaison d'objets incorrecte",
+    "Tri personnalisé mal implémenté",
+    "Gestion inefficace de la mémoire"
+  ]
+}
