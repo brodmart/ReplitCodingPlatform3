@@ -5,6 +5,8 @@ const monacoEditor = {
     loaderPromise: null,
 
     async initialize(elementId, options = {}) {
+        if (!document.getElementById(elementId)) return null;
+        
         if (window.monaco) {
             return this.createEditor(elementId, options);
         }
@@ -31,7 +33,7 @@ const monacoEditor = {
                 script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
                 script.onload = () => {
                     require.config({
-                        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                        paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
                     });
                     require(['vs/editor/editor.main'], () => {
                         resolve(window.monaco);
@@ -45,9 +47,7 @@ const monacoEditor = {
 
     createEditor(elementId, options) {
         const editorElement = document.getElementById(elementId);
-        if (!editorElement) {
-            throw new Error(`Editor element with id '${elementId}' not found`);
-        }
+        if (!editorElement) return null;
 
         const defaultOptions = {
             value: options.value || this.getDefaultCode(options.language || 'cpp'),
@@ -89,15 +89,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         const language = editorElement.getAttribute('data-language') || 'cpp';
-        const editor = await monacoEditor.initialize('editor', { language });
+        const initialValue = editorElement.getAttribute('data-initial-value') || '';
+        const editor = await monacoEditor.initialize('editor', { 
+            language,
+            value: initialValue || monacoEditor.getDefaultCode(language)
+        });
         
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect) {
-            languageSelect.addEventListener('change', () => {
-                const newLanguage = languageSelect.value;
-                monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-                editor.setValue(monacoEditor.getDefaultCode(newLanguage));
-            });
+        if (editor) {
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                languageSelect.addEventListener('change', () => {
+                    const newLanguage = languageSelect.value;
+                    monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+                    if (!editor.getValue()) {
+                        editor.setValue(monacoEditor.getDefaultCode(newLanguage));
+                    }
+                });
+            }
         }
     } catch (error) {
         console.error('Editor initialization failed:', error);
