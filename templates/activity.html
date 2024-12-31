@@ -343,58 +343,25 @@ async function initializeEditor() {
         const editorElement = document.getElementById('editor');
         const code = {{ activity.starter_code|tojson|safe }};
         const language = '{{ activity.language }}';
-            
+
         editorInstance = monaco.editor.create(document.getElementById('editor'), {
             value: code || '',
             language: language || 'cpp',
             theme: 'vs-dark',
-                readOnly: false,
-                wordWrap: 'on',
-                minimap: { enabled: true }
-            });
-
-            window.activityEditor = editor;
-            window.codeEditor = editor;
-            
-            if (typeof setupEventHandlers === 'function') {
-                setupEventHandlers(editor);
-            }
-            if (typeof setupValidation === 'function') {
-                setupValidation(editor);
-            }
-        });
-    } catch (error) {
-        console.error('Failed to initialize editor:', error);
-        const errorContainer = document.getElementById('errorContainer');
-        if (errorContainer) {
-            errorContainer.style.display = 'block';
-            errorContainer.textContent = 'Erreur lors du chargement de l\'éditeur. Veuillez rafraîchir la page.';
-        }
-    }
-}
-
-// Start initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', initializeEditor);
-
-            // Initialize Bootstrap components after editor
-            if (typeof bootstrap !== 'undefined') {
-                const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-                tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
-            }
-        });
-    }
+            readOnly: false,
             wordWrap: 'on',
             minimap: { enabled: true }
         });
 
-        // Store editor instance globally
-        window.activityEditor = editor;
-        window.codeEditor = editor;  // Ensure compatibility with execution handler
+        window.activityEditor = editorInstance;
+        window.codeEditor = editorInstance;
 
-        // Set up event handlers and validation
-        setupEventHandlers(editor);
-        setupValidation(editor);
-
+        if (typeof setupEventHandlers === 'function') {
+            setupEventHandlers(editorInstance);
+        }
+        if (typeof setupValidation === 'function') {
+            setupValidation(editorInstance);
+        }
     } catch (error) {
         console.error('Failed to initialize editor:', error);
         const errorContainer = document.getElementById('errorContainer');

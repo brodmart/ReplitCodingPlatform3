@@ -1,75 +1,93 @@
-
 const monacoEditor = {
     initialized: false,
     instances: new Map(),
     loaderPromise: null,
 
     async initialize(elementId, options = {}) {
-        const editorElement = document.getElementById(elementId);
-        if (!editorElement) {
-            throw new Error(`Editor element with id '${elementId}' not found`);
+        try {
+            const editorElement = document.getElementById(elementId);
+            if (!editorElement) {
+                throw new Error(`Editor element with id '${elementId}' not found`);
+            }
+
+            const initialValue = options.value || this.getDefaultCode(options.language || 'cpp');
+            options.value = initialValue;
+
+            this.dispose(elementId);
+            await this.loadMonaco();
+            return this.createEditor(elementId, options);
+        } catch (error) {
+            console.error('Editor initialization error:', error);
+            this.showErrorMessage(error);
+            throw error;
         }
-
-        const initialValue = options.value || this.getDefaultCode(options.language || 'cpp');
-        options.value = initialValue;
-
-        this.dispose(elementId);
-        await this.loadMonaco();
-        return this.createEditor(elementId, options);
     },
 
     async loadMonaco() {
         if (!this.loaderPromise) {
             this.loaderPromise = new Promise((resolve, reject) => {
-                if (window.monaco && !window._monacoLoaded) {
-                    window._monacoLoaded = true;
-                    resolve();
-                    return;
-                }
+                try {
+                    if (window.monaco && !window._monacoLoaded) {
+                        window._monacoLoaded = true;
+                        resolve();
+                        return;
+                    }
 
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js';
-                script.onload = () => {
-                    require.config({
-                        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-                    });
-                    require(['vs/editor/editor.main'], resolve);
-                };
-                script.onerror = (error) => reject(new Error('Failed to load Monaco Editor: ' + error.message));
-                document.head.appendChild(script);
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js';
+                    script.onload = () => {
+                        require.config({
+                            paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
+                        });
+                        require(['vs/editor/editor.main'], () => {
+                            window._monacoLoaded = true;
+                            resolve();
+                        });
+                    };
+                    script.onerror = (error) => reject(new Error('Failed to load Monaco Editor: ' + error.message));
+                    document.head.appendChild(script);
+                } catch (error) {
+                    reject(error);
+                }
             });
         }
         return this.loaderPromise;
     },
 
     createEditor(elementId, options) {
-        const defaultOptions = {
-            theme: 'vs-dark',
-            minimap: { enabled: false },
-            automaticLayout: true,
-            fontSize: 14,
-            scrollBeyondLastLine: false,
-            renderWhitespace: 'selection',
-            padding: { top: 10, bottom: 10 },
-            formatOnType: true,
-            formatOnPaste: true,
-            autoIndent: 'full',
-            bracketPairColorization: { enabled: true },
-            suggestOnTriggerCharacters: true,
-            wordBasedSuggestions: 'on',
-            folding: true
-        };
+        try {
+            const defaultOptions = {
+                theme: 'vs-dark',
+                minimap: { enabled: false },
+                automaticLayout: true,
+                fontSize: 14,
+                scrollBeyondLastLine: false,
+                renderWhitespace: 'selection',
+                padding: { top: 10, bottom: 10 },
+                formatOnType: true,
+                formatOnPaste: true,
+                autoIndent: 'full',
+                bracketPairColorization: { enabled: true },
+                suggestOnTriggerCharacters: true,
+                wordBasedSuggestions: 'on',
+                folding: true
+            };
 
-        const editorInstance = monaco.editor.create(
-            document.getElementById(elementId), 
-            { ...defaultOptions, ...options }
-        );
+            const editorInstance = monaco.editor.create(
+                document.getElementById(elementId), 
+                { ...defaultOptions, ...options }
+            );
 
-        this.instances.set(elementId, editorInstance);
-        this.setupEditorEventHandlers(editorInstance, elementId);
-        this.initialized = true;
+            this.instances.set(elementId, editorInstance);
+            this.setupEditorEventHandlers(editorInstance, elementId);
+            this.initialized = true;
 
-        return editorInstance;
+            return editorInstance;
+        } catch (error) {
+            console.error('Editor creation error:', error);
+            this.showErrorMessage(error);
+            throw error;
+        }
     },
 
     setupEditorEventHandlers(editorInstance, elementId) {
@@ -144,6 +162,23 @@ class Program {
         `;
         document.body.appendChild(alertDiv);
         setTimeout(() => alertDiv.remove(), 5000);
+    },
+    showErrorMessage(error) {
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.style.display = 'block';
+            errorContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6 class="mb-2">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Erreur d'initialisation
+                    </h6>
+                    <p class="mb-0">${error.message}</p>
+                    <button class="btn btn-outline-danger btn-sm mt-2" onclick="location.reload()">
+                        <i class="bi bi-arrow-clockwise"></i> Rafraîchir la page
+                    </button>
+                </div>
+            `;
+        }
     }
 };
 
@@ -159,7 +194,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             language: editorElement.getAttribute('data-language') || 'cpp'
         });
 
-        setupEditorControls(editor);
+        if (editor) {
+            setupEditorControls(editor);
+        }
     } catch (error) {
         console.error('Editor initialization failed:', error);
         showErrorMessage(error);
@@ -192,23 +229,6 @@ function loadSavedContent(editor, language) {
     editor.setValue(savedContent || monacoEditor.getDefaultCode(language));
 }
 
-function showErrorMessage(error) {
-    const errorContainer = document.getElementById('errorContainer');
-    if (errorContainer) {
-        errorContainer.style.display = 'block';
-        errorContainer.innerHTML = `
-            <div class="alert alert-danger">
-                <h6 class="mb-2">
-                    <i class="bi bi-exclamation-triangle-fill"></i> Erreur d'initialisation
-                </h6>
-                <p class="mb-0">${error.message}</p>
-                <button class="btn btn-outline-danger btn-sm mt-2" onclick="location.reload()">
-                    <i class="bi bi-arrow-clockwise"></i> Rafraîchir la page
-                </button>
-            </div>
-        `;
-    }
-}
 
 window.addEventListener('beforeunload', () => {
     for (const [elementId] of monacoEditor.instances) {
