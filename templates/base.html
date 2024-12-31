@@ -35,7 +35,7 @@
         }
 
         // Enhanced fallback loader with retry mechanism
-        function loadLocalBootstrap() {
+        async function loadLocalBootstrap() {
             console.log('Attempting to load local Bootstrap...');
 
             if (window.resourceStatus.retryCount >= window.resourceStatus.maxRetries) {
@@ -44,54 +44,56 @@
             }
             window.resourceStatus.retryCount++;
 
-            return new Promise((resolve, reject) => {
-                const loadCSS = new Promise((resolveCSS) => {
-                    if (window.resourceStatus.bootstrapCSS) {
-                        resolveCSS();
-                        return;
-                    }
+            const loadCSS = new Promise((resolveCSS, reject) => {
+                if (window.resourceStatus.bootstrapCSS) {
+                    resolveCSS();
+                    return;
+                }
 
-                    const link = document.createElement('link');
-                    link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
-                    link.type = "text/css";
-                    link.rel = "stylesheet";
-                    link.onload = () => {
-                        window.resourceStatus.bootstrapCSS = true;
-                        console.log('Local Bootstrap CSS loaded successfully');
-                        resolveCSS();
-                    };
-                    link.onerror = () => {
-                        logResourceError('Bootstrap CSS local fallback');
-                        reject(new Error('Failed to load Bootstrap CSS'));
-                    };
-                    document.head.appendChild(link);
-                });
-
-                const loadJS = new Promise((resolveJS) => {
-                    if (window.resourceStatus.bootstrapJS) {
-                        resolveJS();
-                        return;
-                    }
-
-                    const script = document.createElement('script');
-                    script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
-                    script.onload = () => {
-                        window.resourceStatus.bootstrapJS = true;
-                        console.log('Local Bootstrap JS loaded successfully');
-                        document.dispatchEvent(new Event('bootstrap:loaded'));
-                        resolveJS();
-                    };
-                    script.onerror = () => {
-                        logResourceError('Bootstrap JS local fallback');
-                        reject(new Error('Failed to load Bootstrap JS'));
-                    };
-                    document.body.appendChild(script);
-                });
-
-                Promise.all([loadCSS, loadJS])
-                    .then(resolve)
-                    .catch(reject);
+                const link = document.createElement('link');
+                link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
+                link.type = "text/css";
+                link.rel = "stylesheet";
+                link.onload = () => {
+                    window.resourceStatus.bootstrapCSS = true;
+                    console.log('Local Bootstrap CSS loaded successfully');
+                    resolveCSS();
+                };
+                link.onerror = () => {
+                    logResourceError('Bootstrap CSS local fallback');
+                    reject(new Error('Failed to load Bootstrap CSS'));
+                };
+                document.head.appendChild(link);
             });
+
+            const loadJS = new Promise((resolveJS, reject) => {
+                if (window.resourceStatus.bootstrapJS) {
+                    resolveJS();
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
+                script.onload = () => {
+                    window.resourceStatus.bootstrapJS = true;
+                    console.log('Local Bootstrap JS loaded successfully');
+                    document.dispatchEvent(new Event('bootstrap:loaded'));
+                    resolveJS();
+                };
+                script.onerror = () => {
+                    logResourceError('Bootstrap JS local fallback');
+                    reject(new Error('Failed to load Bootstrap JS'));
+                };
+                document.body.appendChild(script);
+            });
+
+            try {
+                await Promise.all([loadCSS, loadJS]);
+                return Promise.resolve();
+            } catch (error) {
+                console.error('Failed to load local Bootstrap:', error);
+                return Promise.reject(error);
+            }
         }
 
         // Preload local resources
