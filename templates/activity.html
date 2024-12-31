@@ -359,6 +359,16 @@ async function initializeEditor() {
                 wordWrap: 'on',
                 minimap: { enabled: true }
             });
+        });
+    } catch (error) {
+        console.error('Failed to initialize editor:', error);
+        const errorContainer = document.getElementById('errorContainer');
+        if (errorContainer) {
+            errorContainer.style.display = 'block';
+            errorContainer.textContent = 'Erreur lors du chargement de l\'éditeur. Veuillez rafraîchir la page.';
+        }
+    }
+}
 
             // Initialize Bootstrap components after editor
             const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
