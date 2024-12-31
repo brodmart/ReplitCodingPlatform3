@@ -1,6 +1,8 @@
 
 let editor = null;
 
+require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+
 require(['vs/editor/editor.main'], function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
@@ -29,8 +31,7 @@ require(['vs/editor/editor.main'], function() {
 function getDefaultCode(language) {
     const templates = {
         cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello World!" << endl;\n    return 0;\n}',
-        python: 'print("Hello World!")',
-        javascript: 'console.log("Hello World!");'
+        csharp: 'using System;\n\nclass Program {\n    static void Main(string[] args) {\n        Console.WriteLine("Hello World!");\n    }\n}'
     };
     return templates[language] || templates.cpp;
 }
