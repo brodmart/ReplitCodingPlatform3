@@ -1,0 +1,242 @@
+ M. Martin
+Éditeur de Code
+
+C++
+123456
+#include <iostream>
+
+int main() {
+    std::cout << "Bonjour le monde!" << std::end;
+    return 0;
+}
+Console de Sortie
+
+        Erreur:
+
+        
+/tmp/tmpb2sumj1w/program.cpp: In function ‘int main()’:
+/tmp/tmpb2sumj1w/program.cpp:4:38: error: no match for ‘operator<<’ (operand types are ‘std::basic_ostream’ and ‘’)
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~
+In file included from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/iostream:41,
+                 from /tmp/tmpb2sumj1w/program.cpp:1:
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:110:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(__ostream_type& (*)(__ostream_type&)) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  110 |       operator<<(__ostream_type& (*__pf)(__ostream_type&))
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:110:36: note:   no known conversion for argument 1 from ‘’ to ‘std::basic_ostream::__ostream_type& (*)(std::basic_ostream::__ostream_type&)’ {aka ‘std::basic_ostream& (*)(std::basic_ostream&)’}
+  110 |       operator<<(__ostream_type& (*__pf)(__ostream_type&))
+      |                  ~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:119:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(__ios_type& (*)(__ios_type&)) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream; __ios_type = std::basic_ios]’
+  119 |       operator<<(__ios_type& (*__pf)(__ios_type&))
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:119:32: note:   no known conversion for argument 1 from ‘’ to ‘std::basic_ostream::__ios_type& (*)(std::basic_ostream::__ios_type&)’ {aka ‘std::basic_ios& (*)(std::basic_ios&)’}
+  119 |       operator<<(__ios_type& (*__pf)(__ios_type&))
+      |                  ~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:129:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(std::ios_base& (*)(std::ios_base&)) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  129 |       operator<<(ios_base& (*__pf) (ios_base&))
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:129:30: note:   no known conversion for argument 1 from ‘’ to ‘std::ios_base& (*)(std::ios_base&)’
+  129 |       operator<<(ios_base& (*__pf) (ios_base&))
+      |                  ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:168:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(long int) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  168 |       operator<<(long __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:168:23: note:   no known conversion for argument 1 from ‘’ to ‘long int’
+  168 |       operator<<(long __n)
+      |                  ~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:172:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(long unsigned int) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  172 |       operator<<(unsigned long __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:172:32: note:   no known conversion for argument 1 from ‘’ to ‘long unsigned int’
+  172 |       operator<<(unsigned long __n)
+      |                  ~~~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:176:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(bool) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  176 |       operator<<(bool __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:176:23: note:   no known conversion for argument 1 from ‘’ to ‘bool’
+  176 |       operator<<(bool __n)
+      |                  ~~~~~^~~
+In file included from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:880:
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:96:5: note: candidate: ‘std::basic_ostream<_CharT, _Traits>& std::basic_ostream<_CharT, _Traits>::operator<<(short int) [with _CharT = char; _Traits = std::char_traits]’
+   96 |     basic_ostream<_CharT, _Traits>::
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:97:22: note:   no known conversion for argument 1 from ‘’ to ‘short int’
+   97 |     operator<<(short __n)
+      |                ~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:183:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(short unsigned int) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  183 |       operator<<(unsigned short __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:183:33: note:   no known conversion for argument 1 from ‘’ to ‘short unsigned int’
+  183 |       operator<<(unsigned short __n)
+      |                  ~~~~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:110:5: note: candidate: ‘std::basic_ostream<_CharT, _Traits>& std::basic_ostream<_CharT, _Traits>::operator<<(int) [with _CharT = char; _Traits = std::char_traits]’
+  110 |     basic_ostream<_CharT, _Traits>::
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:111:20: note:   no known conversion for argument 1 from ‘’ to ‘int’
+  111 |     operator<<(int __n)
+      |                ~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:194:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(unsigned int) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  194 |       operator<<(unsigned int __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:194:31: note:   no known conversion for argument 1 from ‘’ to ‘unsigned int’
+  194 |       operator<<(unsigned int __n)
+      |                  ~~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:203:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(long long int) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  203 |       operator<<(long long __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:203:28: note:   no known conversion for argument 1 from ‘’ to ‘long long int’
+  203 |       operator<<(long long __n)
+      |                  ~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:207:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(long long unsigned int) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  207 |       operator<<(unsigned long long __n)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:207:37: note:   no known conversion for argument 1 from ‘’ to ‘long long unsigned int’
+  207 |       operator<<(unsigned long long __n)
+      |                  ~~~~~~~~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:222:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(double) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  222 |       operator<<(double __f)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:222:25: note:   no known conversion for argument 1 from ‘’ to ‘double’
+  222 |       operator<<(double __f)
+      |                  ~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:226:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(float) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  226 |       operator<<(float __f)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:226:24: note:   no known conversion for argument 1 from ‘’ to ‘float’
+  226 |       operator<<(float __f)
+      |                  ~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:234:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(long double) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  234 |       operator<<(long double __f)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:234:30: note:   no known conversion for argument 1 from ‘’ to ‘long double’
+  234 |       operator<<(long double __f)
+      |                  ~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:292:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(const void*) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream]’
+  292 |       operator<<(const void* __p)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:292:30: note:   no known conversion for argument 1 from ‘’ to ‘const void*’
+  292 |       operator<<(const void* __p)
+      |                  ~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:297:7: note: candidate: ‘std::basic_ostream<_CharT, _Traits>::__ostream_type& std::basic_ostream<_CharT, _Traits>::operator<<(std::nullptr_t) [with _CharT = char; _Traits = std::char_traits; __ostream_type = std::basic_ostream; std::nullptr_t = std::nullptr_t]’
+  297 |       operator<<(nullptr_t)
+      |       ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:297:18: note:   no known conversion for argument 1 from ‘’ to ‘std::nullptr_t’
+  297 |       operator<<(nullptr_t)
+      |                  ^~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:124:5: note: candidate: ‘std::basic_ostream<_CharT, _Traits>& std::basic_ostream<_CharT, _Traits>::operator<<(__streambuf_type*) [with _CharT = char; _Traits = std::char_traits; __streambuf_type = std::basic_streambuf]’
+  124 |     basic_ostream<_CharT, _Traits>::
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:125:34: note:   no known conversion for argument 1 from ‘’ to ‘std::basic_ostream::__streambuf_type*’ {aka ‘std::basic_streambuf*’}
+  125 |     operator<<(__streambuf_type* __sbin)
+      |                ~~~~~~~~~~~~~~~~~~^~~~~~
+In file included from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/basic_string.h:47,
+                 from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/string:54,
+                 from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/locale_classes.h:40,
+                 from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ios_base.h:41,
+                 from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ios:44,
+                 from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:40:
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/string_view:760:5: note: candidate: ‘std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, basic_string_view<_CharT, _Traits>) [with _CharT = char; _Traits = char_traits]’
+  760 |     operator<<(basic_ostream<_CharT, _Traits>& __os,
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/string_view:761:50: note:   no known conversion for argument 2 from ‘’ to ‘std::basic_string_view’
+  761 |                basic_string_view<_CharT,_Traits> __str)
+      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/basic_string.h:4020:5: note: candidate: ‘template std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, const __cxx11::basic_string<_CharT, _Traits, _Allocator>&)’
+ 4020 |     operator<<(basic_ostream<_CharT, _Traits>& __os,
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/basic_string.h:4020:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   couldn’t deduce template parameter ‘_Alloc’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+In file included from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/memory_resource.h:38,
+                 from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/string:58:
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/cstddef:124:5: note: candidate: ‘template constexpr std::__byte_op_t<_IntegerType> std::operator<<(byte, _IntegerType)’
+  124 |     operator<<(byte __b, _IntegerType __shift) noexcept
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/cstddef:124:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   couldn’t deduce template parameter ‘_IntegerType’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+In file included from /nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ios_base.h:46:
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/system_error:339:5: note: candidate: ‘template std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, const error_code&)’
+  339 |     operator<<(basic_ostream<_CharT, _Traits>& __os, const error_code& __e)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/system_error:339:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘const std::error_code&’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:554:5: note: candidate: ‘std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, _CharT) [with _CharT = char; _Traits = char_traits]’
+  554 |     operator<<(basic_ostream<_CharT, _Traits>& __out, _CharT __c)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:554:62: note:   no known conversion for argument 2 from ‘’ to ‘char’
+  554 |     operator<<(basic_ostream<_CharT, _Traits>& __out, _CharT __c)
+      |                                                       ~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:564:5: note: candidate: ‘template std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, char)’
+  564 |     operator<<(basic_ostream<_CharT, _Traits>& __out, char __c)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:564:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘char’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:570:5: note: candidate: ‘template std::basic_ostream& std::operator<<(basic_ostream&, char)’
+  570 |     operator<<(basic_ostream& __out, char __c)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:570:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘char’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:581:5: note: candidate: ‘template std::basic_ostream& std::operator<<(basic_ostream&, signed char)’
+  581 |     operator<<(basic_ostream& __out, signed char __c)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:581:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘signed char’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:586:5: note: candidate: ‘template std::basic_ostream& std::operator<<(basic_ostream&, unsigned char)’
+  586 |     operator<<(basic_ostream& __out, unsigned char __c)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:586:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘unsigned char’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:645:5: note: candidate: ‘std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, const _CharT*) [with _CharT = char; _Traits = char_traits]’
+  645 |     operator<<(basic_ostream<_CharT, _Traits>& __out, const _CharT* __s)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:645:69: note:   no known conversion for argument 2 from ‘’ to ‘const char*’
+  645 |     operator<<(basic_ostream<_CharT, _Traits>& __out, const _CharT* __s)
+      |                                                       ~~~~~~~~~~~~~~^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:307:5: note: candidate: ‘template std::basic_ostream<_CharT, _Traits>& std::operator<<(basic_ostream<_CharT, _Traits>&, const char*)’
+  307 |     operator<<(basic_ostream<_CharT, _Traits>& __out, const char* __s)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/bits/ostream.tcc:307:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘const char*’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:662:5: note: candidate: ‘template std::basic_ostream& std::operator<<(basic_ostream&, const char*)’
+  662 |     operator<<(basic_ostream& __out, const char* __s)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:662:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘const char*’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:675:5: note: candidate: ‘template std::basic_ostream& std::operator<<(basic_ostream&, const signed char*)’
+  675 |     operator<<(basic_ostream& __out, const signed char* __s)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:675:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘const signed char*’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:680:5: note: candidate: ‘template std::basic_ostream& std::operator<<(basic_ostream&, const unsigned char*)’
+  680 |     operator<<(basic_ostream& __out, const unsigned char* __s)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:680:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   cannot convert ‘std::end’ (type ‘’) to type ‘const unsigned char*’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                                              ^~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:801:5: note: candidate: ‘template _Ostream&& std::operator<<(_Ostream&&, const _Tp&)’
+  801 |     operator<<(_Ostream&& __os, const _Tp& __x)
+      |     ^~~~~~~~
+/nix/store/14c6s4xzhy14i2b05s00rjns2j93gzz4-gcc-13.2.0/include/c++/13.2.0/ostream:801:5: note:   template argument deduction/substitution failed:
+/tmp/tmpb2sumj1w/program.cpp:4:46: note:   couldn’t deduce template parameter ‘_Tp’
+    4 |     std::cout << "Bonjour le monde!" << std::end;
+      |                

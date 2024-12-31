@@ -99,7 +99,7 @@ const monacoEditor = {
         return '';
     },
 
-    // Add error handling utilities
+    // Enhanced error handling utilities
     handleExecutionError: function(error) {
         const output = document.getElementById('output');
         if (output) {
@@ -107,53 +107,83 @@ const monacoEditor = {
         }
     },
 
-    formatError: function(error) {
-        // Check if it's a compilation error
-        if (error.includes('error:')) {
-            const lines = error.split('\n');
-            let formattedError = '';
-            let errorMessage = '';
-            let errorLine = '';
+    // Improved error formatting with specific handlers for different error types
+    formatError: function(errorText) {
+        // Handle C++ specific errors
+        if (errorText.includes('error:')) {
+            return this.formatCompilerError(errorText);
+        }
+        // Handle runtime errors
+        return this.formatRuntimeError(errorText);
+    },
 
-            for (const line of lines) {
-                if (line.includes('error:')) {
-                    // Extract the main error message
-                    errorMessage = line.split('error:')[1].trim();
-                    // Get the line number if available
-                    const match = line.match(/program\.cpp:(\d+):/);
+    formatCompilerError: function(errorText) {
+        const lines = errorText.split('\n');
+        let mainError = '';
+        let lineNumber = '';
+        let suggestion = '';
+
+        // Extract relevant information from error message
+        for (const line of lines) {
+            if (line.includes('error:')) {
+                const parts = line.split('error:');
+                if (parts.length > 1) {
+                    mainError = parts[1].trim();
+                    // Extract line number if available
+                    const match = parts[0].match(/program\.cpp:(\d+):/);
                     if (match) {
-                        errorLine = `Ligne ${match[1]}: `;
+                        lineNumber = match[1];
                     }
-                    break;
                 }
+                // Add specific suggestions for common errors
+                if (line.includes('std::end')) {
+                    suggestion = 'Vous vouliez probablement utiliser "std::endl" pour un retour à la ligne.';
+                } else if (line.includes('undefined reference')) {
+                    suggestion = 'Vérifiez que vous avez inclus tous les fichiers d\'en-tête nécessaires.';
+                }
+                break;
             }
-
-            // Create a user-friendly error message
-            formattedError = `
-                <div class="alert alert-danger">
-                    <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Erreur de Compilation</h5>
-                    <hr>
-                    <p class="mb-1"><strong>${errorLine}</strong>${errorMessage}</p>
-                    <div class="mt-2">
-                        <small class="text-muted">
-                            Conseil: Vérifiez la syntaxe de votre code. Les erreurs courantes incluent:
-                            <ul class="mt-1">
-                                <li>Points-virgules manquants</li>
-                                <li>Parenthèses non fermées</li>
-                                <li>Fautes de frappe dans les noms de fonctions</li>
-                            </ul>
-                        </small>
-                    </div>
-                </div>`;
-            return formattedError;
         }
 
-        // For runtime errors
-        return `<div class="alert alert-danger">
-            <h5 class="alert-heading"><i class="bi bi-exclamation-circle"></i> Erreur d'Exécution</h5>
-            <hr>
-            <p class="mb-0">${error}</p>
-        </div>`;
+        return `
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    Erreur de Compilation
+                    ${lineNumber ? `<small class="text-muted">(Ligne ${lineNumber})</small>` : ''}
+                </h5>
+                <hr>
+                <p class="mb-2"><strong>${mainError}</strong></p>
+                ${suggestion ? `<p class="mb-2 text-info"><i class="bi bi-lightbulb"></i> ${suggestion}</p>` : ''}
+                <div class="mt-3">
+                    <small class="text-muted">
+                        Vérifiez:
+                        <ul class="mt-1 mb-0">
+                            <li>La syntaxe de votre code (points-virgules, parenthèses)</li>
+                            <li>Les noms des fonctions et variables</li>
+                            <li>Les bibliothèques incluses</li>
+                        </ul>
+                    </small>
+                </div>
+            </div>`;
+    },
+
+    formatRuntimeError: function(error) {
+        return `
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">
+                    <i class="bi bi-exclamation-circle"></i> 
+                    Erreur d'Exécution
+                </h5>
+                <hr>
+                <p class="mb-2">${error}</p>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Cette erreur s'est produite pendant l'exécution de votre programme.
+                        Vérifiez la logique de votre code et les valeurs utilisées.
+                    </small>
+                </div>
+            </div>`;
     }
 };
 
