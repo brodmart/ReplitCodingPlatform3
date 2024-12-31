@@ -9,24 +9,33 @@ from models import Student, CodingActivity, SharedCode
 from routes import blueprints
 from forms import LoginForm, RegisterForm
 from compiler_service import compile_and_run
+from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev_key_123")
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['PERMANENT_SESSION_LIFETIME'] = 1800  # 30 minutes session timeout
 
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
+login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
+login_manager.login_message_category = 'info'
 
 @login_manager.user_loader
 def load_user(id):
-    return Student.query.get(int(id))
+    try:
+        return Student.query.get(int(id))
+    except SQLAlchemyError as e:
+        logger.error(f"Error loading user: {str(e)}")
+        return None
 
 # Register blueprints
 for blueprint in blueprints:
@@ -34,10 +43,15 @@ for blueprint in blueprints:
 
 @app.route('/')
 def index():
-    achievements = []
-    if current_user.is_authenticated:
-        achievements = [sa.achievement for sa in current_user.achievements]
-    return render_template('index.html', achievements=achievements)
+    try:
+        achievements = []
+        if current_user.is_authenticated:
+            achievements = [sa.achievement for sa in current_user.achievements]
+        return render_template('index.html', achievements=achievements)
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in index route: {str(e)}")
+        flash('Une erreur est survenue lors du chargement de la page.', 'error')
+        return render_template('index.html', achievements=[])
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
@@ -68,51 +82,92 @@ def execute_code():
         })
 
     except Exception as e:
-        logging.error(f"Error executing code: {str(e)}")
+        logger.error(f"Error executing code: {str(e)}")
         return jsonify({
             'error': 'Une erreur inattendue est survenue lors de l\'exécution'
         }), 500
 
 @app.route('/validate_code', methods=['POST'])
 def validate_code():
-    """
-    Validate code syntax in real-time and provide bilingual feedback and syntax help
-    """
-    code = request.json.get('code', '')
-    language = request.json.get('language', '')
-    activity_id = request.json.get('activity_id')
+    """Validate code syntax in real-time and provide bilingual feedback"""
+    try:
+        code = request.json.get('code', '')
+        language = request.json.get('language', '')
+        activity_id = request.json.get('activity_id')
 
-    if not code or not language or not activity_id:
-        return jsonify({'errors': [], 'syntax_help': ''})
+        if not code or not language or not activity_id:
+            return jsonify({'errors': [], 'syntax_help': ''})
 
-    activity = CodingActivity.query.get(activity_id)
-    if not activity:
-        return jsonify({'errors': [], 'syntax_help': ''})
+        activity = CodingActivity.query.get(activity_id)
+        if not activity:
+            logger.warning(f"Activity not found: {activity_id}")
+            return jsonify({'errors': [], 'syntax_help': ''})
 
-    errors = []
+        errors = []
 
-    # Basic syntax validation for C++
-    if language == 'cpp':
-        if '#include' not in code:
-            errors.append({
-                'message_fr': 'N\'oubliez pas d\'inclure les bibliothèques nécessaires',
-                'message_en': 'Don\'t forget to include necessary libraries'
-            })
-        if 'main()' not in code:
-            errors.append({
-                'message_fr': 'La fonction main() est requise',
-                'message_en': 'The main() function is required'
-            })
-        if code.count('{') != code.count('}'):
-            errors.append({
-                'message_fr': 'Vérifiez vos accolades - il en manque certaines',
-                'message_en': 'Check your braces - some are missing'
-            })
+        # Basic syntax validation for C++
+        if language == 'cpp':
+            if '#include' not in code:
+                errors.append({
+                    'message_fr': 'N\'oubliez pas d\'inclure les bibliothèques nécessaires',
+                    'message_en': 'Don\'t forget to include necessary libraries'
+                })
+            if 'main()' not in code:
+                errors.append({
+                    'message_fr': 'La fonction main() est requise',
+                    'message_en': 'The main() function is required'
+                })
+            if code.count('{') != code.count('}'):
+                errors.append({
+                    'message_fr': 'Vérifiez vos accolades - il en manque certaines',
+                    'message_en': 'Check your braces - some are missing'
+                })
 
-    return jsonify({
-        'errors': errors,
-        'syntax_help': activity.syntax_help
-    })
+        return jsonify({
+            'errors': errors,
+            'syntax_help': activity.syntax_help
+        })
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in validate_code: {str(e)}")
+        return jsonify({'error': 'Database error occurred'}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error in validate_code: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+@app.route('/my-shared-codes')
+@login_required
+def my_shared_codes():
+    """Display user's shared code snippets"""
+    try:
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+
+        shared_codes = SharedCode.query.filter_by(user_id=current_user.id)\
+                                   .order_by(SharedCode.created_at.desc())\
+                                   .all()
+
+        return render_template('my_shares.html', shared_codes=shared_codes)
+    except SQLAlchemyError as e:
+        logger.error(f"Database error in my_shared_codes: {str(e)}")
+        flash('Une erreur est survenue lors du chargement de vos codes partagés.', 'error')
+        return render_template('my_shares.html', shared_codes=[])
+
+# Error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('errors/404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('errors/500.html'), 500
+
+# Initialize database
+with app.app_context():
+    try:
+        db.create_all()
+    except SQLAlchemyError as e:
+        logger.error(f"Failed to initialize database: {str(e)}")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -143,9 +198,14 @@ def register():
             password_hash=generate_password_hash(form.password.data)
         )
         db.session.add(user)
-        db.session.commit()
-        flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
-        return redirect(url_for('login'))
+        try:
+            db.session.commit()
+            flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')
+            return redirect(url_for('login'))
+        except SQLAlchemyError as e:
+            logger.error(f"Database error during registration: {str(e)}")
+            flash('Une erreur est survenue lors de la création du compte.', 'error')
+            return render_template('register.html', form=form)
     return render_template('register.html', form=form)
 
 @app.route('/logout')
@@ -153,20 +213,3 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
-
-@app.route('/my-shared-codes')
-@login_required
-def my_shared_codes():
-    """Display user's shared code snippets"""
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
-
-    shared_codes = SharedCode.query.filter_by(user_id=current_user.id)\
-                                 .order_by(SharedCode.created_at.desc())\
-                                 .all()
-
-    return render_template('my_shares.html', shared_codes=shared_codes)
-
-# Initialize database
-with app.app_context():
-    db.create_all()

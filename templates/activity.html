@@ -12,6 +12,37 @@
         border-radius: 4px;
     }
 
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .loading-overlay.show {
+        display: flex;
+    }
+
+    .loading-spinner {
+        text-align: center;
+        color: white;
+    }
+
+    .error-message {
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 4px;
+        background-color: rgba(220, 53, 69, 0.1);
+        border: 1px solid #dc3545;
+        color: #dc3545;
+    }
+
     .syntax-helper {
         position: fixed;
         right: 20px;
@@ -24,32 +55,6 @@
     .syntax-helper.show {
         display: block;
     }
-
-    .learning-objective {
-        background-color: #f8f9fa;
-        border-left: 4px solid #0d6efd;
-        padding: 15px;
-        margin-bottom: 20px;
-        color: #212529;
-        border-radius: 4px;
-    }
-
-    .learning-objective h5 {
-        color: #0d6efd;
-        margin-bottom: 10px;
-    }
-
-    .learning-objective p {
-        margin-bottom: 0;
-        line-height: 1.5;
-    }
-
-    .section-title {
-        color: #0d6efd;
-        margin: 1.5rem 0 1rem 0;
-        font-weight: 600;
-    }
-
     .incorrect-examples {
         margin-top: 1.5rem;
         border: 1px solid #dee2e6;
@@ -217,20 +222,36 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Éditeur de Code</h5>
                     <div>
-                        <button id="resetButton" class="btn btn-secondary me-2">
+                        <button id="resetButton" class="btn btn-secondary me-2" title="Réinitialiser le code">
                             <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
                         </button>
-                        <button id="submitButton" class="btn btn-primary">
+                        <button id="submitButton" class="btn btn-primary" title="Exécuter et soumettre le code">
                             <i class="bi bi-play-fill"></i> Soumettre
                         </button>
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body position-relative">
+                    <!-- Loading overlay -->
+                    <div id="loadingOverlay" class="loading-overlay">
+                        <div class="loading-spinner">
+                            <div class="spinner-border text-light mb-2" role="status">
+                                <span class="visually-hidden">Chargement...</span>
+                            </div>
+                            <div id="loadingMessage">Compilation et exécution en cours...</div>
+                        </div>
+                    </div>
+
                     <div id="editor"></div>
                     <div id="realTimeFeedback" class="mt-3"></div>
                     <div class="mt-4">
                         <h5>Résultats des Tests</h5>
                         <div id="testResults"></div>
+                    </div>
+
+                    <!-- Error message container -->
+                    <div id="errorContainer" class="error-message" style="display: none;">
+                        <h6 class="mb-2"><i class="bi bi-exclamation-triangle-fill"></i> Erreur</h6>
+                        <div id="errorMessage"></div>
                     </div>
                 </div>
             </div>
@@ -254,35 +275,50 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.activityEditor = editor;
 
         // Set up event handlers
-        const resetButton = document.getElementById('resetButton');
-        if (resetButton) {
-            resetButton.addEventListener('click', function() {
-                editor.setValue({{ activity.starter_code|tojson }});
-            });
-        }
+        setupEventHandlers(editor);
 
-        const submitButton = document.getElementById('submitButton');
-        if (submitButton) {
-            submitButton.addEventListener('click', async function() {
-                await handleSubmission(editor.getValue(), this);
-            });
-        }
-
-        let validationTimeout;
-        editor.onDidChangeModelContent(() => {
-            clearTimeout(validationTimeout);
-            validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
-        });
+        // Set up real-time validation
+        setupValidation(editor);
     } catch (error) {
         console.error('Failed to initialize editor:', error);
+        showError('Erreur lors de l\'initialisation de l\'éditeur. Veuillez rafraîchir la page.');
     }
 });
 
+function setupEventHandlers(editor) {
+    const resetButton = document.getElementById('resetButton');
+    if (resetButton) {
+        resetButton.addEventListener('click', function() {
+            if (confirm('Êtes-vous sûr de vouloir réinitialiser le code? Toutes vos modifications seront perdues.')) {
+                editor.setValue({{ activity.starter_code|tojson }});
+            }
+        });
+    }
+
+    const submitButton = document.getElementById('submitButton');
+    if (submitButton) {
+        submitButton.addEventListener('click', async function() {
+            await handleSubmission(editor.getValue(), this);
+        });
+    }
+}
+
+function setupValidation(editor) {
+    let validationTimeout;
+    editor.onDidChangeModelContent(() => {
+        clearTimeout(validationTimeout);
+        validationTimeout = setTimeout(() => validateCode(editor.getValue()), 500);
+    });
+}
+
 async function handleSubmission(code, submitButton) {
     const testResults = document.getElementById('testResults');
+    const loadingOverlay = document.getElementById('loadingOverlay');
     if (!testResults) return;
 
     try {
+        // Show loading overlay
+        loadingOverlay.classList.add('show');
         submitButton.disabled = true;
         submitButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Soumission en cours...';
 
@@ -299,7 +335,6 @@ async function handleSubmission(code, submitButton) {
         // Check if response is JSON
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-            // If not JSON, likely redirected to login page
             if (response.redirected || response.status === 302) {
                 window.location.href = response.url;
                 return;
@@ -319,18 +354,35 @@ async function handleSubmission(code, submitButton) {
             location.reload();
         }
     } catch (error) {
+        showError(error.message);
         testResults.innerHTML = `<div class="alert alert-danger">
             <strong>Erreur:</strong><br>
             <pre class="mb-0">${error.message}</pre>
             ${!{{ current_user.is_authenticated|tojson }} ? '<hr><p>Veuillez vous <a href="{{ url_for("auth.login") }}">connecter</a> pour soumettre votre code.</p>' : ''}
         </div>`;
     } finally {
+        loadingOverlay.classList.remove('show');
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="bi bi-play-fill"></i> Soumettre';
     }
 }
 
+function showError(message) {
+    const errorContainer = document.getElementById('errorContainer');
+    const errorMessage = document.getElementById('errorMessage');
+    if (errorContainer && errorMessage) {
+        errorMessage.textContent = message;
+        errorContainer.style.display = 'block';
+        setTimeout(() => {
+            errorContainer.style.display = 'none';
+        }, 5000);
+    }
+}
+
 async function validateCode(code) {
+    const feedbackDiv = document.getElementById('realTimeFeedback');
+    if (!feedbackDiv) return;
+
     try {
         const response = await fetch('/validate_code', {
             method: 'POST',
@@ -345,9 +397,11 @@ async function validateCode(code) {
         });
 
         const result = await response.json();
-        const feedbackDiv = document.getElementById('realTimeFeedback');
 
-        if (!feedbackDiv) return;
+        if (result.error) {
+            showError(result.error);
+            return;
+        }
 
         if (result.errors && result.errors.length > 0) {
             feedbackDiv.innerHTML = `
@@ -367,14 +421,7 @@ async function validateCode(code) {
         }
     } catch (error) {
         console.error('Error validating code:', error);
-        const feedbackDiv = document.getElementById('realTimeFeedback');
-        if (feedbackDiv) {
-            feedbackDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle"></i> Erreur lors de la validation: ${error.message}
-                </div>
-            `;
-        }
+        showError('Erreur lors de la validation du code');
     }
 }
 
