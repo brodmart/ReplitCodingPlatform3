@@ -60,9 +60,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'max_overflow': 10,
     'pool_timeout': 30,
     'pool_recycle': 1800,
-    'pool_pre_ping': True,  # Enable connection health checks
-    'max_retries': 3,       # Number of connection retry attempts
-    'retry_interval': 2     # Seconds between retries
+    'pool_pre_ping': True  # Enable connection health checks
 }
 
 logger.info("Initializing database...")
