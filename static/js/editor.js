@@ -1,26 +1,10 @@
 
+require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+
 let editor = null;
 
-// Only initialize once
-if (!window.editorInitialized) {
-    window.editorInitialized = true;
-    
-    require.config({
-        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-    });
-
-    window.MonacoEnvironment = {
-        getWorkerUrl: function() {
-            return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                self.MonacoEnvironment = {
-                    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
-                };
-                importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
-            )}`;
-        }
-    };
-
-    require(['vs/editor/editor.main'], function() {
+require(['vs/editor/editor.main'], function() {
+    if (!editor) {
         editor = monaco.editor.create(document.getElementById('editor'), {
             value: '// Your code here',
             language: 'cpp',
@@ -30,21 +14,14 @@ if (!window.editorInitialized) {
             fontSize: 14
         });
 
-        // Set up language change handler
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
             languageSelect.addEventListener('change', function() {
                 monaco.editor.setModelLanguage(editor.getModel(), this.value);
             });
         }
-
-        // Set up run button handler
-        const runButton = document.getElementById('runButton');
-        if (runButton) {
-            runButton.addEventListener('click', executeCode);
-        }
-    });
-}
+    }
+});
 
 async function executeCode() {
     if (!editor) {
@@ -80,7 +57,14 @@ async function executeCode() {
         }
     } catch (error) {
         if (output) {
-            output.innerHTML = `<pre class="error">Erreur d'exécution: ${error.message}</pre>`;
+            output.innerHTML = `<pre class="error">Error: ${error.message}</pre>`;
         }
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
+});
