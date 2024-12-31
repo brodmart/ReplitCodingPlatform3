@@ -98,6 +98,7 @@ class CodingActivity(db.Model):
     hints = db.Column(db.JSON)                            # Optional hints for students
     common_errors = db.Column(db.JSON)                    # Array of common errors to avoid
     example_code = db.Column(db.Text)                     # Example code to show students
+    syntax_help = db.Column(db.Text)                      # Syntax help content for the activity
     points = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -485,14 +485,25 @@ def create_initial_activities():
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 1,
-                'example_code': '''// Exemple de programme qui affiche un message
-#include <iostream>    // Inclure la bibliothèque pour l'entrée/sortie
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Inclusion de bibliothèque:
+   #include &lt;iostream&gt;    // Pour l'entrée/sortie
 
-int main() {
-    // Utilisation de cout pour afficher du texte
-    std::cout << "Salut tout le monde!" << std::endl;
-    return 0;
-}''',
+2. Fonction principale:
+   int main() {
+       // Votre code ici
+       return 0;
+   }
+
+3. Afficher du texte:
+   std::cout << "votre texte" << std::endl;
+
+4. Points importants:
+   - N'oubliez pas le point-virgule (;) après chaque instruction
+   - Les guillemets ("") sont nécessaires pour le texte
+   - std::endl ajoute une nouvelle ligne
+</pre>''',
                 'instructions': '''Modifiez le programme exemple pour afficher "Bonjour le monde!" au lieu de "Salut tout le monde!".
 
 Points à noter:
@@ -522,19 +533,27 @@ Points à noter:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 2,
-                'instructions': '''Créez un programme qui demande le nom de l'utilisateur et affiche un message de bienvenue personnalisé.
-Syntaxe nécessaire:
-- Pour déclarer une variable texte: 
-    std::string nom;
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Inclusions:
+   #include &lt;iostream&gt;    // Pour l'entrée/sortie
+   #include &lt;string&gt;     // Pour les chaînes de caractères
 
-- Pour afficher un message:
-    std::cout << "message";
+2. Déclarer une variable texte:
+   std::string nom;
 
-- Pour lire une ligne de texte:
-    std::getline(std::cin, nom);
+3. Lire une ligne de texte:
+   std::getline(std::cin, nom);
 
-- Pour combiner texte et variable:
-    std::cout << "Bonjour, " << nom;''',
+4. Afficher avec une variable:
+   std::cout << "Bonjour, " << nom << "!" << std::endl;
+
+5. Points importants:
+   - N'oubliez pas d'inclure &lt;string&gt; pour std::string
+   - std::getline lit toute une ligne, y compris les espaces
+   - L'opérateur << peut être utilisé plusieurs fois
+</pre>''',
+                'instructions': 'Créez un programme qui demande le nom de l\'utilisateur et affiche un message de bienvenue personnalisé.',
                 'starter_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n#include <string>\n\nint main() {\n    std::string nom;\n    std::cout << "Entrez votre nom: ";\n    std::getline(std::cin, nom);\n    std::cout << "Bonjour, " << nom << "!" << std::endl;\n    return 0;\n}',
                 'test_cases': [
@@ -561,6 +580,23 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 3,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer des variables numériques:
+   int nombre1, nombre2;
+
+2. Lire un nombre:
+   std::cin >> nombre1;
+
+3. Opérations mathématiques:
+   + : addition       (a + b)
+   - : soustraction   (a - b)
+   * : multiplication (a * b)
+   / : division       (a / b)
+
+4. Afficher le résultat:
+   std::cout << "Résultat: " << (nombre1 + nombre2);
+</pre>''',
                 'instructions': 'Écrivez un programme qui demande deux nombres à l\'utilisateur et affiche leur somme.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int nombre1, nombre2;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int nombre1, nombre2;\n    std::cout << "Premier nombre: ";\n    std::cin >> nombre1;\n    std::cout << "Deuxième nombre: ";\n    std::cin >> nombre2;\n    std::cout << "Somme: " << nombre1 + nombre2 << std::endl;\n    return 0;\n}',
@@ -588,6 +624,29 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 4,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Structures conditionnelles:
+   if (condition) {
+       // instructions si la condition est vraie
+   } else if (autre condition) {
+       // instructions si la deuxième condition est vraie
+   } else {
+       // instructions si aucune condition n'est vraie
+   }
+
+2. Opérateurs de comparaison:
+   == : égal à
+   != : différent de
+   >  : supérieur à
+   <  : inférieur à
+   >= : supérieur ou égal à
+   <= : inférieur ou égal à
+
+3. Points importants:
+   - Les accolades {} sont nécessaires pour les blocs d'instructions
+   - Utilisez des opérateurs de comparaison appropriés
+</pre>''',
                 'instructions': 'Créez un programme qui détermine si un nombre est positif, négatif ou zéro.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre > 0) {\n        std::cout << "Le nombre est positif" << std::endl;\n    } else if (nombre < 0) {\n        std::cout << "Le nombre est négatif" << std::endl;\n    } else {\n        std::cout << "Le nombre est zéro" << std::endl;\n    }\n    return 0;\n}',
@@ -616,6 +675,19 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 5,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Boucle for:
+   for (initialisation; condition; incrémentation) {
+       // instructions à répéter
+   }
+
+2. Points importants:
+   - L'initialisation se fait une seule fois au début de la boucle
+   - La condition est vérifiée avant chaque itération
+   - L'incrémentation se fait après chaque itération
+   - Les accolades {} sont nécessaires pour le bloc d'instructions
+</pre>''',
                 'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        std::cout << i << " ";\n    }\n    std::cout << std::endl;\n    return 0;\n}',
@@ -643,6 +715,20 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 6,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Boucles imbriquées:
+   for (int i = 1; i <= n; i++) {
+       for (int j = 1; j <= n; j++) {
+           // instructions à répéter
+       }
+   }
+
+2. Points importants:
+   - La boucle interne s'exécute entièrement pour chaque itération de la boucle externe
+   - Utilisez des variables de boucle appropriées pour l'indexation
+   - Assurez-vous que les boucles imbriquées sont correctement imbriquées
+</pre>''',
                 'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> n;\n    for (int i = 1; i <= n; i++) {\n        for (int j = 1; j <= n; j++) {\n            std::cout << i * j << "\\t";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
@@ -669,6 +755,24 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 7,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer un tableau:
+   double[] nombres = new double[n];
+
+2. Calculer la somme:
+   double somme = 0;
+   for (int i = 0; i < n; i++) {
+       somme += nombres[i];
+   }
+
+3. Calculer la moyenne:
+   double moyenne = somme / n;
+
+4. Points importants:
+   - Assurez-vous que n est supérieur à 0 pour éviter la division par zéro.
+   - Les tableaux sont indexés à partir de 0.
+</pre>''',
                 'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double somme = 0;\n    for (int i = 1; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        somme += nombre;\n    }\n    \n    std::cout << "Moyenne: " << somme/n << std::endl;\n    return 0;\n}',
@@ -695,6 +799,26 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 8,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer une variable:
+   double max;
+
+2. Comparer des nombres:
+   if (nombre > max) {
+       max = nombre;
+   }
+
+3. Boucle for:
+   for (int i = 2; i <= n; i++) {
+       // instructions à répéter
+   }
+
+4. Points importants:
+   - Initialiser max avec le premier nombre.
+   - Comparer chaque nouveau nombre à max dans la boucle.
+   - Mettre à jour max si un nombre plus grand est trouvé.
+</pre>''',
                 'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int n;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int n;\n    std::cout << "Combien de nombres? ";\n    std::cin >> n;\n    \n    double max;\n    std::cout << "Nombre 1: ";\n    std::cin >> max;\n    \n    for (int i = 2; i <= n; i++) {\n        double nombre;\n        std::cout << "Nombre " << i << ": ";\n        std::cin >> nombre;\n        if (nombre > max) {\n            max = nombre;\n        }\n    }\n    \n    std::cout << "Le plus grand nombre est: " << max << std::endl;\n    return 0;\n}',
@@ -721,6 +845,23 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 9,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer une fonction:
+   long factorielle(int n) {
+       // instructions
+   }
+
+2. Récursion:
+   Une fonction qui s'appelle elle-même.
+
+3. Cas de base:
+   Le cas qui arrête la récursion.
+
+4. Points importants:
+   - Le cas de base est essentiel pour éviter les boucles infinies.
+   - La récursion peut être plus lisible mais moins efficace que les boucles itératives.
+</pre>''',
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': '#include <iostream>\n\n// Créez la fonction factorielle ici\n\nint main() {\n    int nombre;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nlong factorielle(int n) {\n    if (n <= 1) return 1;\n    return n * factorielle(n - 1);\n}\n\nint main() {\n    int nombre;\n    std::cout << "Entrez un nombre: ";\n    std::cin >> nombre;\n    if (nombre < 0) {\n                std::cout << "Erreur: nombre négatif" << std::endl;\n    } else {\n        std::cout << nombre << "! =" << factorielle(nombre) << std::endl;\    }\n    return 0;\n}',
@@ -748,6 +889,22 @@ Syntaxe nécessaire:
                 'curriculum': 'TEJ2O',
                 'language': 'cpp',
                 'sequence': 10,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Boucles imbriquées:
+   for (int i = 1; i <= hauteur; i++) {
+       for (int j = 1; j <= largeur; j++) {
+           // instructions à répéter
+       }
+   }
+
+2. Saut de ligne:
+   std::endl;
+
+3. Points importants:
+   - Contrôlez le nombre d'espaces et d'étoiles selon les lignes.
+   - Utilisez des boucles imbriquées pour créer des motifs répétitifs.
+</pre>''',
                 'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
                 'starter_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    // Votre code ici\n    return 0;\n}',
                 'solution_code': '#include <iostream>\n\nint main() {\n    int hauteur;\n    std::cout << "Hauteur du triangle: ";\n    std::cin >> hauteur;\n    \n    for (int i = 1; i <= hauteur; i++) {\n        // Espaces\n        for (int j = 1; j <= hauteur - i; j++) {\n            std::cout << " ";\n        }\n        // Étoiles\n        for (int j = 1; j <= 2*i - 1; j++) {\n            std::cout << "*";\n        }\n        std::cout << std::endl;\n    }\n    return 0;\n}',
@@ -775,6 +932,22 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 4,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Structures conditionnelles:
+   if (condition) {
+       // instructions si la condition est vraie
+   } else {
+       // instructions si la condition est fausse
+   }
+
+2. Opérateur modulo (%):
+   Retourne le reste d'une division.
+
+3. Points importants:
+   - Les accolades {} sont nécessaires pour les blocs d'instructions.
+   - L'opérateur modulo (%) est utile pour vérifier la parité.
+</pre>''',
                 'instructions': 'Créez un programme qui détermine si un nombre est pair ou impair.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int nombre;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int nombre;\n        Console.Write("Entrez un nombre: ");\n        nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre % 2 == 0) {\n            Console.WriteLine("Le nombre est pair.");\n        } else {\n            Console.WriteLine("Le nombre est impair.");\n        }\n    }\n}',
@@ -802,6 +975,19 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 5,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Boucle for:
+   for (int i = 1; i <= n; i++) {
+       // instructions à répéter
+   }
+
+2. Points importants:
+   - L'initialisation se fait une seule fois au début.
+   - La condition est vérifiée avant chaque itération.
+   - L'incrémentation se fait après chaque itération.
+   - Les accolades {} sont nécessaires pour le bloc d'instructions.
+</pre>''',
                 'instructions': 'Écrivez un programme qui affiche les nombres de 1 à N.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            Console.Write(i + " ");\n        }\n        Console.WriteLine();\n    }\n}',
@@ -829,6 +1015,20 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 6,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Boucles imbriquées:
+   for (int i = 1; i <= n; i++) {
+       for (int j = 1; j <= n; j++) {
+           // instructions à répéter
+       }
+   }
+
+2. Points importants:
+   - La boucle interne s'exécute entièrement pour chaque itération de la boucle externe.
+   - Utilisez des variables de boucle appropriées pour l'indexation.
+   - Assurez-vous que les boucles imbriquées sont correctement imbriquées.
+</pre>''',
                 'instructions': 'Créez un programme qui affiche la table de multiplication jusqu\'à N.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Entrez un nombre: ");\n        n = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= n; i++) {\n            for (int j = 1; j <= n; j++) {\n                Console.Write(i * j + "\\t");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
@@ -855,6 +1055,24 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 7,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer un tableau:
+   double[] nombres = new double[n];
+
+2. Calculer la somme:
+   double somme = 0;
+   for (int i = 0; i < n; i++) {
+       somme += nombres[i];
+   }
+
+3. Calculer la moyenne:
+   double moyenne = somme / n;
+
+4. Points importants:
+   - Assurez-vous que n est supérieur à 0 pour éviter la division par zéro.
+   - Les tableaux sont indexés à partir de 0.
+</pre>''',
                 'instructions': 'Créez un programme qui calcule la moyenne de N nombres.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Combien de nombres? ");\n        n = Convert.ToInt32(Console.ReadLine());\n        double[] nombres = new double[n];\n        double somme = 0;\n        for (int i = 0; i < n; i++) {\n            Console.Write($"Nombre {i + 1}: ");\n            nombres[i] = Convert.ToDouble(Console.ReadLine());\n            somme += nombres[i];\n        }\n        Console.WriteLine($"Moyenne: {somme / n}");\n    }\n}',
@@ -881,6 +1099,26 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 8,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer une variable:
+   double max;
+
+2. Comparer des nombres:
+   if (nombre > max) {
+       max = nombre;
+   }
+
+3. Boucle for:
+   for (int i = 2; i <= n; i++) {
+       // instructions à répéter
+   }
+
+4. Points importants:
+   - Initialiser max avec le premier nombre.
+   - Comparer chaque nouveau nombre à max dans la boucle.
+   - Mettre à jour max si un nombre plus grand est trouvé.
+</pre>''',
                 'instructions': 'Écrivez un programme qui trouve le plus grand nombre parmi N nombres.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int n;\n        Console.Write("Combien de nombres? ");\n        n = Convert.ToInt32(Console.ReadLine());\n        double max;\n        Console.Write("Nombre 1: ");\n        max = Convert.ToDouble(Console.ReadLine());\n        for (int i = 2; i <= n; i++) {\n            double nombre;\n            Console.Write($"Nombre {i}: ");\n            nombre = Convert.ToDouble(Console.ReadLine());\n            if (nombre > max) {\n                max = nombre;\n            }\n        }\n        Console.WriteLine($"Le plus grand nombre est: {max}");\n    }\n}',
@@ -907,6 +1145,23 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 9,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Déclarer une fonction:
+   static long Factorielle(int n) {
+       // instructions
+   }
+
+2. Récursion:
+   Une fonction qui s'appelle elle-même.
+
+3. Cas de base:
+   Le cas qui arrête la récursion.
+
+4. Points importants:
+   - Le cas de base est essentiel pour éviter les boucles infinies.
+   - La récursion peut être plus lisible mais moins efficace que les boucles itératives.
+</pre>''',
                 'instructions': 'Créez une fonction qui calcule la factorielle d\'un nombre.',
                 'starter_code': 'using System;\n\nclass Programme {\n    // Créez la fonction factorielle ici\n    static void Main() {\n        int nombre;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static long Factorielle(int n) {\n        if (n <= 1) return 1;\n        return n * Factorielle(n - 1);\n    }\n    static void Main() {\n        int nombre;\n        Console.Write("Entrez un nombre: ");\n        nombre = Convert.ToInt32(Console.ReadLine());\n        if (nombre < 0) {\n            Console.WriteLine("Erreur: nombre négatif");\n        } else {\n            Console.WriteLine($"{nombre}! = {Factorielle(nombre)}");\n        }\n    }\n}',
@@ -934,6 +1189,22 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 10,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Boucles imbriquées:
+   for (int i = 1; i <= hauteur; i++) {
+       for (int j = 1; j <= largeur; j++) {
+           // instructions à répéter
+       }
+   }
+
+2. Saut de ligne:
+   Console.WriteLine();
+
+3. Points importants:
+   - Contrôlez le nombre d'espaces et d'étoiles selon les lignes.
+   - Utilisez des boucles imbriquées pour créer des motifs répétitifs.
+</pre>''',
                 'instructions': 'Créez un programme qui affiche un triangle d\'étoiles.',
                 'starter_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int hauteur;\n        // Votre code ici\n    }\n}',
                 'solution_code': 'using System;\n\nclass Programme {\n    static void Main() {\n        int hauteur;\n        Console.Write("Hauteur du triangle: ");\n        hauteur = Convert.ToInt32(Console.ReadLine());\n        for (int i = 1; i <= hauteur; i++) {\n            for (int j = 1; j <= hauteur - i; j++) {\n                Console.Write(" ");\n            }\n            for (int j = 1; j <= 2 * i - 1; j++) {\n                Console.Write("*");\n            }\n            Console.WriteLine();\n        }\n    }\n}',
@@ -960,6 +1231,23 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 11,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Définir une classe:
+   class Etudiant {
+       // propriétés et méthodes
+   }
+
+2. Propriétés:
+   public string Nom { get; set; }
+
+3. Méthodes:
+   public void AjouterNote(double note) { ... }
+
+4. Points importants:
+   - Encapsulation: protéger les données internes de la classe.
+   - Les modificateurs d'accès (public, private) contrôlent l'accès aux membres de la classe.
+</pre>''',
                 'instructions': 'Créez une classe Étudiant avec des propriétés et des méthodes pour gérer les informations des étudiants.',
                 'starter_code': '''using System;
 \n\nclass Etudiant {
@@ -1024,6 +1312,27 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 12,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Classe Noeud:
+   class Noeud {
+       public int Valeur;
+       public Noeud Suivant;
+   }
+
+2. Liste chaînée:
+   class ListeChainee {
+       private Noeud tete;
+   }
+
+3. Méthodes Ajouter et Afficher:
+   public void Ajouter(int valeur) { ... }
+   public void Afficher() { ... }
+
+4. Points importants:
+   - La gestion des pointeurs est cruciale.
+   - Gérez le cas où la liste est vide.
+</pre>''',
                 'instructions': 'Créez une liste chaînée simple avec des opérations de base (ajout et affichage).',
                 'starter_code': '''using System;
 \n\nclass Noeud {
@@ -1112,6 +1421,24 @@ Syntaxe nécessaire:
                 'curriculum': 'ICS3U',
                 'language': 'csharp',
                 'sequence': 13,
+                'syntax_help': '''<h6>Éléments de syntaxe nécessaires:</h6>
+<pre>
+1. Classe Tache:
+   class Tache {
+       public string Description;
+       public int Priorite;
+   }
+
+2. Liste de tâches:
+   List&lt;Tache&gt; taches = new List&lt;Tache&gt;();
+
+3. Trier la liste:
+   taches.Sort((a, b) => b.Priorite.CompareTo(a.Priorite));
+
+4. Points importants:
+   - Utilisez une List<T> pour stocker les tâches.
+   - Implémentez la méthode CompareTo pour trier par priorité.
+</pre>''',
                 'instructions': 'Créez un gestionnaire de tâches qui permet d\'ajouter et d\'afficher des tâches avec leurs priorités.',
                 'starter_code': '''using System;
 using System.Collections.Generic;
@@ -1182,8 +1509,8 @@ using System.Collections.Generic;
         logging.info(f"Successfully created {len(activities)} activities")
 
     except Exception as e:
-        logging.error(f"Error creating activities: {str(e)}")
         db.session.rollback()
+        logging.error(f"Error creating activities: {str(e)}")
         raise
 
 # Initialize activities in app context
@@ -1239,7 +1566,7 @@ def validate_code():
     language = request.json.get('language', '')
     activity_id = request.json.get('activity_id')
 
-    if not code or not language:
+    if not code or not language or not activity_id:
         return jsonify({'errors': [], 'syntax_help': ''})
 
     activity = CodingActivity.query.get(activity_id)
@@ -1247,101 +1574,26 @@ def validate_code():
         return jsonify({'errors': [], 'syntax_help': ''})
 
     errors = []
-    syntax_help = ""
 
     # Basic syntax validation for C++
     if language == 'cpp':
-        # Check for missing semicolons
-        if ';' not in code:
-            errors.append({
-                'message_fr': 'Il manque des points-virgules dans votre code',
-                'message_en': 'Missing semicolons in your code'
-            })
-
-        # Check for missing includes
         if '#include' not in code:
             errors.append({
-                'message_fr': 'N\'oubliez pas d\'inclure les bibliothèques nécessaires',
-                'message_en': 'Don\'t forget to include necessary libraries'
+                'message_fr': 'Il manque les inclusions de bibliothèques nécessaires',
+                'message_en': 'Missing required library includes'
             })
-
-        # Check for main function
-        if 'main' not in code:
+        if 'main()' not in code:
             errors.append({
-                'message_fr': 'La fonction main() est requise',
-                'message_en': 'The main() function is required'
+                'message_fr': 'La fonction main() est manquante',
+                'message_en': 'Missing main() function'
             })
-
-        # Check for matching braces
         if code.count('{') != code.count('}'):
             errors.append({
-                'message_fr': 'Vérifiez vos accolades - il en manque une ou plusieurs',
+                'message_fr': 'Vérifiez vos accolades - il en manque certaines',
                 'message_en': 'Check your braces - some are missing'
             })
 
-        # Provide specific syntax help based on activity
-        if activity.title == "Bonjour le monde!":
-            syntax_help = """
-<h6>Éléments de syntaxe nécessaires:</h6>
-<pre>
-1. Inclusion de bibliothèque:
-   #include &lt;iostream&gt;    // Pour l'entrée/sortie
-
-2. Fonction principale:
-   int main() {
-       // Votre code ici
-       return 0;
-   }
-
-3. Afficher du texte:
-   std::cout << "votre texte" << std::endl;
-
-4. Points importants:
-   - N'oubliez pas le point-virgule (;) après chaque instruction
-   - Les guillemets ("") sont nécessaires pour le texte
-   - std::endl ajoute une nouvelle ligne
-</pre>
-"""
-        elif activity.title == "Saisie Utilisateur":
-            syntax_help = """
-<h6>Éléments de syntaxe nécessaires:</h6>
-<pre>
-1. Inclusions:
-   #include &lt;iostream&gt;    // Pour l'entrée/sortie
-   #include &lt;string&gt;     // Pour les chaînes de caractères
-
-2. Déclarer une variable texte:
-   std::string nom;
-
-3. Lire une ligne de texte:
-   std::getline(std::cin, nom);
-
-4. Afficher avec une variable:
-   std::cout << "Bonjour, " << nom << "!" << std::endl;
-</pre>
-"""
-        elif activity.title == "Calculatrice Simple":
-            syntax_help = """
-<h6>Éléments de syntaxe nécessaires:</h6>
-<pre>
-1. Déclarer des variables numériques:
-   int nombre1, nombre2;
-
-2. Lire un nombre:
-   std::cin >> nombre1;
-
-3. Opérations mathématiques:
-   + : addition       (a + b)
-   - : soustraction   (a - b)
-   * : multiplication (a * b)
-   / : division       (a / b)
-
-4. Afficher le résultat:
-   std::cout << "Résultat: " << (nombre1 + nombre2);
-</pre>
-"""
-
     return jsonify({
         'errors': errors,
-        'syntax_help': syntax_help
+        'syntax_help': activity.syntax_help
     })
