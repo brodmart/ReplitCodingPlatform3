@@ -10,14 +10,6 @@ from routes import blueprints
 from forms import LoginForm, RegisterForm
 from compiler_service import compile_and_run
 
-from flask_caching import Cache
-
-cache = Cache(config={
-    'CACHE_TYPE': 'simple',
-    'CACHE_DEFAULT_TIMEOUT': 300
-})
-cache.init_app(app)
-
 from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging
@@ -29,6 +21,14 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+
+# Initialize caching
+from flask_caching import Cache
+cache = Cache(config={
+    'CACHE_TYPE': 'simple',
+    'CACHE_DEFAULT_TIMEOUT': 300
+})
+cache.init_app(app)
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 1800
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max-size
