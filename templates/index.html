@@ -75,16 +75,22 @@
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         const languageSelect = document.getElementById('languageSelect');
-        languageSelect.value = 'cpp'; // Force initial selection to cpp
-        const initialLanguage = 'cpp';
+        const defaultLanguage = 'cpp';
+        languageSelect.value = defaultLanguage;
         
         const editor = await window.monacoEditor.initialize('editor', {
-            language: initialLanguage,
-            value: window.monacoEditor.getDefaultCode(initialLanguage)
+            language: defaultLanguage,
+            value: window.monacoEditor.getDefaultCode(defaultLanguage)
         });
         
         window.codeEditor = editor;
-        setupEventHandlers(editor);
+        
+        // Handle language changes
+        languageSelect.addEventListener('change', function(e) {
+            const newLanguage = e.target.value;
+            monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+            editor.setValue(window.monacoEditor.getDefaultCode(newLanguage));
+        });
     } catch (error) {
         console.error('Failed to initialize editor:', error);
     }
