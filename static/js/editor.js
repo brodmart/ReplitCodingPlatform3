@@ -7,7 +7,10 @@ async function initializeEditor(elementId, options = {}) {
     if (!document.getElementById(elementId)) return;
     
     try {
-        const monaco = await loadMonaco();
+        await new Promise((resolve) => {
+            require(['vs/editor/editor.main'], resolve);
+        });
+        
         const defaultOptions = {
             value: options.value || getDefaultCode(options.language || 'cpp'),
             language: options.language || 'cpp',
@@ -30,19 +33,6 @@ async function initializeEditor(elementId, options = {}) {
     }
 }
 
-function loadMonaco() {
-    return new Promise((resolve) => {
-        if (window.monaco) {
-            resolve(window.monaco);
-            return;
-        }
-
-        require(['vs/editor/editor.main'], () => {
-            resolve(window.monaco);
-        });
-    });
-}
-
 function getDefaultCode(language) {
     const templates = {
         cpp: '#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Bonjour le monde!" << endl;\n    return 0;\n}',
@@ -53,13 +43,11 @@ function getDefaultCode(language) {
 
 function setupLanguageSelect(editor) {
     const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
+    if (languageSelect && editor) {
         languageSelect.addEventListener('change', () => {
             const newLanguage = languageSelect.value;
-            if (editor) {
-                monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
-                editor.setValue(getDefaultCode(newLanguage));
-            }
+            monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
+            editor.setValue(getDefaultCode(newLanguage));
         });
     }
 }
