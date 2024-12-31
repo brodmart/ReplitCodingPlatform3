@@ -1,23 +1,26 @@
 
-// Global editor instance
 let editor = null;
 let initialized = false;
 
-// Configure Monaco loader
-require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-
-// Initialize editor once
-function initEditor() {
+function initMonaco() {
     if (initialized) return;
     
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    require(['vs/editor/editor.main'], function() {
-        if (editor) {
-            editor.dispose();
+    require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
+    window.MonacoEnvironment = {
+        getWorkerUrl: function() {
+            return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+                self.MonacoEnvironment = {
+                    baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
+                };
+                importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');`
+            )}`;
         }
+    };
 
+    require(['vs/editor/editor.main'], function() {
         editor = monaco.editor.create(editorElement, {
             value: '// Your code here',
             language: 'cpp',
@@ -31,9 +34,7 @@ function initEditor() {
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
             languageSelect.addEventListener('change', () => {
-                if (editor) {
-                    monaco.editor.setModelLanguage(editor.getModel(), languageSelect.value);
-                }
+                monaco.editor.setModelLanguage(editor.getModel(), languageSelect.value);
             });
         }
 
@@ -68,10 +69,10 @@ function initEditor() {
     });
 }
 
-// Initialize editor when DOM is loaded
-document.addEventListener('DOMContentLoaded', initEditor);
+// Initialize only once when DOM is loaded
+document.addEventListener('DOMContentLoaded', initMonaco);
 
-// Cleanup on page unload
+// Cleanup
 window.addEventListener('beforeunload', () => {
     if (editor) {
         editor.dispose();
