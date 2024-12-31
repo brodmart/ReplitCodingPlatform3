@@ -25,31 +25,7 @@ const monacoEditor = {
 
     async loadMonaco() {
         if (!this.loaderPromise) {
-            this.loaderPromise = new Promise((resolve, reject) => {
-                try {
-                    if (window.monaco && !window._monacoLoaded) {
-                        window._monacoLoaded = true;
-                        resolve();
-                        return;
-                    }
-
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js';
-                    script.onload = () => {
-                        require.config({
-                            paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }
-                        });
-                        require(['vs/editor/editor.main'], () => {
-                            window._monacoLoaded = true;
-                            resolve();
-                        });
-                    };
-                    script.onerror = (error) => reject(new Error('Failed to load Monaco Editor: ' + error.message));
-                    document.head.appendChild(script);
-                } catch (error) {
-                    reject(error);
-                }
-            });
+            this.loaderPromise = window.monacoLoaded;
         }
         return this.loaderPromise;
     },
