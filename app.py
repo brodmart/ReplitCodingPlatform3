@@ -172,20 +172,6 @@ def extend_session():
         return jsonify({'error': 'Failed to extend session'}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 3000))
     logger.info(f"Starting Flask server on port {port}")
-    try:
-        app.run(host='0.0.0.0', port=port, debug=True)
-    except OSError as e:
-        if 'Address already in use' in str(e):
-            logger.warning(f"Port {port} is already in use. Trying alternative ports...")
-            for alt_port in range(5001, 5010):
-                try:
-                    logger.info(f"Attempting to start on port {alt_port}")
-                    app.run(host='0.0.0.0', port=alt_port, debug=True)
-                    break
-                except OSError:
-                    continue
-        else:
-            logger.error(f"Failed to start server: {str(e)}")
-            raise
+    app.run(host='0.0.0.0', port=port, debug=True)
