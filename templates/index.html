@@ -126,9 +126,8 @@ async function executeCode() {
     const runButton = document.getElementById('runButton');
     const output = document.getElementById('output');
     const language = document.getElementById('languageSelect').value;
-    const editor = window.codeEditor;
 
-    if (!runButton || !output || !editor) {
+    if (!runButton || !output || !window.codeEditor) {
         console.error('Required elements not found');
         return;
     }
