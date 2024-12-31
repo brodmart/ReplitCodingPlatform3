@@ -1,4 +1,3 @@
-
 // Load Monaco editor
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
 
@@ -104,11 +103,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const newLanguage = languageSelect.value;
                     monaco.editor.setModelLanguage(editor.getModel(), newLanguage);
                     if (editor && monacoEditor) {
-                    editor.setValue(monacoEditor.getDefaultCode(newLanguage));
-                } else {
-                    console.error('Editor not properly initialized');
-                    location.reload();
-                }
+                        editor.setValue(monacoEditor.getDefaultCode(newLanguage));
+                    } else {
+                        console.error('Editor not properly initialized');
+                    }
                 });
             }
 
