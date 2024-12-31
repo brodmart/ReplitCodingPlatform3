@@ -264,9 +264,16 @@ async function executeCode() {
     const output = document.getElementById('output');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const currentLanguage = document.getElementById('languageSelect').value;
 
     if (!window.codeEditor) {
         console.error('Editor not initialized');
+        return;
+    }
+
+    const currentCode = window.codeEditor.getValue();
+    if (!currentCode) {
+        console.error('No code to execute');
         return;
     }
 
