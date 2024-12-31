@@ -7,10 +7,47 @@ require.config({
 });
 
 require(['vs/editor/editor.main'], function() {
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-        noSemanticValidation: true,
-        noSyntaxValidation: true
-    });
+    // Configure C++ language features
+    monaco.languages.cpp = monaco.languages.cpp || {};
+    monaco.languages.cpp.languageConfiguration = {
+        comments: {
+            lineComment: '//',
+            blockComment: ['/*', '*/']
+        },
+        brackets: [
+            ['{', '}'],
+            ['[', ']'],
+            ['(', ')']
+        ],
+        autoClosingPairs: [
+            { open: '{', close: '}' },
+            { open: '[', close: ']' },
+            { open: '(', close: ')' },
+            { open: '"', close: '"' },
+            { open: "'", close: "'" }
+        ]
+    };
+
+    // Configure C# language features
+    monaco.languages.csharp = monaco.languages.csharp || {};
+    monaco.languages.csharp.languageConfiguration = {
+        comments: {
+            lineComment: '//',
+            blockComment: ['/*', '*/']
+        },
+        brackets: [
+            ['{', '}'],
+            ['[', ']'],
+            ['(', ')']
+        ],
+        autoClosingPairs: [
+            { open: '{', close: '}' },
+            { open: '[', close: ']' },
+            { open: '(', close: ')' },
+            { open: '"', close: '"' },
+            { open: "'", close: "'" }
+        ]
+    };
 
     editor = monaco.editor.create(document.getElementById('editor'), {
         value: getDefaultCode('cpp'),
@@ -34,7 +71,7 @@ require(['vs/editor/editor.main'], function() {
             enabled: true
         },
         suggestOnTriggerCharacters: true,
-        wordBasedSuggestions: true,
+        wordBasedSuggestions: 'on',
         folding: true,
         foldingStrategy: 'indentation',
         lineNumbers: true,
@@ -43,10 +80,21 @@ require(['vs/editor/editor.main'], function() {
         roundedSelection: false,
         tabCompletion: 'on',
         autoClosingBrackets: 'always',
-        autoClosingQuotes: 'always'
+        autoClosingQuotes: 'always',
+        snippets: true,
+        suggest: {
+            snippetsPreventQuickSuggestions: false
+        },
+        // Add intelligent code completion
+        quickSuggestions: {
+            other: true,
+            comments: true,
+            strings: true
+        }
     });
 
-    document.getElementById('languageSelect').addEventListener('change', function(e) {
+    // Set up language change handler
+    document.getElementById('languageSelect')?.addEventListener('change', function(e) {
         const language = e.target.value;
         const currentState = editor.saveViewState();
         const model = editor.getModel();
@@ -58,8 +106,18 @@ require(['vs/editor/editor.main'], function() {
         editor.focus();
     });
 
-    document.getElementById('runButton').addEventListener('click', executeCode);
-    document.getElementById('shareButton').addEventListener('click', shareCode);
+    // Set up execution handler
+    document.getElementById('runButton')?.addEventListener('click', executeCode);
+
+    // Set up share handler
+    document.getElementById('shareButton')?.addEventListener('click', shareCode);
+
+    // Add real-time syntax validation
+    let validationTimeout;
+    editor.onDidChangeModelContent(() => {
+        clearTimeout(validationTimeout);
+        validationTimeout = setTimeout(validateSyntax, 500);
+    });
 });
 
 function getDefaultCode(language) {
@@ -86,6 +144,8 @@ async function executeCode() {
     const output = document.getElementById('output');
     const language = document.getElementById('languageSelect').value;
 
+    if (!runButton || !output) return;
+
     try {
         runButton.disabled = true;
         runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Exécution...';
@@ -104,12 +164,12 @@ async function executeCode() {
         const result = await response.json();
 
         if (result.error) {
-            output.innerHTML = `<span style="color: var(--bs-danger)">Erreur:\n${result.error}</span>`;
+            output.innerHTML = formatError(result.error);
         } else {
             output.innerHTML = result.output || 'Programme exécuté avec succès sans sortie.';
         }
     } catch (error) {
-        output.innerHTML = `<span style="color: var(--bs-danger)">Erreur: ${error.message}</span>`;
+        output.innerHTML = formatError(error.message);
     } finally {
         runButton.disabled = false;
         runButton.innerHTML = '<i class="bi bi-play-fill"></i> Exécuter';
@@ -118,6 +178,8 @@ async function executeCode() {
 
 async function shareCode() {
     const shareButton = document.getElementById('shareButton');
+    if (!shareButton) return;
+
     const code = editor.getValue();
     const language = document.getElementById('languageSelect').value;
 
@@ -142,17 +204,72 @@ async function shareCode() {
         const result = await response.json();
 
         if (result.error) {
-            alert('Erreur lors du partage du code: ' + result.error);
+            showNotification('error', 'Erreur lors du partage du code: ' + result.error);
         } else {
             await navigator.clipboard.writeText(result.share_url);
-            alert('Code partagé avec succès! Lien copié dans le presse-papiers.');
+            showNotification('success', 'Code partagé avec succès! Lien copié dans le presse-papiers.');
         }
     } catch (error) {
-        alert('Erreur lors du partage du code: ' + error.message);
+        showNotification('error', 'Erreur lors du partage du code: ' + error.message);
     } finally {
         shareButton.disabled = false;
         shareButton.innerHTML = '<i class="bi bi-share"></i> Partager';
     }
+}
+
+function formatError(error) {
+    return `<div class="alert alert-danger">
+        <strong>Erreur:</strong><br>
+        <pre class="mb-0">${error}</pre>
+    </div>`;
+}
+
+function showNotification(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+
+async function validateSyntax() {
+    const code = editor.getValue();
+    const language = document.getElementById('languageSelect').value;
+
+    try {
+        const response = await fetch('/validate_syntax', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code, language })
+        });
+
+        const result = await response.json();
+        updateEditorDecorations(result.errors || []);
+    } catch (error) {
+        console.error('Error validating syntax:', error);
+    }
+}
+
+function updateEditorDecorations(errors) {
+    const decorations = errors.map(error => ({
+        range: new monaco.Range(
+            error.line,
+            error.column,
+            error.line,
+            error.column + (error.length || 1)
+        ),
+        options: {
+            inlineClassName: 'squiggly-error',
+            hoverMessage: { value: `${error.message_fr}\n${error.message_en}` }
+        }
+    }));
+
+    editor.deltaDecorations([], decorations);
 }
 
 window.addEventListener('resize', function() {
