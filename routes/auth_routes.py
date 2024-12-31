@@ -6,8 +6,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from models import Student
 from forms import LoginForm, RegisterForm
 from database import db
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 auth = Blueprint('auth', __name__)
+limiter = Limiter(key_func=get_remote_address)
 
 @auth.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
