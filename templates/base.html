@@ -40,12 +40,17 @@
 
             if (window.resourceStatus.retryCount >= window.resourceStatus.maxRetries) {
                 logResourceError('Bootstrap', 'Maximum retry attempts reached');
-                return;
+                return Promise.reject(new Error('Maximum retry attempts reached'));
             }
             window.resourceStatus.retryCount++;
 
             return new Promise((resolve, reject) => {
-                if (!window.resourceStatus.bootstrapCSS) {
+                const loadCSS = new Promise((resolveCSS) => {
+                    if (window.resourceStatus.bootstrapCSS) {
+                        resolveCSS();
+                        return;
+                    }
+
                     const link = document.createElement('link');
                     link.href = "{{ url_for('static', filename='css/bootstrap.min.css') }}";
                     link.type = "text/css";
@@ -53,30 +58,39 @@
                     link.onload = () => {
                         window.resourceStatus.bootstrapCSS = true;
                         console.log('Local Bootstrap CSS loaded successfully');
-                        resolve();
+                        resolveCSS();
                     };
                     link.onerror = () => {
                         logResourceError('Bootstrap CSS local fallback');
-                        reject();
+                        reject(new Error('Failed to load Bootstrap CSS'));
                     };
                     document.head.appendChild(link);
-                }
+                });
 
-                if (!window.resourceStatus.bootstrapJS) {
+                const loadJS = new Promise((resolveJS) => {
+                    if (window.resourceStatus.bootstrapJS) {
+                        resolveJS();
+                        return;
+                    }
+
                     const script = document.createElement('script');
                     script.src = "{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}";
                     script.onload = () => {
                         window.resourceStatus.bootstrapJS = true;
                         console.log('Local Bootstrap JS loaded successfully');
                         document.dispatchEvent(new Event('bootstrap:loaded'));
-                        resolve();
+                        resolveJS();
                     };
                     script.onerror = () => {
                         logResourceError('Bootstrap JS local fallback');
-                        reject();
+                        reject(new Error('Failed to load Bootstrap JS'));
                     };
                     document.body.appendChild(script);
-                }
+                });
+
+                Promise.all([loadCSS, loadJS])
+                    .then(resolve)
+                    .catch(reject);
             });
         }
 
@@ -271,15 +285,40 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM Content Loaded, checking Bootstrap status...');
 
-            if (window.resourceStatus.bootstrapJS) {
+            // Initialize Bootstrap only after both CSS and JS are loaded
+            const initializeWhenReady = () => {
+                if (window.resourceStatus.bootstrapCSS && window.resourceStatus.bootstrapJS) {
+                    initializeBootstrapComponents();
+                } else {
+                    setTimeout(initializeWhenReady, 100);
+                }
+            };
+
+            if (window.resourceStatus.bootstrapJS && window.resourceStatus.bootstrapCSS) {
                 initializeBootstrapComponents();
             } else {
-                document.addEventListener('bootstrap:loaded', initializeBootstrapComponents);
+                // Listen for Bootstrap loaded event
+                document.addEventListener('bootstrap:loaded', () => {
+                    if (window.resourceStatus.bootstrapCSS) {
+                        initializeBootstrapComponents();
+                    }
+                });
+
+                // Start checking initialization status
+                initializeWhenReady();
+
                 // Fallback if event never fires
                 setTimeout(function() {
-                    if (!window.resourceStatus.bootstrapJS) {
+                    if (!window.resourceStatus.bootstrapJS || !window.resourceStatus.bootstrapCSS) {
                         console.log('Bootstrap not loaded after timeout, attempting local fallback...');
-                        loadLocalBootstrap().then(initializeBootstrapComponents);
+                        loadLocalBootstrap()
+                            .then(() => {
+                                console.log('Local Bootstrap loaded successfully');
+                                initializeBootstrapComponents();
+                            })
+                            .catch(error => {
+                                console.error('Failed to load local Bootstrap:', error);
+                            });
                     }
                 }, 2000);
             }
