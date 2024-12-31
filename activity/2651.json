@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Allocation de mémoire incorrecte",
+    "Fuite de mémoire",
+    "Pointeur non initialisé",
+    "Déréférencement de pointeur null",
+    "Delete mal utilisé",
+    "Confusion entre pointeur et tableau",
+    "Double libération de mémoire"
     "Signature de méthode incorrecte",
     "Mauvaise utilisation des paramètres optionnels",
     "Confusion entre méthodes statiques et d'instance",

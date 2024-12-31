@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Move sémantique mal comprise",
+    "RValue reference mal utilisée",
+    "Perfect forwarding incorrect",
+    "Copy elision manquée",
+    "Std::forward mal utilisé",
+    "Return value optimization",
+    "Temporary object lifetime"
     "Delete mal apparié avec new",
     "Smart pointer mal choisi",
     "Cycle de référence",

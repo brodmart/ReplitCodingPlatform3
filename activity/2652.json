@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Mauvaise gestion des références",
+    "Passage par valeur vs référence",
+    "Référence non initialisée",
+    "Référence à une variable temporaire",
+    "Modification accidentelle",
+    "Return de référence locale",
+    "Référence à un objet détruit"
     "Déréférencement de pointeur nul",
     "Fuite de mémoire",
     "Confusion entre & et *",

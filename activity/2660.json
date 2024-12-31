@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Smart pointer mal utilisé",
+    "Cycle de référence",
+    "Weak_ptr mal compris",
+    "Unique_ptr mal utilisé",
+    "Shared_ptr superflu",
+    "Delete explicite",
+    "Ownership mal géré"
     "Fichier non fermé",
     "Vérification d'erreur manquante",
     "Mode d'ouverture incorrect",

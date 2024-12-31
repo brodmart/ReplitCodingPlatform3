@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Lambda capture incorrecte",
+    "Closure mal comprise",
+    "Capture par référence risquée",
+    "This mal capturé",
+    "Lifetime des variables",
+    "Return type déduit incorrect",
+    "Mutable mal utilisé"
     "Await manquant",
     "Deadlock dans UI",
     "ConfigureAwait mal utilisé",

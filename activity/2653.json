@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Héritage multiple incorrect",
+    "Override manquant",
+    "Super mal utilisé",
+    "Constructeur virtuel oublié",
+    "Problème de diamant",
+    "Cast incorrect",
+    "Polymorphisme mal compris"
     "Oublier le mot-clé override",
     "Mauvaise utilisation de base",
     "Constructeurs mal chaînés",

@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Condition de boucle incorrecte",
+    "Incrémentation manquante",
+    "Boucle infinie",
+    "Mauvaise initialisation",
+    "Break mal placé",
+    "Continue mal utilisé",
+    "Variables de boucle mal gérées"
     "Accès hors limites du tableau",
     "Oublier d'initialiser le tableau",
     "Confusion entre index et valeur",

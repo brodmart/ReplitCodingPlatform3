@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "STL mal utilisé",
+    "Itérateur invalide",
+    "Algorithme inapproprié",
+    "Container mal choisi",
+    "Complexité non optimale",
+    "Mémoire mal gérée",
+    "Comparateur incorrect"
     "Oublier le mot-clé public",
     "Accesseurs mal définis",
     "Validation manquante",

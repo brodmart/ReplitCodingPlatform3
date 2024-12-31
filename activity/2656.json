@@ -1,6 +1,13 @@
 
 {
   "common_errors": [
+    "Template mal formé",
+    "Spécialisation incorrecte",
+    "Déduction de type échouée",
+    "Contraintes non respectées",
+    "Instanciation ambiguë",
+    "Récursion infinie",
+    "Meta-programmation incorrecte"
     "Syntaxe template incorrecte",
     "Spécialisation mal définie",
     "Type constraints manquants",
