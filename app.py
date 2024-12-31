@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from urllib.parse import urlparse
 from database import db
-from models import Student, CodingActivity
+from models import Student, CodingActivity, SharedCode
 from routes import blueprints
 from forms import LoginForm, RegisterForm
 
@@ -119,6 +119,19 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+
+@app.route('/my-shared-codes')
+@login_required
+def my_shared_codes():
+    """Display user's shared code snippets"""
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+
+    shared_codes = SharedCode.query.filter_by(user_id=current_user.id)\
+                                 .order_by(SharedCode.created_at.desc())\
+                                 .all()
+
+    return render_template('my_shares.html', shared_codes=shared_codes)
 
 # Initialize database
 with app.app_context():
