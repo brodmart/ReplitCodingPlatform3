@@ -7,7 +7,7 @@
     "Erreurs de syntaxe dans les déclarations",
     "Variables non utilisées",
     "Portée des variables mal comprise",
-    "Noms de variables non descriptifs"
+    "Noms de variables non descriptifs",
     "Oublier de convertir les entrées en nombres",
     "Ne pas gérer les erreurs de saisie non-numériques",
     "Confusion entre division entière et flottante",
