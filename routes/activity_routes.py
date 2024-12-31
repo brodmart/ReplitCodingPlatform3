@@ -82,12 +82,7 @@ def view_activity(activity_id):
                 db.session.add(progress)
                 db.session.commit()
 
-        return render_template(
-            'activity.html',
-            activity=activity,
-            progress=progress
-        )
-
+        return render_template('activity.html', activity=activity, progress=progress)
     except Exception as e:
         db.session.rollback()
         logging.error(f"Error in view_activity: {str(e)}")
