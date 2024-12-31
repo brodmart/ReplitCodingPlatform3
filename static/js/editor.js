@@ -30,7 +30,7 @@ const monacoEditor = {
                     resolve(window.monaco);
                     return;
                 }
-                
+
                 const script = document.createElement('script');
                 script.src = "https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js";
                 script.onload = () => {
@@ -87,13 +87,16 @@ const monacoEditor = {
         let changeTimeout;
         const disposables = [];
 
+        // Handle content changes
         disposables.push(
             editorInstance.onDidChangeModelContent(() => {
                 if (changeTimeout) clearTimeout(changeTimeout);
-                changeTimeout = setTimeout(() => this.onContentChanged(editorInstance), 300);
-            }),
-            editorInstance.onDidBlurEditorText(() => {
-                this.saveEditorState(elementId, editorInstance.getValue());
+                changeTimeout = setTimeout(() => {
+                    // Save content to localStorage
+                    this.saveEditorState(elementId, editorInstance.getValue());
+                    // Trigger any additional content change handlers
+                    this.onContentChanged(editorInstance);
+                }, 300);
             })
         );
 
@@ -130,10 +133,24 @@ const monacoEditor = {
     getDefaultCode(language) {
         const templates = {
             cpp: `#include <iostream>\n\nint main() {\n    std::cout << "Bonjour le monde!" << std::endl;\n    return 0;\n}`,
+            csharp: `using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine("Bonjour le monde!");\n    }\n}`,
             python: `print("Bonjour le monde!")`,
             javascript: `console.log("Bonjour le monde!");`
         };
         return templates[language] || '';
+    },
+
+    saveEditorState(elementId, content) {
+        try {
+            localStorage.setItem(`editor_${elementId}`, content);
+        } catch (error) {
+            console.error('Failed to save editor state:', error);
+        }
+    },
+
+    onContentChanged(editorInstance) {
+        // This can be extended to handle content changes
+        console.log('Editor content changed');
     },
 
     showErrorMessage(error) {
@@ -152,8 +169,10 @@ const monacoEditor = {
     }
 };
 
+// Make monacoEditor globally accessible
 window.monacoEditor = monacoEditor;
 
+// Initialize editor when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
@@ -165,8 +184,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (editor) {
-            window.codeEditor = editor; // Make editor globally accessible
-            setupEditorControls(editor);
+            window.codeEditor = editor;
+            setupEditorControls();
         }
     } catch (error) {
         console.error('Editor initialization failed:', error);
@@ -174,6 +193,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// Setup editor controls
+function setupEditorControls() {
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
+}
 
 async function executeCode() {
     const runButton = document.getElementById('runButton');
@@ -206,7 +232,7 @@ async function executeCode() {
             },
             body: JSON.stringify({
                 code: window.codeEditor.getValue(),
-                language: document.getElementById('languageSelect')?.value || 'cpp'
+                language: document.getElementById('editor').getAttribute('data-language') || 'cpp'
             })
         });
 
@@ -220,6 +246,6 @@ async function executeCode() {
         }
     } finally {
         runButton.disabled = false;
-        loadingOverlay.classList.remove('show');
+        if (loadingOverlay) loadingOverlay.classList.remove('show');
     }
 }
