@@ -1,12 +1,36 @@
 
-// Editor execution logic
+let editor = null;
+
+require(['vs/editor/editor.main'], function() {
+    editor = monaco.editor.create(document.getElementById('editor'), {
+        value: '// Your code here',
+        language: 'cpp',
+        theme: 'vs-dark',
+        minimap: { enabled: false },
+        automaticLayout: true,
+        fontSize: 14
+    });
+
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            monaco.editor.setModelLanguage(editor.getModel(), this.value);
+        });
+    }
+});
+
 async function executeCode() {
+    if (!editor) {
+        console.error('Editor not initialized');
+        return;
+    }
+
     const output = document.getElementById('output');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const languageSelect = document.getElementById('languageSelect');
     
-    if (!window.editor || !csrfToken) {
-        console.error('Editor or CSRF token not available');
+    if (!csrfToken) {
+        console.error('CSRF token not available');
         return;
     }
 
@@ -18,7 +42,7 @@ async function executeCode() {
                 'X-CSRFToken': csrfToken
             },
             body: JSON.stringify({
-                code: window.editor.getValue(),
+                code: editor.getValue(),
                 language: languageSelect ? languageSelect.value : 'cpp'
             })
         });
@@ -34,20 +58,9 @@ async function executeCode() {
     }
 }
 
-// Set up event listeners when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     const runButton = document.getElementById('runButton');
-    const languageSelect = document.getElementById('languageSelect');
-
     if (runButton) {
         runButton.addEventListener('click', executeCode);
-    }
-
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            if (window.editor) {
-                monaco.editor.setModelLanguage(window.editor.getModel(), this.value);
-            }
-        });
     }
 });
