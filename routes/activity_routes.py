@@ -18,6 +18,7 @@ import json
 activities = Blueprint('activities', __name__)
 
 @activities.route('/activities')
+@cache.memoize(timeout=300)  # Cache for 5 minutes
 def list_activities():
     """List all coding activities, grouped by curriculum and language"""
     activities = CodingActivity.query.order_by(

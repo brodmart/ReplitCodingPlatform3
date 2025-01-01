@@ -30,7 +30,11 @@ def log_error(error, context=None):
 
 # Initialize Flask app
 app = Flask(__name__)
-Compress(app)
+compress = Compress()
+compress.init_app(app)
+app.config['COMPRESS_MIN_SIZE'] = 500  # Only compress responses larger than 500 bytes
+app.config['COMPRESS_LEVEL'] = 6  # Higher compression level
+app.config['COMPRESS_MIMETYPES'] = ['text/html', 'text/css', 'text/javascript', 'application/json']
 app.wsgi_app = PerformanceMiddleware(app.wsgi_app)
 
 # Global rate limiting
@@ -58,6 +62,9 @@ def after_request(response):
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Session timeout
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # Initialize extensions
 init_db(app)  # Initialize database with configuration
