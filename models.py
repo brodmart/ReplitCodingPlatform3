@@ -1,17 +1,28 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_login import UserMixin
 from database import db
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
+import secrets
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
     __table_args__ = (
         db.Index('idx_student_username_email', 'username', 'email'),
     )
+
     # Basic user information
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(256))
+    password_hash = db.Column(db.String(256), nullable=False)
+
+    # Security fields
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    last_failed_login = db.Column(db.DateTime)
+    account_locked_until = db.Column(db.DateTime)
+    last_password_change = db.Column(db.DateTime, default=datetime.utcnow)
+    session_token = db.Column(db.String(64), unique=True)
 
     # Student progress tracking
     score = db.Column(db.Integer, default=0)
@@ -38,6 +49,44 @@ class Student(UserMixin, db.Model):
         return CodingActivity.query.filter(
             ~CodingActivity.id.in_(completed_activities)
         ).order_by(CodingActivity.sequence).first()
+
+    def set_password(self, password):
+        """Hash password using Werkzeug's implementation"""
+        self.password_hash = generate_password_hash(password)
+        self.last_password_change = datetime.utcnow()
+
+    def check_password(self, password):
+        """Verify password hash"""
+        return check_password_hash(self.password_hash, password)
+
+    def increment_failed_login(self):
+        """Track failed login attempts"""
+        self.failed_login_attempts += 1
+        self.last_failed_login = datetime.utcnow()
+        if self.failed_login_attempts >= 5:
+            self.account_locked_until = datetime.utcnow() + timedelta(minutes=30)
+
+    def reset_failed_login(self):
+        """Reset failed login counter"""
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        self.account_locked_until = None
+
+    def generate_session_token(self):
+        """Generate a new session token"""
+        self.session_token = secrets.token_urlsafe(48)
+        return self.session_token
+
+    def is_account_locked(self):
+        """Check if account is temporarily locked"""
+        if self.account_locked_until and self.account_locked_until > datetime.utcnow():
+            return True
+        return False
+
+    @staticmethod
+    def get_by_email(email):
+        """Safely get user by email using parameterized query"""
+        return Student.query.filter(Student.email == email).first()
 
 
 class Achievement(db.Model):
