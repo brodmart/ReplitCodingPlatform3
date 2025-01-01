@@ -98,12 +98,14 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             else:
                 return _compile_and_run_csharp(code, temp_dir, input_data)
         except CompilerError as e:
+            logger.error(f"Compilation error: {str(e)}")
             return {
                 'success': False,
                 'output': '',
                 'error': str(e)
             }
         except ExecutionError as e:
+            logger.error(f"Execution error: {str(e)}")
             return {
                 'success': False,
                 'output': '',
@@ -122,11 +124,12 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
     source_file = Path(temp_dir) / "program.cpp"
     executable = Path(temp_dir) / "program"
 
-    # Write source code to file
     try:
+        # Write source code to file
         with open(source_file, 'w') as f:
             f.write(code)
     except IOError as e:
+        logger.error(f"Failed to write source file: {e}")
         raise CompilerError(f"Failed to write source file: {e}")
 
     try:
@@ -141,6 +144,7 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
 
         if compile_process.returncode != 0:
             error_info = format_compiler_error(compile_process.stderr)
+            logger.error(f"Compilation failed: {error_info['formatted_message']}")
             raise CompilerError(error_info['formatted_message'])
 
         # Execute with resource limits
@@ -160,10 +164,12 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
             'error': run_process.stderr if run_process.stderr else None
         }
 
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"Execution timed out: {e}")
         os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill any remaining processes
         raise ExecutionError('Execution timed out')
     except subprocess.CalledProcessError as e:
+        logger.error(f"Process error: {e}")
         raise ExecutionError(f"Execution failed: {e}")
     except Exception as e:
         logger.error(f"Compilation/execution error: {str(e)}")

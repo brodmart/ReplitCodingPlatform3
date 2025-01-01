@@ -193,7 +193,8 @@ def submit_activity(activity_id: int):
 
         activity = CodingActivity.query.get_or_404(activity_id)
         code = request.json.get('code', '').strip()
-        logger.debug(f"Processing code submission for activity {activity_id}")
+        language = request.json.get('language', 'cpp').strip()
+        logger.debug(f"Processing {language} code submission for activity {activity_id}")
 
         if not code:
             logger.warning("Empty code submission")
@@ -208,9 +209,13 @@ def submit_activity(activity_id: int):
                 logger.debug(f"Running test case for activity {activity_id}")
                 result = compile_and_run(
                     code=code,
-                    language=activity.language,
+                    language=language,
                     input_data=test_case.get('input')
                 )
+
+                if not result.get('success', False):
+                    logger.warning(f"Test case failed: {result.get('error')}")
+                    return jsonify({'error': result.get('error', 'Compilation or execution failed')}), 400
 
                 test_passed = (
                     result.get('success', False) and
@@ -229,18 +234,18 @@ def submit_activity(activity_id: int):
                     all_tests_passed = False
 
             # Save submission
-            submission = save_code_submission(
-                student_id=current_user.id,
-                code=code,
-                language=activity.language,
-                success=all_tests_passed,
-                output=str(test_results),
-                error=None if all_tests_passed else "Some tests failed"
-            )
-            logger.info(f"Saved submission {submission.id} for activity {activity_id}")
-
-            # Update progress
             with transaction_context():
+                submission = save_code_submission(
+                    student_id=current_user.id,
+                    code=code,
+                    language=language,
+                    success=all_tests_passed,
+                    output=str(test_results),
+                    error=None if all_tests_passed else "Some tests failed"
+                )
+                logger.info(f"Saved submission {submission.id} for activity {activity_id}")
+
+                # Update progress
                 progress.attempts += 1
                 progress.last_submission = code
 
@@ -248,10 +253,6 @@ def submit_activity(activity_id: int):
                     progress.completed = True
                     progress.completed_at = datetime.utcnow()
                     current_user.score += activity.points
-
-                    time_taken = (datetime.utcnow() - progress.started_at).total_seconds()
-                    progress.completion_time = time_taken
-
                     flash(f'Félicitations! Vous avez terminé "{activity.title}"! (+{activity.points} points)')
 
             response_data = {
@@ -266,10 +267,6 @@ def submit_activity(activity_id: int):
             error_msg = str(e)
             logger.warning(f"Code execution error in activity {activity_id}: {error_msg}")
             return jsonify({'error': error_msg}), 400
-
-        except Exception as e:
-            logger.error(f"Error executing code in activity {activity_id}: {str(e)}")
-            return jsonify({'error': 'Error executing code'}), 500
 
     except Exception as e:
         logger.error(f"Error in submit_activity {activity_id}: {str(e)}")
