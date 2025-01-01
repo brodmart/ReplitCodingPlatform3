@@ -7,8 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         autoCloseBrackets: true,
         matchBrackets: true,
-        lineWrapping: true,
-        viewportMargin: Infinity
+        lineWrapping: true
     });
 
     const languageSelect = document.getElementById('languageSelect');
@@ -27,8 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch('/execute', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({ code, language })
         })
