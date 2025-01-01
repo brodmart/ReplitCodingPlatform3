@@ -145,9 +145,23 @@ function setupRunButton() {
 // Wait for DOM to be fully loaded before initializing
 window.addEventListener('load', function() {
     console.log('Window loaded, starting initialization...');
+    // Ensure CodeMirror is fully loaded
     setTimeout(() => {
         initializeEditor();
-        setupLanguageSwitch();
-        setupRunButton();
+        // Add a small delay before setting up other components
+        setTimeout(() => {
+            setupLanguageSwitch();
+            setupRunButton();
+            // Force a refresh after everything is set up
+            if (editor) {
+                const currentValue = editor.getValue();
+                if (!currentValue.trim()) {
+                    const languageSelect = document.getElementById('languageSelect');
+                    const template = languageSelect && languageSelect.value === 'csharp' ? csharpTemplate : cppTemplate;
+                    editor.setValue(template);
+                }
+                editor.refresh();
+            }
+        }, 100);
     }, 100);
 });
