@@ -36,21 +36,20 @@ document.addEventListener('DOMContentLoaded', function() {
         lineWrapping: true
     });
 
-    // Set initial template
-    const languageSelect = document.getElementById('languageSelect');
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(initialLanguage === 'cpp' ? cppTemplate : csharpTemplate);
+    // Set initial template immediately after editor creation
+    editor.setValue(cppTemplate);
+    editor.refresh();
 
     // Language switching
+    const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
-            const selectedLanguage = this.value;
-            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-            
+            const template = this.value === 'cpp' ? cppTemplate : csharpTemplate;
+            const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             editor.setOption('mode', mode);
             editor.setValue(template);
             editor.refresh();
+            console.log('Template switched to:', this.value);
         });
     }
 
