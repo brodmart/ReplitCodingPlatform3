@@ -26,8 +26,8 @@ html, body {
 }
 
 #editor, .console-output {
-    height: calc(100vh - 140px);
-    min-height: calc(100vh - 140px);
+    height: calc(50vh - 70px);
+    min-height: calc(50vh - 70px);
 }
 
 #editor {
