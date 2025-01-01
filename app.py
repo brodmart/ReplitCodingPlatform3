@@ -10,6 +10,7 @@ from extensions import init_extensions
 from flask_wtf.csrf import CSRFProtect
 from extensions import cache
 from flask_compress import Compress
+from compiler_service import compile_and_run, CompilerError, ExecutionError
 
 # Configure logging
 logging.basicConfig(
@@ -141,6 +142,45 @@ def index():
         return render_template('errors/500.html'), 500
 
 
+@app.route('/execute', methods=['POST'])
+def execute_code():
+    """
+    Execute code submitted from the editor
+    """
+    if not request.is_json:
+        return jsonify({'error': 'Content-Type must be application/json'}), 400
+
+    try:
+        code = request.json.get('code', '').strip()
+        language = request.json.get('language', 'cpp').lower()
+
+        if not code:
+            return jsonify({'error': 'Code cannot be empty'}), 400
+
+        if language not in ['cpp', 'csharp']:
+            return jsonify({'error': 'Unsupported language'}), 400
+
+        # Execute the code using compiler service
+        result = compile_and_run(code=code, language=language)
+
+        if not result.get('success'):
+            return jsonify({'error': result.get('error', 'Compilation failed')}), 400
+
+        return jsonify({
+            'success': True,
+            'output': result.get('output', ''),
+            'error': result.get('error')
+        })
+
+    except CompilerError as e:
+        logger.error(f"Compilation error: {str(e)}")
+        return jsonify({'error': str(e)}), 400
+    except ExecutionError as e:
+        logger.error(f"Execution error: {str(e)}")
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Unexpected error in execute_code: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
