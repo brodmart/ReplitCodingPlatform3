@@ -12,13 +12,24 @@ class Base(DeclarativeBase):
 # Initialize SQLAlchemy with the custom base class
 db = SQLAlchemy(model_class=Base)
 
-def init_db(app):
-    """Initialize database with application context"""
+def init_db(app, max_retries=3):
+    """Initialize database with application context and retry logic"""
     logger.info("Configuring database connection...")
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
         logger.error("DATABASE_URL environment variable is not set!")
         raise RuntimeError("DATABASE_URL must be set")
+
+    for attempt in range(max_retries):
+        try:
+            db.engine.connect()
+            logger.info("Database connection successful")
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                logger.error(f"Failed to connect to database after {max_retries} attempts: {str(e)}")
+                raise
+            logger.warning(f"Database connection attempt {attempt + 1} failed, retrying...")
 
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
