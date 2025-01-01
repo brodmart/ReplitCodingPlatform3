@@ -25,12 +25,12 @@ def create_app():
     app.config.update(
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='None',
+        SESSION_COOKIE_SAMESITE='Lax',  # Changed from 'None' to 'Lax' for better security
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
         SERVER_NAME=None
     )
-    
+
     # Allow requests from Replit domains
     @app.after_request
     def after_request(response):
@@ -126,13 +126,3 @@ def editor():
 def shutdown_session(exception=None):
     """Properly remove database session"""
     db.session.remove()
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    logger.info(f"Starting Flask server on port {port}")
-    app.run(
-        host='0.0.0.0',  # Bind to all interfaces
-        port=port,
-        debug=True,
-        threaded=True    # Enable threading for better request handling
-    )

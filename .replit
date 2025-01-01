@@ -6,7 +6,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["sh", "-c", "python app.py"]
+run = ["sh", "-c", "python main.py"]
 
 [workflows]
 runButton = "Project"
@@ -32,7 +32,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python app.py"
+args = "python main.py"
 waitForPort = 8080
 
 [[ports]]

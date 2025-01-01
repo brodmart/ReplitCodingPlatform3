@@ -26,11 +26,11 @@ def init_app():
 
 if __name__ == '__main__':
     app = init_app()
-    port = int(os.environ.get('PORT', 8080)) #Changed port here.
+    port = int(os.environ.get('PORT', 8080))
     logger.info(f"Starting Flask server on port {port}")
     app.run(
         host='0.0.0.0',  # Bind to all interfaces
-        port=8080,
+        port=port,
         debug=True,
         threaded=True    # Enable threading for better request handling
     )
