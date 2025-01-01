@@ -5,9 +5,7 @@ import logging
 import signal
 from pathlib import Path
 import re
-import resource
 from typing import Dict, Any, Optional
-from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -56,35 +54,6 @@ def format_compiler_error(error_text: str) -> Dict[str, Any]:
         'full_error': error_text,
         'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
     }
-
-@contextmanager
-def set_resource_limits():
-    """Set resource limits for child processes"""
-    try:
-        # 1 second CPU time
-        resource.setrlimit(resource.RLIMIT_CPU, (1, 1))
-        # 100MB memory limit
-        resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, 100 * 1024 * 1024))
-        # No child processes
-        resource.setrlimit(resource.RLIMIT_NPROC, (0, 0))
-        # No file writing
-        resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
-        yield
-    except Exception as e:
-        logger.error(f"Failed to set resource limits: {e}")
-        raise
-
-@contextmanager
-def create_temp_directory():
-    """Create and clean up temporary directory"""
-    temp_dir = tempfile.mkdtemp()
-    try:
-        yield temp_dir
-    finally:
-        try:
-            subprocess.run(['rm', '-rf', temp_dir], check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with enhanced security and error handling"""
@@ -147,16 +116,15 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
             logger.error(f"Compilation failed: {error_info['formatted_message']}")
             raise CompilerError(error_info['formatted_message'])
 
-        # Execute with resource limits
-        with set_resource_limits():
-            run_process = subprocess.run(
-                [str(executable)],
-                input=input_data,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                preexec_fn=os.setsid
-            )
+        # Execute with basic protection
+        run_process = subprocess.run(
+            [str(executable)],
+            input=input_data,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            preexec_fn=os.setsid
+        )
 
         return {
             'success': True,
@@ -199,16 +167,15 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
             error_info = format_compiler_error(compile_process.stderr)
             raise CompilerError(error_info['formatted_message'])
 
-        # Execute with resource limits
-        with set_resource_limits():
-            run_process = subprocess.run(
-                ['mono', '--debug', str(executable)],
-                input=input_data,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                preexec_fn=os.setsid
-            )
+        # Execute with basic protection
+        run_process = subprocess.run(
+            ['mono', '--debug', str(executable)],
+            input=input_data,
+            capture_output=True,
+            text=True,
+            timeout=5,
+            preexec_fn=os.setsid
+        )
 
         return {
             'success': True,
@@ -224,3 +191,14 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
     except Exception as e:
         logger.error(f"Compilation/execution error: {str(e)}")
         raise ExecutionError(str(e))
+
+def create_temp_directory():
+    """Create and clean up temporary directory"""
+    temp_dir = tempfile.mkdtemp()
+    try:
+        yield temp_dir
+    finally:
+        try:
+            subprocess.run(['rm', '-rf', temp_dir], check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
