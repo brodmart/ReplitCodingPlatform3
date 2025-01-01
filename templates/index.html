@@ -3,6 +3,8 @@
 {% extends "base.html" %}
 
 {% block extra_head %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css" rel="stylesheet">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
     .editor-container {
         height: calc(100vh - 56px);
@@ -47,7 +49,7 @@
         </div>
 
         <div class="col-12 col-lg-8 editor-container">
-            <textarea id="editor" class="form-control"></textarea>
+            <div id="editor"></div>
         </div>
 
         <div class="col-12 col-lg-4 console-container">
@@ -62,4 +64,55 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+<script>
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        const editor = monaco.editor.create(document.getElementById('editor'), {
+            value: '',
+            language: 'cpp',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false }
+        });
+
+        const languageSelect = document.getElementById('languageSelect');
+        languageSelect.addEventListener('change', function() {
+            monaco.editor.setModelLanguage(editor.getModel(), this.value);
+        });
+
+        const runButton = document.getElementById('runButton');
+        runButton.addEventListener('click', function() {
+            const code = editor.getValue();
+            const language = languageSelect.value;
+            const outputDiv = document.getElementById('output');
+            
+            outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
+
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ code, language })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
+                } else {
+                    outputDiv.innerHTML = `<pre>${data.output}</pre>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                outputDiv.innerHTML = '<pre class="error">Error executing code</pre>';
+            });
+        });
+    });
+</script>
 {% endblock %}
