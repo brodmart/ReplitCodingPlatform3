@@ -4,6 +4,8 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from database import db, init_db
 
 # Configure logging
@@ -21,6 +23,11 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 init_db(app)  # Initialize database with configuration
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
