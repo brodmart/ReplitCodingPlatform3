@@ -43,7 +43,7 @@ def create_app():
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
         SERVER_NAME=None,
-        SEND_FILE_MAX_AGE_DEFAULT=3600,  # Cache static files for 1 hour
+        SEND_FILE_MAX_AGE_DEFAULT=86400,  # Cache static files for 24 hours
         STATIC_FOLDER='static',
         STATIC_URL_PATH='/static'
     )
