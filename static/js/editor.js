@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
         autoCloseBrackets: true,
         indentUnit: 4,
         tabSize: 4,
+        viewportMargin: Infinity,
         lineWrapping: true
     });
 
