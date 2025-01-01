@@ -1,56 +1,33 @@
 
-let editor;
-
-document.addEventListener('DOMContentLoaded', initMonaco);
+let editor = null;
 
 function initMonaco() {
-    if (editor) return; // Prevent multiple initializations
-    
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js';
-    script.onload = () => {
-        const amdLoader = window.require;
-        window.require = undefined; // Prevent conflicts
-        
-        amdLoader.config({
-            paths: {
-                'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs'
-            }
+    if (editor) return;
+
+    require.config({ 
+        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }
+    });
+
+    require(['vs/editor/editor.main'], function() {
+        editor = monaco.editor.create(document.getElementById('editor'), {
+            value: '',
+            language: 'cpp',
+            theme: 'vs-dark',
+            automaticLayout: true
         });
 
-        window.MonacoEnvironment = {
-            getWorkerUrl: function() {
-                return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
-                    self.MonacoEnvironment = {
-                        baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/'
-                    };
-                    importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/base/worker/workerMain.js');`
-                )}`;
-            }
-        };
-
-        amdLoader(['vs/editor/editor.main'], function() {
-            editor = monaco.editor.create(document.getElementById('editor'), {
-                value: document.getElementById('initial-code')?.value || '',
-                language: document.getElementById('languageSelect')?.value || 'cpp',
-                theme: 'vs-dark',
-                automaticLayout: true
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect) {
+            languageSelect.addEventListener('change', function() {
+                monaco.editor.setModelLanguage(editor.getModel(), this.value);
             });
+        }
 
-            const languageSelect = document.getElementById('languageSelect');
-            if (languageSelect) {
-                languageSelect.addEventListener('change', function() {
-                    monaco.editor.setModelLanguage(editor.getModel(), this.value);
-                });
-            }
-
-            const runButton = document.getElementById('runButton');
-            if (runButton) {
-                runButton.addEventListener('click', executeCode);
-            }
-        });
-    };
-    document.head.appendChild(script);
+        const runButton = document.getElementById('runButton');
+        if (runButton) {
+            runButton.addEventListener('click', executeCode);
+        }
+    });
 }
 
 function executeCode() {
@@ -80,3 +57,5 @@ function executeCode() {
         document.getElementById('output').innerHTML = '<pre class="error">Error executing code</pre>';
     });
 }
+
+window.onload = initMonaco;
