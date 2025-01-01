@@ -3,8 +3,10 @@ from flask_login import login_required, current_user
 from models import CodingActivity, StudentProgress
 from database import db
 from datetime import datetime
-from extensions import limiter
-from app import cache
+from extensions import limiter, cache
+from compiler_service import compile_and_run
+import logging
+import json
 
 activities = Blueprint('activities', __name__)
 
@@ -12,63 +14,63 @@ activities = Blueprint('activities', __name__)
 @limiter.limit("60 per minute")
 def limit_activities():
     pass
-from compiler_service import compile_and_run
-import logging
-import json
-
-activities = Blueprint('activities', __name__)
 
 @activities.route('/activities')
 @cache.memoize(timeout=300)  # Cache for 5 minutes
 def list_activities():
     """List all coding activities, grouped by curriculum and language"""
-    activities = CodingActivity.query.order_by(
-        CodingActivity.curriculum,
-        CodingActivity.language,
-        CodingActivity.sequence
-    ).all()
+    try:
+        activities = CodingActivity.query.order_by(
+            CodingActivity.curriculum,
+            CodingActivity.language,
+            CodingActivity.sequence
+        ).all()
 
-    # Group activities by curriculum and language
-    grouped_activities = {}
-    for activity in activities:
-        key = (activity.curriculum, activity.language)
-        if key not in grouped_activities:
-            grouped_activities[key] = []
-        grouped_activities[key].append(activity)
+        # Group activities by curriculum and language
+        grouped_activities = {}
+        for activity in activities:
+            key = (activity.curriculum, activity.language)
+            if key not in grouped_activities:
+                grouped_activities[key] = []
+            grouped_activities[key].append(activity)
 
-    # Get student progress if logged in
-    progress = {}
-    curriculum_progress = {}
+        # Get student progress if logged in
+        progress = {}
+        curriculum_progress = {}
 
-    if current_user.is_authenticated:
-        # Get all progress entries
-        student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
-        progress = {p.activity_id: p for p in student_progress}
+        if current_user.is_authenticated:
+            # Get all progress entries
+            student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
+            progress = {p.activity_id: p for p in student_progress}
 
-        # Calculate curriculum progress
-        for curriculum in ['TEJ2O', 'ICS3U']:
-            curriculum_activities = CodingActivity.query.filter_by(curriculum=curriculum).all()
-            total = len(curriculum_activities)
+            # Calculate curriculum progress
+            for curriculum in ['TEJ2O', 'ICS3U']:
+                curriculum_activities = CodingActivity.query.filter_by(curriculum=curriculum).all()
+                total = len(curriculum_activities)
 
-            if total > 0:
-                completed = StudentProgress.query.filter(
-                    StudentProgress.student_id == current_user.id,
-                    StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
-                    StudentProgress.completed == True
-                ).count()
+                if total > 0:
+                    completed = StudentProgress.query.filter(
+                        StudentProgress.student_id == current_user.id,
+                        StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
+                        StudentProgress.completed == True
+                    ).count()
 
-                curriculum_progress[curriculum] = {
-                    'completed': completed,
-                    'total': total,
-                    'percentage': (completed / total * 100)
-                }
+                    curriculum_progress[curriculum] = {
+                        'completed': completed,
+                        'total': total,
+                        'percentage': (completed / total * 100)
+                    }
 
-    return render_template(
-        'activities.html',
-        grouped_activities=grouped_activities,
-        progress=progress,
-        curriculum_progress=curriculum_progress
-    )
+        return render_template(
+            'activities.html',
+            grouped_activities=grouped_activities,
+            progress=progress,
+            curriculum_progress=curriculum_progress
+        )
+    except Exception as e:
+        logging.error(f"Error in list_activities: {str(e)}")
+        flash("Une erreur s'est produite lors du chargement des activités.", "error")
+        return render_template('errors/500.html'), 500
 
 @activities.route('/activity/<int:activity_id>')
 def view_activity(activity_id):

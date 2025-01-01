@@ -1,11 +1,2 @@
-from flask import Blueprint
-
-from .auth_routes import auth
-from .activity_routes import activities
-
-# Register all blueprints with unique names
-auth.name = 'auth_blueprint'
-activities.name = 'activities_blueprint'
-
-# Export blueprints list
-blueprints = [auth, activities]
+# This file is intentionally empty to mark the directory as a Python package
+# Blueprints are registered directly in create_app()

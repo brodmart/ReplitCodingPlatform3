@@ -2,18 +2,15 @@ import os
 import logging
 import secrets
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, g
-from database import db, init_db, DatabaseHealthCheck
-from extensions import (
-    init_extensions, PerformanceMiddleware, cache,
-    compress, csrf, limiter, login_manager
-)
+from database import init_db, db
+from extensions import init_extensions
 
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(pathname)s:%(lineno)d'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
@@ -21,50 +18,56 @@ def create_app():
     """Application factory pattern"""
     app = Flask(__name__)
 
-    # Enhanced security configurations
-    app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
+    # Configure secret key
+    app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+
+    # Security configurations
     app.config.update(
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
-        PERMANENT_SESSION_LIFETIME=timedelta(hours=2),
-        REMEMBER_COOKIE_DURATION=timedelta(days=14),
-        REMEMBER_COOKIE_SECURE=True,
-        REMEMBER_COOKIE_HTTPONLY=True,
-        REMEMBER_COOKIE_SAMESITE='Lax',
         WTF_CSRF_TIME_LIMIT=3600,
-        WTF_CSRF_SSL_STRICT=True,
-        MAX_CONTENT_LENGTH=10 * 1024 * 1024  # 10MB max file size
+        WTF_CSRF_SSL_STRICT=True
     )
 
-    # Compression settings
-    app.config['COMPRESS_MIN_SIZE'] = 500
-    app.config['COMPRESS_LEVEL'] = 6
-    app.config['COMPRESS_MIMETYPES'] = [
-        'text/html', 'text/css', 'text/javascript',
-        'application/json', 'application/javascript'
-    ]
-
-    # Add performance middleware
-    app.wsgi_app = PerformanceMiddleware(app.wsgi_app)
-
     try:
-        # Initialize database with retry logic
+        # Initialize database
         init_db(app)
 
-        # Initialize all extensions
+        # Initialize extensions
         init_extensions(app)
 
+        # Register blueprints
+        from routes.auth_routes import auth
+        from routes.activity_routes import activities
+
+        app.register_blueprint(auth, url_prefix='/auth')
+        app.register_blueprint(activities, url_prefix='/activities')
+
+        # Register error handlers
+        register_error_handlers(app)
+
+        return app
+
     except Exception as e:
-        logger.error(f"Failed to initialize app: {str(e)}")
+        logger.error(f"Failed to create application: {str(e)}")
         raise
 
-    return app
+def register_error_handlers(app):
+    """Register error handlers for the application"""
+
+    @app.errorhandler(404)
+    def not_found_error(error):
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
 
 # Create the application instance
 app = create_app()
 
-# Request handlers
 @app.before_request
 def before_request():
     """Set start time for request timing"""
@@ -77,26 +80,8 @@ def after_request(response):
         elapsed = time.time() - g.start_time
         response.headers['X-Response-Time'] = str(elapsed)
 
-    # Enhanced security headers with strict CSP
-    csp = {
-        'default-src': "'self'",
-        'script-src': "'self' 'nonce-{nonce}' cdn.jsdelivr.net",
-        'style-src': "'self' cdn.jsdelivr.net",
-        'img-src': "'self' data: https:",
-        'font-src': "'self' cdn.jsdelivr.net",
-        'connect-src': "'self'",
-        'frame-ancestors': "'none'",
-        'form-action': "'self'",
-        'base-uri': "'self'",
-        'upgrade-insecure-requests': ''
-    }
-
-    nonce = secrets.token_hex(16)
-    session['csp_nonce'] = nonce
-    csp['script-src'] = csp['script-src'].format(nonce=nonce)
-
+    # Security headers
     response.headers.update({
-        'Content-Security-Policy': '; '.join(f"{key} {value}" for key, value in csp.items()),
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'X-XSS-Protection': '1; mode=block',
@@ -111,24 +96,6 @@ def shutdown_session(exception=None):
     """Properly remove database session"""
     db.session.remove()
 
-# Error handlers
-@app.errorhandler(404)
-def not_found_error(error):
-    return render_template('errors/404.html'), 404
-
-@app.errorhandler(500)
-def internal_error(error):
-    db.session.rollback()
-    error_data = {
-        'error_id': secrets.token_hex(8),
-        'error_type': type(error).__name__,
-        'error_message': str(error),
-        'timestamp': datetime.utcnow().isoformat()
-    }
-    logger.error(f"Application error: {error_data}")
-    return render_template('errors/500.html', error_id=error_data['error_id']), 500
-
-# Basic routes
 @app.route('/')
 def index():
     return render_template('index.html')
