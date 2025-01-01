@@ -1,6 +1,14 @@
 html, body {
     height: 100%;
     overflow: hidden;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+:root {
+    --bs-dark: #212529;
+    --bs-light: #f8f9fa;
+    --bs-border-color: #495057;
 }
 
 .editor-container {
