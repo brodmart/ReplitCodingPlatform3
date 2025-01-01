@@ -1,8 +1,7 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from flask_login import login_required, current_user
 from models import CodingActivity, StudentProgress, CodeSubmission
 from database import db, transaction_context
-from datetime import datetime
 from extensions import limiter, cache
 from compiler_service import compile_and_run, CompilerError, ExecutionError
 import logging
@@ -42,11 +41,11 @@ def list_activities(grade=None):
             logger.warning(f"Invalid grade format: {grade}, defaulting to 10")
             grade = 10
 
-        # Create a unique cache key for each user
+        # Create a unique cache key for each user that includes flash status
         cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}_{grade}'
         cached_data = cache.get(cache_key)
 
-        if cached_data:
+        if cached_data and not session.get('_flashes'):  # Only use cache if there are no flash messages
             logger.info(f"Cache hit for activities list. Response time: {time.time() - start_time:.2f}s")
             return cached_data
 
@@ -135,8 +134,9 @@ def list_activities(grade=None):
         )
         logger.info(f"Template rendering time: {time.time() - render_start:.2f}s")
 
-        # Cache the result
-        cache.set(cache_key, rendered_template, timeout=300)
+        # Cache the result only if there are no flash messages
+        if not session.get('_flashes'):
+            cache.set(cache_key, rendered_template, timeout=300)
 
         total_time = time.time() - start_time
         logger.info(f"Total response time: {total_time:.2f}s")
