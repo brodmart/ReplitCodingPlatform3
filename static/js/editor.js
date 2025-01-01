@@ -1,3 +1,4 @@
+
 // Editor initialization
 let editor = null;
 
@@ -6,98 +7,79 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeEditor() {
-    try {
-        const editorElement = document.getElementById('editor');
-        if (!editorElement) {
-            console.error('Editor element not found');
-            return;
+    const editorElement = document.getElementById('editor');
+    if (!editorElement) {
+        console.error('Editor element not found');
+        return;
+    }
+
+    // Initialize CodeMirror
+    editor = CodeMirror.fromTextArea(editorElement, {
+        mode: 'text/x-c++src',
+        theme: 'dracula',
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: true,
+        lineWrapping: true,
+        viewportMargin: Infinity,
+        extraKeys: {
+            "Tab": "indentMore",
+            "Shift-Tab": "indentLess"
         }
+    });
 
-        // Initialize CodeMirror
-        editor = CodeMirror.fromTextArea(editorElement, {
-            mode: 'text/x-c++src', // Default to C++
-            theme: 'dracula',
-            lineNumbers: true,
-            matchBrackets: true,
-            autoCloseBrackets: true,
-            indentUnit: 4,
-            tabSize: 4,
-            indentWithTabs: true,
-            lineWrapping: true,
-            viewportMargin: Infinity,
-            extraKeys: {
-                "Tab": "indentMore",
-                "Shift-Tab": "indentLess"
-            }
-        });
+    // Default C++ template
+    const cppTemplate = `#include <iostream>
+#include <string>
+#include <vector>
 
-        // Template code for different languages
-        const templates = {
-            'cpp': `#include <iostream>
+int main() {
+    std::cout << "Hello World!" << std::endl;
+    return 0;
+}`;
+
+    // Set initial template
+    editor.setValue(cppTemplate);
+
+    // Language switching with proper mode updating
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            const templates = {
+                'cpp': `#include <iostream>
+#include <string>
+#include <vector>
 
 int main() {
     std::cout << "Hello World!" << std::endl;
     return 0;
 }`,
-            'csharp': `using System;
+                'csharp': `using System;
+using System.Collections.Generic;
 
 class Program {
     static void Main(string[] args) {
         Console.WriteLine("Hello World!");
     }
 }`
-        };
+            };
 
-        // Set initial value with templates
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect && editor) {
-            const initialLanguage = languageSelect.value || 'cpp';
-            console.log('Setting initial template for language:', initialLanguage);
-            
-            if (templates[initialLanguage]) {
-                editor.setValue(templates[initialLanguage]);
-            } else {
-                console.warn('Template not found for language:', initialLanguage);
-                editor.setValue('// Write your code here');
-            }
-        } else {
-            console.warn('Language select or editor not properly initialized');
-        }
-
-        // Update template when language changes
-        languageSelect.addEventListener('change', function() {
-            const currentCode = editor.getValue().trim();
-            if (!currentCode || currentCode === templates['cpp'] || currentCode === templates['csharp']) {
-                editor.setValue(templates[this.value]);
-            }
+            const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            editor.setOption('mode', mode);
+            editor.setValue(templates[this.value]);
+            editor.refresh();
         });
-
-        // Language switching with proper mode updating
-        const languageSelect2 = document.getElementById('languageSelect');
-        if (languageSelect2) {
-            // Set initial mode based on selected language
-            const initialMode = languageSelect2.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-            editor.setOption('mode', initialMode);
-
-            languageSelect2.addEventListener('change', function() {
-                const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-                editor.setOption('mode', mode);
-                console.log('Language switched to:', this.value, 'with mode:', mode);
-            });
-        }
-
-        setupRunButton();
-        editor.refresh();
-        console.log('Editor initialized successfully');
-    } catch (error) {
-        console.error('Editor initialization failed:', error);
-        handleEditorError();
     }
+
+    setupRunButton();
+    editor.refresh();
 }
 
 function setupRunButton() {
     const runButton = document.getElementById('runButton');
-    const loadingOverlay = document.getElementById('loadingOverlay');
     const outputDiv = document.getElementById('output');
 
     if (!runButton || !outputDiv) {
@@ -113,80 +95,39 @@ function setupRunButton() {
 
         const code = editor.getValue();
         const language = document.getElementById('languageSelect')?.value || 'cpp';
-        console.log('Executing code with language:', language);
 
         if (!code.trim()) {
-            outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
+            outputDiv.innerHTML = '<div class="error">Code cannot be empty</div>';
             return;
         }
 
-        // Show loading state
-        if (loadingOverlay) loadingOverlay.style.display = 'flex';
-        outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
+        outputDiv.innerHTML = '<div class="text-muted">Executing...</div>';
 
         try {
-            const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
-            const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
-
-            // Get CSRF token with error handling
             const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
             if (!csrfTokenElement) {
-                throw new Error('CSRF token not found. Please refresh the page.');
+                throw new Error('CSRF token not found');
             }
             const csrfToken = csrfTokenElement.value;
 
-            const response = await fetch(endpoint, {
+            const response = await fetch('/execute', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ 
-                    code, 
-                    language // Always send the current language selection
-                }),
+                body: JSON.stringify({ code, language }),
                 credentials: 'same-origin'
             });
 
-            let data;
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                data = await response.json();
-            } else {
-                throw new Error('Server returned non-JSON response');
-            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Error executing code');
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Error executing code');
-            }
-
-            if (data.error) {
-                outputDiv.innerHTML = `<pre class="error"><span class="error-badge">Error</span>${data.error.trim()}</pre>`;
-            } else {
-                outputDiv.innerHTML = `<pre class="output-success">${(data.output || 'No output').trim()}</pre>`;
-            }
+            outputDiv.innerHTML = data.error ? 
+                `<pre class="error">${data.error}</pre>` : 
+                `<pre>${data.output || 'No output'}</pre>`;
         } catch (error) {
-            console.error('Execution error:', error);
-            outputDiv.innerHTML = `<pre class="error">${error.message || 'Error executing code'}</pre>`;
-        } finally {
-            // Hide loading overlay
-            if (loadingOverlay) loadingOverlay.style.display = 'none';
+            outputDiv.innerHTML = `<pre class="error">${error.message}</pre>`;
         }
     });
-}
-
-function handleEditorError() {
-    const editorElement = document.getElementById('editor');
-    const outputDiv = document.getElementById('output');
-
-    if (editorElement) {
-        editorElement.style.display = 'none';
-    }
-    if (outputDiv) {
-        outputDiv.innerHTML = `
-            <div class="alert alert-danger">
-                Failed to initialize code editor. Please refresh the page or contact support if the issue persists.
-            </div>
-        `;
-    }
 }
