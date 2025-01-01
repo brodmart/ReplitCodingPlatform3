@@ -119,25 +119,19 @@ function setupRunButton() {
             if (data.error) {
                 outputDiv.innerHTML = `<pre class="error"><span class="error-badge">Error</span>${data.error}</pre>`;
             } else if (data.test_results) {
-                const resultsHtml = data.test_results.map((result, index) => `
+                const resultsHtml = data.test_results.map((result) => `
                     <div class="test-result ${result.passed ? 'passed' : ''}">
-                        <div class="test-header">
-                            <span class="test-badge ${result.passed ? 'success' : ''}">
-                                <i class="bi ${result.passed ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
-                                Test Case ${index + 1}
-                            </span>
-                        </div>
                         <div class="test-content">
                             ${result.input ? `<div class="test-field"><span class="field-label">Input:</span><code>${result.input}</code></div>` : ''}
                             <div class="test-field"><span class="field-label">Expected:</span><code>${result.expected}</code></div>
                             <div class="test-field"><span class="field-label">Actual:</span><code>${result.actual || 'No output'}</code></div>
                             ${result.error ? `<div class="test-field"><span class="field-label">Error:</span><code>${result.error}</code></div>` : ''}
                         </div>
-                    </div>
+                    </div>`.trim()
                 `).join('');
                 outputDiv.innerHTML = resultsHtml;
             } else {
-                outputDiv.innerHTML = `<pre class="output-success">${(data.output || 'No output').replace(/^\s*[\r\n]/gm, '')}</pre>`;
+                outputDiv.innerHTML = `<pre class="output-success">${(data.output || 'No output').replace(/(\r\n|\n|\r){2,}/gm, '\n').trim()}</pre>`;
             }
         } catch (error) {
             console.error('Execution error:', error);
