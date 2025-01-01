@@ -36,31 +36,33 @@ document.addEventListener('DOMContentLoaded', function() {
         lineWrapping: true
     });
 
-    // Language switching with proper template loading
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        // Set initial template based on selected language
-        const initialTemplate = languageSelect.value === 'cpp' ? cppTemplate : csharpTemplate;
-        const initialMode = languageSelect.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-        editor.setOption('mode', initialMode);
-        editor.setValue(initialTemplate);
-
-        languageSelect.addEventListener('change', function() {
-            const selectedLanguage = this.value;
-            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-            editor.setOption('mode', mode);
-            editor.setValue(template);
-            editor.refresh();
-            console.log('Language switched to:', selectedLanguage, 'with mode:', mode);
-        });
-    } else {
-        // If no language select, default to C++ template
+    // Set initial content if empty
+    if (!editor.getValue().trim()) {
         editor.setValue(cppTemplate);
     }
 
-    editor.refresh();
+    // Language switching with proper template loading
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            const selectedLanguage = this.value;
+            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
 
+            editor.setOption('mode', mode);
+            // Only set template if editor is empty or contains default template
+            const currentCode = editor.getValue().trim();
+            if (!currentCode || 
+                currentCode === cppTemplate.trim() || 
+                currentCode === csharpTemplate.trim()) {
+                editor.setValue(template);
+            }
+            editor.refresh();
+            console.log('Language switched to:', selectedLanguage, 'with mode:', mode);
+        });
+    }
+
+    editor.refresh();
     setupRunButton();
 });
 
