@@ -20,7 +20,11 @@ class Program {
 
 let editor = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', () => {
+    initializeEditor();
+});
+
+function initializeEditor() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
@@ -34,28 +38,27 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true
+        lineWrapping: true,
+        value: cppTemplate // Set initial value here
     });
 
-    // Set initial template immediately after editor creation
+    // Set initial content
     editor.setValue(cppTemplate);
-    editor.refresh();
 
     // Language switching
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
-            const template = this.value === 'cpp' ? cppTemplate : csharpTemplate;
-            const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const selectedLanguage = this.value;
+            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             editor.setOption('mode', mode);
             editor.setValue(template);
-            editor.refresh();
-            console.log('Template switched to:', this.value);
         });
     }
 
     setupRunButton();
-});
+}
 
 function setupRunButton() {
     const runButton = document.getElementById('runButton');
