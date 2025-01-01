@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 {% extends "base.html" %}
 
@@ -22,41 +23,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid h-100">
-    <div class="row h-100">
-        <div class="col-12">
-            <nav class="navbar navbar-expand-lg">
-                <div class="container-fluid">
-                    <span class="navbar-brand">Éditeur de Code</span>
-                    <div class="d-flex align-items-center">
-                        <select id="languageSelect" class="form-select me-2">
-                            <option value="text/x-c++src">C++</option>
-                            <option value="text/x-csharp">C#</option>
-                        </select>
-                        <button id="runButton" class="btn btn-success me-2">
-                            <i class="bi bi-play-fill"></i> Exécuter
-                        </button>
-                        {% if current_user.is_authenticated %}
-                        <button id="shareButton" class="btn btn-primary">
-                            <i class="bi bi-share"></i> Partager
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </nav>
-        </div>
-
-        <div class="col-12 col-lg-8 editor-container">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 editor-container">
+            <div class="d-flex justify-content-between mb-2">
+                <select id="languageSelect" class="form-select w-auto">
+                    <option value="cpp">C++</option>
+                    <option value="csharp">C#</option>
+                </select>
+                <button id="runButton" class="btn btn-primary">Run Code</button>
+            </div>
             <textarea id="editor"></textarea>
         </div>
-
-        <div class="col-12 col-lg-4 console-container">
+        <div class="col-md-4 console-container">
             <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">Console de Sortie</h5>
+                    Output
                 </div>
-                <div class="card-body">
-                    <pre id="output" class="console-output"></pre>
+                <div id="output" class="card-body">
                 </div>
             </div>
         </div>
