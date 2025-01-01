@@ -1,0 +1,24 @@
+2025-01-01 18:33:00,447 - database - INFO - Configuring database connection... - /home/runner/codecrafthub/database.py:35
+2025-01-01 18:33:00,790 - database - INFO - Database connection successful - /home/runner/codecrafthub/database.py:65
+2025-01-01 18:33:01,051 - app - INFO - Registered blueprint: auth_blueprint - /home/runner/codecrafthub/main.py:16
+2025-01-01 18:33:01,053 - app - INFO - Registered blueprint: activities_blueprint - /home/runner/codecrafthub/main.py:16
+2025-01-01 18:33:01,053 - app - INFO - Starting Flask server on port 5000 - /home/runner/codecrafthub/main.py:26
+ * Serving Flask app 'app'
+ * Debug mode: on
+2025-01-01 18:33:01,072 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.45:5000 - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:01,072 - werkzeug - INFO - Press CTRL+C to quit - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:01,073 - werkzeug - INFO -  * Restarting with stat - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:01,594 - database - INFO - Configuring database connection... - /home/runner/codecrafthub/database.py:35
+2025-01-01 18:33:01,916 - database - INFO - Database connection successful - /home/runner/codecrafthub/database.py:65
+2025-01-01 18:33:02,172 - app - INFO - Registered blueprint: auth_blueprint - /home/runner/codecrafthub/main.py:16
+2025-01-01 18:33:02,174 - app - INFO - Registered blueprint: activities_blueprint - /home/runner/codecrafthub/main.py:16
+2025-01-01 18:33:02,174 - app - INFO - Starting Flask server on port 5000 - /home/runner/codecrafthub/main.py:26
+2025-01-01 18:33:02,188 - werkzeug - WARNING -  * Debugger is active! - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:02,189 - werkzeug - INFO -  * Debugger PIN: 128-761-428 - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:02,374 - werkzeug - INFO - 172.31.196.45 - - [01/Jan/2025 18:33:02] "GET / HTTP/1.1" 200 - - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:02,513 - werkzeug - INFO - 172.31.196.45 - - [01/Jan/2025 18:33:02] "GET / HTTP/1.1" 200 - - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:02,654 - werkzeug - INFO - 172.31.196.45 - - [01/Jan/2025 18:33:02] "GET / HTTP/1.1" 200 - - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
+2025-01-01 18:33:02,800 - werkzeug - INFO - 172.31.196.45 - - [01/Jan/2025 18:33:02] "GET / HTTP/1.1" 200 - - /home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/werkzeug/_internal.py:97
