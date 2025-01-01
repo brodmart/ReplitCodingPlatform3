@@ -49,16 +49,11 @@ document.addEventListener('DOMContentLoaded', function() {
             indentUnit: 4,
             tabSize: 4,
             indentWithTabs: true,
-            lineWrapping: true,
-            value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate
+            lineWrapping: true
         });
 
-        // Set initial template after editor is fully initialized
-        setTimeout(() => {
-            const template = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-            editor.setValue(template);
-            editor.refresh();
-        }, 100);
+        editor.setValue(initialLanguage === 'cpp' ? cppTemplate : csharpTemplate);
+        editor.refresh();
 
         // Handle language switching
         if (languageSelect) {
