@@ -31,8 +31,18 @@ def list_activities(grade=None):
     try:
         start_time = time.time()
 
+        # Ensure grade is converted to integer and validate
+        try:
+            grade = int(grade) if grade is not None else 10  # Default to grade 10 if not specified
+            if grade not in [10, 11]:
+                logger.warning(f"Invalid grade provided: {grade}, defaulting to 10")
+                grade = 10
+        except (ValueError, TypeError):
+            logger.warning(f"Invalid grade format: {grade}, defaulting to 10")
+            grade = 10
+
         # Create a unique cache key for each user
-        cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}'
+        cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}_{grade}'
         cached_data = cache.get(cache_key)
 
         if cached_data:
@@ -68,6 +78,7 @@ def list_activities(grade=None):
         # Execute single optimized query with all needed data
         query_start = time.time()
         curriculum = 'ICS3U' if grade == 11 else 'TEJ2O'
+        logger.debug(f"Filtering activities for curriculum: {curriculum} (grade {grade})")
         activities = base_query.filter(CodingActivity.curriculum == curriculum).order_by(
             CodingActivity.curriculum,
             CodingActivity.language,
