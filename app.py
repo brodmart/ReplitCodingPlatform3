@@ -22,14 +22,7 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 init_db(app)  # Initialize database with configuration
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 csrf = CSRFProtect(app)
-limiter = Limiter(
-    get_remote_address,
-    app=app,
-    storage_uri="memory://",  # TODO: Replace with Redis in production
-    storage_options={},
-    default_limits=["200 per day", "50 per hour"],
-    headers_enabled=True
-)
+limiter.init_app(app)
 
 # Register error handlers
 @app.errorhandler(404)
