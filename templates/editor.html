@@ -7,36 +7,40 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
 
-        <div class="row mb-3">
-            <div class="col">
-                <select id="languageSelect" class="form-select">
-                    <option value="cpp">C++</option>
-                    <option value="csharp">C#</option>
-                </select>
-            </div>
-            <div class="col-auto">
-                <button id="runButton" class="btn btn-primary">
-                    {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-                </button>
-            </div>
-        </div>
+            <!-- Add CSRF token -->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <div class="row">
-            <div class="col-12">
+            <div class="row mb-3">
+                <div class="col">
+                    <select id="languageSelect" class="form-select">
+                        <option value="cpp">C++</option>
+                        <option value="csharp">C#</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button id="runButton" class="btn btn-primary">
+                        {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+                    </button>
+                </div>
+            </div>
+
+            <div class="editor-container">
                 <div id="editor"></div>
             </div>
-        </div>
 
-        <div class="row mt-3">
-            <div class="col-12">
-                <div id="output">
-                    <div class="text-muted">
+            <div class="card mt-3">
+                <div class="card-header">
+                    {% if lang == 'fr' %}Sortie{% else %}Output{% endif %}
+                </div>
+                <div class="card-body">
+                    <div id="output" class="console-output">
                         {% if lang == 'fr' %}
-                        Résultat de l'exécution apparaîtra ici
+                        La sortie de l'exécution apparaîtra ici
                         {% else %}
                         Execution output will appear here
                         {% endif %}
@@ -50,10 +54,19 @@
 
 {% block scripts %}
 <!-- Monaco Editor Dependencies -->
-<script>var require = { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' } };</script>
+<script>
+    var require = {
+        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' },
+        'vs/nls': {
+            availableLanguages: {
+                '*': ''
+            }
+        }
+    };
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.nls.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.js"></script>
 
 <!-- Custom editor initialization -->
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
