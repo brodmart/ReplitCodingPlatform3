@@ -12,6 +12,7 @@
                 <div class="card-body">
                     {% if curriculum_progress and curriculum_progress|length > 0 %}
                         {% for curriculum, stats in curriculum_progress.items() %}
+                            {% if (grade == 11 and curriculum == 'ICS3U') or (grade == 10 and curriculum == 'TEJ2O') %}
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <h5 class="mb-0">{{ curriculum }}</h5>
@@ -28,6 +29,7 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                         {% endfor %}
                     {% else %}
                         <p class="text-center mb-0">Commencez à compléter des activités pour suivre votre progression!</p>
