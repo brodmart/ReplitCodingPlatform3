@@ -1,7 +1,8 @@
 import os
 import logging
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, g
 from flask_compress import Compress
+import time
 from flask_login import LoginManager, current_user
 from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect
@@ -19,6 +20,17 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 Compress(app)
+
+@app.before_request
+def before_request():
+    g.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    if hasattr(g, 'start_time'):
+        elapsed = time.time() - g.start_time
+        response.headers['X-Response-Time'] = str(elapsed)
+    return response
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Session timeout

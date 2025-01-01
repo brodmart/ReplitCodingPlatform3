@@ -214,7 +214,15 @@ def submit_activity(activity_id):
     if all_tests_passed:
         progress.completed = True
         progress.completed_at = datetime.utcnow()
-        flash(f'Félicitations! Vous avez terminé "{activity.title}"!')
+        
+        # Update user score
+        current_user.score += activity.points
+        
+        # Track completion time
+        time_taken = (datetime.utcnow() - progress.started_at).total_seconds()
+        progress.completion_time = time_taken
+        
+        flash(f'Félicitations! Vous avez terminé "{activity.title}"! (+{activity.points} points)')
 
     db.session.commit()
 
