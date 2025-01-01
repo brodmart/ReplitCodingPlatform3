@@ -137,7 +137,7 @@ function setupRunButton() {
                 `).join('');
                 outputDiv.innerHTML = resultsHtml;
             } else {
-                outputDiv.innerHTML = `<pre class="output-success">${data.output || 'No output'}</pre>`;
+                outputDiv.innerHTML = `<pre class="output-success">${(data.output || 'No output').replace(/^\s*[\r\n]/gm, '')}</pre>`;
             }
         } catch (error) {
             console.error('Execution error:', error);

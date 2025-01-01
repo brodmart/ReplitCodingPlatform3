@@ -39,10 +39,9 @@ html, body {
     word-wrap: break-word;
     color: var(--bs-light);
     margin: 0;
-    height: 100%;
+    height: calc(100vh - 140px);
     overflow-y: auto;
-    max-height: 400px; /* Increased max-height */
-    width: 100%; /* Ensure console fills its container */
+    width: 100%;
 }
 
 .navbar {
