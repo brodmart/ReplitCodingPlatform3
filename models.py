@@ -18,7 +18,7 @@ class Student(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    student_achievements = db.relationship('StudentAchievement', backref='student')
+    achievements = db.relationship('StudentAchievement', backref='student')
     submissions = db.relationship('CodeSubmission', backref='student')
     progress = db.relationship('StudentProgress', backref='student')
     shared_codes = db.relationship('SharedCode', backref='student')
@@ -60,8 +60,6 @@ class StudentAchievement(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False)
     earned_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    achievement = db.relationship('Achievement', backref='student_achievements')
 
 
 class CodeSubmission(db.Model):
