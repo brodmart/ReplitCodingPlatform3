@@ -41,6 +41,10 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('errors/500.html'), 500
+
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db.session.remove()
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -54,7 +58,7 @@ app.register_blueprint(auth)
 @login_manager.user_loader
 def load_user(id):
     try:
-        return Student.query.get(int(id))
+        return db.session.get(Student, int(id))
     except Exception as e:
         logger.error(f"Error loading user: {str(e)}")
         return None

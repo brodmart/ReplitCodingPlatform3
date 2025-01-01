@@ -147,6 +147,7 @@ def view_activity(activity_id):
 
 @activities.route('/activity/<int:activity_id>/submit', methods=['POST'])
 @login_required
+@limiter.limit("30 per minute")
 def submit_activity(activity_id):
     if request.method != 'POST':
         return redirect(url_for('activities.view_activity', activity_id=activity_id))
