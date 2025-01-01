@@ -15,7 +15,7 @@ function initializeEditor() {
 
         // Initialize CodeMirror
         editor = CodeMirror.fromTextArea(editorElement, {
-            mode: 'text/x-c++src',
+            mode: 'text/x-c++src', // Default to C++
             theme: 'dracula',
             lineNumbers: true,
             matchBrackets: true,
@@ -37,12 +37,17 @@ function initializeEditor() {
             editor.setValue(initialValue);
         }
 
-        // Language switching
+        // Language switching with proper mode updating
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
+            // Set initial mode based on selected language
+            const initialMode = languageSelect.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            editor.setOption('mode', initialMode);
+
             languageSelect.addEventListener('change', function() {
                 const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
                 editor.setOption('mode', mode);
+                console.log('Language switched to:', this.value, 'with mode:', mode);
             });
         }
 
@@ -73,6 +78,7 @@ function setupRunButton() {
 
         const code = editor.getValue();
         const language = document.getElementById('languageSelect')?.value || 'cpp';
+        console.log('Executing code with language:', language);
 
         if (!code.trim()) {
             outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
@@ -100,7 +106,10 @@ function setupRunButton() {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ code, language }),
+                body: JSON.stringify({ 
+                    code, 
+                    language // Always send the current language selection
+                }),
                 credentials: 'same-origin'
             });
 
@@ -118,20 +127,8 @@ function setupRunButton() {
 
             if (data.error) {
                 outputDiv.innerHTML = `<pre class="error"><span class="error-badge">Error</span>${data.error.trim()}</pre>`;
-            } else if (data.test_results) {
-                const resultsHtml = data.test_results.map(result => `
-                    <div class="test-result ${result.passed ? 'passed' : ''}">
-                        <div class="test-content">
-                            ${result.input ? `<div class="test-field"><span class="field-label">Input:</span><code>${result.input.trim()}</code></div>` : ''}
-                            <div class="test-field"><span class="field-label">Expected:</span><code>${result.expected.trim()}</code></div>
-                            <div class="test-field"><span class="field-label">Actual:</span><code>${(result.actual || 'No output').trim()}</code></div>
-                            ${result.error ? `<div class="test-field"><span class="field-label">Error:</span><code>${result.error.trim()}</code></div>` : ''}
-                        </div>
-                    </div>`.replace(/\n\s*\n/g, '\n')
-                ).join('\n');
-                outputDiv.innerHTML = resultsHtml;
             } else {
-                outputDiv.innerHTML = `<pre class="output-success">${(data.output || 'No output').trim().replace(/\n\s*\n/g, '\n')}</pre>`;
+                outputDiv.innerHTML = `<pre class="output-success">${(data.output || 'No output').trim()}</pre>`;
             }
         } catch (error) {
             console.error('Execution error:', error);
