@@ -17,12 +17,16 @@ class Program {
     }
 }`;
 
-let editor = null;
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, waiting for CodeMirror...');
 
-// Wait for DOM to be fully loaded before initializing
-window.addEventListener('load', function() {
-    console.log('Window loaded, initializing editor...');
+    // Wait for CodeMirror to be available
+    if (typeof CodeMirror === 'undefined') {
+        console.error('CodeMirror not loaded');
+        return;
+    }
 
+    console.log('Initializing editor...');
     const editorElement = document.getElementById('editor');
     if (!editorElement) {
         console.error('Editor element not found');
@@ -32,95 +36,86 @@ window.addEventListener('load', function() {
     // Get initial language
     const languageSelect = document.getElementById('languageSelect');
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+    console.log('Initial language:', initialLanguage);
 
-    console.log('Creating CodeMirror instance...');
+    try {
+        // Initialize CodeMirror
+        const editor = CodeMirror.fromTextArea(editorElement, {
+            mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: true,
+            lineWrapping: true
+        });
 
-    // Initialize CodeMirror
-    editor = CodeMirror.fromTextArea(editorElement, {
-        mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
-        theme: 'dracula',
-        lineNumbers: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        indentUnit: 4,
-        tabSize: 4,
-        indentWithTabs: true,
-        lineWrapping: true
-    });
+        // Set initial template
+        console.log('Setting initial template...');
+        const template = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+        editor.setValue(template);
 
-    // Set initial template after editor is created
-    const template = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-    console.log('Setting initial template for', initialLanguage);
+        // Handle language switching
+        if (languageSelect) {
+            languageSelect.addEventListener('change', function() {
+                const selectedLanguage = this.value;
+                console.log('Language changed to:', selectedLanguage);
 
-    // Use CodeMirror's change event to verify content is set
-    editor.on('change', function(cm, change) {
-        if (change.origin === 'setValue') {
-            console.log('Template set successfully');
-            editor.refresh();
+                const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+                const newTemplate = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+
+                editor.setOption('mode', mode);
+                editor.setValue(newTemplate);
+            });
         }
-    });
 
-    editor.setValue(template);
+        // Handle run button
+        const runButton = document.getElementById('runButton');
+        const outputDiv = document.getElementById('output');
 
-    // Handle language switching
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const selectedLanguage = this.value;
-            console.log('Language changed to:', selectedLanguage);
+        if (runButton && outputDiv) {
+            runButton.addEventListener('click', async function() {
+                const code = editor.getValue().trim();
+                const language = languageSelect?.value || 'cpp';
 
-            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-            const newTemplate = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-
-            editor.setOption('mode', mode);
-            editor.setValue(newTemplate);
-        });
-    }
-
-    // Handle run button
-    const runButton = document.getElementById('runButton');
-    const outputDiv = document.getElementById('output');
-
-    if (runButton && outputDiv) {
-        runButton.addEventListener('click', async function() {
-            if (!editor) {
-                outputDiv.innerHTML = '<div class="error">Editor not initialized</div>';
-                return;
-            }
-
-            const code = editor.getValue().trim();
-            const language = document.getElementById('languageSelect')?.value || 'cpp';
-
-            if (!code) {
-                outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
-                return;
-            }
-
-            runButton.disabled = true;
-            outputDiv.innerHTML = '<div class="loading">Compiling and executing code...</div>';
-
-            try {
-                const response = await fetch('/execute', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
-                    },
-                    body: JSON.stringify({ code, language })
-                });
-
-                const data = await response.json();
-
-                if (data.error) {
-                    outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
-                } else {
-                    outputDiv.innerHTML = `<pre>${data.output || 'No output'}</pre>`;
+                if (!code) {
+                    outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
+                    return;
                 }
-            } catch (error) {
-                console.error('Execution error:', error);
-                outputDiv.innerHTML = `<pre class="error">Execution error: ${error.message}</pre>`;
-            } finally {
-                runButton.disabled = false;
-            }
-        });
+
+                runButton.disabled = true;
+                outputDiv.innerHTML = '<div class="loading">Compiling and executing code...</div>';
+
+                try {
+                    const response = await fetch('/execute', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
+                        },
+                        body: JSON.stringify({ code, language })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
+                    } else {
+                        outputDiv.innerHTML = `<pre>${data.output || 'No output'}</pre>`;
+                    }
+                } catch (error) {
+                    console.error('Execution error:', error);
+                    outputDiv.innerHTML = `<pre class="error">Execution error: ${error.message}</pre>`;
+                } finally {
+                    runButton.disabled = false;
+                }
+            });
+        }
+
+        console.log('Editor initialization complete');
+    } catch (error) {
+        console.error('Error initializing editor:', error);
     }
 });
