@@ -15,14 +15,19 @@ html, body {
     width: 50%;
     height: calc(100vh - 56px);
     padding: 1rem;
-    float: left; /* Added to make containers side-by-side */
+    float: left;
 }
 
 .console-container {
     width: 50%;
     height: calc(100vh - 56px);
     padding: 1rem;
-    float: left; /* Added to make containers side-by-side */
+    float: left;
+}
+
+#editor, .console-output {
+    height: calc(100vh - 140px);
+    min-height: calc(100vh - 140px);
 }
 
 #editor {
