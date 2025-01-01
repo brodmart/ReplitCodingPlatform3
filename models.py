@@ -112,7 +112,7 @@ class CodingActivity(db.Model):
     max_attempts = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    student_progress = db.relationship('StudentProgress', backref=db.backref('activity', lazy=True))
+    student_progress = db.relationship('StudentProgress', back_populates='activity')
 
 
 class StudentProgress(db.Model):
@@ -126,4 +126,4 @@ class StudentProgress(db.Model):
     attempts = db.Column(db.Integer, default=0)
     last_submission = db.Column(db.Text)
 
-    activity = db.relationship('CodingActivity', backref='student_progress')
+    activity = db.relationship('CodingActivity', back_populates='student_progress')
