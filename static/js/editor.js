@@ -3,31 +3,31 @@ let editor = null;
 
 function initMonaco() {
     if (editor) return;
+    
+    const editorElement = document.getElementById('editor');
+    if (!editorElement) return;
 
-    require.config({ 
-        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }
+    // Initialize Monaco editor directly
+    editor = monaco.editor.create(editorElement, {
+        value: '',
+        language: 'cpp',
+        theme: 'vs-dark',
+        automaticLayout: true
     });
 
-    require(['vs/editor/editor.main'], function() {
-        editor = monaco.editor.create(document.getElementById('editor'), {
-            value: '',
-            language: 'cpp',
-            theme: 'vs-dark',
-            automaticLayout: true
+    // Add language switching handler
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            monaco.editor.setModelLanguage(editor.getModel(), this.value);
         });
+    }
 
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect) {
-            languageSelect.addEventListener('change', function() {
-                monaco.editor.setModelLanguage(editor.getModel(), this.value);
-            });
-        }
-
-        const runButton = document.getElementById('runButton');
-        if (runButton) {
-            runButton.addEventListener('click', executeCode);
-        }
-    });
+    // Add run button handler
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', executeCode);
+    }
 }
 
 function executeCode() {
@@ -58,4 +58,5 @@ function executeCode() {
     });
 }
 
-window.onload = initMonaco;
+// Initialize editor when DOM is loaded
+document.addEventListener('DOMContentLoaded', initMonaco);
