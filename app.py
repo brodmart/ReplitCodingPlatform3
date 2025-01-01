@@ -25,9 +25,10 @@ def create_app():
     app.config.update(
         SESSION_COOKIE_SECURE=True,
         SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',
+        SESSION_COOKIE_SAMESITE='None',
         WTF_CSRF_TIME_LIMIT=3600,
-        WTF_CSRF_SSL_STRICT=True
+        WTF_CSRF_SSL_STRICT=True,
+        SERVER_NAME=None
     )
 
     try:
