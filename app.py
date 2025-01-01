@@ -8,7 +8,7 @@ from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
 from database import db, init_db
-from extensions import limiter
+from extensions import limiter, PerformanceMiddleware
 
 # Configure logging
 logging.basicConfig(
