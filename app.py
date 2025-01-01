@@ -1,6 +1,7 @@
 import os
 import logging
 from flask import Flask, render_template, request, jsonify, session
+from flask_compress import Compress
 from flask_login import LoginManager, current_user
 from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
+Compress(app)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Session timeout
@@ -30,6 +32,10 @@ app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 limiter.init_app(app)
 
 # Register error handlers
+@app.errorhandler(408)
+def request_timeout(error):
+    return jsonify({'error': 'Request timeout'}), 408
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('errors/404.html'), 404

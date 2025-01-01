@@ -24,12 +24,13 @@ def init_db(app, max_retries=3):
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 5,
-        'max_overflow': 10,
+        'pool_size': 10,
+        'max_overflow': 20,
         'pool_timeout': 30,
-        'pool_recycle': 1800,
+        'pool_recycle': 1200,
         'pool_pre_ping': True,
-        'connect_args': {'connect_timeout': 10}
+        'connect_args': {'connect_timeout': 10},
+        'echo_pool': True
     }
 
     # Initialize the db with the Flask app
