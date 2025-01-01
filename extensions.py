@@ -17,47 +17,79 @@ csrf = CSRFProtect()
 login_manager = LoginManager()
 migrate = Migrate()
 
-limiter = Limiter(
-    get_remote_address,
-    storage_uri="memory://",
-    storage_options={},
-    default_limits=["200 per day", "50 per hour"],
-    headers_enabled=True
-)
+# Configure rate limiter with proper error handling
+try:
+    limiter = Limiter(
+        get_remote_address,
+        storage_uri="memory://",
+        storage_options={},
+        default_limits=["200 per day", "50 per hour"],
+        headers_enabled=True,
+        strategy="fixed-window"  # Added explicit strategy
+    )
+except Exception as e:
+    logger.error(f"Failed to initialize rate limiter: {str(e)}")
+    raise
 
 class PerformanceMiddleware:
     def __init__(self, app):
         self.app = app
+        self.logger = logging.getLogger(__name__)
 
     def __call__(self, environ, start_response):
-        start_time = time.time()
-        response = None
-
         try:
-            response = self.app(environ, start_response)
+            request_start = time.time()
+
+            def custom_start_response(status, headers, exc_info=None):
+                # Add performance header
+                headers.append(('X-Response-Time', str(time.time() - request_start)))
+                return start_response(status, headers, exc_info)
+
+            response = self.app(environ, custom_start_response)
             return response
+
+        except Exception as e:
+            self.logger.error(f"Performance middleware error: {str(e)}")
+            return self.app(environ, start_response)
         finally:
-            process_time = time.time() - start_time
+            process_time = time.time() - request_start
             if process_time > 1.0:  # Log slow requests
-                logger.warning(f"Slow request ({process_time:.2f}s): {environ.get('PATH_INFO')}")
+                self.logger.warning(
+                    f"Slow request ({process_time:.2f}s): {environ.get('PATH_INFO')}"
+                )
 
 def init_extensions(app):
-    """Initialize all Flask extensions"""
-    cache.init_app(app, config={'CACHE_TYPE': 'simple'})
-    compress.init_app(app)
-    csrf.init_app(app)
-    limiter.init_app(app)
-    login_manager.init_app(app)
+    """Initialize all Flask extensions with proper error handling"""
+    try:
+        # Initialize caching
+        cache.init_app(app, config={'CACHE_TYPE': 'simple'})
 
-    # Configure login manager
-    login_manager.login_view = 'auth.login'
-    login_manager.session_protection = 'strong'
+        # Initialize compression
+        compress.init_app(app)
 
-    @login_manager.user_loader
-    def load_user(id):
-        from models import Student
-        try:
-            return Student.query.get(int(id))
-        except Exception as e:
-            logger.error(f"Error loading user: {str(e)}")
-            return None
+        # Initialize CSRF protection
+        csrf.init_app(app)
+
+        # Initialize rate limiting
+        limiter.init_app(app)
+
+        # Configure login manager
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth_blueprint.login'
+        login_manager.session_protection = 'strong'
+
+        # Initialize database migrations
+        migrate.init_app(app)
+
+        @login_manager.user_loader
+        def load_user(id):
+            try:
+                from models import Student
+                return Student.query.get(int(id))
+            except Exception as e:
+                logger.error(f"Error loading user: {str(e)}")
+                return None
+
+    except Exception as e:
+        logger.error(f"Failed to initialize extensions: {str(e)}")
+        raise

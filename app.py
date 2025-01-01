@@ -1,6 +1,7 @@
 import os
 import logging
 import secrets
+import time
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session, g
 from database import db, init_db, DatabaseHealthCheck
@@ -20,28 +21,35 @@ def create_app():
     """Application factory pattern"""
     app = Flask(__name__)
 
-    # Security configurations
+    # Enhanced security configurations
     app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
-    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
-    app.config['SESSION_COOKIE_SECURE'] = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config.update(
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=2),
+        REMEMBER_COOKIE_DURATION=timedelta(days=14),
+        REMEMBER_COOKIE_SECURE=True,
+        REMEMBER_COOKIE_HTTPONLY=True,
+        REMEMBER_COOKIE_SAMESITE='Lax',
+        WTF_CSRF_TIME_LIMIT=3600,
+        WTF_CSRF_SSL_STRICT=True,
+        MAX_CONTENT_LENGTH=10 * 1024 * 1024  # 10MB max file size
+    )
 
     # Compression settings
     app.config['COMPRESS_MIN_SIZE'] = 500
     app.config['COMPRESS_LEVEL'] = 6
-    app.config['COMPRESS_MIMETYPES'] = ['text/html', 'text/css', 'text/javascript', 'application/json']
-
-    # CSRF Protection
-    app.config['WTF_CSRF_ENABLED'] = True
-    app.config['WTF_CSRF_TIME_LIMIT'] = 3600
+    app.config['COMPRESS_MIMETYPES'] = [
+        'text/html', 'text/css', 'text/javascript',
+        'application/json', 'application/javascript'
+    ]
 
     # Add performance middleware
     app.wsgi_app = PerformanceMiddleware(app.wsgi_app)
 
     try:
-        # Initialize database
+        # Initialize database with retry logic
         init_db(app)
 
         # Initialize all extensions
@@ -59,37 +67,48 @@ app = create_app()
 # Request handlers
 @app.before_request
 def before_request():
+    """Set start time for request timing"""
     g.start_time = time.time()
 
 @app.after_request
 def after_request(response):
+    """Add security headers and timing information"""
     if hasattr(g, 'start_time'):
         elapsed = time.time() - g.start_time
         response.headers['X-Response-Time'] = str(elapsed)
 
-    # Add security headers
+    # Enhanced security headers with strict CSP
     csp = {
         'default-src': "'self'",
-        'script-src': "'self' 'unsafe-inline' 'unsafe-eval'",
-        'style-src': "'self' 'unsafe-inline'",
+        'script-src': "'self' 'nonce-{nonce}' cdn.jsdelivr.net",
+        'style-src': "'self' cdn.jsdelivr.net",
         'img-src': "'self' data: https:",
-        'font-src': "'self' data:",
+        'font-src': "'self' cdn.jsdelivr.net",
         'connect-src': "'self'",
         'frame-ancestors': "'none'",
         'form-action': "'self'",
-        'base-uri': "'self'"
+        'base-uri': "'self'",
+        'upgrade-insecure-requests': ''
     }
 
-    response.headers['Content-Security-Policy'] = '; '.join(f"{key} {value}" for key, value in csp.items())
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    nonce = secrets.token_hex(16)
+    session['csp_nonce'] = nonce
+    csp['script-src'] = csp['script-src'].format(nonce=nonce)
+
+    response.headers.update({
+        'Content-Security-Policy': '; '.join(f"{key} {value}" for key, value in csp.items()),
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+    })
     return response
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
+    """Properly remove database session"""
     db.session.remove()
 
 # Error handlers
@@ -151,6 +170,6 @@ def execute_code():
         }), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 5000))
     logger.info(f"Starting Flask server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
