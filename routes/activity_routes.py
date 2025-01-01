@@ -81,14 +81,16 @@ def limit_activities():
     pass
 
 @activities.route('/activities')
-@cache.memoize(timeout=300)
+@cache.cached(timeout=300)
 def list_activities():
     """
     List all coding activities, grouped by curriculum and language.
     Includes progress tracking for authenticated users.
     """
     try:
-        activities = CodingActivity.query.order_by(
+        activities = CodingActivity.query.options(
+            db.joinedload(CodingActivity.student_progress)
+        ).order_by(
             CodingActivity.curriculum,
             CodingActivity.language,
             CodingActivity.sequence
