@@ -1,8 +1,13 @@
 {% extends "base.html" %}
 
-{% block extra_head %}
+{% block head %}
+<!-- Required CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+
+<!-- Editor and loading styles -->
 <style>
     #editor {
         width: 100%;
@@ -13,7 +18,7 @@
     }
 
     .loading-overlay {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         right: 0;
@@ -22,8 +27,7 @@
         display: none;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
-        backdrop-filter: blur(3px);
+        z-index: 1050;
     }
 
     .loading-spinner {
@@ -243,6 +247,22 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Required CodeMirror Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+
+<!-- Initialize editor after all dependencies are loaded -->
+<script>
+// Ensure CodeMirror is loaded before initializing
+window.addEventListener('load', function() {
+    if (typeof CodeMirror === 'undefined') {
+        console.error('CodeMirror not loaded');
+        return;
+    }
+    const editorScript = document.createElement('script');
+    editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+    document.body.appendChild(editorScript);
+});
+</script>
 {% endblock %}
