@@ -67,7 +67,8 @@ def list_activities(grade=None):
 
         # Execute single optimized query with all needed data
         query_start = time.time()
-        activities = base_query.order_by(
+        curriculum = 'ICS3U' if grade == 11 else 'TEJ2O'
+        activities = base_query.filter(CodingActivity.curriculum == curriculum).order_by(
             CodingActivity.curriculum,
             CodingActivity.language,
             CodingActivity.sequence
