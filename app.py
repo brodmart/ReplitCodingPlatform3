@@ -20,7 +20,8 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 
 # Initialize extensions
-init_db(app)  # Initialize database with configuration
+with app.app_context():
+    init_db(app)  # Initialize database with configuration
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 csrf = CSRFProtect(app)
 limiter = Limiter(
@@ -95,6 +96,6 @@ def execute_code():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    port = 5000
+    port = int(os.environ.get('PORT', 8080))
     logger.info(f"Starting Flask server on port {port}")
     app.run(host='0.0.0.0', port=port, debug=True)
