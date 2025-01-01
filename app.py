@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, render_template, request, jsonify, session
 from flask_login import LoginManager, current_user
+from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
 from database import db, init_db
