@@ -4,6 +4,7 @@ import secrets
 import time
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, g, flash
+from flask_cors import CORS
 from database import init_db, db
 from extensions import init_extensions
 
@@ -18,20 +19,31 @@ def create_app():
     """Application factory pattern"""
     app = Flask(__name__)
 
+    # Enable CORS properly
+    CORS(app, resources={
+        r"/*": {
+            "origins": "*",
+            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+        }
+    })
+
     # Configure secret key
     app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
 
-    # Security configurations
+    # Security configurations with relaxed settings for development
     app.config.update(
-        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_SECURE=False,  # Allow non-HTTPS for development
         SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',  # Changed from 'None' to 'Lax' for better security
+        SESSION_COOKIE_SAMESITE='Lax',
+        WTF_CSRF_ENABLED=False,  # Disable CSRF temporarily for development
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
-        SERVER_NAME=None
+        SERVER_NAME=None,
+        SEND_FILE_MAX_AGE_DEFAULT=0  # Disable caching for development
     )
 
-    # Allow requests from Replit domains
+    # Allow requests from all origins during development
     @app.after_request
     def after_request(response):
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -92,15 +104,6 @@ def after_request(response):
         elapsed = time.time() - g.start_time
         response.headers['X-Response-Time'] = str(elapsed)
 
-    # Security headers
-    response.headers.update({
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block',
-        'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
-        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
-    })
     return response
 
 @app.route('/')

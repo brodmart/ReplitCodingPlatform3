@@ -23,4 +23,5 @@ dependencies = [
     "argon2-cffi>=23.1.0",
     "argon2>=0.1.10",
     "pyotp>=2.9.0",
+    "flask-cors>=5.0.0",
 ]
