@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # 1 year cache
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Session timeout
 
 # Initialize extensions
 init_db(app)  # Initialize database with configuration

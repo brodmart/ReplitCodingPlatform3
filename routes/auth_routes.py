@@ -29,6 +29,7 @@ def login():
                     next_page = url_for('index')
                 flash('Connexion réussie!', 'success')
                 return redirect(next_page)
+            logging.warning(f"Failed login attempt for username: {form.username.data}")
             flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
             return render_template('login.html', form=form), 401
 
