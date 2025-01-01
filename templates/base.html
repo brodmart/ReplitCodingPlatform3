@@ -27,8 +27,13 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('activities.list_activities') }}">
-                            {% if lang == 'fr' %}Activités{% else %}Activities{% endif %}
+                        <a class="nav-link" href="{{ url_for('activities.list_activities', grade=10) }}">
+                            {% if lang == 'fr' %}Activités Gr 10{% else %}Activities Gr 10{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('activities.list_activities', grade=11) }}">
+                            {% if lang == 'fr' %}Activités Gr 11{% else %}Activities Gr 11{% endif %}
                         </a>
                     </li>
                 </ul>
