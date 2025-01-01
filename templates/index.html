@@ -3,6 +3,7 @@
 {% extends "base.html" %}
 
 {% block extra_head %}
+<link href="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/editor/editor.main.css" rel="stylesheet">
 <style>
     .editor-container {
         height: calc(100vh - 56px);
@@ -17,7 +18,6 @@
         height: 100%;
         border: 1px solid var(--bs-border-color);
         border-radius: 4px;
-        resize: none;
     }
 </style>
 {% endblock %}
@@ -48,7 +48,7 @@
         </div>
 
         <div class="col-12 col-lg-8 editor-container">
-            <textarea id="editor" class="form-control"></textarea>
+            <div id="editor"></div>
         </div>
 
         <div class="col-12 col-lg-4 console-container">
@@ -66,34 +66,52 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-    const runButton = document.getElementById('runButton');
-    runButton.addEventListener('click', function() {
-        const code = document.getElementById('editor').value;
-        const language = document.getElementById('languageSelect').value;
-        const outputDiv = document.getElementById('output');
-        
-        outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/loader.js"></script>
+<script type="module">
+    require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs' }});
 
-        fetch('/execute', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({ code, language })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
-            } else {
-                outputDiv.innerHTML = `<pre>${data.output}</pre>`;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            outputDiv.innerHTML = '<pre class="error">Error executing code</pre>';
+    require(['vs/editor/editor.main'], function() {
+        const editor = monaco.editor.create(document.getElementById('editor'), {
+            value: '',
+            language: 'cpp',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            minimap: { enabled: false }
+        });
+
+        const languageSelect = document.getElementById('languageSelect');
+        languageSelect.addEventListener('change', function() {
+            monaco.editor.setModelLanguage(editor.getModel(), this.value);
+        });
+
+        const runButton = document.getElementById('runButton');
+        runButton.addEventListener('click', function() {
+            const code = editor.getValue();
+            const language = languageSelect.value;
+            const outputDiv = document.getElementById('output');
+            
+            outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
+
+            fetch('/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ code, language })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
+                } else {
+                    outputDiv.innerHTML = `<pre>${data.output}</pre>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                outputDiv.innerHTML = '<pre class="error">Error executing code</pre>';
+            });
         });
     });
 </script>
