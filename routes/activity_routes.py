@@ -38,13 +38,22 @@ def list_activities():
             logger.info(f"Cache hit for activities list. Response time: {time.time() - start_time:.2f}s")
             return cached_data
 
-        # Optimize query with eager loading and joins
+        # Optimize query with load_only for required fields
         base_query = CodingActivity.query.options(
-            db.joinedload(CodingActivity.student_progress)
+            db.load_only(
+                CodingActivity.id, 
+                CodingActivity.title,
+                CodingActivity.description,
+                CodingActivity.curriculum,
+                CodingActivity.language,
+                CodingActivity.difficulty,
+                CodingActivity.points,
+                CodingActivity.sequence
+            )
         )
 
         if current_user.is_authenticated:
-            # Use a single join to get all progress data
+            # Use a single join with contains_eager for progress data
             base_query = base_query.outerjoin(
                 StudentProgress,
                 db.and_(
@@ -52,17 +61,7 @@ def list_activities():
                     StudentProgress.student_id == current_user.id
                 )
             ).options(
-                db.contains_eager(CodingActivity.student_progress),
-                db.load_only(
-                    CodingActivity.id, 
-                    CodingActivity.title,
-                    CodingActivity.description,
-                    CodingActivity.curriculum,
-                    CodingActivity.language,
-                    CodingActivity.difficulty,
-                    CodingActivity.points,
-                    CodingActivity.sequence
-                )
+                db.contains_eager(CodingActivity.student_progress)
             )
 
         # Execute single optimized query with all needed data
