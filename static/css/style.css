@@ -12,18 +12,24 @@ html, body {
 }
 
 .editor-container {
+    width: 50%;
     height: calc(100vh - 56px);
     padding: 1rem;
+    float: left; /* Added to make containers side-by-side */
 }
 
 .console-container {
+    width: 50%;
     height: calc(100vh - 56px);
     padding: 1rem;
+    float: left; /* Added to make containers side-by-side */
 }
 
 #editor {
     border-radius: 4px;
     overflow: hidden;
+    width: 100%; /* Ensure editor fills its container */
+    height: 100%; /* Ensure editor fills its container */
 }
 
 .console-output {
@@ -36,11 +42,13 @@ html, body {
     height: 100%;
     overflow-y: auto;
     max-height: 400px; /* Increased max-height */
+    width: 100%; /* Ensure console fills its container */
 }
 
 .navbar {
     background-color: var(--bs-dark);
     border-bottom: 1px solid var(--bs-border-color);
+    width: 100%; /* Added for full width navbar */
 }
 
 .card {
@@ -143,6 +151,8 @@ html, body {
 @media (max-width: 768px) {
     .editor-container,
     .console-container {
+        width: 100%; /* Stack vertically on smaller screens */
         height: 50vh;
+        float: none; /* Remove float for vertical stacking */
     }
 }
