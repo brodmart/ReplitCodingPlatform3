@@ -67,12 +67,11 @@ def list_activities(grade=None):
 
         # Execute single optimized query with all needed data
         query_start = time.time()
-        if grade is not None:
-            curriculum = 'ICS3U' if grade == 11 else 'TEJ2O'
-            activities = base_query.filter(CodingActivity.curriculum == curriculum).order_by(
-                CodingActivity.curriculum,
-                CodingActivity.language,
-                CodingActivity.sequence
+        curriculum = 'ICS3U' if grade == 11 else 'TEJ2O'
+        activities = base_query.filter(CodingActivity.curriculum == curriculum).order_by(
+            CodingActivity.curriculum,
+            CodingActivity.language,
+            CodingActivity.sequence
         ).all()
         logger.info(f"Database query time: {time.time() - query_start:.2f}s")
 
