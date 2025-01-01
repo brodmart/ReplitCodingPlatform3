@@ -8,9 +8,93 @@ from compiler_service import compile_and_run, CompilerError, ExecutionError
 import logging
 import json
 from typing import Optional, Dict, Any
+from sqlalchemy import func
 
 activities = Blueprint('activities', __name__)
 logger = logging.getLogger(__name__)
+
+@activities.before_request
+@limiter.limit("60 per minute")
+def limit_activities():
+    """Rate limit all activity routes"""
+    pass
+
+@activities.route('/activities')
+@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)
+def list_activities():
+    """
+    List all coding activities, grouped by curriculum and language.
+    Includes progress tracking for authenticated users.
+    """
+    try:
+        # Create a unique cache key for each user
+        cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}'
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return cached_data
+
+        # Optimize query with eager loading and joins
+        base_query = CodingActivity.query
+
+        if current_user.is_authenticated:
+            # Use a single join to get all progress data
+            base_query = base_query.outerjoin(
+                StudentProgress,
+                db.and_(
+                    StudentProgress.activity_id == CodingActivity.id,
+                    StudentProgress.student_id == current_user.id
+                )
+            ).options(db.contains_eager(CodingActivity.student_progress))
+
+        # Execute single optimized query with all needed data
+        activities = base_query.order_by(
+            CodingActivity.curriculum,
+            CodingActivity.language,
+            CodingActivity.sequence
+        ).all()
+
+        # Process results in memory to avoid additional queries
+        grouped_activities = {}
+        curriculum_progress = {}
+
+        for activity in activities:
+            key = (activity.curriculum, activity.language)
+            if key not in grouped_activities:
+                grouped_activities[key] = []
+            grouped_activities[key].append(activity)
+
+            if current_user.is_authenticated:
+                curriculum = activity.curriculum
+                if curriculum not in curriculum_progress:
+                    curriculum_progress[curriculum] = {
+                        'completed': 0,
+                        'total': 0,
+                        'percentage': 0
+                    }
+                curriculum_progress[curriculum]['total'] += 1
+                if hasattr(activity, 'student_progress') and activity.student_progress and activity.student_progress[0].completed:
+                    curriculum_progress[curriculum]['completed'] += 1
+
+        # Calculate percentages after counting
+        for stats in curriculum_progress.values():
+            if stats['total'] > 0:
+                stats['percentage'] = (stats['completed'] / stats['total'] * 100)
+
+        rendered_template = render_template(
+            'activities.html',
+            grouped_activities=grouped_activities,
+            curriculum_progress=curriculum_progress
+        )
+
+        # Cache the result
+        cache.set(cache_key, rendered_template, timeout=300)
+        return rendered_template
+
+    except Exception as e:
+        logger.error(f"Error in list_activities: {str(e)}")
+        flash("Une erreur s'est produite lors du chargement des activités.", "error")
+        return render_template('errors/500.html'), 500
 
 def validate_activity_metadata(activity_id: int) -> Optional[Dict[str, Any]]:
     """
@@ -73,93 +157,6 @@ def get_or_create_progress(student_id: int, activity_id: int) -> StudentProgress
             db.session.add(progress)
 
     return progress
-
-@activities.before_request
-@limiter.limit("60 per minute")
-def limit_activities():
-    """Rate limit all activity routes"""
-    pass
-
-@activities.route('/activities')
-@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)
-def list_activities():
-    """
-    List all coding activities, grouped by curriculum and language.
-    Includes progress tracking for authenticated users.
-    """
-    try:
-        cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}'
-        cached_data = cache.get(cache_key)
-        
-        if cached_data:
-            return cached_data
-            
-        query = CodingActivity.query
-        if current_user.is_authenticated:
-            query = query.outerjoin(
-                StudentProgress,
-                db.and_(
-                    StudentProgress.activity_id == CodingActivity.id,
-                    StudentProgress.student_id == current_user.id
-                )
-            ).options(db.contains_eager(CodingActivity.student_progress))
-            
-        activities = query.order_by(
-            CodingActivity.curriculum,
-            CodingActivity.language,
-            CodingActivity.sequence
-        ).all()
-
-        grouped_activities = {}
-        for activity in activities:
-            key = (activity.curriculum, activity.language)
-            if key not in grouped_activities:
-                grouped_activities[key] = []
-            grouped_activities[key].append(activity)
-
-        progress = {}
-        curriculum_progress = {}
-
-        if current_user.is_authenticated:
-            with transaction_context():
-                student_progress = StudentProgress.query.filter_by(
-                    student_id=current_user.id
-                ).all()
-                progress = {p.activity_id: p for p in student_progress}
-
-                for curriculum in ['TEJ2O', 'ICS3U']:
-                    curriculum_activities = CodingActivity.query.filter_by(
-                        curriculum=curriculum
-                    ).all()
-                    total = len(curriculum_activities)
-
-                    if total > 0:
-                        completed = StudentProgress.query.filter(
-                            StudentProgress.student_id == current_user.id,
-                            StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
-                            StudentProgress.completed == True
-                        ).count()
-
-                        curriculum_progress[curriculum] = {
-                            'completed': completed,
-                            'total': total,
-                            'percentage': (completed / total * 100)
-                        }
-
-        return render_template(
-            'activities.html',
-            grouped_activities=grouped_activities,
-            progress=progress,
-            curriculum_progress=curriculum_progress
-        )
-        
-        cache.set(cache_key, rendered_template, timeout=300)
-        return rendered_template
-
-    except Exception as e:
-        logger.error(f"Error in list_activities: {str(e)}")
-        flash("Une erreur s'est produite lors du chargement des activités.", "error")
-        return render_template('errors/500.html'), 500
 
 @activities.route('/activity/<int:activity_id>')
 def view_activity(activity_id: int):
