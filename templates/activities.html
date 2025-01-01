@@ -38,7 +38,7 @@
     </div>
     {% endif %}
 
-    {% for curriculum in ['TEJ2O', 'ICS3U'] %}
+    {% for curriculum in ['TEJ2O'] %}
         {% for language in ['cpp', 'csharp'] %}
             {% set activities = grouped_activities.get((curriculum, language), []) %}
             {% if activities %}
