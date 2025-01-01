@@ -17,12 +17,11 @@ class Program {
     }
 }`;
 
-let editor; // Declare editor globally so it can be accessed by event handlers
+let editor = null;
 
-document.addEventListener('DOMContentLoaded', function() {
+function initializeEditor(initialLanguage) {
+    console.log('Initializing editor with language:', initialLanguage);
     const editorElement = document.getElementById('editor');
-    const languageSelect = document.getElementById('languageSelect');
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
 
     if (!editorElement) {
         console.error('Editor element not found');
@@ -39,25 +38,51 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true,
-        value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate // Set initial content
+        lineWrapping: true
     });
 
-    // Set initial content explicitly
-    editor.setValue(initialLanguage === 'cpp' ? cppTemplate : csharpTemplate);
-    editor.refresh();
+    // Set initial template
+    const initialTemplate = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+    console.log('Setting initial template for:', initialLanguage);
+    editor.setValue(initialTemplate);
+
+    // Force refresh to ensure proper rendering
+    setTimeout(() => {
+        editor.refresh();
+    }, 100);
+
+    return editor;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const languageSelect = document.getElementById('languageSelect');
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+
+    console.log('DOM loaded, initializing with language:', initialLanguage);
+    editor = initializeEditor(initialLanguage);
 
     // Language switching handler
     if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const selectedLanguage = this.value;
-            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+        languageSelect.addEventListener('change', function(event) {
+            const selectedLanguage = event.target.value;
+            console.log('Language changed to:', selectedLanguage);
 
-            editor.setOption('mode', mode);
-            editor.setValue(template);
-            editor.refresh();
-            console.log('Language switched to:', selectedLanguage); // Debug log
+            if (editor) {
+                const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+                const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+
+                editor.setOption('mode', mode);
+                editor.setValue(template);
+
+                // Force refresh to ensure proper rendering
+                setTimeout(() => {
+                    editor.refresh();
+                }, 100);
+
+                console.log('Template switched for:', selectedLanguage);
+            } else {
+                console.error('Editor not initialized');
+            }
         });
     }
 
