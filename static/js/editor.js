@@ -1,21 +1,27 @@
 
 let editor = null;
 
+// Initialize Monaco editor
 function initMonaco() {
     if (editor) return;
     
-    const editorElement = document.getElementById('editor');
-    if (!editorElement) return;
+    const editorContainer = document.getElementById('editor');
+    if (!editorContainer) return;
 
-    // Initialize Monaco editor directly
-    editor = monaco.editor.create(editorElement, {
+    editor = monaco.editor.create(editorContainer, {
         value: '',
         language: 'cpp',
         theme: 'vs-dark',
-        automaticLayout: true
+        automaticLayout: true,
+        minimap: { enabled: false },
+        fontSize: 14,
+        scrollBeyondLastLine: false,
+        renderLineHighlight: 'all',
+        tabSize: 2,
+        wordWrap: 'on'
     });
 
-    // Add language switching handler
+    // Language selection handler
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
@@ -23,29 +29,38 @@ function initMonaco() {
         });
     }
 
-    // Add run button handler
+    // Run button handler
     const runButton = document.getElementById('runButton');
     if (runButton) {
         runButton.addEventListener('click', executeCode);
     }
+
+    // Set initial language
+    const defaultLanguage = document.getElementById('languageSelect')?.value || 'cpp';
+    monaco.editor.setModelLanguage(editor.getModel(), defaultLanguage);
 }
 
+// Execute code function
 function executeCode() {
     if (!editor) return;
     
     const code = editor.getValue();
     const language = document.getElementById('languageSelect').value;
+    const outputDiv = document.getElementById('output');
+    
+    // Show loading state
+    outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
 
     fetch('/execute', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({ code, language })
     })
     .then(response => response.json())
     .then(data => {
-        const outputDiv = document.getElementById('output');
         if (data.error) {
             outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
         } else {
@@ -54,9 +69,13 @@ function executeCode() {
     })
     .catch(error => {
         console.error('Error:', error);
-        document.getElementById('output').innerHTML = '<pre class="error">Error executing code</pre>';
+        outputDiv.innerHTML = '<pre class="error">Error executing code</pre>';
     });
 }
 
-// Initialize editor when DOM is loaded
-document.addEventListener('DOMContentLoaded', initMonaco);
+// Load editor when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMonaco);
+} else {
+    initMonaco();
+}
