@@ -9,6 +9,7 @@ import logging
 import json
 from typing import Optional, Dict, Any
 from sqlalchemy import func
+import time
 
 activities = Blueprint('activities', __name__)
 logger = logging.getLogger(__name__)
@@ -27,15 +28,20 @@ def list_activities():
     Includes progress tracking for authenticated users.
     """
     try:
+        start_time = time.time()
+
         # Create a unique cache key for each user
         cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}'
         cached_data = cache.get(cache_key)
 
         if cached_data:
+            logger.info(f"Cache hit for activities list. Response time: {time.time() - start_time:.2f}s")
             return cached_data
 
         # Optimize query with eager loading and joins
-        base_query = CodingActivity.query
+        base_query = CodingActivity.query.options(
+            db.joinedload(CodingActivity.student_progress)
+        )
 
         if current_user.is_authenticated:
             # Use a single join to get all progress data
@@ -45,16 +51,31 @@ def list_activities():
                     StudentProgress.activity_id == CodingActivity.id,
                     StudentProgress.student_id == current_user.id
                 )
-            ).options(db.contains_eager(CodingActivity.student_progress))
+            ).options(
+                db.contains_eager(CodingActivity.student_progress),
+                db.load_only(
+                    CodingActivity.id, 
+                    CodingActivity.title,
+                    CodingActivity.description,
+                    CodingActivity.curriculum,
+                    CodingActivity.language,
+                    CodingActivity.difficulty,
+                    CodingActivity.points,
+                    CodingActivity.sequence
+                )
+            )
 
         # Execute single optimized query with all needed data
+        query_start = time.time()
         activities = base_query.order_by(
             CodingActivity.curriculum,
             CodingActivity.language,
             CodingActivity.sequence
         ).all()
+        logger.info(f"Database query time: {time.time() - query_start:.2f}s")
 
         # Process results in memory to avoid additional queries
+        processing_start = time.time()
         grouped_activities = {}
         curriculum_progress = {}
 
@@ -73,7 +94,7 @@ def list_activities():
                         'percentage': 0
                     }
                 curriculum_progress[curriculum]['total'] += 1
-                if hasattr(activity, 'student_progress') and activity.student_progress and activity.student_progress[0].completed:
+                if activity.student_progress and activity.student_progress[0].completed:
                     curriculum_progress[curriculum]['completed'] += 1
 
         # Calculate percentages after counting
@@ -81,14 +102,23 @@ def list_activities():
             if stats['total'] > 0:
                 stats['percentage'] = (stats['completed'] / stats['total'] * 100)
 
+        logger.info(f"Data processing time: {time.time() - processing_start:.2f}s")
+
+        # Render template
+        render_start = time.time()
         rendered_template = render_template(
             'activities.html',
             grouped_activities=grouped_activities,
             curriculum_progress=curriculum_progress
         )
+        logger.info(f"Template rendering time: {time.time() - render_start:.2f}s")
 
         # Cache the result
         cache.set(cache_key, rendered_template, timeout=300)
+
+        total_time = time.time() - start_time
+        logger.info(f"Total response time: {total_time:.2f}s")
+
         return rendered_template
 
     except Exception as e:
