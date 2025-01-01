@@ -47,12 +47,18 @@ def login():
 @login_required
 def logout():
     try:
-        # Clear the session first
+        # Remove the remember me cookie if it exists
+        session.pop('remember_token', None)
+        # Clear the entire session
         session.clear()
-        # Then logout the user
+        # Ensure user is logged out
         logout_user()
+        # Clear any potential Flask-Login remember me cookie
+        response = redirect(url_for('auth.login'))
+        response.delete_cookie('remember_token')
         flash('Vous avez été déconnecté avec succès', 'success')
-        return redirect(url_for('auth.login'))
+        logger.info("User successfully logged out and session cleared")
+        return response
     except Exception as e:
         logger.error(f"Error during logout: {str(e)}")
         flash('Erreur lors de la déconnexion', 'error')
