@@ -22,6 +22,8 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 init_db(app)  # Initialize database with configuration
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 csrf = CSRFProtect(app)
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 limiter.init_app(app)
 
 # Register error handlers

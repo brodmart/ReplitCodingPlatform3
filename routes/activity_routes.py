@@ -4,6 +4,13 @@ from models import CodingActivity, StudentProgress
 from database import db
 from datetime import datetime
 from extensions import limiter
+
+activities = Blueprint('activities', __name__)
+
+@activities.before_request
+@limiter.limit("60 per minute")
+def limit_activities():
+    pass
 from compiler_service import compile_and_run
 import logging
 import json
