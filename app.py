@@ -9,6 +9,7 @@ from database import init_db, db
 from extensions import init_extensions
 from flask_wtf.csrf import CSRFProtect
 from extensions import cache
+from flask_compress import Compress
 
 # Configure logging
 logging.basicConfig(
@@ -22,6 +23,10 @@ def create_app():
     app = Flask(__name__)
     csrf = CSRFProtect()
     csrf.init_app(app)
+
+    # Initialize Flask-Compress
+    compress = Compress()
+    compress.init_app(app)
 
     # Enable CORS properly
     CORS(app, resources={
@@ -51,13 +56,16 @@ def create_app():
         COMPRESS_MIN_SIZE=500
     )
 
+    # Configure caching
+    app.config['CACHE_TYPE'] = 'SimpleCache'
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 300
+
     @app.after_request
-    def after_request(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, X-CSRFToken')
-        response.headers.add('Access-Control-Allow-Methods', '*')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    def add_cache_headers(response):
+        # Cache static files
+        if request.path.startswith('/static'):
+            response.cache_control.max_age = 86400  # 24 hours
+            response.cache_control.public = True
         return response
 
     try:
@@ -115,9 +123,15 @@ def after_request(response):
         elapsed = time.time() - g.start_time
         response.headers['X-Response-Time'] = str(elapsed)
 
+    # Add cache headers for static files
+    if request.path.startswith('/static'):
+        response.headers['Cache-Control'] = 'public, max-age=86400'
+        response.headers['Vary'] = 'Accept-Encoding'
+
     return response
 
 @app.route('/')
+@cache.cached(timeout=300)  # Cache for 5 minutes
 def index():
     try:
         lang = session.get('lang', 'en')
