@@ -31,25 +31,9 @@ function initializeEditor() {
         }
     });
 
-    // Default C++ template
-    const cppTemplate = `#include <iostream>
-#include <string>
-#include <vector>
-
-int main() {
-    std::cout << "Hello World!" << std::endl;
-    return 0;
-}`;
-
-    // Set initial template
-    editor.setValue(cppTemplate);
-
-    // Language switching with proper mode updating
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const templates = {
-                'cpp': `#include <iostream>
+    // Templates
+    const templates = {
+        'cpp': `#include <iostream>
 #include <string>
 #include <vector>
 
@@ -57,7 +41,7 @@ int main() {
     std::cout << "Hello World!" << std::endl;
     return 0;
 }`,
-                'csharp': `using System;
+        'csharp': `using System;
 using System.Collections.Generic;
 
 class Program {
@@ -65,8 +49,16 @@ class Program {
         Console.WriteLine("Hello World!");
     }
 }`
-            };
+    };
 
+    // Set initial template based on selected language
+    const languageSelect = document.getElementById('languageSelect');
+    const currentLanguage = languageSelect ? languageSelect.value : 'cpp';
+    editor.setValue(templates[currentLanguage]);
+
+    // Language switching
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
             const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             editor.setOption('mode', mode);
             editor.setValue(templates[this.value]);
