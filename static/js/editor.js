@@ -1,5 +1,6 @@
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize CodeMirror only
     const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         mode: 'text/x-c++src',
         theme: 'dracula',
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         lineWrapping: true
     });
 
+    // Language switching
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
@@ -20,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Code execution
     const runButton = document.getElementById('runButton');
     if (runButton) {
         runButton.addEventListener('click', function() {
