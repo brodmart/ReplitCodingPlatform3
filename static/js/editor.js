@@ -57,6 +57,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Show loading state
                     loadingOverlay.classList.add('show');
                     outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
+                    setTimeout(() => {
+                        if (outputDiv.innerHTML.includes('Exécution en cours')) {
+                            outputDiv.innerHTML = '<div class="error">L\'exécution a pris trop de temps. Veuillez réessayer.</div>';
+                        }
+                    }, 15000);
 
                     // Get the activity ID from the URL if we're on an activity page
                     const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];

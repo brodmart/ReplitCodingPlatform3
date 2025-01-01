@@ -136,7 +136,7 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
              str(source_file), '-o', str(executable)],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=10
         )
 
         if compile_process.returncode != 0:
@@ -150,7 +150,7 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
                 input=input_data,
                 capture_output=True,
                 text=True,
-                timeout=2,
+                timeout=5,
                 preexec_fn=os.setsid
             )
 
@@ -186,7 +186,7 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
             ['mcs', '-debug-', '-optimize+', str(source_file), '-out:' + str(executable)],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=10
         )
 
         if compile_process.returncode != 0:
@@ -200,7 +200,7 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
                 input=input_data,
                 capture_output=True,
                 text=True,
-                timeout=2,
+                timeout=5,
                 preexec_fn=os.setsid
             )
 
