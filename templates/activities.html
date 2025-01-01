@@ -40,13 +40,8 @@
     </div>
     {% endif %}
 
-    {% if grade == 11 %}
-        {% set curricula = ['ICS3U'] %}
-        {% set languages = ['csharp'] %}
-    {% else %}
-        {% set curricula = ['TEJ2O'] %}
-        {% set languages = ['cpp', 'csharp'] %}
-    {% endif %}
+    {% set curricula = ['TEJ2O', 'ICS3U'] %}
+    {% set languages = ['cpp', 'csharp'] %}
     {% for curriculum in curricula %}
         {% for language in languages %}
             {% set activities_list = grouped_activities.get((curriculum, language), []) %}
