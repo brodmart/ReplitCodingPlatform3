@@ -4,9 +4,8 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_caching import Cache
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from database import db, init_db
+from extensions import limiter
 
 # Configure logging
 logging.basicConfig(

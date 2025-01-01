@@ -3,6 +3,7 @@ from flask_login import login_required, current_user
 from models import CodingActivity, StudentProgress
 from database import db
 from datetime import datetime
+from extensions import limiter
 from compiler_service import compile_and_run
 import logging
 import json
