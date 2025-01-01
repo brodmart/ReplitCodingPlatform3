@@ -1,2 +1,2 @@
 
-// Editor functionality moved to index.html
+// Basic editor functionality is now in index.html
