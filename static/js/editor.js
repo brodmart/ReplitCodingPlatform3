@@ -110,7 +110,10 @@ class Program {
     // Set initial template
     const languageSelect = document.getElementById('languageSelect');
     const currentLanguage = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(currentLanguage === 'cpp' ? cppTemplate : csharpTemplate);
+    if (editor) {
+        editor.setValue(currentLanguage === 'cpp' ? cppTemplate : csharpTemplate);
+        editor.refresh();
+    }
 
     // Language switching
     if (languageSelect) {
