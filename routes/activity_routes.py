@@ -22,6 +22,7 @@ def limit_activities():
 
 @activities.route('/activities')
 @activities.route('/activities/<int:grade>')
+@activities.route('/activities/activities/<int:grade>')  # Add support for the duplicate 'activities' in URL
 @cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)
 def list_activities(grade=None):
     """
@@ -79,11 +80,14 @@ def list_activities(grade=None):
         query_start = time.time()
         curriculum = 'ICS3U' if grade == 11 else 'TEJ2O'
         logger.debug(f"Filtering activities for curriculum: {curriculum} (grade {grade})")
+
         activities = base_query.filter(CodingActivity.curriculum == curriculum).order_by(
             CodingActivity.curriculum,
             CodingActivity.language,
             CodingActivity.sequence
         ).all()
+
+        logger.debug(f"Found {len(activities)} activities for curriculum {curriculum}")
         logger.info(f"Database query time: {time.time() - query_start:.2f}s")
 
         # Process results in memory to avoid additional queries
@@ -93,6 +97,7 @@ def list_activities(grade=None):
 
         for activity in activities:
             key = (activity.curriculum, activity.language)
+            logger.debug(f"Processing activity: {activity.title} for {key}")
             if key not in grouped_activities:
                 grouped_activities[key] = []
             grouped_activities[key].append(activity)
@@ -109,6 +114,10 @@ def list_activities(grade=None):
                 if activity.student_progress and activity.student_progress[0].completed:
                     curriculum_progress[curriculum]['completed'] += 1
 
+        # Log grouped activities for debugging
+        for key, activities_list in grouped_activities.items():
+            logger.debug(f"Group {key}: {len(activities_list)} activities")
+
         # Calculate percentages after counting
         for stats in curriculum_progress.values():
             if stats['total'] > 0:
@@ -121,7 +130,8 @@ def list_activities(grade=None):
         rendered_template = render_template(
             'activities.html',
             grouped_activities=grouped_activities,
-            curriculum_progress=curriculum_progress
+            curriculum_progress=curriculum_progress,
+            grade=grade  # Make sure grade is passed to template
         )
         logger.info(f"Template rendering time: {time.time() - render_start:.2f}s")
 
