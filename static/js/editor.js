@@ -48,10 +48,20 @@ class Program {
 }`
         };
 
-        // Set initial value from textarea or template
-        const initialValue = editorElement.value || templates[languageSelect.value];
-        if (initialValue) {
-            editor.setValue(initialValue);
+        // Set initial value with templates
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect && editor) {
+            const initialLanguage = languageSelect.value || 'cpp';
+            console.log('Setting initial template for language:', initialLanguage);
+            
+            if (templates[initialLanguage]) {
+                editor.setValue(templates[initialLanguage]);
+            } else {
+                console.warn('Template not found for language:', initialLanguage);
+                editor.setValue('// Write your code here');
+            }
+        } else {
+            console.warn('Language select or editor not properly initialized');
         }
 
         // Update template when language changes
@@ -63,13 +73,13 @@ class Program {
         });
 
         // Language switching with proper mode updating
-        const languageSelect = document.getElementById('languageSelect');
-        if (languageSelect) {
+        const languageSelect2 = document.getElementById('languageSelect');
+        if (languageSelect2) {
             // Set initial mode based on selected language
-            const initialMode = languageSelect.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const initialMode = languageSelect2.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             editor.setOption('mode', initialMode);
 
-            languageSelect.addEventListener('change', function() {
+            languageSelect2.addEventListener('change', function() {
                 const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
                 editor.setOption('mode', mode);
                 console.log('Language switched to:', this.value, 'with mode:', mode);
