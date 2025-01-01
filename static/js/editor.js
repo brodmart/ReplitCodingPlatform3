@@ -120,9 +120,9 @@ function setupRunButton() {
                 outputDiv.innerHTML = `<pre class="error"><span class="error-badge">Error</span>${data.error}</pre>`;
             } else if (data.test_results) {
                 const resultsHtml = data.test_results.map((result, index) => `
-                    <div class="test-result ${result.passed ? 'passed' : 'failed'}">
+                    <div class="test-result ${result.passed ? 'passed' : ''}">
                         <div class="test-header">
-                            <span class="test-badge ${result.passed ? 'success' : 'danger'}">
+                            <span class="test-badge ${result.passed ? 'success' : ''}">
                                 <i class="bi ${result.passed ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
                                 Test Case ${index + 1}
                             </span>
@@ -131,7 +131,7 @@ function setupRunButton() {
                             ${result.input ? `<div class="test-field"><span class="field-label">Input:</span><code>${result.input}</code></div>` : ''}
                             <div class="test-field"><span class="field-label">Expected:</span><code>${result.expected}</code></div>
                             <div class="test-field"><span class="field-label">Actual:</span><code>${result.actual || 'No output'}</code></div>
-                            ${result.error ? `<div class="test-field error"><span class="field-label">Error:</span><code>${result.error}</code></div>` : ''}
+                            ${result.error ? `<div class="test-field"><span class="field-label">Error:</span><code>${result.error}</code></div>` : ''}
                         </div>
                     </div>
                 `).join('');
