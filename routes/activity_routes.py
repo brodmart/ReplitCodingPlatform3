@@ -186,13 +186,17 @@ def submit_activity(activity_id: int):
     and transaction management.
     """
     try:
+        logger.info(f"Received submission for activity {activity_id}")
         if not request.is_json:
+            logger.warning("Invalid request: Content-Type must be application/json")
             return jsonify({'error': 'Content-Type must be application/json'}), 400
 
         activity = CodingActivity.query.get_or_404(activity_id)
         code = request.json.get('code', '').strip()
+        logger.debug(f"Processing code submission for activity {activity_id}")
 
         if not code:
+            logger.warning("Empty code submission")
             return jsonify({'error': 'Code submission cannot be empty'}), 400
 
         progress = get_or_create_progress(current_user.id, activity_id)
@@ -201,6 +205,7 @@ def submit_activity(activity_id: int):
 
         try:
             for test_case in activity.test_cases:
+                logger.debug(f"Running test case for activity {activity_id}")
                 result = compile_and_run(
                     code=code,
                     language=activity.language,
@@ -224,7 +229,7 @@ def submit_activity(activity_id: int):
                     all_tests_passed = False
 
             # Save submission
-            save_code_submission(
+            submission = save_code_submission(
                 student_id=current_user.id,
                 code=code,
                 language=activity.language,
@@ -232,6 +237,7 @@ def submit_activity(activity_id: int):
                 output=str(test_results),
                 error=None if all_tests_passed else "Some tests failed"
             )
+            logger.info(f"Saved submission {submission.id} for activity {activity_id}")
 
             # Update progress
             with transaction_context():
@@ -248,20 +254,23 @@ def submit_activity(activity_id: int):
 
                     flash(f'Félicitations! Vous avez terminé "{activity.title}"! (+{activity.points} points)')
 
-            return jsonify({
+            response_data = {
                 'success': all_tests_passed,
                 'test_results': test_results,
                 'attempts': progress.attempts
-            })
+            }
+            logger.info(f"Successfully processed submission for activity {activity_id}")
+            return jsonify(response_data)
 
         except (CompilerError, ExecutionError) as e:
-            logger.warning(f"Code execution error: {str(e)}")
-            return jsonify({'error': str(e)}), 400
+            error_msg = str(e)
+            logger.warning(f"Code execution error in activity {activity_id}: {error_msg}")
+            return jsonify({'error': error_msg}), 400
 
         except Exception as e:
-            logger.error(f"Error executing code: {str(e)}")
+            logger.error(f"Error executing code in activity {activity_id}: {str(e)}")
             return jsonify({'error': 'Error executing code'}), 500
 
     except Exception as e:
-        logger.error(f"Error in submit_activity: {str(e)}")
+        logger.error(f"Error in submit_activity {activity_id}: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
