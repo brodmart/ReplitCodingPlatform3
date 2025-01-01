@@ -47,15 +47,23 @@ def login():
 @login_required
 def logout():
     try:
-        # Remove the remember me cookie if it exists
+        # Remove all session data
         session.pop('remember_token', None)
+        session.pop('_fresh', None)
+        session.pop('_id', None)
+        session.pop('_user_id', None)
+        session.pop('csrf_token', None)
         # Clear the entire session
         session.clear()
         # Ensure user is logged out
         logout_user()
-        # Clear any potential Flask-Login remember me cookie
+        # Create response with proper cookie clearing
         response = redirect(url_for('auth.login'))
+        # Clear specific cookies
         response.delete_cookie('remember_token')
+        response.delete_cookie('session')
+        # Clear any potential Flask-Login cookies
+        response.delete_cookie('remember_me')
         flash('Vous avez été déconnecté avec succès', 'success')
         logger.info("User successfully logged out and session cleared")
         return response

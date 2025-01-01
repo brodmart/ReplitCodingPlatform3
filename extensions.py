@@ -7,6 +7,7 @@ from flask_compress import Compress
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,14 @@ class PerformanceMiddleware:
 def init_extensions(app):
     """Initialize all Flask extensions with proper error handling"""
     try:
+        # Configure session handling
+        app.config.update(
+            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE='Lax',
+            PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
+        )
+
         # Initialize caching with optimized settings
         cache_config = {
             'CACHE_TYPE': 'simple',
