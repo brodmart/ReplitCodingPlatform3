@@ -10,6 +10,45 @@ import json
 
 activities = Blueprint('activities', __name__)
 
+def load_activity_metadata(activity_id: int) -> tuple[dict, dict]:
+    """
+    Load and parse hints and common errors for an activity.
+    Returns a tuple of (hints, common_errors)
+    """
+    try:
+        # Load common errors from JSON file if exists
+        common_errors = []
+        try:
+            with open(f'activity/{activity_id}.json') as f:
+                data = json.load(f)
+                common_errors = data.get('common_errors', [])
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+
+        return common_errors
+    except Exception as e:
+        logging.error(f"Error loading activity metadata: {str(e)}")
+        return []
+
+def get_or_create_progress(student_id: int, activity_id: int) -> StudentProgress:
+    """
+    Get existing progress or create new progress entry for a student.
+    """
+    progress = StudentProgress.query.filter_by(
+        student_id=student_id,
+        activity_id=activity_id
+    ).first()
+
+    if not progress:
+        progress = StudentProgress(
+            student_id=student_id,
+            activity_id=activity_id
+        )
+        db.session.add(progress)
+        db.session.commit()
+
+    return progress
+
 @activities.before_request
 @limiter.limit("60 per minute")
 def limit_activities():
@@ -18,7 +57,10 @@ def limit_activities():
 @activities.route('/activities')
 @cache.memoize(timeout=300)  # Cache for 5 minutes
 def list_activities():
-    """List all coding activities, grouped by curriculum and language"""
+    """
+    List all coding activities, grouped by curriculum and language.
+    Includes progress tracking for authenticated users.
+    """
     try:
         activities = CodingActivity.query.order_by(
             CodingActivity.curriculum,
@@ -74,77 +116,29 @@ def list_activities():
 
 @activities.route('/activity/<int:activity_id>')
 def view_activity(activity_id):
-    """View a specific coding activity"""
+    """
+    View a specific coding activity with student progress tracking.
+    Handles loading activity metadata and user progress.
+    """
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
 
-        # Add debug logging for initial data
-        logging.debug(f"Activity {activity_id} data:")
-        logging.debug(f"Raw hints: {activity.hints}")
-        logging.debug(f"Raw common_errors: {activity.common_errors}")
-        logging.debug(f"Type of common_errors: {type(activity.common_errors)}")
+        # Load activity metadata
+        activity.common_errors = load_activity_metadata(activity_id)
 
-        # Get student's progress for this activity
+        # Get or initialize progress
         progress = None
         initial_code = activity.starter_code
 
         if current_user.is_authenticated:
-            progress = StudentProgress.query.filter_by(
-                student_id=current_user.id,
-                activity_id=activity_id
-            ).first()
+            progress = get_or_create_progress(current_user.id, activity_id)
 
-            # If there's a last submission, use that as initial code
+            # Use last submission if available
             if progress and progress.last_submission:
                 initial_code = progress.last_submission
 
-            # Create progress entry if it doesn't exist
-            if not progress:
-                progress = StudentProgress(
-                    student_id=current_user.id,
-                    activity_id=activity_id
-                )
-                db.session.add(progress)
-                db.session.commit()
-
-        # If no initial code is set, use the starter code or empty string
-        if not initial_code:
-            initial_code = activity.starter_code or ''
-
-        # Parse JSON fields if they exist
-        try:
-            # Handle hints
-            if activity.hints:
-                if isinstance(activity.hints, str):
-                    activity.hints = json.loads(activity.hints)
-                elif not isinstance(activity.hints, list):
-                    activity.hints = []
-            else:
-                activity.hints = []
-
-            logging.debug(f"Parsed hints: {activity.hints}")
-
-            # Handle common errors
-            if activity.common_errors is None:
-                # Load from JSON file if exists
-                try:
-                    with open(f'activity/{activity.id}.json') as f:
-                        data = json.load(f)
-                        activity.common_errors = data.get('common_errors', [])
-                except (FileNotFoundError, json.JSONDecodeError):
-                    activity.common_errors = []
-            elif isinstance(activity.common_errors, str):
-                activity.common_errors = json.loads(activity.common_errors)
-            elif not isinstance(activity.common_errors, list):
-                activity.common_errors = []
-
-            logging.debug(f"Parsed common_errors: {activity.common_errors}")
-            logging.debug(f"Final type of common_errors: {type(activity.common_errors)}")
-
-        except (json.JSONDecodeError, TypeError) as e:
-            logging.error(f"JSON parsing error: {str(e)}")
-            activity.hints = []
-            activity.common_errors = []
+        # Ensure initial code is never None
+        initial_code = initial_code or ''
 
         return render_template(
             'activity.html',
@@ -161,9 +155,13 @@ def view_activity(activity_id):
 @login_required
 @limiter.limit("30 per minute")
 def submit_activity(activity_id):
+    """
+    Handle activity submission and testing.
+    Updates progress and returns test results.
+    """
     if request.method != 'POST':
         return redirect(url_for('activities.view_activity', activity_id=activity_id))
-    """Submit a solution for a coding activity"""
+
     activity = CodingActivity.query.get_or_404(activity_id)
     code = request.json.get('code', '')
 
@@ -171,17 +169,7 @@ def submit_activity(activity_id):
         return jsonify({'error': 'Aucun code fourni'}), 400
 
     # Get or create progress
-    progress = StudentProgress.query.filter_by(
-        student_id=current_user.id,
-        activity_id=activity_id
-    ).first()
-
-    if not progress:
-        progress = StudentProgress(
-            student_id=current_user.id,
-            activity_id=activity_id
-        )
-        db.session.add(progress)
+    progress = get_or_create_progress(current_user.id, activity_id)
 
     # Update progress
     progress.attempts += 1
@@ -218,14 +206,14 @@ def submit_activity(activity_id):
     if all_tests_passed:
         progress.completed = True
         progress.completed_at = datetime.utcnow()
-        
+
         # Update user score
         current_user.score += activity.points
-        
+
         # Track completion time
         time_taken = (datetime.utcnow() - progress.started_at).total_seconds()
         progress.completion_time = time_taken
-        
+
         flash(f'Félicitations! Vous avez terminé "{activity.title}"! (+{activity.points} points)')
 
     db.session.commit()
