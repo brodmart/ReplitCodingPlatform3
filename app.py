@@ -11,6 +11,8 @@ from flask_wtf.csrf import CSRFProtect
 from extensions import cache
 from flask_compress import Compress
 from compiler_service import compile_and_run, CompilerError, ExecutionError
+from flask_login import current_user
+
 
 # Configure logging
 logging.basicConfig(
@@ -132,10 +134,11 @@ def after_request(response):
     return response
 
 @app.route('/')
-@cache.cached(timeout=300)  # Cache for 5 minutes
+@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)  # Don't cache for authenticated users
 def index():
     try:
-        lang = session.get('lang', 'en')
+        # Get language preference from session
+        lang = session.get('lang', 'fr')
         return render_template('index.html', lang=lang)
     except Exception as e:
         logger.error(f"Error rendering index template: {str(e)}")
