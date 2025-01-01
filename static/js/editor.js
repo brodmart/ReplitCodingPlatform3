@@ -33,6 +33,8 @@ window.addEventListener('load', function() {
     const languageSelect = document.getElementById('languageSelect');
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
 
+    console.log('Creating CodeMirror instance...');
+
     // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
@@ -43,24 +45,34 @@ window.addEventListener('load', function() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true,
-        value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate
+        lineWrapping: true
     });
 
-    // Set initial template
+    // Set initial template after editor is created
     const template = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+    console.log('Setting initial template for', initialLanguage);
+
+    // Use CodeMirror's change event to verify content is set
+    editor.on('change', function(cm, change) {
+        if (change.origin === 'setValue') {
+            console.log('Template set successfully');
+            editor.refresh();
+        }
+    });
+
     editor.setValue(template);
 
     // Handle language switching
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const selectedLanguage = this.value;
+            console.log('Language changed to:', selectedLanguage);
+
             const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
-            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+            const newTemplate = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
 
             editor.setOption('mode', mode);
-            editor.setValue(template);
-            editor.refresh();
+            editor.setValue(newTemplate);
         });
     }
 
@@ -111,6 +123,4 @@ window.addEventListener('load', function() {
             }
         });
     }
-
-    console.log('Editor initialized successfully');
 });
