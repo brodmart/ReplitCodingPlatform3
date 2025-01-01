@@ -117,23 +117,27 @@ function setupRunButton() {
             }
 
             if (data.error) {
-                outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
+                outputDiv.innerHTML = `<pre class="error"><span class="error-badge">Error</span>${data.error}</pre>`;
             } else if (data.test_results) {
-                const resultsHtml = data.test_results.map(result => `
+                const resultsHtml = data.test_results.map((result, index) => `
                     <div class="test-result ${result.passed ? 'passed' : 'failed'}">
-                        <h5 class="mb-2">
-                            <i class="bi ${result.passed ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'}"></i>
-                            Test Case ${result.passed ? 'Passed' : 'Failed'}
-                        </h5>
-                        ${result.input ? `<p><strong>Input:</strong> ${result.input}</p>` : ''}
-                        <p><strong>Expected:</strong> ${result.expected}</p>
-                        <p><strong>Actual:</strong> ${result.actual || 'No output'}</p>
-                        ${result.error ? `<p class="text-danger"><strong>Error:</strong> ${result.error}</p>` : ''}
+                        <div class="test-header">
+                            <span class="test-badge ${result.passed ? 'success' : 'danger'}">
+                                <i class="bi ${result.passed ? 'bi-check-circle-fill' : 'bi-x-circle-fill'}"></i>
+                                Test Case ${index + 1}
+                            </span>
+                        </div>
+                        <div class="test-content">
+                            ${result.input ? `<div class="test-field"><span class="field-label">Input:</span><code>${result.input}</code></div>` : ''}
+                            <div class="test-field"><span class="field-label">Expected:</span><code>${result.expected}</code></div>
+                            <div class="test-field"><span class="field-label">Actual:</span><code>${result.actual || 'No output'}</code></div>
+                            ${result.error ? `<div class="test-field error"><span class="field-label">Error:</span><code>${result.error}</code></div>` : ''}
+                        </div>
                     </div>
                 `).join('');
                 outputDiv.innerHTML = resultsHtml;
             } else {
-                outputDiv.innerHTML = `<pre>${data.output || 'No output'}</pre>`;
+                outputDiv.innerHTML = `<pre class="output-success">${data.output || 'No output'}</pre>`;
             }
         } catch (error) {
             console.error('Execution error:', error);

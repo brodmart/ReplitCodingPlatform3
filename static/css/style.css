@@ -106,17 +106,84 @@ html, body {
     color: #dc3545;
     background-color: rgba(220, 53, 69, 0.1);
     border-left: 4px solid #dc3545;
-    padding: 1.5rem;
-    margin: 1rem 0;
+    padding: 1rem;
+    margin: 0.5rem 0;
     border-radius: 8px;
     font-size: 14px;
     line-height: 1.6;
-    max-height: 400px;
-    overflow-y: auto;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     font-family: 'Consolas', 'Monaco', monospace;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.error-badge {
+    display: inline-block;
+    background: #dc3545;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-size: 12px;
+}
+
+.test-result {
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.test-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.test-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.test-badge.success {
+    background: rgba(25,135,84,0.1);
+    color: #198754;
+}
+
+.test-badge.danger {
+    background: rgba(220,53,69,0.1);
+    color: #dc3545;
+}
+
+.test-content {
+    padding: 12px;
+}
+
+.test-field {
+    margin-bottom: 8px;
+}
+
+.field-label {
+    font-weight: 600;
+    margin-right: 8px;
+    color: #6c757d;
+}
+
+.test-field code {
+    background: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.output-success {
+    background: #f8f9fa;
+    border-left: 4px solid #198754;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
 }
 
 .console-output .success {
