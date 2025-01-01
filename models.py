@@ -19,7 +19,7 @@ class Student(UserMixin, db.Model):
 
     # Relationships
     achievements = db.relationship('StudentAchievement', backref='student')
-    submissions = db.relationship('CodeSubmission', backref='student')
+    submissions = db.relationship('CodeSubmission', back_populates='student')
     progress = db.relationship('StudentProgress', backref='student')
     shared_codes = db.relationship('SharedCode', backref='student')
 
@@ -73,7 +73,7 @@ class CodeSubmission(db.Model):
     error = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    student = db.relationship('Student', backref=db.backref('submissions', lazy=True))
+    student = db.relationship('Student', back_populates='submissions')
 
 
 class SharedCode(db.Model):
