@@ -31,37 +31,37 @@ function initializeEditor() {
         }
     });
 
-    // Templates
-    const templates = {
-        'cpp': `#include <iostream>
+    // Default C++ template
+    const cppTemplate = `#include <iostream>
 #include <string>
 #include <vector>
 
 int main() {
     std::cout << "Hello World!" << std::endl;
     return 0;
-}`,
-        'csharp': `using System;
+}`;
+
+    // Default C# template
+    const csharpTemplate = `using System;
 using System.Collections.Generic;
 
 class Program {
     static void Main(string[] args) {
         Console.WriteLine("Hello World!");
     }
-}`
-    };
+}`;
 
-    // Set initial template based on selected language
+    // Set initial template immediately
     const languageSelect = document.getElementById('languageSelect');
     const currentLanguage = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(templates[currentLanguage]);
+    editor.setValue(currentLanguage === 'cpp' ? cppTemplate : csharpTemplate);
 
     // Language switching
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             editor.setOption('mode', mode);
-            editor.setValue(templates[this.value]);
+            editor.setValue(this.value === 'cpp' ? cppTemplate : csharpTemplate);
             editor.refresh();
         });
     }
