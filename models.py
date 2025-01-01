@@ -126,5 +126,4 @@ class StudentProgress(db.Model):
     attempts = db.Column(db.Integer, default=0)
     last_submission = db.Column(db.Text)
 
-    student = db.relationship('Student', backref=db.backref('progress', lazy=True))
-    activity = db.relationship('CodingActivity', backref=db.backref('student_progress', lazy=True))
+    activity = db.relationship('CodingActivity', backref='student_progress')
