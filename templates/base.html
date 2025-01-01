@@ -37,13 +37,13 @@
                         <span class="nav-link">{{ current_user.username }}</span>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
+                        <a class="nav-link" href="{{ url_for('auth.logout') }}">
                             {% if lang == 'fr' %}Déconnexion{% else %}Logout{% endif %}
                         </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
+                        <a class="nav-link" href="{{ url_for('auth.login') }}">
                             {% if lang == 'fr' %}Connexion{% else %}Login{% endif %}
                         </a>
                     </li>
