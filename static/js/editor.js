@@ -85,7 +85,7 @@ function setupRunButton() {
 
         try {
             const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
-            const endpoint = activityId ? `/activity/${activityId}/submit` : '/execute';
+            const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
 
             const response = await fetch(endpoint, {
                 method: 'POST',
