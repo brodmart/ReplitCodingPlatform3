@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 
 {% block head %}
-<!-- Monaco Editor CSS -->
-<link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.min.css">
+<!-- CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 {% endblock %}
 
@@ -18,7 +19,7 @@
             <div class="row mb-3">
                 <div class="col">
                     <select id="languageSelect" class="form-select">
-                        <option value="cpp">C++</option>
+                        <option value="cpp" selected>C++</option>
                         <option value="csharp">C#</option>
                     </select>
                 </div>
@@ -30,7 +31,7 @@
             </div>
 
             <div class="editor-container">
-                <div id="editor"></div>
+                <textarea id="editor"></textarea>
             </div>
 
             <div class="card mt-3">
@@ -53,20 +54,9 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Monaco Editor Dependencies -->
-<script>
-    var require = {
-        paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' },
-        'vs/nls': {
-            availableLanguages: {
-                '*': ''
-            }
-        }
-    };
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.nls.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/editor/editor.main.js"></script>
+<!-- CodeMirror Dependencies -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 
 <!-- Custom editor initialization -->
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>

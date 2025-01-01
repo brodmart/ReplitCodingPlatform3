@@ -19,49 +19,49 @@ class Program {
 
 let editor = null;
 
-// Wait for Monaco Editor to be loaded
-require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
-
-require(['vs/editor/editor.main'], function() {
+document.addEventListener('DOMContentLoaded', function() {
+    const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
 
-    console.log('Initializing Monaco Editor with language:', initialLanguage);
+    if (!editorElement || !languageSelect) {
+        console.error('Required elements not found');
+        return;
+    }
 
+    // Initialize CodeMirror
     try {
-        // Create editor instance
-        editor = monaco.editor.create(document.getElementById('editor'), {
-            value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate,
-            language: initialLanguage === 'cpp' ? 'cpp' : 'csharp',
-            theme: 'vs-dark',
-            automaticLayout: true,
-            minimap: { enabled: false },
-            fontSize: 14,
-            lineNumbers: 'on',
-            roundedSelection: false,
-            scrollBeyondLastLine: false,
-            readOnly: false,
-            cursorStyle: 'line'
+        editor = CodeMirror.fromTextArea(editorElement, {
+            mode: 'text/x-c++src', // Default to C++
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: true,
+            lineWrapping: true,
+            value: cppTemplate
         });
+
+        // Set initial content
+        editor.setValue(cppTemplate);
 
         console.log('Editor initialized successfully');
 
         // Language switching handler
-        if (languageSelect) {
-            languageSelect.addEventListener('change', function(event) {
-                const selectedLanguage = event.target.value;
-                console.log('Language changed to:', selectedLanguage);
+        languageSelect.addEventListener('change', function() {
+            const selectedLanguage = this.value;
+            console.log('Switching to language:', selectedLanguage);
 
-                if (editor) {
-                    const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-                    const model = monaco.editor.createModel(template, selectedLanguage === 'cpp' ? 'cpp' : 'csharp');
-                    editor.setModel(model);
-                    console.log('Template switched for:', selectedLanguage);
-                } else {
-                    console.error('Editor not initialized');
-                }
-            });
-        }
+            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+
+            editor.setOption('mode', mode);
+            editor.setValue(template);
+            editor.refresh();
+
+            console.log('Template switched successfully');
+        });
 
         // Run button handler
         const runButton = document.getElementById('runButton');
@@ -85,18 +85,18 @@ require(['vs/editor/editor.main'], function() {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
                         },
-                        body: JSON.stringify({ 
-                            code, 
-                            language: languageSelect ? languageSelect.value : 'cpp' 
+                        body: JSON.stringify({
+                            code,
+                            language: languageSelect.value
                         })
                     });
 
                     const data = await response.json();
-                    outputDiv.innerHTML = data.error ? 
-                        `<pre class="error">${data.error}</pre>` : 
+                    outputDiv.innerHTML = data.error ?
+                        `<div class="error">${data.error}</div>` :
                         `<pre>${data.output || 'No output'}</pre>`;
                 } catch (error) {
-                    outputDiv.innerHTML = `<pre class="error">Execution error: ${error.message}</pre>`;
+                    outputDiv.innerHTML = `<div class="error">Execution error: ${error.message}</div>`;
                 } finally {
                     runButton.disabled = false;
                 }
@@ -104,6 +104,8 @@ require(['vs/editor/editor.main'], function() {
         }
     } catch (error) {
         console.error('Failed to initialize editor:', error);
-        document.getElementById('editor').innerHTML = `<div class="error">Failed to initialize editor: ${error.message}</div>`;
+        if (editorElement) {
+            editorElement.value = `Failed to initialize editor: ${error.message}`;
+        }
     }
 });

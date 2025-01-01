@@ -10,44 +10,62 @@ html, body {
     --bs-border-color: #495057;
 }
 
+/* Editor Container */
 .editor-container {
     width: 100%;
-    height: 500px; /* Set a fixed height */
+    height: 500px;
     position: relative;
     margin-bottom: 20px;
 }
 
-.console-container {
-    width: 50%;
-    height: calc(100vh - 56px);
-    padding: 1rem;
-    float: left;
-}
-
-#editor, .console-output {
-    height: calc(50vh - 70px);
-    min-height: calc(50vh - 70px);
-}
-
-#editor {
+/* CodeMirror Customization */
+.CodeMirror {
+    height: 100% !important;
     width: 100%;
-    height: 100%;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
     border: 1px solid var(--bs-border-color);
     border-radius: 4px;
 }
 
+/* Console Output */
 .console-output {
     font-family: 'Consolas', 'Monaco', monospace;
     font-size: 14px;
     white-space: pre-wrap;
     word-wrap: break-word;
-    color: var(--bs-light);
-    margin: 0;
-    height: calc(100vh - 140px);
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    padding: 1rem;
+    border-radius: 4px;
+    min-height: 100px;
+    max-height: 300px;
     overflow-y: auto;
-    width: 100%;
 }
 
+/* Error Styling */
+.error {
+    color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 4px solid #dc3545;
+    padding: 1rem;
+    margin-top: 0.5rem;
+    border-radius: 4px;
+}
+
+/* Loading State */
+.loading {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .editor-container {
+        height: 400px;
+    }
+}
 .navbar {
     background-color: var(--bs-dark);
     border-bottom: 1px solid var(--bs-border-color);
@@ -88,15 +106,6 @@ html, body {
     max-width: 350px;
 }
 
-/* Code Completion Styling */
-.monaco-editor .suggest-widget {
-    border: 1px solid var(--bs-border-color);
-    background-color: var(--bs-dark);
-}
-
-.monaco-editor .suggest-widget .monaco-list .monaco-list-row.focused {
-    background-color: var(--bs-primary);
-}
 
 /* Console Output Enhancement */
 .console-output pre {
