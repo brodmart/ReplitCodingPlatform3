@@ -11,25 +11,26 @@
                 </div>
                 <div class="card-body">
                     {% if curriculum_progress and curriculum_progress|length > 0 %}
-                        {% set shown_curriculum = 'ICS3U' if grade == 11 else 'TEJ2O' %}
-                        {% if curriculum_progress[shown_curriculum] %}
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0">{{ shown_curriculum }}</h5>
-                                <span class="badge bg-info">{{ curriculum_progress[shown_curriculum].completed }}/{{ curriculum_progress[shown_curriculum].total }} Activités</span>
-                            </div>
-                            <div class="progress" style="height: 20px;">
-                                <div class="progress-bar {% if curriculum_progress[shown_curriculum].percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
-                                     role="progressbar" 
-                                     style="width: {{ curriculum_progress[shown_curriculum].percentage }}%"
-                                     aria-valuenow="{{ curriculum_progress[shown_curriculum].percentage }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    {{ curriculum_progress[shown_curriculum].percentage|round|int }}%
+                        {% for curriculum, stats in curriculum_progress.items() %}
+                            {% if (grade == 11 and curriculum == 'ICS3U') or (grade == 10 and curriculum == 'TEJ2O') %}
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="mb-0">{{ curriculum }}</h5>
+                                    <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activités</span>
+                                </div>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ stats.percentage }}%"
+                                         aria-valuenow="{{ stats.percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ stats.percentage|round|int }}%
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        {% endif %}
+                            {% endif %}
+                        {% endfor %}
                     {% else %}
                         <p class="text-center mb-0">Commencez à compléter des activités pour suivre votre progression!</p>
                     {% endif %}
