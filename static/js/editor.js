@@ -119,9 +119,11 @@ class Program {
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const template = this.value === 'cpp' ? cppTemplate : csharpTemplate;
             editor.setOption('mode', mode);
-            editor.setValue(this.value === 'cpp' ? cppTemplate : csharpTemplate);
+            editor.setValue(template);
             editor.refresh();
+            console.log('Language changed to:', this.value);
         });
     }
 
