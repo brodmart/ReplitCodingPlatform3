@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
+    // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
         theme: 'dracula',
@@ -33,16 +34,18 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true
+        lineWrapping: true,
+        value: cppTemplate // Set initial template
     });
 
-    // Set initial template content
-    const languageSelect = document.getElementById('languageSelect');
-    const currentLanguage = languageSelect ? languageSelect.value : 'cpp';
-    const initialTemplate = currentLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-    editor.setValue(initialTemplate);
+    // Force set the initial value
+    setTimeout(() => {
+        editor.setValue(cppTemplate);
+        editor.refresh();
+    }, 100);
 
     // Language switching
+    const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const selectedLanguage = this.value;
@@ -73,7 +76,7 @@ function setupRunButton() {
         const language = document.getElementById('languageSelect')?.value || 'cpp';
 
         if (!code.trim()) {
-            outputDiv.innerHTML = '<div class="error">Code cannot be empty</div>';
+            outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
             return;
         }
 
