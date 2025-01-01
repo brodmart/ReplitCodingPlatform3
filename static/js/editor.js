@@ -37,10 +37,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Set initial template
-    editor.setValue(cppTemplate);
+    const languageSelect = document.getElementById('languageSelect');
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+    editor.setValue(initialLanguage === 'cpp' ? cppTemplate : csharpTemplate);
 
     // Language switching
-    const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const selectedLanguage = this.value;
@@ -72,7 +73,7 @@ function setupRunButton() {
         const language = document.getElementById('languageSelect')?.value || 'cpp';
 
         if (!code.trim()) {
-            outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide.</div>';
+            outputDiv.innerHTML = '<div class="error">Code cannot be empty</div>';
             return;
         }
 
