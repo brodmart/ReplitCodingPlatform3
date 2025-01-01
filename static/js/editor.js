@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Code execution
+        // Code execution with improved error handling and timeouts
         const runButton = document.getElementById('runButton');
         if (runButton) {
             runButton.addEventListener('click', async function() {
@@ -53,22 +53,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 const code = editor.getValue();
                 const language = languageSelect ? languageSelect.value : 'cpp';
 
+                // Clear previous output and show loading
+                loadingOverlay?.classList.add('show');
+                outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
+
+                // Set up timeout for loading message
+                const loadingTimeout = setTimeout(() => {
+                    if (loadingOverlay?.classList.contains('show')) {
+                        loadingOverlay.classList.remove('show');
+                        outputDiv.innerHTML = '<div class="error">L\'exécution a pris trop de temps. Veuillez réessayer.</div>';
+                    }
+                }, 15000);
+
                 try {
-                    // Show loading state
-                    loadingOverlay.classList.add('show');
-                    outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
-                    setTimeout(() => {
-                        if (outputDiv.innerHTML.includes('Exécution en cours')) {
-                            outputDiv.innerHTML = '<div class="error">L\'exécution a pris trop de temps. Veuillez réessayer.</div>';
-                        }
-                    }, 15000);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
                     // Get the activity ID from the URL if we're on an activity page
                     const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
                     const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
-
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
                     const response = await fetch(endpoint, {
                         method: 'POST',
@@ -83,8 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const data = await response.json();
 
                     if (!response.ok) {
-                        outputDiv.innerHTML = `<pre class="error">${data.error || 'Error executing code'}</pre>`;
-                        return;
+                        throw new Error(data.error || 'Error executing code');
                     }
 
                     if (data.error) {
@@ -111,8 +113,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Error:', error);
                     outputDiv.innerHTML = `<pre class="error">${error.message || 'Error executing code'}</pre>`;
                 } finally {
-                    // Always hide loading overlay
-                    loadingOverlay.classList.remove('show');
+                    // Clean up timeouts and loading state
+                    clearTimeout(loadingTimeout);
+                    loadingOverlay?.classList.remove('show');
                 }
             });
         }
