@@ -12,13 +12,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const languageSelect = document.getElementById('languageSelect');
     languageSelect.addEventListener('change', function() {
-        editor.setOption('mode', this.value);
+        const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+        editor.setOption('mode', mode);
     });
 
     const runButton = document.getElementById('runButton');
     runButton.addEventListener('click', function() {
         const code = editor.getValue();
-        const language = languageSelect.value === 'text/x-c++src' ? 'cpp' : 'csharp';
+        const language = languageSelect.value;
         const outputDiv = document.getElementById('output');
         
         outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
