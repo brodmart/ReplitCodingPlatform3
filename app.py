@@ -42,7 +42,7 @@ def create_app():
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
         SERVER_NAME=None,
-        SEND_FILE_MAX_AGE_DEFAULT=0  # Disable caching for development
+        SEND_FILE_MAX_AGE_DEFAULT=3600  # Cache static files for 1 hour
     )
 
     @app.after_request
@@ -121,6 +121,7 @@ def index():
         return render_template('errors/500.html'), 500
 
 @app.route('/editor')
+@cache.cached(timeout=300)
 def editor():
     """Render the code editor page"""
     try:
