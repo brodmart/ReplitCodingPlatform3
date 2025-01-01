@@ -3,20 +3,10 @@ from flask_login import UserMixin
 from database import db
 from sqlalchemy import text
 import secrets
-from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError
+from utils.password_utils import hash_password, verify_password, needs_rehash
 import logging
 
 logger = logging.getLogger(__name__)
-
-# Initialize Argon2 hasher with secure parameters
-ph = PasswordHasher(
-    time_cost=2,      # Number of iterations
-    memory_cost=102400,  # 100MB in KiB
-    parallelism=8,    # Number of parallel threads
-    hash_len=32,      # Length of the hash in bytes
-    salt_len=16       # Length of the random salt in bytes
-)
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
@@ -52,9 +42,9 @@ class Student(UserMixin, db.Model):
     shared_codes = db.relationship('SharedCode', back_populates='student')
 
     def set_password(self, password):
-        """Hash password using Argon2"""
+        """Hash password using Argon2 with the utility function"""
         try:
-            self.password_hash = ph.hash(password)
+            self.password_hash = hash_password(password)
             self.last_password_change = datetime.utcnow()
             return True
         except Exception as e:
@@ -62,15 +52,16 @@ class Student(UserMixin, db.Model):
             return False
 
     def check_password(self, password):
-        """Verify password hash using Argon2"""
+        """
+        Verify password hash using the utility function.
+        Also handles rehashing if needed for backward compatibility.
+        """
         try:
-            ph.verify(self.password_hash, password)
-            # Check if the hash needs to be updated
-            if ph.check_needs_rehash(self.password_hash):
-                self.password_hash = ph.hash(password)
-            return True
-        except VerifyMismatchError:
-            return False
+            is_valid = verify_password(self.password_hash, password)
+            if is_valid and needs_rehash(self.password_hash):
+                # Upgrade hash to Argon2 if using old format
+                self.password_hash = hash_password(password)
+            return is_valid
         except Exception as e:
             logger.error(f"Password verification error: {str(e)}")
             return False
