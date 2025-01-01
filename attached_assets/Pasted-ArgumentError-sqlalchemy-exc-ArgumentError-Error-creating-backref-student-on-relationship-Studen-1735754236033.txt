@@ -1,0 +1,88 @@
+ArgumentError
+sqlalchemy.exc.ArgumentError: Error creating backref 'student' on relationship 'Student.shared_codes': property of that name exists on mapper 'Mapper[SharedCode(shared_code)]'
+
+Traceback (most recent call last)
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1536, in __call__
+return self.wsgi_app(environ, start_response)
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1514, in wsgi_app
+response = self.handle_exception(e)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1511, in wsgi_app
+response = self.full_dispatch_request()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 919, in full_dispatch_request
+rv = self.handle_user_exception(e)
+     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+rv = self.dispatch_request()
+     ^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 902, in dispatch_request
+return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/routes/auth_routes.py", line 58, in register
+if form.validate_on_submit():
+   ^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask_wtf/form.py", line 86, in validate_on_submit
+return self.is_submitted() and self.validate(extra_validators=extra_validators)
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/wtforms/form.py", line 330, in validate
+return super().validate(extra)
+       ^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/wtforms/form.py", line 147, in validate
+if not field.validate(self, extra):
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/wtforms/fields/core.py", line 234, in validate
+stop_validation = self._run_validation_chain(form, chain)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/wtforms/fields/core.py", line 254, in _run_validation_chain
+validator(form, self)
+^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/forms.py", line 38, in validate_username
+user = Student.query.filter_by(username=username.data).first()
+       ^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/model.py", line 22, in __get__
+return cls.query_class(
+       
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 275, in __init__
+self._set_entities(entities)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 287, in _set_entities
+self._raw_columns = [
+                    
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 288, in <listcomp>
+coercions.expect(
+^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/sql/coercions.py", line 388, in expect
+insp._post_inspect
+^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 1253, in __get__
+obj.__dict__[self.__name__] = result = self.fget(obj)
+                                       ^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/mapper.py", line 2722, in _post_inspect
+self._check_configure()
+^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/mapper.py", line 2399, in _check_configure
+_configure_registries({self.registry}, cascade=True)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/mapper.py", line 4215, in _configure_registries
+_do_configure_registries(registries, cascade)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/mapper.py", line 4256, in _do_configure_registries
+mapper._post_configure_properties()
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/mapper.py", line 2416, in _post_configure_properties
+prop.init()
+^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/interfaces.py", line 589, in init
+self.do_init()
+^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/relationships.py", line 1647, in do_init
+self._generate_backref()
+^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/relationships.py", line 2075, in _generate_backref
+raise sa_exc.ArgumentError(
+^
+sqlalchemy.exc.ArgumentError: Error creating backref 'student' on relationship 'Student.shared_codes': property of that name exists on mapper 'Mapper[SharedCode(shared_code)]'
+The debugger caught an exception in your WSGI application. You can now look at the traceback which led to the error.
+To switch between the interactive traceback and the plaintext one, you can click on the "Traceback" headline. From the text traceback you can also create a paste of it.
