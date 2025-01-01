@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from models import CodingActivity, StudentProgress
-from database import db
+from models import CodingActivity, StudentProgress, CodeSubmission # Added CodeSubmission import
+from database import db, transaction_context # Added transaction_context import
 from datetime import datetime
 from extensions import limiter, cache
 from compiler_service import compile_and_run
@@ -9,43 +9,44 @@ import logging
 import json
 
 activities = Blueprint('activities', __name__)
+logger = logging.getLogger(__name__)
 
-def load_activity_metadata(activity_id: int) -> tuple[dict, dict]:
+def save_code_submission(student_id: int, code: str, language: str, 
+                        success: bool, output: str = None, error: str = None) -> CodeSubmission:
     """
-    Load and parse hints and common errors for an activity.
-    Returns a tuple of (hints, common_errors)
+    Save a code submission with proper error handling and transaction management.
     """
-    try:
-        # Load common errors from JSON file if exists
-        common_errors = []
-        try:
-            with open(f'activity/{activity_id}.json') as f:
-                data = json.load(f)
-                common_errors = data.get('common_errors', [])
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-
-        return common_errors
-    except Exception as e:
-        logging.error(f"Error loading activity metadata: {str(e)}")
-        return []
+    with transaction_context():
+        submission = CodeSubmission(
+            student_id=student_id,
+            code=code,
+            language=language,
+            success=success,
+            output=output,
+            error=error,
+            submitted_at=datetime.utcnow()
+        )
+        db.session.add(submission)
+    return submission
 
 def get_or_create_progress(student_id: int, activity_id: int) -> StudentProgress:
     """
     Get existing progress or create new progress entry for a student.
+    Uses transaction context for database operations.
     """
-    progress = StudentProgress.query.filter_by(
-        student_id=student_id,
-        activity_id=activity_id
-    ).first()
-
-    if not progress:
-        progress = StudentProgress(
+    with transaction_context():
+        progress = StudentProgress.query.filter_by(
             student_id=student_id,
             activity_id=activity_id
-        )
-        db.session.add(progress)
-        db.session.commit()
+        ).first()
+
+        if not progress:
+            progress = StudentProgress(
+                student_id=student_id,
+                activity_id=activity_id,
+                started_at=datetime.utcnow()
+            )
+            db.session.add(progress)
 
     return progress
 
@@ -156,70 +157,106 @@ def view_activity(activity_id):
 @limiter.limit("30 per minute")
 def submit_activity(activity_id):
     """
-    Handle activity submission and testing.
-    Updates progress and returns test results.
+    Handle activity submission and testing with proper error handling
+    and transaction management.
     """
-    if request.method != 'POST':
-        return redirect(url_for('activities.view_activity', activity_id=activity_id))
+    try:
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type must be application/json'}), 400
 
-    activity = CodingActivity.query.get_or_404(activity_id)
-    code = request.json.get('code', '')
+        activity = CodingActivity.query.get_or_404(activity_id)
+        code = request.json.get('code', '').strip()
 
-    if not code:
-        return jsonify({'error': 'Aucun code fourni'}), 400
+        if not code:
+            return jsonify({'error': 'Code submission cannot be empty'}), 400
 
-    # Get or create progress
-    progress = get_or_create_progress(current_user.id, activity_id)
+        # Get or create progress with transaction handling
+        progress = get_or_create_progress(current_user.id, activity_id)
 
-    # Update progress
-    progress.attempts += 1
-    progress.last_submission = code
+        # Execute code against test cases
+        all_tests_passed = True
+        test_results = []
 
-    # Execute code against test cases
-    all_tests_passed = True
-    test_results = []
+        try:
+            # Run tests and save submission
+            for test_case in activity.test_cases:
+                result = compile_and_run(
+                    code=code,
+                    language=activity.language,
+                    input_data=test_case.get('input')
+                )
 
-    for test_case in activity.test_cases:
-        result = compile_and_run(
-            code=code,
-            language=activity.language,
-            input_data=test_case.get('input')
-        )
+                test_passed = (
+                    result.get('success', False) and
+                    result.get('output', '').strip() == str(test_case.get('output')).strip()
+                )
 
-        test_passed = (
-            result.get('success', False) and
-            result.get('output', '').strip() == str(test_case.get('output')).strip()
-        )
+                test_results.append({
+                    'input': test_case.get('input'),
+                    'expected': test_case.get('output'),
+                    'actual': result.get('output'),
+                    'passed': test_passed,
+                    'error': result.get('error')
+                })
 
-        test_results.append({
-            'input': test_case.get('input'),
-            'expected': test_case.get('output'),
-            'actual': result.get('output'),
-            'passed': test_passed,
-            'error': result.get('error')
-        })
+                if not test_passed:
+                    all_tests_passed = False
 
-        if not test_passed:
-            all_tests_passed = False
+            # Save submission with transaction handling
+            save_code_submission(
+                student_id=current_user.id,
+                code=code,
+                language=activity.language,
+                success=all_tests_passed,
+                output=str(test_results),
+                error=None if all_tests_passed else "Some tests failed"
+            )
 
-    # Update progress if all tests passed
-    if all_tests_passed:
-        progress.completed = True
-        progress.completed_at = datetime.utcnow()
+            # Update progress with transaction handling
+            with transaction_context():
+                progress.attempts += 1
+                progress.last_submission = code
 
-        # Update user score
-        current_user.score += activity.points
+                if all_tests_passed:
+                    progress.completed = True
+                    progress.completed_at = datetime.utcnow()
+                    current_user.score += activity.points
 
-        # Track completion time
-        time_taken = (datetime.utcnow() - progress.started_at).total_seconds()
-        progress.completion_time = time_taken
+                    time_taken = (datetime.utcnow() - progress.started_at).total_seconds()
+                    progress.completion_time = time_taken
 
-        flash(f'Félicitations! Vous avez terminé "{activity.title}"! (+{activity.points} points)')
+                    flash(f'Félicitations! Vous avez terminé "{activity.title}"! (+{activity.points} points)')
 
-    db.session.commit()
+            return jsonify({
+                'success': all_tests_passed,
+                'test_results': test_results,
+                'attempts': progress.attempts
+            })
 
-    return jsonify({
-        'success': all_tests_passed,
-        'test_results': test_results,
-        'attempts': progress.attempts
-    })
+        except Exception as e:
+            logger.error(f"Error executing code: {str(e)}")
+            return jsonify({'error': 'Error executing code'}), 500
+
+    except Exception as e:
+        logger.error(f"Error in submit_activity: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+def load_activity_metadata(activity_id: int) -> tuple[dict, dict]:
+    """
+    Load and parse hints and common errors for an activity.
+    Returns a tuple of (hints, common_errors)
+    """
+    try:
+        # Load common errors from JSON file if exists
+        common_errors = []
+        try:
+            with open(f'activity/{activity_id}.json') as f:
+                data = json.load(f)
+                common_errors = data.get('common_errors', [])
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+
+        return common_errors
+    except Exception as e:
+        logging.error(f"Error loading activity metadata: {str(e)}")
+        return []
