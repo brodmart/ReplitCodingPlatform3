@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
+    // Initialize editor
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
         theme: 'dracula',
