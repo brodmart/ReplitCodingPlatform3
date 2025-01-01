@@ -27,9 +27,18 @@ def create_app():
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='None',
         WTF_CSRF_TIME_LIMIT=3600,
-        WTF_CSRF_SSL_STRICT=True,
+        WTF_CSRF_SSL_STRICT=False,
         SERVER_NAME=None
     )
+    
+    # Allow requests from Replit domains
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', 'https://*.replit.dev')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        return response
 
     try:
         # Initialize database
