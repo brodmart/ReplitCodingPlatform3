@@ -47,32 +47,62 @@ document.addEventListener('DOMContentLoaded', function() {
         // Code execution
         const runButton = document.getElementById('runButton');
         if (runButton) {
-            runButton.addEventListener('click', function() {
+            runButton.addEventListener('click', async function() {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                const outputDiv = document.getElementById('output');
                 const code = editor.getValue();
                 const language = languageSelect ? languageSelect.value : 'cpp';
-                const outputDiv = document.getElementById('output');
 
-                outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
+                try {
+                    // Show loading state
+                    loadingOverlay.classList.add('show');
+                    outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
 
-                fetch('/execute', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ code, language })
-                })
-                .then(response => response.json())
-                .then(data => {
+                    // Get the activity ID from the URL if we're on an activity page
+                    const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
+                    const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ code, language })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Error executing code');
+                    }
+
                     if (data.error) {
                         outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
+                    } else if (data.test_results) {
+                        // Handle activity submission results
+                        const resultsHtml = data.test_results.map(result => `
+                            <div class="test-result ${result.passed ? 'passed' : 'failed'}">
+                                <h5 class="mb-2">
+                                    <i class="bi ${result.passed ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'}"></i>
+                                    Test Case ${result.passed ? 'Passed' : 'Failed'}
+                                </h5>
+                                ${result.input ? `<p><strong>Input:</strong> ${result.input}</p>` : ''}
+                                <p><strong>Expected:</strong> ${result.expected}</p>
+                                <p><strong>Actual:</strong> ${result.actual || 'No output'}</p>
+                                ${result.error ? `<p class="text-danger"><strong>Error:</strong> ${result.error}</p>` : ''}
+                            </div>
+                        `).join('');
+                        outputDiv.innerHTML = resultsHtml;
                     } else {
-                        outputDiv.innerHTML = `<pre>${data.output}</pre>`;
+                        outputDiv.innerHTML = `<pre>${data.output || 'No output'}</pre>`;
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Error:', error);
-                    outputDiv.innerHTML = '<pre class="error">Error executing code</pre>';
-                });
+                    outputDiv.innerHTML = `<pre class="error">${error.message || 'Error executing code'}</pre>`;
+                } finally {
+                    // Always hide loading overlay
+                    loadingOverlay.classList.remove('show');
+                }
             });
         }
 
