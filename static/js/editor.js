@@ -34,15 +34,17 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true,
-        value: cppTemplate // Set initial template
+        lineWrapping: true
     });
 
-    // Force set the initial value
-    setTimeout(() => {
-        editor.setValue(cppTemplate);
+    // Set initial content immediately
+    editor.setValue(cppTemplate);
+    editor.refresh();
+    
+    // Make sure content is visible
+    requestAnimationFrame(() => {
         editor.refresh();
-    }, 100);
+    });
 
     // Language switching
     const languageSelect = document.getElementById('languageSelect');
