@@ -18,13 +18,21 @@ class Program {
 }`;
 
 let editor = null;
+let isInitialized = false;
 
 function initializeEditor() {
+    if (isInitialized) {
+        console.log('Editor already initialized, skipping...');
+        return;
+    }
+
     const editorElement = document.getElementById('editor');
     if (!editorElement) {
         console.error('Editor element not found');
         return;
     }
+
+    console.log('Starting editor initialization...');
 
     // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(editorElement, {
@@ -44,8 +52,12 @@ function initializeEditor() {
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
     const initialTemplate = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
 
+    console.log('Setting initial template for language:', initialLanguage);
     editor.setValue(initialTemplate);
     editor.refresh();
+
+    isInitialized = true;
+    console.log('Editor initialization complete');
 }
 
 function setupLanguageSwitch() {
@@ -55,15 +67,21 @@ function setupLanguageSwitch() {
         return;
     }
 
+    console.log('Setting up language switch handler');
     languageSelect.addEventListener('change', function() {
+        if (!editor) {
+            console.error('Editor not initialized during language switch');
+            return;
+        }
+
         const selectedLanguage = this.value;
         const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
         const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
 
+        console.log('Switching to language:', selectedLanguage);
         editor.setOption('mode', mode);
         editor.setValue(template);
         editor.refresh();
-        console.log('Language switched to:', selectedLanguage, 'with mode:', mode);
     });
 }
 
@@ -124,11 +142,12 @@ function setupRunButton() {
     });
 }
 
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing editor...');
-    initializeEditor();
-    setupLanguageSwitch();
-    setupRunButton();
-    console.log('Editor initialization complete');
+// Wait for DOM to be fully loaded before initializing
+window.addEventListener('load', function() {
+    console.log('Window loaded, starting initialization...');
+    setTimeout(() => {
+        initializeEditor();
+        setupLanguageSwitch();
+        setupRunButton();
+    }, 100);
 });
