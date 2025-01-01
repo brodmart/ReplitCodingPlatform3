@@ -13,13 +13,37 @@ from extensions import limiter
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s - %(pathname)s:%(lineno)d'
 )
 logger = logging.getLogger(__name__)
+
+def log_error(error, context=None):
+    """Global error tracking function"""
+    error_data = {
+        'error_type': type(error).__name__,
+        'error_message': str(error),
+        'timestamp': datetime.utcnow().isoformat(),
+        'context': context
+    }
+    logger.error(f"Application error: {error_data}")
+    return error_data
 
 # Initialize Flask app
 app = Flask(__name__)
 Compress(app)
+app.wsgi_app = PerformanceMiddleware(app.wsgi_app)
+
+# Global rate limiting
+@app.before_request
+def global_rate_limit():
+    if request.remote_addr:
+        key = f'rate_limit_{request.remote_addr}'
+        try:
+            if cache.get(key) and cache.get(key) > 100:  # 100 requests per minute
+                return jsonify({'error': 'Rate limit exceeded'}), 429
+            cache.inc(key, timeout=60)
+        except:
+            pass  # Fail open if cache errors
 
 @app.before_request
 def before_request():
