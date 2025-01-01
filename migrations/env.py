@@ -36,8 +36,6 @@ def get_engine_url():
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
 config.set_main_option('sqlalchemy.url', get_engine_url())
 target_db = current_app.extensions['migrate'].db
 
@@ -52,8 +50,7 @@ def run_migrations_offline():
     context.configure(
         url=url, 
         target_metadata=get_metadata(),
-        literal_binds=True,
-        compare_type=True
+        literal_binds=True
     )
 
     with context.begin_transaction():
@@ -78,7 +75,6 @@ def run_migrations_online():
             connection=connection,
             target_metadata=get_metadata(),
             process_revision_directives=process_revision_directives,
-            compare_type=True,
             **current_app.extensions['migrate'].configure_args
         )
 

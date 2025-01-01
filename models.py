@@ -1,9 +1,22 @@
 from datetime import datetime, timedelta
 from flask_login import UserMixin
 from database import db
-from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import text
 import secrets
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Initialize Argon2 hasher with secure parameters
+ph = PasswordHasher(
+    time_cost=2,      # Number of iterations
+    memory_cost=102400,  # 100MB in KiB
+    parallelism=8,    # Number of parallel threads
+    hash_len=32,      # Length of the hash in bytes
+    salt_len=16       # Length of the random salt in bytes
+)
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
@@ -23,6 +36,10 @@ class Student(UserMixin, db.Model):
     account_locked_until = db.Column(db.DateTime)
     last_password_change = db.Column(db.DateTime, default=datetime.utcnow)
     session_token = db.Column(db.String(64), unique=True)
+    password_reset_token = db.Column(db.String(100), unique=True)
+    password_reset_expiry = db.Column(db.DateTime)
+    mfa_secret = db.Column(db.String(32))
+    mfa_enabled = db.Column(db.Boolean, default=False)
 
     # Student progress tracking
     score = db.Column(db.Integer, default=0)
@@ -34,37 +51,39 @@ class Student(UserMixin, db.Model):
     progress = db.relationship('StudentProgress', backref='student')
     shared_codes = db.relationship('SharedCode', back_populates='student')
 
-    @property
-    def successful_submissions(self):
-        """Get the count of successful code submissions"""
-        return CodeSubmission.query.filter_by(
-            student_id=self.id,
-            success=True
-        ).count()
-
-    @property
-    def current_activity(self):
-        """Get the student's current activity based on their progress"""
-        completed_activities = set(p.activity_id for p in self.progress if p.completed)
-        return CodingActivity.query.filter(
-            ~CodingActivity.id.in_(completed_activities)
-        ).order_by(CodingActivity.sequence).first()
-
     def set_password(self, password):
-        """Hash password using Werkzeug's implementation"""
-        self.password_hash = generate_password_hash(password)
-        self.last_password_change = datetime.utcnow()
+        """Hash password using Argon2"""
+        try:
+            self.password_hash = ph.hash(password)
+            self.last_password_change = datetime.utcnow()
+            return True
+        except Exception as e:
+            logger.error(f"Password hashing error: {str(e)}")
+            return False
 
     def check_password(self, password):
-        """Verify password hash"""
-        return check_password_hash(self.password_hash, password)
+        """Verify password hash using Argon2"""
+        try:
+            ph.verify(self.password_hash, password)
+            # Check if the hash needs to be updated
+            if ph.check_needs_rehash(self.password_hash):
+                self.password_hash = ph.hash(password)
+            return True
+        except VerifyMismatchError:
+            return False
+        except Exception as e:
+            logger.error(f"Password verification error: {str(e)}")
+            return False
 
     def increment_failed_login(self):
-        """Track failed login attempts"""
+        """Track failed login attempts with exponential backoff"""
         self.failed_login_attempts += 1
         self.last_failed_login = datetime.utcnow()
-        if self.failed_login_attempts >= 5:
-            self.account_locked_until = datetime.utcnow() + timedelta(minutes=30)
+
+        # Exponential backoff for lockout duration
+        if self.failed_login_attempts >= 3:
+            lockout_minutes = min(2 ** (self.failed_login_attempts - 2), 60)  # Max 60 minutes
+            self.account_locked_until = datetime.utcnow() + timedelta(minutes=lockout_minutes)
 
     def reset_failed_login(self):
         """Reset failed login counter"""
@@ -73,9 +92,24 @@ class Student(UserMixin, db.Model):
         self.account_locked_until = None
 
     def generate_session_token(self):
-        """Generate a new session token"""
+        """Generate a new session token with expiration"""
         self.session_token = secrets.token_urlsafe(48)
         return self.session_token
+
+    def generate_password_reset_token(self):
+        """Generate password reset token with 1-hour expiry"""
+        self.password_reset_token = secrets.token_urlsafe(32)
+        self.password_reset_expiry = datetime.utcnow() + timedelta(hours=1)
+        return self.password_reset_token
+
+    def is_password_reset_token_valid(self, token):
+        """Check if password reset token is valid and not expired"""
+        return (
+            self.password_reset_token
+            and self.password_reset_token == token
+            and self.password_reset_expiry
+            and self.password_reset_expiry > datetime.utcnow()
+        )
 
     def is_account_locked(self):
         """Check if account is temporarily locked"""
@@ -88,6 +122,8 @@ class Student(UserMixin, db.Model):
         """Safely get user by email using parameterized query"""
         return Student.query.filter(Student.email == email).first()
 
+    def __repr__(self):
+        return f'<Student {self.username}>'
 
 class Achievement(db.Model):
     """Achievement model for tracking student accomplishments"""
