@@ -49,8 +49,8 @@
     {% endif %}
     {% for curriculum in curricula %}
         {% for language in languages %}
-            {% set activities = grouped_activities.get((curriculum, language), []) %}
-            {% if activities %}
+            {% set activities_list = grouped_activities.get((curriculum, language), []) %}
+            {% if activities_list %}
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>

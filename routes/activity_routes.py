@@ -73,6 +73,7 @@ def list_activities(grade=10):
             CodingActivity.language,
             CodingActivity.sequence
         ).all()
+        logger.info(f"Found {len(activities)} activities for curriculum {curriculum}")
         logger.info(f"Database query time: {time.time() - query_start:.2f}s")
 
         # Process results in memory to avoid additional queries
