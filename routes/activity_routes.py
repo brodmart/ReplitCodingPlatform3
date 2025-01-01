@@ -1,18 +1,40 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
-from models import CodingActivity, StudentProgress, CodeSubmission # Added CodeSubmission import
-from database import db, transaction_context # Added transaction_context import
+from models import CodingActivity, StudentProgress, CodeSubmission
+from database import db, transaction_context
 from datetime import datetime
 from extensions import limiter, cache
-from compiler_service import compile_and_run
+from compiler_service import compile_and_run, CompilerError, ExecutionError
 import logging
 import json
+from typing import Optional, Dict, Any
 
 activities = Blueprint('activities', __name__)
 logger = logging.getLogger(__name__)
 
+def validate_activity_metadata(activity_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Validate and load activity metadata with proper error handling.
+    """
+    try:
+        with open(f'activity/{activity_id}.json') as f:
+            data = json.load(f)
+            if not isinstance(data.get('common_errors'), list):
+                logger.warning(f"Invalid metadata format for activity {activity_id}")
+                return None
+            return data
+    except FileNotFoundError:
+        logger.info(f"No metadata file found for activity {activity_id}")
+        return None
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in metadata file for activity {activity_id}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Error loading activity metadata for {activity_id}: {e}")
+        return None
+
 def save_code_submission(student_id: int, code: str, language: str, 
-                        success: bool, output: str = None, error: str = None) -> CodeSubmission:
+                        success: bool, output: str = '', error: Optional[str] = None) -> CodeSubmission:
     """
     Save a code submission with proper error handling and transaction management.
     """
@@ -44,7 +66,9 @@ def get_or_create_progress(student_id: int, activity_id: int) -> StudentProgress
             progress = StudentProgress(
                 student_id=student_id,
                 activity_id=activity_id,
-                started_at=datetime.utcnow()
+                started_at=datetime.utcnow(),
+                attempts=0,
+                completed=False
             )
             db.session.add(progress)
 
@@ -53,10 +77,11 @@ def get_or_create_progress(student_id: int, activity_id: int) -> StudentProgress
 @activities.before_request
 @limiter.limit("60 per minute")
 def limit_activities():
+    """Rate limit all activity routes"""
     pass
 
 @activities.route('/activities')
-@cache.memoize(timeout=300)  # Cache for 5 minutes
+@cache.memoize(timeout=300)
 def list_activities():
     """
     List all coding activities, grouped by curriculum and language.
@@ -69,7 +94,6 @@ def list_activities():
             CodingActivity.sequence
         ).all()
 
-        # Group activities by curriculum and language
         grouped_activities = {}
         for activity in activities:
             key = (activity.curriculum, activity.language)
@@ -77,32 +101,34 @@ def list_activities():
                 grouped_activities[key] = []
             grouped_activities[key].append(activity)
 
-        # Get student progress if logged in
         progress = {}
         curriculum_progress = {}
 
         if current_user.is_authenticated:
-            # Get all progress entries
-            student_progress = StudentProgress.query.filter_by(student_id=current_user.id).all()
-            progress = {p.activity_id: p for p in student_progress}
+            with transaction_context():
+                student_progress = StudentProgress.query.filter_by(
+                    student_id=current_user.id
+                ).all()
+                progress = {p.activity_id: p for p in student_progress}
 
-            # Calculate curriculum progress
-            for curriculum in ['TEJ2O', 'ICS3U']:
-                curriculum_activities = CodingActivity.query.filter_by(curriculum=curriculum).all()
-                total = len(curriculum_activities)
+                for curriculum in ['TEJ2O', 'ICS3U']:
+                    curriculum_activities = CodingActivity.query.filter_by(
+                        curriculum=curriculum
+                    ).all()
+                    total = len(curriculum_activities)
 
-                if total > 0:
-                    completed = StudentProgress.query.filter(
-                        StudentProgress.student_id == current_user.id,
-                        StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
-                        StudentProgress.completed == True
-                    ).count()
+                    if total > 0:
+                        completed = StudentProgress.query.filter(
+                            StudentProgress.student_id == current_user.id,
+                            StudentProgress.activity_id.in_([a.id for a in curriculum_activities]),
+                            StudentProgress.completed == True
+                        ).count()
 
-                    curriculum_progress[curriculum] = {
-                        'completed': completed,
-                        'total': total,
-                        'percentage': (completed / total * 100)
-                    }
+                        curriculum_progress[curriculum] = {
+                            'completed': completed,
+                            'total': total,
+                            'percentage': (completed / total * 100)
+                        }
 
         return render_template(
             'activities.html',
@@ -110,35 +136,35 @@ def list_activities():
             progress=progress,
             curriculum_progress=curriculum_progress
         )
+
     except Exception as e:
-        logging.error(f"Error in list_activities: {str(e)}")
+        logger.error(f"Error in list_activities: {str(e)}")
         flash("Une erreur s'est produite lors du chargement des activités.", "error")
         return render_template('errors/500.html'), 500
 
 @activities.route('/activity/<int:activity_id>')
-def view_activity(activity_id):
+def view_activity(activity_id: int):
     """
     View a specific coding activity with student progress tracking.
     Handles loading activity metadata and user progress.
     """
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
+        metadata = validate_activity_metadata(activity_id)
 
-        # Load activity metadata
-        activity.common_errors = load_activity_metadata(activity_id)
+        if metadata:
+            activity.common_errors = metadata.get('common_errors', [])
+        else:
+            activity.common_errors = []
 
-        # Get or initialize progress
         progress = None
         initial_code = activity.starter_code
 
         if current_user.is_authenticated:
             progress = get_or_create_progress(current_user.id, activity_id)
-
-            # Use last submission if available
             if progress and progress.last_submission:
                 initial_code = progress.last_submission
 
-        # Ensure initial code is never None
         initial_code = initial_code or ''
 
         return render_template(
@@ -148,14 +174,13 @@ def view_activity(activity_id):
             initial_code=initial_code
         )
     except Exception as e:
-        db.session.rollback()
-        logging.error(f"Error in view_activity: {str(e)}")
+        logger.error(f"Error in view_activity: {str(e)}")
         return render_template('errors/500.html'), 500
 
 @activities.route('/activity/<int:activity_id>/submit', methods=['POST'])
 @login_required
 @limiter.limit("30 per minute")
-def submit_activity(activity_id):
+def submit_activity(activity_id: int):
     """
     Handle activity submission and testing with proper error handling
     and transaction management.
@@ -170,15 +195,11 @@ def submit_activity(activity_id):
         if not code:
             return jsonify({'error': 'Code submission cannot be empty'}), 400
 
-        # Get or create progress with transaction handling
         progress = get_or_create_progress(current_user.id, activity_id)
-
-        # Execute code against test cases
         all_tests_passed = True
         test_results = []
 
         try:
-            # Run tests and save submission
             for test_case in activity.test_cases:
                 result = compile_and_run(
                     code=code,
@@ -202,7 +223,7 @@ def submit_activity(activity_id):
                 if not test_passed:
                     all_tests_passed = False
 
-            # Save submission with transaction handling
+            # Save submission
             save_code_submission(
                 student_id=current_user.id,
                 code=code,
@@ -212,7 +233,7 @@ def submit_activity(activity_id):
                 error=None if all_tests_passed else "Some tests failed"
             )
 
-            # Update progress with transaction handling
+            # Update progress
             with transaction_context():
                 progress.attempts += 1
                 progress.last_submission = code
@@ -233,6 +254,10 @@ def submit_activity(activity_id):
                 'attempts': progress.attempts
             })
 
+        except (CompilerError, ExecutionError) as e:
+            logger.warning(f"Code execution error: {str(e)}")
+            return jsonify({'error': str(e)}), 400
+
         except Exception as e:
             logger.error(f"Error executing code: {str(e)}")
             return jsonify({'error': 'Error executing code'}), 500
@@ -240,23 +265,3 @@ def submit_activity(activity_id):
     except Exception as e:
         logger.error(f"Error in submit_activity: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
-
-def load_activity_metadata(activity_id: int) -> tuple[dict, dict]:
-    """
-    Load and parse hints and common errors for an activity.
-    Returns a tuple of (hints, common_errors)
-    """
-    try:
-        # Load common errors from JSON file if exists
-        common_errors = []
-        try:
-            with open(f'activity/{activity_id}.json') as f:
-                data = json.load(f)
-                common_errors = data.get('common_errors', [])
-        except (FileNotFoundError, json.JSONDecodeError):
-            pass
-
-        return common_errors
-    except Exception as e:
-        logging.error(f"Error loading activity metadata: {str(e)}")
-        return []
