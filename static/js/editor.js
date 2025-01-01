@@ -87,15 +87,26 @@ function setupRunButton() {
             const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
             const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
 
+            // Get CSRF token
+            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify({ code, language })
+                body: JSON.stringify({ code, language }),
+                credentials: 'same-origin'
             });
 
-            const data = await response.json();
+            let data;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                data = await response.json();
+            } else {
+                throw new Error('Server returned non-JSON response');
+            }
 
             if (!response.ok) {
                 throw new Error(data.error || 'Error executing code');

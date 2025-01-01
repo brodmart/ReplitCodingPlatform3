@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, jsonify, session, g, flash
 from flask_cors import CORS
 from database import init_db, db
 from extensions import init_extensions
+from flask_wtf.csrf import CSRFProtect
 
 # Configure logging
 logging.basicConfig(
@@ -18,13 +19,15 @@ logger = logging.getLogger(__name__)
 def create_app():
     """Application factory pattern"""
     app = Flask(__name__)
+    csrf = CSRFProtect()
+    csrf.init_app(app)
 
     # Enable CORS properly
     CORS(app, resources={
         r"/*": {
             "origins": "*",
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"]
+            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "X-CSRFToken"]
         }
     })
 
@@ -36,18 +39,16 @@ def create_app():
         SESSION_COOKIE_SECURE=False,  # Allow non-HTTPS for development
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
-        WTF_CSRF_ENABLED=False,  # Disable CSRF temporarily for development
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
         SERVER_NAME=None,
         SEND_FILE_MAX_AGE_DEFAULT=0  # Disable caching for development
     )
 
-    # Allow requests from all origins during development
     @app.after_request
     def after_request(response):
         response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, X-CSRFToken')
         response.headers.add('Access-Control-Allow-Methods', '*')
         response.headers.add('Access-Control-Allow-Credentials', 'true')
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -81,12 +82,16 @@ def register_error_handlers(app):
 
     @app.errorhandler(404)
     def not_found_error(error):
+        if request.is_json:
+            return jsonify({'error': 'Not found'}), 404
         return render_template('errors/404.html'), 404
 
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
         logger.error(f"Internal server error: {str(error)}")
+        if request.is_json:
+            return jsonify({'error': 'Internal server error'}), 500
         return render_template('errors/500.html'), 500
 
 # Create the application instance
