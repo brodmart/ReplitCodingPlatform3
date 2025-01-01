@@ -26,6 +26,10 @@ login_manager.login_view = 'login'
 
 # Import models after db initialization
 from models import Student, CodeSubmission
+from routes.auth_routes import auth
+
+# Register blueprints
+app.register_blueprint(auth)
 
 @login_manager.user_loader
 def load_user(id):
