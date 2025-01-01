@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Code execution with improved error handling and timeouts
+        // Code execution with improved error handling
         const runButton = document.getElementById('runButton');
         if (runButton) {
             runButton.addEventListener('click', async function() {
@@ -53,22 +53,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const code = editor.getValue();
                 const language = languageSelect ? languageSelect.value : 'cpp';
 
-                // Clear previous output and show loading
-                loadingOverlay?.classList.add('show');
-                outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
+                if (!code.trim()) {
+                    outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
+                    return;
+                }
 
-                // Set up timeout for loading message
-                const loadingTimeout = setTimeout(() => {
-                    if (loadingOverlay?.classList.contains('show')) {
-                        loadingOverlay.classList.remove('show');
-                        outputDiv.innerHTML = '<div class="error">L\'exécution a pris trop de temps. Veuillez réessayer.</div>';
-                    }
-                }, 15000);
+                // Clear previous output
+                outputDiv.innerHTML = '<div class="text-muted">Exécution en cours...</div>';
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'flex';
+                }
 
                 try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
                     // Get the activity ID from the URL if we're on an activity page
                     const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
                     const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
@@ -78,11 +74,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ code, language }),
-                        signal: controller.signal
+                        body: JSON.stringify({ code, language })
                     });
 
-                    clearTimeout(timeoutId);
                     const data = await response.json();
 
                     if (!response.ok) {
@@ -92,7 +86,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.error) {
                         outputDiv.innerHTML = `<pre class="error">${data.error}</pre>`;
                     } else if (data.test_results) {
-                        // Handle activity submission results
                         const resultsHtml = data.test_results.map(result => `
                             <div class="test-result ${result.passed ? 'passed' : 'failed'}">
                                 <h5 class="mb-2">
@@ -113,24 +106,29 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('Error:', error);
                     outputDiv.innerHTML = `<pre class="error">${error.message || 'Error executing code'}</pre>`;
                 } finally {
-                    // Clean up timeouts and loading state
-                    clearTimeout(loadingTimeout);
-                    loadingOverlay?.classList.remove('show');
+                    // Always hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
                 }
             });
         }
 
         // Trigger initial setup
         editor.refresh();
-
         console.log('CodeMirror editor initialized successfully');
     } catch (error) {
         console.error('Failed to initialize editor:', error);
-        document.getElementById('editor').style.display = 'none';
-        document.getElementById('output').innerHTML = `
-            <div class="alert alert-danger">
-                Failed to initialize code editor. Please refresh the page or contact support if the issue persists.
-            </div>
-        `;
+        const editorElement = document.getElementById('editor');
+        const outputDiv = document.getElementById('output');
+
+        if (editorElement) editorElement.style.display = 'none';
+        if (outputDiv) {
+            outputDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    Failed to initialize code editor. Please refresh the page or contact support if the issue persists.
+                </div>
+            `;
+        }
     }
 });
