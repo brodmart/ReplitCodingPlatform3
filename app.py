@@ -26,8 +26,21 @@ csrf = CSRFProtect(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"]
+    storage_uri="memory://",  # TODO: Replace with Redis in production
+    storage_options={},
+    default_limits=["200 per day", "50 per hour"],
+    headers_enabled=True
 )
+
+# Register error handlers
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('errors/404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('errors/500.html'), 500
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
