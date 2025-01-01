@@ -81,6 +81,7 @@ def limit_activities():
     pass
 
 @activities.route('/activities')
+@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)
 def list_activities():
     """
     List all coding activities, grouped by curriculum and language.

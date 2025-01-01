@@ -37,15 +37,18 @@ def create_app():
 
     # Security configurations with relaxed settings for development
     app.config.update(
-        SESSION_COOKIE_SECURE=False,  # Allow non-HTTPS for development
+        SESSION_COOKIE_SECURE=False,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
         SERVER_NAME=None,
-        SEND_FILE_MAX_AGE_DEFAULT=3600,  # Cache static files for 1 hour
+        SEND_FILE_MAX_AGE_DEFAULT=86400,  # Cache static files for 24 hours
         STATIC_FOLDER='static',
-        STATIC_URL_PATH='/static'
+        STATIC_URL_PATH='/static',
+        COMPRESS_MIMETYPES=['text/html', 'text/css', 'text/javascript', 'application/javascript'],
+        COMPRESS_LEVEL=6,
+        COMPRESS_MIN_SIZE=500
     )
 
     @app.after_request

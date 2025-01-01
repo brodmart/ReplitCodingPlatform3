@@ -61,8 +61,13 @@ class PerformanceMiddleware:
 def init_extensions(app):
     """Initialize all Flask extensions with proper error handling"""
     try:
-        # Initialize caching
-        cache.init_app(app, config={'CACHE_TYPE': 'simple'})
+        # Initialize caching with optimized settings
+        cache_config = {
+            'CACHE_TYPE': 'simple',
+            'CACHE_DEFAULT_TIMEOUT': 300,
+            'CACHE_THRESHOLD': 1000
+        }
+        cache.init_app(app, config=cache_config)
 
         # Initialize compression
         compress.init_app(app)
