@@ -53,7 +53,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<!-- Load editor.js after ensuring CodeMirror is available -->
+<script src="{{ url_for('static', filename='js/editor.js') }}" defer></script>
 {% endblock %}
