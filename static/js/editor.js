@@ -19,47 +19,29 @@ class Program {
 
 let editor = null;
 
-function initializeEditor(initialLanguage) {
-    console.log('Initializing editor with language:', initialLanguage);
-    const editorElement = document.getElementById('editor');
-
-    if (!editorElement) {
-        console.error('Editor element not found');
-        return;
-    }
-
-    // Initialize CodeMirror
-    editor = CodeMirror.fromTextArea(editorElement, {
-        mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
-        theme: 'dracula',
-        lineNumbers: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        indentUnit: 4,
-        tabSize: 4,
-        indentWithTabs: true,
-        lineWrapping: true
-    });
-
-    // Set initial template
-    const initialTemplate = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-    console.log('Setting initial template for:', initialLanguage);
-    editor.setValue(initialTemplate);
-
-    // Force refresh to ensure proper rendering
-    setTimeout(() => {
-        editor.refresh();
-    }, 100);
-
-    return editor;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize Monaco Editor
+require(['vs/editor/editor.main'], function() {
     const languageSelect = document.getElementById('languageSelect');
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
 
-    console.log('DOM loaded, initializing with language:', initialLanguage);
-    editor = initializeEditor(initialLanguage);
+    console.log('Initializing Monaco Editor with language:', initialLanguage);
+
+    // Create editor instance
+    editor = monaco.editor.create(document.getElementById('editor'), {
+        value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate,
+        language: initialLanguage === 'cpp' ? 'cpp' : 'csharp',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: {
+            enabled: false
+        },
+        fontSize: 14,
+        lineNumbers: 'on',
+        roundedSelection: false,
+        scrollBeyondLastLine: false,
+        readOnly: false,
+        cursorStyle: 'line'
+    });
 
     // Language switching handler
     if (languageSelect) {
@@ -68,17 +50,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Language changed to:', selectedLanguage);
 
             if (editor) {
-                const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
                 const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-
-                editor.setOption('mode', mode);
-                editor.setValue(template);
-
-                // Force refresh to ensure proper rendering
-                setTimeout(() => {
-                    editor.refresh();
-                }, 100);
-
+                const model = monaco.editor.createModel(template, selectedLanguage === 'cpp' ? 'cpp' : 'csharp');
+                editor.setModel(model);
                 console.log('Template switched for:', selectedLanguage);
             } else {
                 console.error('Editor not initialized');
