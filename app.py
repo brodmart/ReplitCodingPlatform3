@@ -140,16 +140,7 @@ def index():
         logger.error(f"Error rendering index template: {str(e)}")
         return render_template('errors/500.html'), 500
 
-@app.route('/editor')
-@cache.cached(timeout=300)  # Cache for 5 minutes
-def editor():
-    """Render the code editor page"""
-    try:
-        lang = session.get('lang', 'en')
-        return render_template('editor.html', lang=lang)
-    except Exception as e:
-        logger.error(f"Error rendering editor template: {str(e)}")
-        return render_template('errors/500.html'), 500
+
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
