@@ -21,7 +21,7 @@ class Student(UserMixin, db.Model):
     achievements = db.relationship('StudentAchievement', backref='student')
     submissions = db.relationship('CodeSubmission', back_populates='student')
     progress = db.relationship('StudentProgress', backref='student')
-    shared_codes = db.relationship('SharedCode', backref='student')
+    shared_codes = db.relationship('SharedCode', back_populates='student')
 
     @property
     def successful_submissions(self):
@@ -88,7 +88,7 @@ class SharedCode(db.Model):
     is_public = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)
 
-    student = db.relationship('Student', backref=db.backref('shared_codes', lazy=True))
+    student = db.relationship('Student', back_populates='shared_codes')
 
 
 class CodingActivity(db.Model):
