@@ -20,15 +20,10 @@ class Program {
 
 let editor = null;
 
-document.addEventListener('DOMContentLoaded', () => {
-    initializeEditor();
-});
-
-function initializeEditor() {
+document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) return;
 
-    // Initialize editor
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
         theme: 'dracula',
@@ -38,15 +33,16 @@ function initializeEditor() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true,
-        value: cppTemplate // Set initial value here
+        lineWrapping: true
     });
 
-    // Set initial content
-    editor.setValue(cppTemplate);
+    // Set initial template content
+    const languageSelect = document.getElementById('languageSelect');
+    const currentLanguage = languageSelect ? languageSelect.value : 'cpp';
+    const initialTemplate = currentLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+    editor.setValue(initialTemplate);
 
     // Language switching
-    const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const selectedLanguage = this.value;
@@ -54,11 +50,12 @@ function initializeEditor() {
             const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             editor.setOption('mode', mode);
             editor.setValue(template);
+            editor.refresh();
         });
     }
 
     setupRunButton();
-}
+});
 
 function setupRunButton() {
     const runButton = document.getElementById('runButton');
