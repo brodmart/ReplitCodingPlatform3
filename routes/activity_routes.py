@@ -81,16 +81,29 @@ def limit_activities():
     pass
 
 @activities.route('/activities')
-@cache.cached(timeout=300)
 def list_activities():
     """
     List all coding activities, grouped by curriculum and language.
     Includes progress tracking for authenticated users.
     """
     try:
-        activities = CodingActivity.query.options(
-            db.joinedload(CodingActivity.student_progress)
-        ).order_by(
+        cache_key = f'activities_list_{current_user.id if current_user.is_authenticated else "anon"}'
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            return cached_data
+            
+        query = CodingActivity.query
+        if current_user.is_authenticated:
+            query = query.outerjoin(
+                StudentProgress,
+                db.and_(
+                    StudentProgress.activity_id == CodingActivity.id,
+                    StudentProgress.student_id == current_user.id
+                )
+            ).options(db.contains_eager(CodingActivity.student_progress))
+            
+        activities = query.order_by(
             CodingActivity.curriculum,
             CodingActivity.language,
             CodingActivity.sequence
@@ -138,6 +151,9 @@ def list_activities():
             progress=progress,
             curriculum_progress=curriculum_progress
         )
+        
+        cache.set(cache_key, rendered_template, timeout=300)
+        return rendered_template
 
     except Exception as e:
         logger.error(f"Error in list_activities: {str(e)}")
