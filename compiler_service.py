@@ -6,6 +6,7 @@ import signal
 from pathlib import Path
 import re
 from typing import Dict, Any, Optional
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,18 @@ def format_compiler_error(error_text: str) -> Dict[str, Any]:
         'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
     }
 
+@contextmanager
+def create_temp_directory():
+    """Create and clean up temporary directory with proper context management"""
+    temp_dir = tempfile.mkdtemp()
+    try:
+        yield temp_dir
+    finally:
+        try:
+            subprocess.run(['rm', '-rf', temp_dir], check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
+
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with enhanced security and error handling"""
     if language not in ['cpp', 'csharp']:
@@ -102,7 +115,7 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
         raise CompilerError(f"Failed to write source file: {e}")
 
     try:
-        # Compile with extra security flags
+        # Compile
         compile_process = subprocess.run(
             ['g++', '-Wall', '-Wextra', '-Werror', '-fsanitize=address',
              str(source_file), '-o', str(executable)],
@@ -191,14 +204,3 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
     except Exception as e:
         logger.error(f"Compilation/execution error: {str(e)}")
         raise ExecutionError(str(e))
-
-def create_temp_directory():
-    """Create and clean up temporary directory"""
-    temp_dir = tempfile.mkdtemp()
-    try:
-        yield temp_dir
-    finally:
-        try:
-            subprocess.run(['rm', '-rf', temp_dir], check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
