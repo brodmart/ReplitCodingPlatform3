@@ -4,7 +4,21 @@
 <!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<style>
+    .editor-container {
+        height: 500px;
+        margin-bottom: 20px;
+    }
+    .CodeMirror {
+        height: 100% !important;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    }
+    #error-display {
+        color: #dc3545;
+        padding: 10px;
+        display: none;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -12,6 +26,9 @@
     <div class="row">
         <div class="col-12">
             <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
+
+            <!-- Error display -->
+            <div id="error-display" class="alert alert-danger"></div>
 
             <!-- Add CSRF token -->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -41,9 +58,9 @@
                 <div class="card-body">
                     <div id="output" class="console-output">
                         {% if lang == 'fr' %}
-                        La sortie de l'exécution apparaîtra ici
+                        La sortie de l'exécution apparaîtra ici...
                         {% else %}
-                        Execution output will appear here
+                        Execution output will appear here...
                         {% endif %}
                     </div>
                 </div>
@@ -54,10 +71,71 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- CodeMirror Dependencies -->
+<!-- Load scripts in the right order -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 
-<!-- Custom editor initialization -->
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<!-- Initialize editor after ensuring dependencies are loaded -->
+<script>
+    // Templates
+    const cppTemplate = `#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello World!" << endl;
+    return 0;
+}`;
+
+    const csharpTemplate = `using System;
+
+class Program {
+    static void Main(string[] args) {
+        Console.WriteLine("Hello World!");
+    }
+}`;
+
+    // Wait for DOM and CodeMirror to be fully loaded
+    window.addEventListener('load', function() {
+        try {
+            const editorTextArea = document.getElementById('editor');
+            if (!editorTextArea) {
+                throw new Error('Editor textarea not found');
+            }
+
+            // Initialize CodeMirror
+            const editor = CodeMirror.fromTextArea(editorTextArea, {
+                mode: 'text/x-c++src',
+                theme: 'dracula',
+                lineNumbers: true,
+                matchBrackets: true,
+                autoCloseBrackets: true,
+                indentUnit: 4,
+                tabSize: 4,
+                lineWrapping: true
+            });
+
+            // Set initial template
+            editor.setValue(cppTemplate);
+
+            // Handle language switching
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                languageSelect.addEventListener('change', function() {
+                    const lang = this.value;
+                    const mode = lang === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+                    const template = lang === 'cpp' ? cppTemplate : csharpTemplate;
+
+                    editor.setOption('mode', mode);
+                    editor.setValue(template);
+                });
+            }
+
+            console.log('Editor initialized successfully');
+        } catch (error) {
+            console.error('Editor initialization failed:', error);
+            document.getElementById('error-display').style.display = 'block';
+            document.getElementById('error-display').textContent = 'Editor initialization failed: ' + error.message;
+        }
+    });
+</script>
 {% endblock %}
