@@ -67,18 +67,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
                     const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
 
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
                     const response = await fetch(endpoint, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ code, language })
+                        body: JSON.stringify({ code, language }),
+                        signal: controller.signal
                     });
 
+                    clearTimeout(timeoutId);
                     const data = await response.json();
 
                     if (!response.ok) {
-                        throw new Error(data.error || 'Error executing code');
+                        outputDiv.innerHTML = `<pre class="error">${data.error || 'Error executing code'}</pre>`;
+                        return;
                     }
 
                     if (data.error) {
