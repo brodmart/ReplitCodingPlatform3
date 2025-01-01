@@ -70,6 +70,53 @@
         {% block content %}{% endblock %}
     </main>
 
+    <footer class="footer mt-auto py-3 bg-dark text-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5>{% if lang == 'fr' %}Section Juridique{% else %}Legal Section{% endif %}</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('static', filename='terms.html') }}" class="text-light">
+                            {% if lang == 'fr' %}Conditions d'utilisation{% else %}Terms of Service{% endif %}
+                        </a></li>
+                        <li><a href="{{ url_for('static', filename='privacy.html') }}" class="text-light">
+                            {% if lang == 'fr' %}Politique de confidentialité{% else %}Privacy Policy{% endif %}
+                        </a></li>
+                        <li><a href="{{ url_for('static', filename='cookies.html') }}" class="text-light">
+                            {% if lang == 'fr' %}Politique des cookies{% else %}Cookie Policy{% endif %}
+                        </a></li>
+                        <li><a href="{{ url_for('static', filename='accessibility.html') }}" class="text-light">
+                            {% if lang == 'fr' %}Déclaration d'accessibilité{% else %}Accessibility Statement{% endif %}
+                        </a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5>{% if lang == 'fr' %}Informations{% else %}Information{% endif %}</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{{ url_for('static', filename='about.html') }}" class="text-light">
+                            {% if lang == 'fr' %}À propos de nous{% else %}About Us{% endif %}
+                        </a></li>
+                        <li><a href="{{ url_for('static', filename='contact.html') }}" class="text-light">
+                            {% if lang == 'fr' %}Contactez-nous{% else %}Contact Us{% endif %}
+                        </a></li>
+                        <li><a href="{{ url_for('static', filename='faq.html') }}" class="text-light">
+                            {% if lang == 'fr' %}FAQ/Aide{% else %}FAQ/Help{% endif %}
+                        </a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <p class="small text-muted">
+                        {% if lang == 'fr' %}
+                        © 2025 Plateforme d'Apprentissage. Tous droits réservés.
+                        {% else %}
+                        © 2025 Learning Platform. All rights reserved.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
     <!-- Load CodeMirror first -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
