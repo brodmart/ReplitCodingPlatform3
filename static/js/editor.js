@@ -1,6 +1,10 @@
 // Editor initialization
 let editor = null;
 
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEditor();
+});
+
 function initializeEditor() {
     try {
         const editorElement = document.getElementById('editor');
@@ -18,28 +22,17 @@ function initializeEditor() {
             autoCloseBrackets: true,
             indentUnit: 4,
             tabSize: 4,
-            viewportMargin: Infinity,
+            indentWithTabs: true,
             lineWrapping: true,
-            foldGutter: true,
-            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            viewportMargin: Infinity,
             extraKeys: {
-                "Ctrl-Space": "autocomplete",
-                "F11": function(cm) {
-                    cm.setOption("fullScreen", !cm.getOption("fullScreen"));
-                },
-                "Esc": function(cm) {
-                    if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
-                },
-                "Ctrl-F": "find",
-                "Cmd-F": "find"
-            },
-            styleActiveLine: true,
-            autoCloseTags: true,
-            highlightSelectionMatches: {showToken: /\w/, annotateScrollbar: true}
+                "Tab": "indentMore",
+                "Shift-Tab": "indentLess"
+            }
         });
 
-        // Set initial value if provided
-        const initialValue = editorElement.dataset.initialValue;
+        // Set initial value from textarea
+        const initialValue = editorElement.value;
         if (initialValue) {
             editor.setValue(initialValue);
         }
@@ -54,6 +47,7 @@ function initializeEditor() {
         }
 
         setupRunButton();
+        editor.refresh();
         console.log('Editor initialized successfully');
     } catch (error) {
         console.error('Editor initialization failed:', error);
@@ -78,7 +72,7 @@ function setupRunButton() {
         }
 
         const code = editor.getValue();
-        const language = document.querySelector('#languageSelect')?.value || 'cpp';
+        const language = document.getElementById('languageSelect')?.value || 'cpp';
 
         if (!code.trim()) {
             outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
@@ -91,7 +85,7 @@ function setupRunButton() {
 
         try {
             const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
-            const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
+            const endpoint = activityId ? `/activity/${activityId}/submit` : '/execute';
 
             const response = await fetch(endpoint, {
                 method: 'POST',
@@ -140,7 +134,9 @@ function handleEditorError() {
     const editorElement = document.getElementById('editor');
     const outputDiv = document.getElementById('output');
 
-    if (editorElement) editorElement.style.display = 'none';
+    if (editorElement) {
+        editorElement.style.display = 'none';
+    }
     if (outputDiv) {
         outputDiv.innerHTML = `
             <div class="alert alert-danger">
@@ -149,6 +145,3 @@ function handleEditorError() {
         `;
     }
 }
-
-// Initialize editor when document is ready
-document.addEventListener('DOMContentLoaded', initializeEditor);
