@@ -213,7 +213,14 @@ def extend_session():
         logger.error(f"Error extending session: {str(e)}")
         return jsonify({'error': 'Failed to extend session'}), 500
 
+@app.route('/editor')
+def editor():
+    """Render the code editor page"""
+    # Get language preference from session or default to English
+    lang = session.get('lang', 'en')
+    return render_template('editor.html', lang=lang)
+
 if __name__ == '__main__':
-    port = 3000
+    port = 5000
     logger.info(f"Starting Flask server on port {port}")
     app.run(host='0.0.0.0', port=port)

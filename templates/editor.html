@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block head %}
+<!-- CodeMirror CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.css">
+
+<!-- Custom editor styles -->
+<style>
+    .CodeMirror {
+        height: auto;
+        min-height: 300px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+    #output {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        min-height: 100px;
+        background-color: #f8f9fa;
+    }
+    .error {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
+    
+    <div class="row mb-3">
+        <div class="col">
+            <select id="languageSelect" class="form-select">
+                <option value="cpp">C++</option>
+                <option value="csharp">C#</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button id="runButton" class="btn btn-primary">
+                {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <textarea id="editor">// {% if lang == 'fr' %}Écrivez votre code ici{% else %}Write your code here{% endif %}</textarea>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <div id="output">
+                <div class="text-muted">
+                    {% if lang == 'fr' %}
+                    Résultat de l'exécution apparaîtra ici
+                    {% else %}
+                    Execution output will appear here
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- CodeMirror core -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+
+<!-- Language modes -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+
+<!-- CodeMirror addons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.min.js"></script>
+
+<!-- Custom editor initialization -->
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+{% endblock %}

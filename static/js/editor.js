@@ -1,6 +1,5 @@
-
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize CodeMirror only
+    // Initialize CodeMirror with enhanced features
     const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         mode: 'text/x-c++src',
         theme: 'dracula',
@@ -10,7 +9,21 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         viewportMargin: Infinity,
-        lineWrapping: true
+        lineWrapping: true,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        extraKeys: {
+            "Ctrl-Space": "autocomplete",
+            "F11": function(cm) {
+                cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+            },
+            "Esc": function(cm) {
+                if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+            }
+        },
+        styleActiveLine: true,
+        autoCloseTags: true,
+        highlightSelectionMatches: {showToken: /\w/, annotateScrollbar: true}
     });
 
     // Language switching
@@ -29,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const code = editor.getValue();
             const language = languageSelect ? languageSelect.value : 'cpp';
             const outputDiv = document.getElementById('output');
-            
+
             outputDiv.innerHTML = '<div class="text-muted">Executing code...</div>';
 
             fetch('/execute', {
@@ -53,4 +66,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Trigger initial setup
+    editor.refresh();
 });
