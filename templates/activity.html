@@ -136,6 +136,9 @@
 
 {% block content %}
 <div class="container-fluid pb-4">
+    <!-- Add CSRF token here -->
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
     <div class="row">
         <div class="col-12">
             <div class="card mb-4">

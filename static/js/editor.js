@@ -87,8 +87,12 @@ function setupRunButton() {
             const activityId = window.location.pathname.match(/\/activity\/(\d+)/)?.[1];
             const endpoint = activityId ? `/activities/activity/${activityId}/submit` : '/execute';
 
-            // Get CSRF token
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+            // Get CSRF token with error handling
+            const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
+            if (!csrfTokenElement) {
+                throw new Error('CSRF token not found. Please refresh the page.');
+            }
+            const csrfToken = csrfTokenElement.value;
 
             const response = await fetch(endpoint, {
                 method: 'POST',
