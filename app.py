@@ -8,6 +8,7 @@ from flask_cors import CORS
 from database import init_db, db
 from extensions import init_extensions
 from flask_wtf.csrf import CSRFProtect
+from extensions import cache
 
 # Configure logging
 logging.basicConfig(
