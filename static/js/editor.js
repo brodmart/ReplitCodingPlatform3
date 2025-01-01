@@ -1,4 +1,3 @@
-
 // Templates
 const cppTemplate = `#include <iostream>
 #include <string>
@@ -18,6 +17,8 @@ class Program {
     }
 }`;
 
+let editor; // Declare editor globally so it can be accessed by event handlers
+
 document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
@@ -28,11 +29,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Set initial content to textarea
-    editorElement.value = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-
     // Initialize CodeMirror
-    const editor = CodeMirror.fromTextArea(editorElement, {
+    editor = CodeMirror.fromTextArea(editorElement, {
         mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
         theme: 'dracula',
         lineNumbers: true,
@@ -41,9 +39,12 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true
+        lineWrapping: true,
+        value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate // Set initial content
     });
 
+    // Set initial content explicitly
+    editor.setValue(initialLanguage === 'cpp' ? cppTemplate : csharpTemplate);
     editor.refresh();
 
     // Language switching handler
@@ -52,10 +53,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedLanguage = this.value;
             const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
             const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
-            
+
             editor.setOption('mode', mode);
             editor.setValue(template);
             editor.refresh();
+            console.log('Language switched to:', selectedLanguage); // Debug log
         });
     }
 
