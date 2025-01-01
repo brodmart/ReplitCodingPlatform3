@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
-            editor.setOption('mode', this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+            const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            editor.setOption('mode', mode);
         });
     }
 
