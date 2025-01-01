@@ -33,38 +33,40 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
 
-    <div class="row mb-3">
-        <div class="col">
-            <select id="languageSelect" class="form-select">
-                <option value="cpp">C++</option>
-                <option value="csharp">C#</option>
-            </select>
+        <div class="row mb-3">
+            <div class="col">
+                <select id="languageSelect" class="form-select">
+                    <option value="cpp">C++</option>
+                    <option value="csharp">C#</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button id="runButton" class="btn btn-primary">
+                    {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+                </button>
+            </div>
         </div>
-        <div class="col-auto">
-            <button id="runButton" class="btn btn-primary">
-                {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-            </button>
-        </div>
-    </div>
 
-    <div class="row">
-        <div class="col-12">
-            <textarea id="editor">// {% if lang == 'fr' %}Écrivez votre code ici{% else %}Write your code here{% endif %}</textarea>
+        <div class="row">
+            <div class="col-12">
+                <textarea id="editor">// {% if lang == 'fr' %}Écrivez votre code ici{% else %}Write your code here{% endif %}</textarea>
+            </div>
         </div>
-    </div>
 
-    <div class="row mt-3">
-        <div class="col-12">
-            <div id="output">
-                <div class="text-muted">
-                    {% if lang == 'fr' %}
-                    Résultat de l'exécution apparaîtra ici
-                    {% else %}
-                    Execution output will appear here
-                    {% endif %}
+        <div class="row mt-3">
+            <div class="col-12">
+                <div id="output">
+                    <div class="text-muted">
+                        {% if lang == 'fr' %}
+                        Résultat de l'exécution apparaîtra ici
+                        {% else %}
+                        Execution output will appear here
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
