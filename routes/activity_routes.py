@@ -22,7 +22,7 @@ def limit_activities():
 
 @activities.route('/activities')
 @activities.route('/activities/<int:grade>')
-@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)
+@cache.cached(timeout=300, unless=lambda: True)  # Disable caching temporarily
 def list_activities(grade=10):
     """
     List all coding activities, grouped by curriculum and language.

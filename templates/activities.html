@@ -49,7 +49,7 @@
         {% for language in languages %}
             {% set activities = grouped_activities.get((curriculum, language), []) %}
             {% if activities %}
-                <div class="card mb-4">-4">
+                <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>
                         {% if current_user.is_authenticated %}
