@@ -20,8 +20,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
 
 # Initialize extensions
-with app.app_context():
-    init_db(app)  # Initialize database with configuration
+init_db(app)  # Initialize database with configuration
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
 csrf = CSRFProtect(app)
 limiter = Limiter(
