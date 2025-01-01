@@ -40,11 +40,12 @@
 
     {% if grade == 11 %}
         {% set curricula = ['ICS3U'] %}
-        {% set languages = ['csharp'] %}
+        {% set languages = ['cpp', 'csharp'] %}  {# Allow both C++ and C# for Grade 11 #}
     {% else %}
         {% set curricula = ['TEJ2O'] %}
         {% set languages = ['cpp', 'csharp'] %}
     {% endif %}
+
     {% for curriculum in curricula %}
         {% for language in languages %}
             {% set activities = grouped_activities.get((curriculum, language), []) %}
