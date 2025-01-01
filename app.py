@@ -3,7 +3,7 @@ import logging
 import secrets
 import time
 from datetime import datetime
-from flask import Flask, render_template, request, jsonify, session, g
+from flask import Flask, render_template, request, jsonify, session, g, flash
 from database import init_db, db
 from extensions import init_extensions
 
@@ -19,7 +19,7 @@ def create_app():
     app = Flask(__name__)
 
     # Configure secret key
-    app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY", os.urandom(24))
+    app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
 
     # Security configurations
     app.config.update(
@@ -63,6 +63,7 @@ def register_error_handlers(app):
     @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
+        logger.error(f"Internal server error: {str(error)}")
         return render_template('errors/500.html'), 500
 
 # Create the application instance
@@ -91,50 +92,29 @@ def after_request(response):
     })
     return response
 
-@app.teardown_appcontext
-def shutdown_session(exception=None):
-    """Properly remove database session"""
-    db.session.remove()
-
 @app.route('/')
 def index():
-    return render_template('index.html')
+    try:
+        lang = session.get('lang', 'en')
+        return render_template('index.html', lang=lang)
+    except Exception as e:
+        logger.error(f"Error rendering index template: {str(e)}")
+        return render_template('errors/500.html'), 500
 
 @app.route('/editor')
 def editor():
     """Render the code editor page"""
-    lang = session.get('lang', 'en')
-    return render_template('editor.html', lang=lang)
-
-@app.route('/execute', methods=['POST'])
-def execute_code():
-    """Execute code and return the result"""
-    if not request.is_json:
-        return jsonify({'error': 'Invalid request format'}), 400
-
     try:
-        data = request.get_json()
-        code = data.get('code', '').strip()
-        language = data.get('language', '').lower()
-
-        if not code or not language:
-            return jsonify({'error': 'Missing code or language parameter'}), 400
-
-        if language not in ['cpp', 'csharp']:
-            return jsonify({'error': 'Unsupported language'}), 400
-
-        # Use parameterized function call
-        from compiler_service import compile_and_run
-        result = compile_and_run(code=code, language=language)
-        return jsonify(result)
-
+        lang = session.get('lang', 'en')
+        return render_template('editor.html', lang=lang)
     except Exception as e:
-        error_id = secrets.token_hex(8)
-        logger.error(f"Execution error {error_id}: {str(e)}")
-        return jsonify({
-            'error': 'An unexpected error occurred during execution',
-            'error_id': error_id
-        }), 500
+        logger.error(f"Error rendering editor template: {str(e)}")
+        return render_template('errors/500.html'), 500
+
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    """Properly remove database session"""
+    db.session.remove()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

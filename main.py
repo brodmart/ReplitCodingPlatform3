@@ -1,7 +1,6 @@
 import os
 import logging
 from app import app, logger
-from flask import Flask
 from database import init_db
 from extensions import init_extensions
 
@@ -14,20 +13,7 @@ logging.basicConfig(
 def init_app():
     """Initialize the application"""
     try:
-        # Initialize database
-        init_db(app)
-
-        # Initialize extensions
-        init_extensions(app)
-
-        # Import and register blueprints
-        from routes.auth import auth_blueprint
-        from routes.activities import activities_blueprint
-
-        app.register_blueprint(auth_blueprint)
-        app.register_blueprint(activities_blueprint)
-
-        # Import models and create tables
+        # Import models to ensure tables are created
         with app.app_context():
             from models import db
             db.create_all()
