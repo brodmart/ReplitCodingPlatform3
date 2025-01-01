@@ -1,7 +1,6 @@
-
-from database import db
 from datetime import datetime
 from flask_login import UserMixin
+from database import db
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
@@ -13,16 +12,16 @@ class Student(UserMixin, db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256))
-    
+
     # Student progress tracking
     score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
-    achievements = db.relationship('StudentAchievement', back_populates='student')
-    submissions = db.relationship('CodeSubmission', back_populates='student')
-    progress = db.relationship('StudentProgress', back_populates='student')
-    shared_codes = db.relationship('SharedCode', back_populates='student')
+    achievements = db.relationship('StudentAchievement', backref=db.backref('student', lazy=True))
+    submissions = db.relationship('CodeSubmission', backref=db.backref('student', lazy=True))
+    progress = db.relationship('StudentProgress', backref=db.backref('student', lazy=True))
+    shared_codes = db.relationship('SharedCode', backref=db.backref('student', lazy=True))
 
     @property
     def successful_submissions(self):
@@ -40,6 +39,7 @@ class Student(UserMixin, db.Model):
             ~CodingActivity.id.in_(completed_activities)
         ).order_by(CodingActivity.sequence).first()
 
+
 class Achievement(db.Model):
     """Achievement model for tracking student accomplishments"""
     id = db.Column(db.Integer, primary_key=True)
@@ -50,8 +50,9 @@ class Achievement(db.Model):
     points = db.Column(db.Integer, default=10)
     category = db.Column(db.String(50), nullable=False, default='beginner')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    student_achievements = db.relationship('StudentAchievement', back_populates='achievement')
+
+    student_achievements = db.relationship('StudentAchievement', backref=db.backref('achievement', lazy=True))
+
 
 class StudentAchievement(db.Model):
     """Junction model linking students with their achievements"""
@@ -59,9 +60,10 @@ class StudentAchievement(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False)
     earned_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    student = db.relationship('Student', back_populates='achievements')
-    achievement = db.relationship('Achievement', back_populates='student_achievements')
+
+    student = db.relationship('Student', backref=db.backref('achievements', lazy=True))
+    achievement = db.relationship('Achievement', backref=db.backref('student_achievements', lazy=True))
+
 
 class CodeSubmission(db.Model):
     """Model for storing student code submissions"""
@@ -73,8 +75,9 @@ class CodeSubmission(db.Model):
     output = db.Column(db.Text)
     error = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    student = db.relationship('Student', back_populates='submissions')
+
+    student = db.relationship('Student', backref=db.backref('submissions', lazy=True))
+
 
 class SharedCode(db.Model):
     """Model for code snippets shared by students"""
@@ -87,8 +90,9 @@ class SharedCode(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_public = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)
-    
-    student = db.relationship('Student', back_populates='shared_codes')
+
+    student = db.relationship('Student', backref=db.backref('shared_codes', lazy=True))
+
 
 class CodingActivity(db.Model):
     """Model for coding exercises and activities"""
@@ -110,8 +114,9 @@ class CodingActivity(db.Model):
     points = db.Column(db.Integer, default=10)
     max_attempts = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    student_progress = db.relationship('StudentProgress', back_populates='activity')
+
+    student_progress = db.relationship('StudentProgress', backref=db.backref('activity', lazy=True))
+
 
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
@@ -123,6 +128,6 @@ class StudentProgress(db.Model):
     completed = db.Column(db.Boolean, default=False)
     attempts = db.Column(db.Integer, default=0)
     last_submission = db.Column(db.Text)
-    
-    student = db.relationship('Student', back_populates='progress')
-    activity = db.relationship('CodingActivity', back_populates='student_progress')
+
+    student = db.relationship('Student', backref=db.backref('progress', lazy=True))
+    activity = db.relationship('CodingActivity', backref=db.backref('student_progress', lazy=True))
