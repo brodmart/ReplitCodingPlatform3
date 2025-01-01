@@ -38,13 +38,11 @@
     </div>
     {% endif %}
 
-    {% set curricula = ['ICS3U'] if grade == 11 else ['TEJ2O'] %}
-    {% set languages = ['csharp'] if grade == 11 else ['cpp', 'csharp'] %}
-    {% for curriculum in curricula %}
-        {% for language in languages %}
+    {% for curriculum in ['ICS3U'] if grade == 11 else ['TEJ2O'] %}
+        {% for language in ['csharp'] if grade == 11 else ['cpp', 'csharp'] %}
             {% set activities = grouped_activities.get((curriculum, language), []) %}
             {% if activities %}
-                <div class="card mb-4">
+                <div class="card mb-4">-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>
                         {% if current_user.is_authenticated %}
