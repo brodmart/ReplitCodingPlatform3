@@ -22,8 +22,8 @@ def limit_activities():
 
 @activities.route('/activities')
 @activities.route('/activities/<int:grade>')
-@cache.cached(timeout=300, unless=lambda: True)  # Disable caching temporarily
-def list_activities(grade=10):
+@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)
+def list_activities(grade=None):
     """
     List all coding activities, grouped by curriculum and language.
     Includes progress tracking for authenticated users.
@@ -72,7 +72,6 @@ def list_activities(grade=10):
             CodingActivity.language,
             CodingActivity.sequence
         ).all()
-        logger.info(f"Found {len(activities)} activities for curriculum {curriculum}")
         logger.info(f"Database query time: {time.time() - query_start:.2f}s")
 
         # Process results in memory to avoid additional queries

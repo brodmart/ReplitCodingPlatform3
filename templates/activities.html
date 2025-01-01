@@ -12,24 +12,22 @@
                 <div class="card-body">
                     {% if curriculum_progress and curriculum_progress|length > 0 %}
                         {% for curriculum, stats in curriculum_progress.items() %}
-                            {% if (grade == 11 and curriculum == 'ICS3U') or (grade == 10 and curriculum == 'TEJ2O') %}
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h5 class="mb-0">{{ curriculum }}</h5>
-                                    <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activités</span>
-                                </div>
-                                <div class="progress" style="height: 20px;">
-                                    <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
-                                         role="progressbar" 
-                                         style="width: {{ stats.percentage }}%"
-                                         aria-valuenow="{{ stats.percentage }}" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="100">
-                                        {{ stats.percentage|round|int }}%
-                                    </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h5 class="mb-0">{{ curriculum }}</h5>
+                                <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activités</span>
+                            </div>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ stats.percentage }}%"
+                                     aria-valuenow="{{ stats.percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ stats.percentage|round|int }}%
                                 </div>
                             </div>
-                            {% endif %}
+                        </div>
                         {% endfor %}
                     {% else %}
                         <p class="text-center mb-0">Commencez à compléter des activités pour suivre votre progression!</p>
@@ -40,12 +38,17 @@
     </div>
     {% endif %}
 
-    {% set curricula = ['TEJ2O', 'ICS3U'] %}
-    {% set languages = ['cpp', 'csharp'] %}
+    {% if grade == 11 %}
+        {% set curricula = ['ICS3U'] %}
+        {% set languages = ['csharp'] %}
+    {% else %}
+        {% set curricula = ['TEJ2O'] %}
+        {% set languages = ['cpp', 'csharp'] %}
+    {% endif %}
     {% for curriculum in curricula %}
         {% for language in languages %}
-            {% set activities_list = grouped_activities.get((curriculum, language), []) %}
-            {% if activities_list %}
+            {% set activities = grouped_activities.get((curriculum, language), []) %}
+            {% if activities %}
                 <div class="card mb-4">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>
