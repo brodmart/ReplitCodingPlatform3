@@ -31,27 +31,83 @@ function initializeEditor() {
         }
     });
 
-    // Default C++ template
+    // Default C++ template with more examples
     const cppTemplate = `#include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
+
+using namespace std;
+
+// Function to demonstrate vectors
+void printVector(const vector<int>& vec) {
+    for(int num : vec) {
+        cout << num << " ";
+    }
+    cout << endl;
+}
 
 int main() {
-    std::cout << "Hello World!" << std::endl;
+    // Basic output
+    cout << "Hello World!" << endl;
+    
+    // Working with vectors
+    vector<int> numbers = {5, 2, 8, 1, 9};
+    cout << "Original vector: ";
+    printVector(numbers);
+    
+    // Sort the vector
+    sort(numbers.begin(), numbers.end());
+    cout << "Sorted vector: ";
+    printVector(numbers);
+    
+    // String manipulation
+    string name;
+    cout << "Enter your name: ";
+    getline(cin, name);
+    cout << "Welcome, " << name << "!" << endl;
+    
     return 0;
 }`;
 
-    // Default C# template
+    // Default C# template with more examples
     const csharpTemplate = `using System;
 using System.Collections.Generic;
+using System.Linq;
 
 class Program {
+    // Function to demonstrate lists
+    static void PrintList(List<int> list) {
+        Console.WriteLine(string.Join(" ", list));
+    }
+    
     static void Main(string[] args) {
+        // Basic output
         Console.WriteLine("Hello World!");
+        
+        // Working with lists
+        List<int> numbers = new List<int> { 5, 2, 8, 1, 9 };
+        Console.Write("Original list: ");
+        PrintList(numbers);
+        
+        // Sort the list
+        numbers.Sort();
+        Console.Write("Sorted list: ");
+        PrintList(numbers);
+        
+        // String manipulation
+        Console.Write("Enter your name: ");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Welcome, {name}!");
+        
+        // LINQ example
+        var evenNumbers = numbers.Where(x => x % 2 == 0).ToList();
+        Console.Write("Even numbers: ");
+        PrintList(evenNumbers);
     }
 }`;
 
-    // Set initial template immediately
+    // Set initial template
     const languageSelect = document.getElementById('languageSelect');
     const currentLanguage = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(currentLanguage === 'cpp' ? cppTemplate : csharpTemplate);
