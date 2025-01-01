@@ -1,18 +1,14 @@
 
-// Default C++ template
+// Templates
 const cppTemplate = `#include <iostream>
 #include <string>
 #include <vector>
-#include <algorithm>
-
-using namespace std;
 
 int main() {
-    cout << "Hello World!" << endl;
+    std::cout << "Hello World!" << std::endl;
     return 0;
 }`;
 
-// Default C# template
 const csharpTemplate = `using System;
 using System.Collections.Generic;
 
@@ -22,21 +18,12 @@ class Program {
     }
 }`;
 
-// Editor initialization
 let editor = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeEditor();
-});
-
-function initializeEditor() {
     const editorElement = document.getElementById('editor');
-    if (!editorElement) {
-        console.error('Editor element not found');
-        return;
-    }
+    if (!editorElement) return;
 
-    // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
         theme: 'dracula',
@@ -46,40 +33,34 @@ function initializeEditor() {
         indentUnit: 4,
         tabSize: 4,
         indentWithTabs: true,
-        lineWrapping: true,
-        viewportMargin: Infinity,
-        extraKeys: {
-            "Tab": "indentMore",
-            "Shift-Tab": "indentLess"
-        }
+        lineWrapping: true
     });
 
     // Set initial template
+    editor.setValue(cppTemplate);
+
+    // Language switching
     const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect && editor) {
-        editor.setValue(languageSelect.value === 'cpp' ? cppTemplate : csharpTemplate);
-        editor.refresh();
-        
-        // Language switching
+    if (languageSelect) {
         languageSelect.addEventListener('change', function() {
-            const mode = this.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const selectedLanguage = this.value;
+            const mode = selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            const template = selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+            
             editor.setOption('mode', mode);
-            editor.setValue(this.value === 'cpp' ? cppTemplate : csharpTemplate);
+            editor.setValue(template);
             editor.refresh();
         });
     }
 
     setupRunButton();
-}
+});
 
 function setupRunButton() {
     const runButton = document.getElementById('runButton');
     const outputDiv = document.getElementById('output');
-
-    if (!runButton || !outputDiv) {
-        console.error('Required elements not found');
-        return;
-    }
+    
+    if (!runButton || !outputDiv) return;
 
     runButton.addEventListener('click', async function() {
         if (!editor) {
@@ -91,32 +72,21 @@ function setupRunButton() {
         const language = document.getElementById('languageSelect')?.value || 'cpp';
 
         if (!code.trim()) {
-            outputDiv.innerHTML = '<div class="error">Code cannot be empty</div>';
+            outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide.</div>';
             return;
         }
 
-        outputDiv.innerHTML = '<div class="text-muted">Executing...</div>';
-
         try {
-            const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
-            if (!csrfTokenElement) {
-                throw new Error('CSRF token not found');
-            }
-            const csrfToken = csrfTokenElement.value;
-
             const response = await fetch('/execute', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content
                 },
-                body: JSON.stringify({ code, language }),
-                credentials: 'same-origin'
+                body: JSON.stringify({ code, language })
             });
 
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Error executing code');
-
             outputDiv.innerHTML = data.error ? 
                 `<pre class="error">${data.error}</pre>` : 
                 `<pre>${data.output || 'No output'}</pre>`;
