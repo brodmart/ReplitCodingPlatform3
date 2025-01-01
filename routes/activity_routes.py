@@ -4,6 +4,7 @@ from models import CodingActivity, StudentProgress
 from database import db
 from datetime import datetime
 from extensions import limiter
+from app import cache
 
 activities = Blueprint('activities', __name__)
 
