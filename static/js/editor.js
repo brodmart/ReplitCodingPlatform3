@@ -31,11 +31,36 @@ function initializeEditor() {
             }
         });
 
-        // Set initial value from textarea
-        const initialValue = editorElement.value;
+        // Template code for different languages
+        const templates = {
+            'cpp': `#include <iostream>
+
+int main() {
+    std::cout << "Hello World!" << std::endl;
+    return 0;
+}`,
+            'csharp': `using System;
+
+class Program {
+    static void Main(string[] args) {
+        Console.WriteLine("Hello World!");
+    }
+}`
+        };
+
+        // Set initial value from textarea or template
+        const initialValue = editorElement.value || templates[languageSelect.value];
         if (initialValue) {
             editor.setValue(initialValue);
         }
+
+        // Update template when language changes
+        languageSelect.addEventListener('change', function() {
+            const currentCode = editor.getValue().trim();
+            if (!currentCode || currentCode === templates['cpp'] || currentCode === templates['csharp']) {
+                editor.setValue(templates[this.value]);
+            }
+        });
 
         // Language switching with proper mode updating
         const languageSelect = document.getElementById('languageSelect');
