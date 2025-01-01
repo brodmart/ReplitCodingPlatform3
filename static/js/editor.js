@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function() {
         lineWrapping: true
     });
 
-    // Handle language switching
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
@@ -20,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle code execution
     const runButton = document.getElementById('runButton');
     if (runButton) {
         runButton.addEventListener('click', function() {
