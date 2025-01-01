@@ -28,8 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Initialize CodeMirror
-    const template = initialLanguage === 'cpp' ? cppTemplate : csharpTemplate;
+    // Initialize CodeMirror with template directly in options
     const editor = CodeMirror.fromTextArea(editorElement, {
         mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
         theme: 'dracula',
@@ -40,10 +39,14 @@ document.addEventListener('DOMContentLoaded', function() {
         tabSize: 4,
         indentWithTabs: true,
         lineWrapping: true,
-        value: template
+        value: initialLanguage === 'cpp' ? cppTemplate : csharpTemplate
     });
-    
-    editor.setValue(template);
+
+    // Ensure template is set after initialization
+    requestAnimationFrame(() => {
+        editor.setValue(initialLanguage === 'cpp' ? cppTemplate : csharpTemplate);
+        editor.refresh();
+    });
 
     // Language switching handler
     if (languageSelect) {
