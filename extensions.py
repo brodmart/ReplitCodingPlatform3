@@ -62,12 +62,17 @@ class PerformanceMiddleware:
 def init_extensions(app):
     """Initialize all Flask extensions with proper error handling"""
     try:
-        # Configure session handling
+        # Configure session handling with strict security settings
         app.config.update(
             SESSION_COOKIE_SECURE=True,
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
-            PERMANENT_SESSION_LIFETIME=timedelta(minutes=60)
+            PERMANENT_SESSION_LIFETIME=timedelta(minutes=60),
+            SESSION_PROTECTION='strong',
+            REMEMBER_COOKIE_SECURE=True,
+            REMEMBER_COOKIE_HTTPONLY=True,
+            REMEMBER_COOKIE_DURATION=timedelta(days=14),
+            REMEMBER_COOKIE_REFRESH_EACH_REQUEST=False
         )
 
         # Initialize caching with optimized settings
@@ -87,10 +92,13 @@ def init_extensions(app):
         # Initialize rate limiting
         limiter.init_app(app)
 
-        # Configure login manager
+        # Configure login manager with strict session protection
         login_manager.init_app(app)
         login_manager.login_view = 'auth.login'
         login_manager.session_protection = 'strong'
+        login_manager.refresh_view = 'auth.login'
+        login_manager.needs_refresh_message = 'Please log in again to confirm your identity'
+        login_manager.needs_refresh_message_category = 'info'
 
         # Initialize database migrations
         migrate.init_app(app)
