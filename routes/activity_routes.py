@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, Response
-from models import CodingActivity, db
+from database import db
+from models import CodingActivity
 from extensions import limiter, cache
 import logging
 from compiler_service import compile_and_run, CompilerError, ExecutionError
@@ -11,12 +12,10 @@ logger = logging.getLogger(__name__)
 def handle_error(error):
     """Global error handler for the blueprint"""
     logger.error(f"Uncaught exception in activities blueprint: {str(error)}", exc_info=True)
-    response = jsonify({
+    return jsonify({
         'success': False,
         'error': "Une erreur inattendue s'est produite"
-    })
-    response.headers['Content-Type'] = 'application/json; charset=utf-8'
-    return response, 500
+    }), 500
 
 @activities.route('/execute', methods=['POST'])
 @limiter.limit("20 per minute")
@@ -29,22 +28,18 @@ def execute_code():
 
         if not request.is_json:
             logger.error("Invalid request format: not JSON")
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'error': 'Format de requête invalide'
-            })
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 400
+            }), 400
 
         data = request.get_json()
         if not data:
             logger.error("No JSON data in request")
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'error': 'Données manquantes'
-            })
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 400
+            }), 400
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
@@ -53,58 +48,46 @@ def execute_code():
         logger.debug(f"Code length: {len(code)}")
 
         if not code:
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'error': 'Le code ne peut pas être vide'
-            })
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 400
+            }), 400
 
         if language not in ['cpp', 'csharp']:
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'error': 'Langage non supporté'
-            })
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 400
+            }), 400
 
         result = compile_and_run(code, language)
         logger.debug(f"Execution result: {result}")
 
-        response = jsonify({
+        return jsonify({
             'success': True,
             'output': result.get('output', ''),
             'error': result.get('error', None)
         })
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response
 
     except CompilerError as e:
         logger.error(f"Compilation error: {str(e)}")
-        response = jsonify({
+        return jsonify({
             'success': False,
             'error': str(e)
-        })
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response, 400
+        }), 400
 
     except ExecutionError as e:
         logger.error(f"Execution error: {str(e)}")
-        response = jsonify({
+        return jsonify({
             'success': False,
             'error': f"Erreur d'exécution: {str(e)}"
-        })
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response, 400
+        }), 400
 
     except Exception as e:
         logger.error(f"Unexpected error in execute_code: {str(e)}", exc_info=True)
-        response = jsonify({
+        return jsonify({
             'success': False,
             'error': "Une erreur inattendue s'est produite"
-        })
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response, 500
+        }), 500
 
 @activities.route('/')
 @activities.route('/<grade>')
@@ -120,37 +103,43 @@ def list_activities(grade=None):
             language = 'cpp'
 
         logger.debug(f"Listing activities for curriculum: {curriculum}, language: {language}")
-        activities_list = CodingActivity.query.filter_by(
-            curriculum=curriculum,
-            language=language
-        ).order_by(CodingActivity.sequence).all()
+        with db.session.begin():
+            activities_list = CodingActivity.query.filter_by(
+                curriculum=curriculum,
+                language=language
+            ).order_by(CodingActivity.sequence).all()
 
-        return render_template(
-            'activities/list.html',
-            activities=activities_list,
-            curriculum=curriculum,
-            lang=session.get('lang', 'fr'),
-            grade=grade
-        )
+            return render_template(
+                'activities/list.html',
+                activities=activities_list,
+                curriculum=curriculum,
+                lang=session.get('lang', 'fr'),
+                grade=grade
+            )
 
     except Exception as e:
         logger.error(f"Error listing activities: {str(e)}", exc_info=True)
-        flash("Une erreur s'est produite lors du chargement des activités.", "danger")
-        return redirect(url_for('main.index'))
+        return jsonify({
+            'success': False,
+            'error': "Une erreur inattendue s'est produite"
+        }), 500
 
 @activities.route('/activity/<int:activity_id>')
 @limiter.limit("30 per minute")
 def view_activity(activity_id):
     """View a specific coding activity"""
     try:
-        activity = CodingActivity.query.get_or_404(activity_id)
-        return render_template(
-            'activity.html',
-            activity=activity,
-            lang=session.get('lang', 'fr')
-        )
+        with db.session.begin():
+            activity = CodingActivity.query.get_or_404(activity_id)
+            return render_template(
+                'activity.html',
+                activity=activity,
+                lang=session.get('lang', 'fr')
+            )
 
     except Exception as e:
         logger.error(f"Error viewing activity: {str(e)}", exc_info=True)
-        flash("Une erreur s'est produite lors du chargement de l'activité.", "danger")
-        return redirect(url_for('activities.list_activities'))
+        return jsonify({
+            'success': False,
+            'error': "Une erreur inattendue s'est produite"
+        }), 500

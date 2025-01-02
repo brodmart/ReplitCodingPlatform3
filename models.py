@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from flask_login import UserMixin
-from database import db
 from sqlalchemy import text
 import secrets
 from utils.password_utils import hash_password, verify_password
 import logging
+from database import db
 
 logger = logging.getLogger(__name__)
 

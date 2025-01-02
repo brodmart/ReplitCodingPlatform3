@@ -16,12 +16,42 @@ class Base(DeclarativeBase):
 # Initialize SQLAlchemy with the custom base class
 db = SQLAlchemy(model_class=Base)
 
+def init_db(app):
+    """Initialize database with application context"""
+    logger.info("Configuring database connection...")
+
+    # Configure database
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 20,
+        'max_overflow': 40,
+        'pool_timeout': 30,
+        'pool_recycle': 1800,
+        'pool_pre_ping': True,
+        'echo_pool': True
+    }
+
+    # Initialize the db with the Flask app
+    db.init_app(app)
+
+    # Setup event listeners for monitoring
+    _setup_event_listeners()
+    _setup_session_handlers()
+
+    # Test database connection
+    with app.app_context():
+        try:
+            # Verify connection
+            db.engine.connect()
+            logger.info("Database connection successful")
+        except Exception as e:
+            logger.error(f"Failed to connect to database: {str(e)}")
+            raise
+
 @contextmanager
 def transaction_context():
-    """
-    Context manager for database transactions.
-    Handles commit/rollback automatically and provides proper error handling.
-    """
+    """Context manager for database transactions"""
     try:
         yield
         db.session.commit()
@@ -34,53 +64,8 @@ def transaction_context():
         logger.error(f"Unexpected error in transaction: {str(e)}")
         raise
 
-def init_db(app, max_retries=3):
-    """Initialize database with application context and retry logic"""
-    logger.info("Configuring database connection...")
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        logger.error("DATABASE_URL environment variable is not set!")
-        raise RuntimeError("DATABASE_URL must be set")
-
-    # Enhanced database configuration with optimized settings
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 20,  # Increased for better concurrency
-        'max_overflow': 40,
-        'pool_timeout': 30,
-        'pool_recycle': 1800,  # Increased to 30 minutes
-        'pool_pre_ping': True,
-        'connect_args': {
-            'connect_timeout': 10,
-            'application_name': 'codecrafthub',
-            'client_encoding': 'utf8'
-        },
-        'echo_pool': True
-    }
-
-    # Initialize the db with the Flask app
-    db.init_app(app)
-
-    # Test database connection with retry logic
-    with app.app_context():
-        for attempt in range(max_retries):
-            try:
-                # Verify connection and create session
-                db.engine.connect()
-                logger.info("Database connection successful")
-                _setup_event_listeners()
-                _setup_session_handlers()
-                break
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    logger.error(f"Failed to connect to database after {max_retries} attempts: {str(e)}")
-                    raise
-                logger.warning(f"Database connection attempt {attempt + 1} failed, retrying...")
-
 def _setup_event_listeners():
     """Setup SQLAlchemy event listeners for monitoring and connection management"""
-
     @event.listens_for(db.engine, 'connect')
     def receive_connect(dbapi_connection, connection_record):
         """Configure connection on creation"""
@@ -104,7 +89,6 @@ def _setup_event_listeners():
 
 def _setup_session_handlers():
     """Configure session event handlers"""
-
     @event.listens_for(db.session, 'after_commit')
     def receive_after_commit(session):
         """Log successful commits"""

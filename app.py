@@ -1,10 +1,8 @@
 import os
 import logging
 import secrets
-import time
-from flask import Flask, render_template, request, jsonify, session, g, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session
 from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_compress import Compress
 from flask_migrate import Migrate
@@ -19,7 +17,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Initialize extensions
-db = SQLAlchemy()
 csrf = CSRFProtect()
 compress = Compress()
 migrate = Migrate()
@@ -37,8 +34,6 @@ def create_app():
         # Configure security and session settings
         app.config.update(
             SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32)),
-            SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL"),
-            SQLALCHEMY_TRACK_MODIFICATIONS=False,
             TEMPLATES_AUTO_RELOAD=True,
             SEND_FILE_MAX_AGE_DEFAULT=0,
             DEBUG=True,
@@ -51,34 +46,20 @@ def create_app():
             RATELIMIT_DEFAULT="200 per day",
             RATELIMIT_STORAGE_URL="memory://",
             RATELIMIT_HEADERS_ENABLED=True,
-            SQLALCHEMY_ENGINE_OPTIONS={
-                "pool_pre_ping": True,
-                "pool_recycle": 300,
-            },
             JSON_AS_ASCII=False,
             JSONIFY_PRETTYPRINT_REGULAR=False,
             JSONIFY_MIMETYPE='application/json'
         )
-        logger.info("Application configuration completed")
+
+        # Initialize database
+        from database import init_db, db
+        init_db(app)
 
         # Initialize extensions
-        db.init_app(app)
         csrf.init_app(app)
         compress.init_app(app)
         migrate.init_app(app, db)
         limiter.init_app(app)
-        logger.info("Extensions initialized")
-
-        # Add CSRF error handler
-        @app.errorhandler(CSRFError)
-        def handle_csrf_error(e):
-            logger.error(f"CSRF error: {str(e)}")
-            response = jsonify({
-                'success': False,
-                'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
-            })
-            response.headers['Content-Type'] = 'application/json; charset=utf-8'
-            return response, 400
 
         # Enable CORS with specific origins
         CORS(app, resources={
@@ -89,43 +70,39 @@ def create_app():
                 "methods": ["GET", "POST", "OPTIONS"]
             }
         })
-        logger.info("CORS configured")
 
-        # Register blueprints
+        # Register blueprints after db initialization
         from routes.activity_routes import activities
         from routes.tutorial import tutorial_bp
 
         app.register_blueprint(activities, url_prefix='/activities')
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
-        logger.info("Blueprints registered")
 
-        @app.before_request
-        def before_request():
-            """Log request information and set up request context"""
-            g.start_time = time.time()
-            if 'lang' not in session:
-                session['lang'] = 'fr'
-            logger.debug(f"Processing request: {request.endpoint}")
+        @app.errorhandler(CSRFError)
+        def handle_csrf_error(e):
+            logger.error(f"CSRF error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
+            }), 400
 
-        @app.after_request
-        def after_request(response):
-            """Add response headers and log response time"""
-            if hasattr(g, 'start_time'):
-                elapsed = time.time() - g.start_time
-                response.headers['X-Response-Time'] = str(elapsed)
-                logger.debug(f"Request processed in {elapsed:.3f}s")
+        @app.errorhandler(Exception)
+        def handle_exception(e):
+            logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': "Une erreur inattendue s'est produite"
+            }), 500
 
-            # Ensure JSON responses have correct content type
-            if response.mimetype == 'application/json':
-                response.headers['Content-Type'] = 'application/json; charset=utf-8'
-
-            # Add CORS headers for JSON responses
-            if request.method == 'OPTIONS':
-                response.headers['Access-Control-Allow-Credentials'] = 'true'
-                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
-                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-CSRF-Token'
-
-            return response
+        @app.route('/')
+        def index():
+            """Root route handler"""
+            return render_template('editor.html', 
+                                lang=session.get('lang', 'fr'),
+                                templates={
+                                    'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
+                                    'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
+                                })
 
         logger.info("Application creation completed successfully")
         return app
@@ -138,5 +115,12 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
+    with app.app_context():
+        # Import models to ensure they're registered with SQLAlchemy
+        import models
+        # Create all database tables
+        db.create_all()
+        logger.info("Database tables created")
+
     logger.info("Starting development server...")
     app.run(host='0.0.0.0', port=5000, debug=True)
