@@ -6,13 +6,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Get CSRF token
-    const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
-    if (!csrfTokenElement) {
-        console.error('CSRF token element not found');
-        return;
+    // Get CSRF token from either hidden input or meta tag
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                     document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) {
+        console.error('CSRF token not found');
     }
-    const csrfToken = csrfTokenElement.value;
 
     // Get initial code from the textarea
     const initialCode = editorElement.value;
@@ -216,7 +215,9 @@ class Program {
             }
 
             // Verify CSRF token before execution
-            if (!csrfToken) {
+            const currentToken = document.querySelector('input[name="csrf_token"]')?.value || 
+                               document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!currentToken) {
                 outputDiv.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
                 return;
             }
@@ -240,10 +241,10 @@ class Program {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
+                        'X-CSRF-Token': currentToken
                     },
                     body: JSON.stringify({
-                        code,
+                        code: code,
                         language: languageSelect ? languageSelect.value : 'cpp'
                     })
                 });
