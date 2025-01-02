@@ -67,6 +67,11 @@
                             {% if lang == 'fr' %}11e année (ICS3U){% else %}Grade 11 (ICS3U){% endif %}
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('tutorial.tutorial_view') }}">
+                            {% if lang == 'fr' %}Tutoriel Interactif{% else %}Interactive Tutorial{% endif %}
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

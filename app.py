@@ -10,6 +10,7 @@ from flask_compress import Compress
 from flask_migrate import Migrate
 from extensions import init_extensions
 from routes.activity_routes import activities
+from routes.tutorial import tutorial_bp
 
 # Configure logging with more detailed format
 logging.basicConfig(
@@ -94,6 +95,7 @@ def create_app():
         # Register blueprints
         logger.info("Registering blueprints...")
         app.register_blueprint(activities, url_prefix='/activities')
+        app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         logger.info("Blueprints registered successfully")
 
         @app.route('/')
@@ -155,7 +157,6 @@ def create_app():
 
         logger.info("Application creation completed successfully")
         return app
-
     except Exception as e:
         logger.error(f"Failed to create application: {str(e)}", exc_info=True)
         raise
