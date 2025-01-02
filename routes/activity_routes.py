@@ -29,6 +29,8 @@ def before_activities_request():
 @activities.after_request
 def after_activities_request(response):
     """Log activity responses"""
+    if not response.is_json and response.mimetype != 'application/json':
+        logger.warning(f"Response is not JSON: {response.mimetype}")
     logger.debug(f"Response status: {response.status}")
     logger.debug(f"Response headers: {dict(response.headers)}")
     return response
@@ -42,6 +44,10 @@ def execute_code():
         logger.debug("Received code execution request")
         logger.debug(f"Content-Type: {request.headers.get('Content-Type')}")
         logger.debug(f"CSRF Token Header: {request.headers.get('X-CSRF-Token')}")
+
+        # Force JSON content type for response
+        response = Response()
+        response.headers['Content-Type'] = 'application/json'
 
         if not request.is_json:
             logger.error("Invalid request format: not JSON")
@@ -153,12 +159,10 @@ def view_activity(activity_id):
     """View a specific coding activity"""
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
-        starter_code = activity.starter_code or TEMPLATES.get(activity.language)
 
         return render_template(
             'activity.html',
             activity=activity,
-            initial_code=starter_code,
             lang=session.get('lang', 'fr')
         )
 
@@ -166,27 +170,3 @@ def view_activity(activity_id):
         logger.error(f"Error viewing activity: {str(e)}", exc_info=True)
         flash("Une erreur s'est produite lors du chargement de l'activité.", "danger")
         return redirect(url_for('activities.list_activities'))
-
-# Default templates for each language
-TEMPLATES = {
-    'cpp': """#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Votre code ici
-    return 0;
-}""",
-    'csharp': """using System;
-
-class Program {
-    static void Main() {
-        // Votre code ici
-    }
-}"""
-}
-
-@activities.before_request
-def before_activities_request():
-    """Log activity requests"""
-    logger.debug(f"Activity route accessed: {request.endpoint}")
