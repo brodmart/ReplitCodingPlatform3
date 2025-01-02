@@ -6,6 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Get CSRF token
+    const csrfTokenElement = document.querySelector('input[name="csrf_token"]');
+    if (!csrfTokenElement) {
+        console.error('CSRF token element not found');
+        return;
+    }
+    const csrfToken = csrfTokenElement.value;
+
     // Get initial code from the textarea
     const initialCode = editorElement.value;
 
@@ -207,6 +215,12 @@ class Program {
                 return;
             }
 
+            // Verify CSRF token before execution
+            if (!csrfToken) {
+                outputDiv.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
+                return;
+            }
+
             // Update UI for execution
             runButton.disabled = true;
             outputDiv.innerHTML = `
@@ -222,11 +236,6 @@ class Program {
             hasExecuted = true;
 
             try {
-                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-                if (!csrfToken) {
-                    throw new Error('CSRF token not found');
-                }
-
                 const response = await fetch('/activities/execute', {
                     method: 'POST',
                     headers: {
