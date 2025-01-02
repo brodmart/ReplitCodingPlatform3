@@ -8,18 +8,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get CSRF token from either hidden input or meta tag
     const getCsrfToken = () => {
-        return document.querySelector('input[name="csrf_token"]')?.value || 
-               document.querySelector('meta[name="csrf-token"]')?.content;
+        const tokenInput = document.querySelector('input[name="csrf_token"]');
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const token = tokenInput?.value || tokenMeta?.content;
+
+        if (!token) {
+            console.error('CSRF token not found in DOM');
+            return null;
+        }
+        return token;
     };
-
-    // Verify CSRF token
-    const csrfToken = getCsrfToken();
-    if (!csrfToken) {
-        console.error('CSRF token not found in DOM');
-    }
-
-    // Get initial code from the textarea
-    const initialCode = editorElement.value;
 
     // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
@@ -220,8 +218,8 @@ class Program {
             }
 
             // Get current CSRF token
-            const currentToken = getCsrfToken();
-            if (!currentToken) {
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
                 outputDiv.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
                 return;
             }
@@ -239,31 +237,36 @@ class Program {
                 </div>`;
 
             try {
+                console.log('Sending request to execute code...');
                 const response = await fetch('/activities/execute', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-Token': currentToken
+                        'X-CSRF-Token': csrfToken
                     },
                     body: JSON.stringify({
                         code: code,
-                        language: languageSelect ? languageSelect.value : 'cpp'
+                        language: document.getElementById('languageSelect')?.value || 'cpp'
                     })
                 });
 
-                if (!response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                    } else {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                console.log('Response received:', response.status);
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+
+                let data;
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('Failed to parse JSON response:', e);
+                    throw new Error('Le serveur a retourné une réponse invalide');
                 }
 
-                const data = await response.json();
-                if (!data.success) {
-                    throw new Error(data.error || "Une erreur s'est produite lors de l'exécution.");
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || `Erreur HTTP: ${response.status}`);
                 }
 
                 outputDiv.innerHTML = `
