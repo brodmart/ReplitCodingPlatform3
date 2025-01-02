@@ -68,15 +68,15 @@ def create_app():
         )
         logger.info("Application configuration completed")
 
-        # Initialize CSRF protection first
-        csrf = CSRFProtect()
-        csrf.init_app(app)
-        logger.info("CSRF protection initialized")
-
         # Initialize database
         logger.info("Initializing database...")
         init_db(app)
         logger.info("Database initialization completed")
+
+        # Initialize CSRF protection
+        csrf = CSRFProtect()
+        csrf.init_app(app)
+        logger.info("CSRF protection initialized")
 
         # Initialize migrations
         migrate = Migrate(app, db)
@@ -92,7 +92,7 @@ def create_app():
         })
         logger.info("CORS configured")
 
-        # Register activities blueprint
+        # Register blueprints
         logger.info("Registering blueprints...")
         app.register_blueprint(activities, url_prefix='/activities')
         logger.info("Blueprints registered successfully")
@@ -108,8 +108,7 @@ def create_app():
                 return render_template('editor.html', 
                                     lang=lang, 
                                     language=language,
-                                    templates=TEMPLATES,
-                                    initial_code=None)
+                                    templates=TEMPLATES)
             except Exception as e:
                 logger.error(f"Error in index route: {str(e)}", exc_info=True)
                 return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500

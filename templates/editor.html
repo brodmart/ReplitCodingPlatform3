@@ -40,7 +40,7 @@
 
             <div class="row mb-3">
                 <div class="col">
-                    <select id="languageSelect" class="form-select" onchange="updateTemplate()">
+                    <select id="languageSelect" class="form-select">
                         <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
                         <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
                     </select>
@@ -53,7 +53,7 @@
             </div>
 
             <div class="editor-container">
-                <textarea id="editor">{{ initial_code if initial_code else templates[language] }}</textarea>
+                <textarea id="editor"></textarea>
             </div>
 
             <div class="card mt-3">
@@ -73,30 +73,6 @@
         </div>
     </div>
 </div>
-
-<!-- Template strings for different languages -->
-<script type="text/template" id="cpp-template">
-#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Votre code ici
-
-    return 0;
-}
-</script>
-
-<script type="text/template" id="csharp-template">
-using System;
-
-class Program {
-    static void Main() {
-        // Votre code ici
-
-    }
-}
-</script>
 {% endblock %}
 
 {% block scripts %}
@@ -118,22 +94,26 @@ let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
     viewportMargin: Infinity
 });
 
-// Function to update editor mode and template based on language selection
+// Define templates
+const templates = {{ templates | tojson | safe }};
+
+// Function to update editor mode and template
 function updateTemplate() {
     const language = document.getElementById("languageSelect").value;
-    const templateId = `${language}-template`;
-    const template = document.getElementById(templateId).textContent;
+    const currentCode = editor.getValue().trim();
 
-    // Only update if editor content is empty or unchanged from previous template
-    if (editor.getValue().trim() === "" || 
-        editor.getValue() === document.getElementById("cpp-template").textContent.trim() ||
-        editor.getValue() === document.getElementById("csharp-template").textContent.trim()) {
-        editor.setValue(template);
-    }
-
-    // Update editor mode based on language
+    // Always update the mode based on the selected language
     editor.setOption("mode", language === "cpp" ? "text/x-c++src" : "text/x-csharp");
+
+    // Update the template if the current code is empty or matches one of the templates
+    if (currentCode === "" || 
+        Object.values(templates).some(template => currentCode === template.trim())) {
+        editor.setValue(templates[language]);
+    }
 }
+
+// Set initial content
+editor.setValue(templates[document.getElementById("languageSelect").value]);
 
 // Add event listener for language change
 document.getElementById("languageSelect").addEventListener("change", updateTemplate);
@@ -172,8 +152,5 @@ document.getElementById("runButton").addEventListener("click", function() {
         output.textContent = "Erreur: " + error.message;
     });
 });
-
-// Set initial editor mode based on selected language
-updateTemplate();
 </script>
 {% endblock %}

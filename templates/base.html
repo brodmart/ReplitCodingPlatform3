@@ -39,26 +39,6 @@
                         </a>
                     </li>
                 </ul>
-                {# Commented out authentication UI for now
-                <ul class="navbar-nav">
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-link">{{ current_user.username }}</span>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.logout') }}">
-                            {% if lang == 'fr' %}Déconnexion{% else %}Logout{% endif %}
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">
-                            {% if lang == 'fr' %}Connexion{% else %}Login{% endif %}
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-                #}
             </div>
         </div>
     </nav>
