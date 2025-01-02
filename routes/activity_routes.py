@@ -1,7 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
-from flask_login import current_user
-from models import CodingActivity, StudentProgress, CodeSubmission
-from database import db
+from flask_login import current_user, login_required
+from models import CodingActivity, StudentProgress, CodeSubmission, db
 from extensions import limiter, cache
 import logging
 from datetime import datetime
@@ -16,71 +15,61 @@ logger = logging.getLogger(__name__)
 def list_activities(grade=None):
     """List all coding activities for a specific grade"""
     try:
-        # Convert grade parameter to curriculum code
-        curriculum = 'ICS3U' if grade == '11' else 'TEJ2O'
-        logger.debug(f"Listing activities for curriculum: {curriculum}")
+        # Convert grade parameter to curriculum code and set language
+        if grade == '11':
+            curriculum = 'ICS3U'
+            language = 'csharp'
+        else:  # Default to grade 10
+            curriculum = 'TEJ2O'
+            language = 'cpp'
 
-        # Build query based on curriculum
-        query = CodingActivity.query.filter_by(curriculum=curriculum)
+        logger.debug(f"Listing activities for curriculum: {curriculum}, language: {language}")
 
-        # For TEJ2O (Grade 10), only show C++ activities
-        # For ICS3U (Grade 11), only show C# activities
-        if curriculum == 'TEJ2O':
-            query = query.filter_by(language='cpp')
-        else:  # ICS3U
-            query = query.filter_by(language='csharp')
+        # Build query with both curriculum and language filters
+        query = CodingActivity.query.filter_by(
+            curriculum=curriculum,
+            language=language
+        ).order_by(CodingActivity.sequence)
 
-        # Order activities by sequence
-        activities_list = query.order_by(CodingActivity.sequence).all()
+        activities_list = query.all()
         logger.debug(f"Found {len(activities_list)} activities")
 
-        # Group activities by curriculum and language
-        grouped_activities = {}
+        # Calculate progress if user is authenticated
+        student_progress = {}
+        completed_count = 0
+        total_count = len(activities_list)
 
-        for activity in activities_list:
-            key = (activity.curriculum, activity.language)
-            if key not in grouped_activities:
-                grouped_activities[key] = []
-
-            # Only fetch progress if user is authenticated
-            if current_user.is_authenticated:
+        if current_user.is_authenticated:
+            for activity in activities_list:
                 progress = StudentProgress.query.filter_by(
                     student_id=current_user.id,
                     activity_id=activity.id
                 ).first()
-                activity.student_progress = [progress] if progress else []
-            else:
-                activity.student_progress = []
 
-            grouped_activities[key].append(activity)
+                if progress:
+                    student_progress[activity.id] = progress
+                    if progress.completed:
+                        completed_count += 1
 
-        logger.debug(f"Grouped activities: {len(grouped_activities)} curriculum-language pairs")
-
-        # Calculate curriculum progress if user is authenticated
-        curriculum_progress = {}
-        if current_user.is_authenticated:
-            for (curr, lang), acts in grouped_activities.items():
-                completed = sum(1 for act in acts if act.student_progress and act.student_progress[0] and act.student_progress[0].completed)
-                total = len(acts)
-                percentage = (completed / total * 100) if total > 0 else 0
-                curriculum_progress[f"{curr} - {lang}"] = {
-                    'completed': completed,
-                    'total': total,
-                    'percentage': percentage
-                }
+        # Calculate completion percentage
+        completion_percentage = (completed_count / total_count * 100) if total_count > 0 else 0
 
         return render_template(
             'activities.html',
-            grouped_activities=grouped_activities,
-            curriculum_progress=curriculum_progress if current_user.is_authenticated else None,
-            grade=grade,
-            lang=session.get('lang', 'fr')
+            activities=activities_list,
+            progress=student_progress,
+            completed_count=completed_count,
+            total_count=total_count,
+            completion_percentage=completion_percentage,
+            curriculum=curriculum,
+            lang=session.get('lang', 'fr'),
+            grade=grade
         )
+
     except Exception as e:
         logger.error(f"Error listing activities: {str(e)}", exc_info=True)
-        db.session.rollback()
         flash("Une erreur s'est produite lors du chargement des activités.", "danger")
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
 @activities.route('/activity/<int:activity_id>')
 @limiter.limit("30 per minute")
@@ -106,9 +95,8 @@ def view_activity(activity_id):
         )
     except Exception as e:
         logger.error(f"Error viewing activity: {str(e)}")
-        db.session.rollback()
         flash("Une erreur s'est produite.", "danger")
-        return redirect(url_for('index'))
+        return redirect(url_for('activities.list_activities'))
 
 @activities.before_request
 def before_activities_request():

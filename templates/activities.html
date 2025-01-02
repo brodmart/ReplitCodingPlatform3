@@ -1,125 +1,87 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container-fluid container-lg pb-4">
-    {% if current_user.is_authenticated %}
-    <div class="row mb-4">
+<div class="container-fluid pb-4">
+    <div class="row">
         <div class="col-12">
-            <div class="card">
+            <div class="card mb-4">
                 <div class="card-header">
-                    <h3 class="mb-0">Votre Progression</h3>
+                    <h3 class="mb-0">
+                        {% if curriculum == 'ICS3U' %}
+                            {% if lang == 'fr' %}11e année - C# (ICS3U){% else %}Grade 11 - C# (ICS3U){% endif %}
+                        {% else %}
+                            {% if lang == 'fr' %}10e année - C++ (TEJ2O){% else %}Grade 10 - C++ (TEJ2O){% endif %}
+                        {% endif %}
+                    </h3>
                 </div>
                 <div class="card-body">
-                    {% if curriculum_progress and curriculum_progress|length > 0 %}
-                        {% for curriculum, stats in curriculum_progress.items() %}
-                        <div class="mb-3">
+                    {% if current_user.is_authenticated %}
+                        <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h5 class="mb-0">{{ curriculum }}</h5>
-                                <span class="badge bg-info">{{ stats.completed }}/{{ stats.total }} Activités</span>
+                                <span>{{ completed_count }}/{{ total_count }} {% if lang == 'fr' %}Activités Complétées{% else %}Activities Completed{% endif %}</span>
+                                <span class="badge bg-info">{{ completion_percentage|round|int }}%</span>
                             </div>
                             <div class="progress" style="height: 20px;">
-                                <div class="progress-bar {% if stats.percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
+                                <div class="progress-bar {% if completion_percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
                                      role="progressbar" 
-                                     style="width: {{ stats.percentage }}%"
-                                     aria-valuenow="{{ stats.percentage }}" 
+                                     style="width: {{ completion_percentage }}%"
+                                     aria-valuenow="{{ completion_percentage }}" 
                                      aria-valuemin="0" 
                                      aria-valuemax="100">
-                                    {{ stats.percentage|round|int }}%
+                                    {{ completion_percentage|round|int }}%
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-center mb-0">Commencez à compléter des activités pour suivre votre progression!</p>
                     {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
-    {% if grade == 11 %}
-        {% set curricula = ['ICS3U'] %}
-        {% set languages = ['cpp', 'csharp'] %}  {# Allow both C++ and C# for Grade 11 #}
-    {% else %}
-        {% set curricula = ['TEJ2O'] %}
-        {% set languages = ['cpp', 'csharp'] %}
-    {% endif %}
-
-    {% for curriculum in curricula %}
-        {% for language in languages %}
-            {% set activities = grouped_activities.get((curriculum, language), []) %}
-            {% if activities %}
-                <div class="card mb-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="mb-0">{{ curriculum }} - {{ language|upper }}</h3>
-                        {% if current_user.is_authenticated %}
-                            {% set completed_count = namespace(count=0) %}
-                            {% for activity in activities %}
-                                {% if activity.student_progress and activity.student_progress[0].completed %}
-                                    {% set completed_count.count = completed_count.count + 1 %}
-                                {% endif %}
-                            {% endfor %}
-                            <div class="badge bg-info fs-6">
-                                {{ completed_count.count }}/{{ activities|length }} Activités Complétées
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        <div class="list-group">
-                            {% for activity in activities %}
-                            {% set is_completed = activity.student_progress and activity.student_progress[0].completed if current_user.is_authenticated else False %}
-                            {% set attempts = activity.student_progress[0].attempts if activity.student_progress else 0 if current_user.is_authenticated else 0 %}
-                            <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" 
-                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
-                                      {% if is_completed %}list-group-item-success{% endif %}">
-                                <div class="w-100">
-                                    <div class="d-flex align-items-center">
-                                        <h5 class="mb-1">
-                                            {% if is_completed %}
-                                                <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                            {% else %}
-                                                <i class="bi bi-circle me-2"></i>
-                                            {% endif %}
-                                            {{ activity.title }}
-                                        </h5>
-                                    </div>
+                    <div class="list-group">
+                        {% for activity in activities %}
+                        <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" 
+                           class="list-group-item list-group-item-action {% if activity.id in progress and progress[activity.id].completed %}list-group-item-success{% endif %}">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="mb-1">
+                                        {% if activity.id in progress and progress[activity.id].completed %}
+                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                        {% else %}
+                                            <i class="bi bi-circle me-2"></i>
+                                        {% endif %}
+                                        {{ activity.title }}
+                                    </h5>
                                     <p class="mb-1">{{ activity.description }}</p>
                                     <div class="mt-2">
                                         <span class="badge {% if activity.difficulty == 'beginner' %}bg-success{% elif activity.difficulty == 'intermediate' %}bg-warning{% else %}bg-danger{% endif %}">
                                             {% if activity.difficulty == 'beginner' %}
-                                                Débutant
+                                                {% if lang == 'fr' %}Débutant{% else %}Beginner{% endif %}
                                             {% elif activity.difficulty == 'intermediate' %}
-                                                Intermédiaire
+                                                {% if lang == 'fr' %}Intermédiaire{% else %}Intermediate{% endif %}
                                             {% else %}
-                                                Avancé
+                                                {% if lang == 'fr' %}Avancé{% else %}Advanced{% endif %}
                                             {% endif %}
                                         </span>
-                                        <span class="badge bg-info">{{ activity.points }} points</span>
-                                        {% if current_user.is_authenticated %}
+                                        <span class="badge bg-info">{{ activity.points }} {% if lang == 'fr' %}points{% else %}points{% endif %}</span>
+                                        {% if activity.id in progress %}
                                             <span class="badge bg-secondary">
                                                 <i class="bi bi-clock"></i> 
-                                                {{ attempts }} tentative{{ 's' if attempts != 1 }}
+                                                {{ progress[activity.id].attempts }} {% if lang == 'fr' %}tentative{{ 's' if progress[activity.id].attempts != 1 }}{% else %}attempt{{ 's' if progress[activity.id].attempts != 1 }}{% endif %}
                                             </span>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <div class="text-end ms-3">
-                                    <button class="btn btn-sm {% if is_completed %}btn-success{% else %}btn-primary{% endif %}">
-                                        {% if is_completed %}
-                                            <i class="bi bi-check2"></i> Complété
-                                        {% else %}
-                                            <i class="bi bi-code-slash"></i> Commencer
-                                        {% endif %}
-                                    </button>
-                                </div>
-                            </a>
-                            {% endfor %}
-                        </div>
+                                <button class="btn btn-sm {% if activity.id in progress and progress[activity.id].completed %}btn-success{% else %}btn-primary{% endif %}">
+                                    {% if activity.id in progress and progress[activity.id].completed %}
+                                        <i class="bi bi-check2"></i> {% if lang == 'fr' %}Revoir{% else %}Review{% endif %}
+                                    {% else %}
+                                        <i class="bi bi-code-slash"></i> {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </a>
+                        {% endfor %}
                     </div>
                 </div>
-            {% endif %}
-        {% endfor %}
-    {% endfor %}
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
