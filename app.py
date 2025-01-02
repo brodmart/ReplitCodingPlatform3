@@ -51,7 +51,7 @@ def create_app():
             JSONIFY_MIMETYPE='application/json'
         )
 
-        # Initialize database
+        # Initialize database first
         from database import init_db, db
         init_db(app)
 
@@ -71,7 +71,7 @@ def create_app():
             }
         })
 
-        # Register blueprints after db initialization
+        # Register blueprints
         from routes.activity_routes import activities
         from routes.tutorial import tutorial_bp
 
@@ -104,6 +104,13 @@ def create_app():
                                     'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
                                 })
 
+        # Create all database tables
+        with app.app_context():
+            # Import models here to avoid circular imports
+            import models
+            db.create_all()
+            logger.info("Database tables created successfully")
+
         logger.info("Application creation completed successfully")
         return app
 
@@ -115,12 +122,5 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    with app.app_context():
-        # Import models to ensure they're registered with SQLAlchemy
-        import models
-        # Create all database tables
-        db.create_all()
-        logger.info("Database tables created")
-
     logger.info("Starting development server...")
     app.run(host='0.0.0.0', port=5000, debug=True)

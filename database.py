@@ -35,16 +35,44 @@ def init_db(app):
     # Initialize the db with the Flask app
     db.init_app(app)
 
-    # Setup event listeners for monitoring
-    _setup_event_listeners()
-    _setup_session_handlers()
-
-    # Test database connection
     with app.app_context():
         try:
+            # Setup event listeners
+            @event.listens_for(db.engine, 'connect')
+            def receive_connect(dbapi_connection, connection_record):
+                """Configure connection on creation"""
+                cursor = dbapi_connection.cursor()
+                cursor.execute("SET timezone='UTC'")
+                cursor.execute("SET client_encoding='UTF8'")
+                cursor.execute("SET application_name='codecrafthub'")
+                cursor.close()
+
+            @event.listens_for(db.engine, 'checkout')
+            def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+                """Verify connection is valid on checkout"""
+                cursor = dbapi_connection.cursor()
+                try:
+                    cursor.execute("SELECT 1")
+                except Exception:
+                    logger.error("Connection invalid, forcing reconnection")
+                    raise OperationalError("Database connection lost")
+                finally:
+                    cursor.close()
+
+            @event.listens_for(db.session, 'after_commit')
+            def receive_after_commit(session):
+                """Log successful commits"""
+                logger.debug("Transaction committed successfully")
+
+            @event.listens_for(db.session, 'after_rollback')
+            def receive_after_rollback(session):
+                """Log rollbacks"""
+                logger.warning("Transaction rolled back")
+
             # Verify connection
             db.engine.connect()
             logger.info("Database connection successful")
+
         except Exception as e:
             logger.error(f"Failed to connect to database: {str(e)}")
             raise
@@ -63,41 +91,6 @@ def transaction_context():
         db.session.rollback()
         logger.error(f"Unexpected error in transaction: {str(e)}")
         raise
-
-def _setup_event_listeners():
-    """Setup SQLAlchemy event listeners for monitoring and connection management"""
-    @event.listens_for(db.engine, 'connect')
-    def receive_connect(dbapi_connection, connection_record):
-        """Configure connection on creation"""
-        cursor = dbapi_connection.cursor()
-        cursor.execute("SET timezone='UTC'")
-        cursor.execute("SET client_encoding='UTF8'")
-        cursor.execute("SET application_name='codecrafthub'")
-        cursor.close()
-
-    @event.listens_for(db.engine, 'checkout')
-    def receive_checkout(dbapi_connection, connection_record, connection_proxy):
-        """Verify connection is valid on checkout"""
-        cursor = dbapi_connection.cursor()
-        try:
-            cursor.execute("SELECT 1")
-        except Exception:
-            logger.error("Connection invalid, forcing reconnection")
-            raise OperationalError("Database connection lost")
-        finally:
-            cursor.close()
-
-def _setup_session_handlers():
-    """Configure session event handlers"""
-    @event.listens_for(db.session, 'after_commit')
-    def receive_after_commit(session):
-        """Log successful commits"""
-        logger.debug("Transaction committed successfully")
-
-    @event.listens_for(db.session, 'after_rollback')
-    def receive_after_rollback(session):
-        """Log rollbacks"""
-        logger.warning("Transaction rolled back")
 
 class DatabaseHealthCheck:
     """Database health monitoring with enhanced metrics"""
