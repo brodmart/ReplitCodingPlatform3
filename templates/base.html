@@ -21,6 +21,19 @@
             align-items: center;
             padding: 0.5rem 0;
         }
+        .brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .brand-text .main-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .brand-text .sub-title {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
     </style>
     {% block head %}{% endblock %}
 </head>
@@ -29,7 +42,10 @@
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <img src="{{ url_for('static', filename='codingmountains.webp') }}" alt="Coding Mountains Logo" class="me-2">
-                {% if lang == 'fr' %}FluentLogic{% else %}FluentLogic{% endif %}
+                <div class="brand-text">
+                    <span class="main-title">{% if lang == 'fr' %}Plateforme d'apprentissage{% else %}Learning Platform{% endif %}</span>
+                    <span class="sub-title">Coding Mountains</span>
+                </div>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
