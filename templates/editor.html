@@ -36,7 +36,9 @@
             <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
 
             <!-- Add CSRF token -->
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <form id="code-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
 
             <div class="row mb-3">
                 <div class="col">
@@ -130,12 +132,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const language = document.getElementById("languageSelect").value;
         const code = editor.getValue();
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+        if (!csrfToken) {
+            output.textContent = "CSRF token not found. Please refresh the page.";
+            return;
+        }
 
         fetch("/activities/execute", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-CSRFToken": document.querySelector('[name=csrf_token]').value
+                "X-CSRF-Token": csrfToken
             },
             body: JSON.stringify({
                 code: code,
