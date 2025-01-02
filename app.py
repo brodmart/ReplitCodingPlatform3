@@ -34,6 +34,7 @@ def create_app():
         SESSION_COOKIE_SECURE=False,  # Set to True in production
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
+        WTF_CSRF_ENABLED=True,  # Enable CSRF protection
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
         RATELIMIT_DEFAULT="200 per day",
@@ -45,7 +46,11 @@ def create_app():
         }
     )
 
-    # Initialize database first
+    # Initialize CSRF protection first
+    csrf = CSRFProtect()
+    csrf.init_app(app)
+
+    # Initialize database
     init_db(app)
 
     # Initialize migrations
@@ -61,8 +66,8 @@ def create_app():
     })
 
     # Register blueprints with URL prefixes
-    app.register_blueprint(auth)  # URL prefix is already set in blueprint definition
-    app.register_blueprint(activities, url_prefix='/activities')  # Set explicit URL prefix
+    app.register_blueprint(auth)
+    app.register_blueprint(activities, url_prefix='/activities')
 
     @app.route('/')
     def index():
@@ -71,7 +76,7 @@ def create_app():
             # Always render the editor page without requiring authentication
             lang = session.get('lang', 'fr')
             logger.debug("Rendering editor template")
-            return render_template('editor.html', lang=lang)
+            return render_template('index.html', lang=lang)
         except Exception as e:
             logger.error(f"Error rendering editor template: {str(e)}")
             return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500

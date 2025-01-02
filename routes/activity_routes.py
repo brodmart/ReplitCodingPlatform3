@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from flask_login import current_user, login_required
+from flask_wtf.csrf import CSRFProtect
 from models import CodingActivity, StudentProgress, CodeSubmission, db
 from extensions import limiter, cache
 import logging

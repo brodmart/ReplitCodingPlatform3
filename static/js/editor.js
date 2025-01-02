@@ -46,7 +46,6 @@ class Program {
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
-            console.log("Switching language to:", language);
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
             editor.setValue(templates[language]);
             editor.refresh();
@@ -68,16 +67,17 @@ class Program {
             outputDiv.innerHTML = '<div class="loading">Exécution du code...</div>';
 
             try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                // Get CSRF token from meta tag
+                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
                 if (!csrfToken) {
                     throw new Error('CSRF token not found');
                 }
 
-                const response = await fetch('/execute', {
+                const response = await fetch('/activities/execute', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
+                        'X-CSRF-Token': csrfToken
                     },
                     body: JSON.stringify({
                         code,

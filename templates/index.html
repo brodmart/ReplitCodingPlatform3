@@ -5,6 +5,8 @@
 <!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+<!-- Add CSRF token meta tag -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
     .editor-container {
         height: calc(100vh - 300px);  /* Adjusted height to account for header and footer */
@@ -24,15 +26,19 @@
     #output {
         height: 100%;
         overflow-y: auto;
+        font-family: monospace;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        background: #1e1e1e;
+        color: #d4d4d4;
+        padding: 1rem;
+        border-radius: 4px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Add CSRF token -->
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
     <div class="row">
         <div class="col-md-8">
             <div class="card h-100">
