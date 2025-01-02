@@ -8,6 +8,7 @@ from database import init_db, db
 from flask_wtf.csrf import CSRFProtect
 from flask_compress import Compress
 from flask_login import current_user
+from flask_migrate import Migrate
 from extensions import init_extensions
 from models import Student
 from routes.auth_routes import auth
@@ -46,6 +47,9 @@ def create_app():
 
     # Initialize database first
     init_db(app)
+
+    # Initialize migrations
+    migrate = Migrate(app, db)
 
     # Initialize extensions with db instance
     init_extensions(app, db)

@@ -18,45 +18,39 @@ csrf = CSRFProtect()
 login_manager = LoginManager()
 migrate = Migrate()
 
-# Configure rate limiter with more permissive defaults
+# Configure rate limiter with reasonable defaults
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri="memory://",
     storage_options={},
-    default_limits=["500 per day", "100 per hour"],  # Increased limits
+    default_limits=["200 per day"],  # More permissive default limit
     headers_enabled=True,
-    strategy="moving-window",  # Changed to moving-window for better handling
-    retry_after="http-date",
-    default_limits_deduct_when=lambda response: response.status_code != 429
+    strategy="fixed-window",  # Simpler strategy
+    retry_after="delta-seconds"
 )
 
 def init_extensions(app, db):
-    """Initialize all Flask extensions with proper error handling"""
+    """Initialize all Flask extensions"""
     try:
         # Configure login manager
         login_manager.init_app(app)
         login_manager.login_view = 'auth.login'
         login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
         login_manager.login_message_category = 'info'
-        login_manager.session_protection = 'strong'
-        login_manager.refresh_view = 'auth.login'
-        login_manager.needs_refresh_message = 'Session expirée, veuillez vous reconnecter.'
-        login_manager.needs_refresh_message_category = 'info'
 
-        # Configure session handling with longer duration
+        # Basic session configuration
         app.config.update(
             SESSION_COOKIE_SECURE=False,  # Set to True in production
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
-            PERMANENT_SESSION_LIFETIME=timedelta(hours=24),  # Increased to 24 hours
-            SESSION_PROTECTION='strong'
+            PERMANENT_SESSION_LIFETIME=timedelta(days=7),  # Longer session lifetime
+            SESSION_PROTECTION='basic'  # Less strict protection
         )
 
-        # Initialize caching with longer timeout
+        # Initialize caching with simple configuration
         cache_config = {
             'CACHE_TYPE': 'simple',
-            'CACHE_DEFAULT_TIMEOUT': 3600,  # Increased to 1 hour
-            'CACHE_THRESHOLD': 1000
+            'CACHE_DEFAULT_TIMEOUT': 3600
         }
         cache.init_app(app, config=cache_config)
 

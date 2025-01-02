@@ -71,7 +71,11 @@ def register():
                 username=form.username.data,
                 email=form.email.data
             )
-            user.set_password(form.password.data)
+            success, message = user.set_password(form.password.data)
+            if not success:
+                flash(message, 'danger')
+                return render_template('register.html', form=form, lang=session.get('lang', 'fr'))
+
             db.session.add(user)
             db.session.commit()
             flash('Votre compte a été créé! Vous pouvez maintenant vous connecter.', 'success')

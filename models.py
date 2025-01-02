@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from database import db
 from sqlalchemy import text
 import secrets
-from utils.password_utils import hash_password, verify_password, needs_rehash
+from utils.password_utils import hash_password, verify_password
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,16 +20,10 @@ class Student(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
 
-    # Security fields
+    # Basic security fields
     failed_login_attempts = db.Column(db.Integer, default=0)
     last_failed_login = db.Column(db.DateTime)
     account_locked_until = db.Column(db.DateTime)
-    last_password_change = db.Column(db.DateTime, default=datetime.utcnow)
-    session_token = db.Column(db.String(64), unique=True)
-    password_reset_token = db.Column(db.String(100), unique=True)
-    password_reset_expiry = db.Column(db.DateTime)
-    mfa_secret = db.Column(db.String(32))
-    mfa_enabled = db.Column(db.Boolean, default=False)
 
     # Student progress tracking
     score = db.Column(db.Integer, default=0)
@@ -42,65 +36,37 @@ class Student(UserMixin, db.Model):
     shared_codes = db.relationship('SharedCode', back_populates='student')
 
     def set_password(self, password):
-        """Hash password using Argon2 with the utility function"""
+        """Hash password using the utility function"""
         try:
+            if len(password) < 6:
+                return False, "Le mot de passe doit contenir au moins 6 caractères."
             self.password_hash = hash_password(password)
-            self.last_password_change = datetime.utcnow()
-            return True
+            return True, None
         except Exception as e:
             logger.error(f"Password hashing error: {str(e)}")
-            return False
+            return False, "Une erreur s'est produite lors du changement de mot de passe."
 
     def check_password(self, password):
-        """
-        Verify password hash using the utility function.
-        Also handles rehashing if needed for backward compatibility.
-        """
+        """Verify password hash using the utility function"""
         try:
-            is_valid = verify_password(self.password_hash, password)
-            if is_valid and needs_rehash(self.password_hash):
-                # Upgrade hash to Argon2 if using old format
-                self.password_hash = hash_password(password)
-            return is_valid
+            return verify_password(self.password_hash, password)
         except Exception as e:
             logger.error(f"Password verification error: {str(e)}")
             return False
 
     def increment_failed_login(self):
-        """Track failed login attempts with exponential backoff"""
+        """Track failed login attempts with simple lockout"""
         self.failed_login_attempts += 1
         self.last_failed_login = datetime.utcnow()
 
-        # Exponential backoff for lockout duration
-        if self.failed_login_attempts >= 3:
-            lockout_minutes = min(2 ** (self.failed_login_attempts - 2), 60)  # Max 60 minutes
-            self.account_locked_until = datetime.utcnow() + timedelta(minutes=lockout_minutes)
+        if self.failed_login_attempts >= 5:  # Lock after 5 attempts
+            self.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
 
     def reset_failed_login(self):
         """Reset failed login counter"""
         self.failed_login_attempts = 0
         self.last_failed_login = None
         self.account_locked_until = None
-
-    def generate_session_token(self):
-        """Generate a new session token with expiration"""
-        self.session_token = secrets.token_urlsafe(48)
-        return self.session_token
-
-    def generate_password_reset_token(self):
-        """Generate password reset token with 1-hour expiry"""
-        self.password_reset_token = secrets.token_urlsafe(32)
-        self.password_reset_expiry = datetime.utcnow() + timedelta(hours=1)
-        return self.password_reset_token
-
-    def is_password_reset_token_valid(self, token):
-        """Check if password reset token is valid and not expired"""
-        return (
-            self.password_reset_token
-            and self.password_reset_token == token
-            and self.password_reset_expiry
-            and self.password_reset_expiry > datetime.utcnow()
-        )
 
     def is_account_locked(self):
         """Check if account is temporarily locked"""
@@ -110,7 +76,7 @@ class Student(UserMixin, db.Model):
 
     @staticmethod
     def get_by_email(email):
-        """Safely get user by email using parameterized query"""
+        """Safely get user by email"""
         return Student.query.filter(Student.email == email).first()
 
     def __repr__(self):
