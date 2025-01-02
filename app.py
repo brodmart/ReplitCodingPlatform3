@@ -2,17 +2,12 @@ import os
 import logging
 import secrets
 import time
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, session, g, flash
+from flask import Flask, render_template, request, jsonify, session, g, flash, send_from_directory
 from flask_cors import CORS
 from database import init_db, db
-from extensions import init_extensions
 from flask_wtf.csrf import CSRFProtect
-from extensions import cache
 from flask_compress import Compress
-from compiler_service import compile_and_run, CompilerError, ExecutionError
-from flask_login import current_user
-
+from flask_login import LoginManager, current_user, AnonymousUserMixin
 
 # Configure logging
 logging.basicConfig(
@@ -21,103 +16,52 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def create_app():
-    """Application factory pattern"""
-    app = Flask(__name__)
-    csrf = CSRFProtect()
-    csrf.init_app(app)
+# create the app
+app = Flask(__name__)
+csrf = CSRFProtect()
+csrf.init_app(app)
 
-    # Initialize Flask-Compress
-    compress = Compress()
-    compress.init_app(app)
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'auth.login'
 
-    # Enable CORS properly
-    CORS(app, resources={
-        r"/*": {
-            "origins": "*",
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "X-CSRFToken"]
-        }
-    })
+# Initialize Flask-Compress
+compress = Compress()
+compress.init_app(app)
 
-    # Configure secret key
-    app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
+# Configure secret key and development settings
+app.config.update(
+    SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32)),
+    TEMPLATES_AUTO_RELOAD=True,
+    SEND_FILE_MAX_AGE_DEFAULT=0,
+    DEBUG=True,
+    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    WTF_CSRF_TIME_LIMIT=3600,
+    WTF_CSRF_SSL_STRICT=False,
+    SERVER_NAME=None
+)
 
-    # Security configurations with relaxed settings for development
-    app.config.update(
-        SESSION_COOKIE_SECURE=False,
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',
-        WTF_CSRF_TIME_LIMIT=3600,
-        WTF_CSRF_SSL_STRICT=False,
-        SERVER_NAME=None,
-        SEND_FILE_MAX_AGE_DEFAULT=86400,  # Cache static files for 24 hours
-        STATIC_FOLDER='static',
-        STATIC_URL_PATH='/static',
-        COMPRESS_MIMETYPES=['text/html', 'text/css', 'text/javascript', 'application/javascript'],
-        COMPRESS_LEVEL=6,
-        COMPRESS_MIN_SIZE=500
-    )
+# Custom static file serving with cache control
+@app.route('/static/<path:filename>')
+def custom_static(filename):
+    response = send_from_directory(app.static_folder, filename)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
-    # Configure caching
-    app.config['CACHE_TYPE'] = 'SimpleCache'
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 300
-
-    @app.after_request
-    def add_cache_headers(response):
-        # Cache static files
-        if request.path.startswith('/static'):
-            response.cache_control.max_age = 86400  # 24 hours
-            response.cache_control.public = True
-        return response
-
-    try:
-        # Initialize database
-        init_db(app)
-
-        # Initialize extensions
-        init_extensions(app)
-
-        # Register blueprints
-        from routes.auth_routes import auth
-        from routes.activity_routes import activities
-
-        app.register_blueprint(auth, url_prefix='/auth')
-        app.register_blueprint(activities, url_prefix='/activities')
-
-        # Register error handlers
-        register_error_handlers(app)
-
-        return app
-
-    except Exception as e:
-        logger.error(f"Failed to create application: {str(e)}")
-        raise
-
-def register_error_handlers(app):
-    """Register error handlers for the application"""
-
-    @app.errorhandler(404)
-    def not_found_error(error):
-        if request.is_json:
-            return jsonify({'error': 'Not found'}), 404
-        return render_template('errors/404.html'), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        db.session.rollback()
-        logger.error(f"Internal server error: {str(error)}")
-        if request.is_json:
-            return jsonify({'error': 'Internal server error'}), 500
-        return render_template('errors/500.html'), 500
-
-# Create the application instance
-app = create_app()
+# Initialize database
+init_db(app)
 
 @app.before_request
 def before_request():
     """Set start time for request timing"""
     g.start_time = time.time()
+    g.user = current_user
+    logger.debug(f"Processing request: {request.endpoint}")
 
 @app.after_request
 def after_request(response):
@@ -126,30 +70,27 @@ def after_request(response):
         elapsed = time.time() - g.start_time
         response.headers['X-Response-Time'] = str(elapsed)
 
-    # Add cache headers for static files
-    if request.path.startswith('/static'):
-        response.headers['Cache-Control'] = 'public, max-age=86400'
-        response.headers['Vary'] = 'Accept-Encoding'
+    # Disable caching for all responses in development
+    if app.debug:
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
 
     return response
 
 @app.route('/')
-@cache.cached(timeout=300, unless=lambda: current_user.is_authenticated)  # Don't cache for authenticated users
 def index():
     try:
         # Get language preference from session
         lang = session.get('lang', 'fr')
+        logger.debug("Rendering index template")
         return render_template('index.html', lang=lang)
     except Exception as e:
-        logger.error(f"Error rendering index template: {str(e)}")
-        return render_template('errors/500.html'), 500
-
+        logger.error(f"Error rendering template: {str(e)}")
+        return render_template('errors/500.html', lang=lang), 500
 
 @app.route('/execute', methods=['POST'])
 def execute_code():
-    """
-    Execute code submitted from the editor
-    """
     if not request.is_json:
         return jsonify({'error': 'Content-Type must be application/json'}), 400
 
@@ -163,11 +104,11 @@ def execute_code():
         if language not in ['cpp', 'csharp']:
             return jsonify({'error': 'Unsupported language'}), 400
 
+        # Import here to avoid circular imports
+        from compiler_service import compile_and_run
+
         # Execute the code using compiler service
         result = compile_and_run(code=code, language=language)
-
-        if not result.get('success'):
-            return jsonify({'error': result.get('error', 'Compilation failed')}), 400
 
         return jsonify({
             'success': True,
@@ -175,17 +116,23 @@ def execute_code():
             'error': result.get('error')
         })
 
-    except CompilerError as e:
-        logger.error(f"Compilation error: {str(e)}")
-        return jsonify({'error': str(e)}), 400
-    except ExecutionError as e:
-        logger.error(f"Execution error: {str(e)}")
-        return jsonify({'error': str(e)}), 400
     except Exception as e:
-        logger.error(f"Unexpected error in execute_code: {str(e)}")
+        logger.error(f"Unexpected error: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
-    """Properly remove database session"""
     db.session.remove()
+
+# Add a simple user loader function
+@login_manager.user_loader
+def load_user(user_id):
+    try:
+        from models import Student
+        return Student.query.get(int(user_id))
+    except Exception as e:
+        logger.error(f"Error loading user: {str(e)}")
+        return None
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
