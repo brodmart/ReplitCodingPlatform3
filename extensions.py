@@ -32,33 +32,6 @@ except Exception as e:
     logger.error(f"Failed to initialize rate limiter: {str(e)}")
     raise
 
-class PerformanceMiddleware:
-    def __init__(self, app):
-        self.app = app
-        self.logger = logging.getLogger(__name__)
-
-    def __call__(self, environ, start_response):
-        try:
-            request_start = time.time()
-
-            def custom_start_response(status, headers, exc_info=None):
-                # Add performance header
-                headers.append(('X-Response-Time', str(time.time() - request_start)))
-                return start_response(status, headers, exc_info)
-
-            response = self.app(environ, custom_start_response)
-            return response
-
-        except Exception as e:
-            self.logger.error(f"Performance middleware error: {str(e)}")
-            return self.app(environ, start_response)
-        finally:
-            process_time = time.time() - request_start
-            if process_time > 1.0:  # Log slow requests
-                self.logger.warning(
-                    f"Slow request ({process_time:.2f}s): {environ.get('PATH_INFO')}"
-                )
-
 def init_extensions(app):
     """Initialize all Flask extensions with proper error handling"""
     try:
