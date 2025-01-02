@@ -1,67 +1,62 @@
-// Templates
-const cppTemplate = `#include <iostream>
+// Initialize CodeMirror editor with default settings
+document.addEventListener('DOMContentLoaded', function() {
+    const editorElement = document.getElementById('editor');
+    if (!editorElement) {
+        console.error('Editor element not found');
+        return;
+    }
+
+    // Initialize CodeMirror
+    const editor = CodeMirror.fromTextArea(editorElement, {
+        mode: 'text/x-c++src',
+        theme: 'dracula',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 4,
+        tabSize: 4,
+        lineWrapping: true,
+        extraKeys: {"Ctrl-Space": "autocomplete"}
+    });
+
+    // Default templates
+    const templates = {
+        cpp: `#include <iostream>
 using namespace std;
 
 int main() {
     cout << "Hello World!" << endl;
     return 0;
-}`;
-
-const csharpTemplate = `using System;
+}`,
+        csharp: `using System;
 
 class Program {
     static void Main(string[] args) {
         Console.WriteLine("Hello World!");
     }
-}`;
+}`
+    };
 
-let editor = null;
+    // Set initial template and refresh editor
+    const initialLanguage = document.getElementById('languageSelect')?.value || 'cpp';
+    editor.setValue(templates[initialLanguage]);
+    editor.refresh();
 
-document.addEventListener('DOMContentLoaded', function() {
-    const editorElement = document.getElementById('editor');
+    // Handle language changes
     const languageSelect = document.getElementById('languageSelect');
-    const outputDiv = document.getElementById('output');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            const language = this.value;
+            console.log('Switching language to:', language);
+            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+            editor.setValue(templates[language]);
+            editor.refresh();
+        });
+    }
+
+    // Handle run button clicks
     const runButton = document.getElementById('runButton');
-
-    if (!editorElement || !languageSelect) {
-        console.error('Required elements not found');
-        return;
-    }
-
-    // Initialize CodeMirror
-    editor = CodeMirror.fromTextArea(editorElement, {
-        mode: 'text/x-c++src', // Default to C++
-        theme: 'dracula',
-        lineNumbers: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        indentUnit: 4,
-        tabSize: 4,
-        indentWithTabs: true,
-        lineWrapping: true
-    });
-
-    // Set initial template based on selected language
-    const initialLanguage = languageSelect.value;
-    if (initialLanguage === 'cpp') {
-        editor.setValue(cppTemplate);
-        editor.setOption('mode', 'text/x-c++src');
-    } else if (initialLanguage === 'csharp') {
-        editor.setValue(csharpTemplate);
-        editor.setOption('mode', 'text/x-csharp');
-    }
-
-    // Language switching handler
-    languageSelect.addEventListener('change', function() {
-        const selectedLanguage = this.value;
-        console.log('Switching language to:', selectedLanguage);
-
-        editor.setValue(selectedLanguage === 'cpp' ? cppTemplate : csharpTemplate);
-        editor.setOption('mode', selectedLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-        editor.refresh();
-    });
-
-    // Run button handler
+    const outputDiv = document.getElementById('output');
     if (runButton && outputDiv) {
         runButton.addEventListener('click', async function() {
             const code = editor.getValue().trim();
@@ -88,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const data = await response.json();
                 outputDiv.innerHTML = data.error ? 
-                    `<div class="error">${data.error}</div>` :
+                    `<div class="error">${data.error}</div>` : 
                     `<pre>${data.output || 'No output'}</pre>`;
             } catch (error) {
                 outputDiv.innerHTML = `<div class="error">Execution error: ${error.message}</div>`;
@@ -98,9 +93,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Force a refresh after initialization
-    setTimeout(() => {
-        editor.refresh();
-        console.log('Editor initialized successfully');
-    }, 100);
+    // Log successful initialization
+    console.log('Editor initialized successfully');
 });
