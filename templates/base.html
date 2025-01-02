@@ -26,6 +26,16 @@
                             {% if lang == 'fr' %}Éditeur{% else %}Editor{% endif %}
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('activities.list_activities', grade='TEJ2O') }}">
+                            {% if lang == 'fr' %}10e année (TEJ2O){% else %}Grade 10 (TEJ2O){% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('activities.list_activities', grade='ICS3U') }}">
+                            {% if lang == 'fr' %}11e année (ICS3U){% else %}Grade 11 (ICS3U){% endif %}
+                        </a>
+                    </li>
                 </ul>
                 <ul class="navbar-nav">
                     {% if current_user.is_authenticated %}

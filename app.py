@@ -10,6 +10,7 @@ from flask_compress import Compress
 from flask_login import current_user, AnonymousUserMixin
 from extensions import init_extensions, login_manager
 from routes.auth_routes import auth
+from routes.activity_routes import activities
 
 # Configure logging
 logging.basicConfig(
@@ -31,7 +32,8 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     WTF_CSRF_TIME_LIMIT=3600,
-    WTF_CSRF_SSL_STRICT=False
+    WTF_CSRF_SSL_STRICT=False,
+    LOGIN_VIEW='auth.login'  # Add this to ensure login_required works correctly
 )
 
 # Initialize database
@@ -40,8 +42,9 @@ init_db(app)
 # Initialize extensions
 init_extensions(app)
 
-# Register blueprints
+# Register blueprints with correct URL prefixes
 app.register_blueprint(auth, url_prefix='/auth')
+app.register_blueprint(activities, url_prefix='/activities')
 
 # Custom static file serving with cache control
 @app.route('/static/<path:filename>')
@@ -57,6 +60,9 @@ def before_request():
     """Set start time for request timing"""
     g.start_time = time.time()
     g.user = current_user
+    # Set default language if not present
+    if 'lang' not in session:
+        session['lang'] = 'fr'
     logger.debug(f"Processing request: {request.endpoint}")
 
 @app.after_request
@@ -83,7 +89,7 @@ def index():
         return render_template('index.html', lang=lang)
     except Exception as e:
         logger.error(f"Error rendering template: {str(e)}")
-        return render_template('errors/500.html', lang=lang), 500
+        return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):

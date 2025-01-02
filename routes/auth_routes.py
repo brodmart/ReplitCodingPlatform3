@@ -1,16 +1,20 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash, generate_password_hash
-from urllib.parse import urlparse
 from sqlalchemy.exc import SQLAlchemyError
 from models import Student
 from forms import LoginForm, RegisterForm
 from database import db
 from extensions import limiter
 import logging
+from urllib.parse import urlparse, urljoin
 
 auth = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
+
+def is_safe_url(target):
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth.route('/login', methods=['GET', 'POST'])
 @limiter.limit("5 per minute")
@@ -23,15 +27,24 @@ def login():
         try:
             user = Student.query.filter_by(username=form.username.data).first()
             if user and user.check_password(form.password.data):
+                # Reset failed login attempts on successful login
+                user.reset_failed_login()
                 login_user(user, remember=form.remember_me.data)
+
+                # Handle next page redirect
                 next_page = request.args.get('next')
-                if not next_page or urlparse(next_page).netloc != '':
+                if not next_page or not is_safe_url(next_page):
                     next_page = url_for('index')
+
                 flash('Connexion réussie!', 'success')
                 return redirect(next_page)
-            logger.warning(f"Failed login attempt for username: {form.username.data}")
-            flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
-            return render_template('login.html', form=form), 401
+            else:
+                # Handle failed login attempt
+                if user:
+                    user.increment_failed_login()
+                    db.session.commit()
+                logger.warning(f"Failed login attempt for username: {form.username.data}")
+                flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
 
         except SQLAlchemyError as e:
             logger.error(f"Database error during login: {str(e)}")
@@ -45,26 +58,11 @@ def login():
 @login_required
 def logout():
     try:
-        # Remove all session data
-        session.pop('remember_token', None)
-        session.pop('_fresh', None)
-        session.pop('_id', None)
-        session.pop('_user_id', None)
-        session.pop('csrf_token', None)
-        # Clear the entire session
+        # Clear all session data
         session.clear()
-        # Ensure user is logged out
         logout_user()
-        # Create response with proper cookie clearing
-        response = redirect(url_for('auth.login'))
-        # Clear specific cookies
-        response.delete_cookie('remember_token')
-        response.delete_cookie('session')
-        # Clear any potential Flask-Login cookies
-        response.delete_cookie('remember_me')
         flash('Vous avez été déconnecté avec succès', 'success')
-        logger.info("User successfully logged out and session cleared")
-        return response
+        return redirect(url_for('auth.login'))
     except Exception as e:
         logger.error(f"Error during logout: {str(e)}")
         flash('Erreur lors de la déconnexion', 'error')
