@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">
+        {% if curriculum == 'TEJ2O' %}
+            {% if lang == 'fr' %}10e année (TEJ2O){% else %}Grade 10 (TEJ2O){% endif %}
+        {% else %}
+            {% if lang == 'fr' %}11e année (ICS3U){% else %}Grade 11 (ICS3U){% endif %}
+        {% endif %}
+    </h1>
+
+    <div class="row">
+        {% for activity in activities %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100 {% if activity.id in progress and progress[activity.id].completed %}border-success{% endif %}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ activity.title }}</h5>
+                    <p class="card-text">{{ activity.description }}</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="badge bg-{{ 'success' if activity.difficulty == 'easy' else 'warning' if activity.difficulty == 'medium' else 'danger' }}">
+                            {{ activity.difficulty }}
+                        </span>
+                        <span class="text-muted">{{ activity.points }} points</span>
+                    </div>
+                    {% if activity.id in progress %}
+                    <div class="progress mt-2">
+                        <div class="progress-bar {% if progress[activity.id].completed %}bg-success{% endif %}"
+                             role="progressbar"
+                             style="width: {{ '100' if progress[activity.id].completed else '50' }}%">
+                            {% if progress[activity.id].completed %}
+                                {% if lang == 'fr' %}Terminé{% else %}Completed{% endif %}
+                            {% else %}
+                                {% if lang == 'fr' %}En cours{% else %}In Progress{% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" class="btn btn-primary">
+                        {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -20,7 +20,8 @@ def list_activities(grade=None):
     """List all coding activities for a specific grade"""
     try:
         # Convert grade parameter to curriculum code
-        curriculum = 'ICS3U' if grade == 'ICS3U' else 'TEJ2O'
+        curriculum = 'ICS3U' if grade == '11' else 'TEJ2O' if grade == '10' else 'TEJ2O'
+        logger.debug(f"Listing activities for curriculum: {curriculum}")
 
         # Query activities for the specified curriculum
         query = CodingActivity.query.filter_by(curriculum=curriculum).order_by(
@@ -28,17 +29,36 @@ def list_activities(grade=None):
         )
 
         activities_list = query.all()
+        logger.debug(f"Found {len(activities_list)} activities")
+
+        # Group activities by language
+        grouped_activities = {}
+        for activity in activities_list:
+            key = (curriculum, activity.language)
+            if key not in grouped_activities:
+                grouped_activities[key] = []
+            grouped_activities[key].append(activity)
+
+            # Add student progress if authenticated
+            if current_user.is_authenticated:
+                progress = StudentProgress.query.filter_by(
+                    student_id=current_user.id,
+                    activity_id=activity.id
+                ).all()
+                activity.student_progress = progress
 
         return render_template(
             'activities.html',
             activities=activities_list,
-            grade=grade,
-            curriculum=curriculum
+            grade=11 if curriculum == 'ICS3U' else 10,
+            curriculum=curriculum,
+            grouped_activities=grouped_activities,
+            lang=session.get('lang', 'fr')
         )
     except Exception as e:
-        logger.error(f"Error listing activities: {str(e)}")
+        logger.error(f"Error listing activities: {str(e)}", exc_info=True)
         flash("Une erreur s'est produite lors du chargement des activités.", "error")
-        return render_template('errors/500.html'), 500
+        return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
 @activities.route('/activity/<int:activity_id>')
 def view_activity(activity_id):
@@ -54,14 +74,47 @@ def view_activity(activity_id):
             ).first()
 
         return render_template(
-            'activity.html',
+            'activities/view.html',
             activity=activity,
-            progress=progress
+            progress=progress,
+            lang=session.get('lang', 'fr')
         )
     except Exception as e:
-        logger.error(f"Error viewing activity: {str(e)}")
+        logger.error(f"Error viewing activity: {str(e)}", exc_info=True)
         flash("Une erreur s'est produite.", "error")
-        return render_template('errors/500.html'), 500
+        return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
+
+@activities.route('/activity/<int:activity_id>/start')
+@login_required
+def start_activity(activity_id):
+    """Start or continue an activity"""
+    try:
+        activity = CodingActivity.query.get_or_404(activity_id)
+        progress = StudentProgress.query.filter_by(
+            student_id=current_user.id,
+            activity_id=activity_id
+        ).first()
+
+        if not progress:
+            progress = StudentProgress(
+                student_id=current_user.id,
+                activity_id=activity_id,
+                started_at=datetime.utcnow()
+            )
+            db.session.add(progress)
+            db.session.commit()
+
+        return render_template(
+            'activity.html',
+            activity=activity,
+            progress=progress,
+            initial_code=activity.starter_code,
+            lang=session.get('lang', 'fr')
+        )
+    except Exception as e:
+        logger.error(f"Error starting activity: {str(e)}", exc_info=True)
+        flash("Une erreur s'est produite.", "error")
+        return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
 @activities.before_request
 @limiter.limit("60 per minute")
