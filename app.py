@@ -36,7 +36,7 @@ def create_app():
             SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32)),
             TEMPLATES_AUTO_RELOAD=True,
             SEND_FILE_MAX_AGE_DEFAULT=0,
-            DEBUG=True,
+            DEBUG=False,
             SESSION_COOKIE_SECURE=False,
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
@@ -123,4 +123,4 @@ app = create_app()
 
 if __name__ == '__main__':
     logger.info("Starting development server...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=8080)
