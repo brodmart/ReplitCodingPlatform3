@@ -73,6 +73,13 @@
                         </a>
                     </li>
                 </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link text-warning" href="{{ url_for('tutorial.tutorial_view') }}">
+                            {% if lang == 'fr' %}Tutoriel interactif (expérimental){% else %}Interactive Tutorial (experimental){% endif %}
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
