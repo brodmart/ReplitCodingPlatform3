@@ -7,10 +7,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Get CSRF token from either hidden input or meta tag
-    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value || 
-                     document.querySelector('meta[name="csrf-token"]')?.content;
+    const getCsrfToken = () => {
+        return document.querySelector('input[name="csrf_token"]')?.value || 
+               document.querySelector('meta[name="csrf-token"]')?.content;
+    };
+
+    // Verify CSRF token
+    const csrfToken = getCsrfToken();
     if (!csrfToken) {
-        console.error('CSRF token not found');
+        console.error('CSRF token not found in DOM');
     }
 
     // Get initial code from the textarea
@@ -214,9 +219,8 @@ class Program {
                 return;
             }
 
-            // Verify CSRF token before execution
-            const currentToken = document.querySelector('input[name="csrf_token"]')?.value || 
-                               document.querySelector('meta[name="csrf-token"]')?.content;
+            // Get current CSRF token
+            const currentToken = getCsrfToken();
             if (!currentToken) {
                 outputDiv.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
                 return;
@@ -233,8 +237,6 @@ class Program {
                         Exécution du code...
                     </div>
                 </div>`;
-            clearErrorIndicators();
-            hasExecuted = true;
 
             try {
                 const response = await fetch('/activities/execute', {
@@ -250,29 +252,32 @@ class Program {
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json().catch(() => null);
-                    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+                    const contentType = response.headers.get('content-type');
+                    if (contentType && contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                 }
 
                 const data = await response.json();
-
                 if (!data.success) {
-                    displayError(outputDiv, data.error);
-                } else {
-                    clearErrorIndicators();
-                    outputDiv.innerHTML = `
-                        <div class="alert alert-success mb-3">
-                            <i class="bi bi-check-circle me-2"></i>
-                            Code exécuté avec succès
-                        </div>
-                        <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
-                        ${data.error ? `
-                            <div class="alert alert-warning mt-3">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                ${data.error}
-                            </div>` : ''}
-                    `;
+                    throw new Error(data.error || "Une erreur s'est produite lors de l'exécution.");
                 }
+
+                outputDiv.innerHTML = `
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Code exécuté avec succès
+                    </div>
+                    <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
+                    ${data.error ? `
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            ${data.error}
+                        </div>` : ''}
+                `;
             } catch (error) {
                 console.error('Execution error:', error);
                 outputDiv.innerHTML = `

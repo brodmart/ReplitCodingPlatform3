@@ -8,6 +8,15 @@ from compiler_service import compile_and_run, CompilerError, ExecutionError
 activities = Blueprint('activities', __name__)
 logger = logging.getLogger(__name__)
 
+@activities.errorhandler(Exception)
+def handle_error(error):
+    """Ensure all errors return JSON responses"""
+    logger.error(f"Uncaught exception: {str(error)}", exc_info=True)
+    return jsonify({
+        'success': False,
+        'error': "Une erreur inattendue s'est produite"
+    }), 500
+
 @activities.route('/')
 @activities.route('/<grade>')
 @limiter.limit("30 per minute")
@@ -84,6 +93,7 @@ def execute_code():
         language = data.get('language', 'cpp').lower()
 
         logger.debug(f"Executing code in {language}")
+        logger.debug(f"Request data: {data}")
 
         if not code:
             return jsonify({
@@ -106,13 +116,11 @@ def execute_code():
                 'error': "Une erreur s'est produite lors de l'exécution"
             }), 500
 
-        response = jsonify({
+        return jsonify({
             'success': True,
             'output': result.get('output', ''),
             'error': result.get('error')
         })
-        response.headers['Content-Type'] = 'application/json'
-        return response
 
     except CompilerError as e:
         logger.error(f"Compilation error: {str(e)}")
