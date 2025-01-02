@@ -5,6 +5,7 @@ from extensions import limiter, cache
 import logging
 from datetime import datetime
 from sqlalchemy import func
+from compiler_service import compile_and_run, CompilerError, ExecutionError
 
 activities = Blueprint('activities', __name__)
 logger = logging.getLogger(__name__)
@@ -55,7 +56,7 @@ def list_activities(grade=None):
         completion_percentage = (completed_count / total_count * 100) if total_count > 0 else 0
 
         return render_template(
-            'activities.html',
+            'activities/list.html',
             activities=activities_list,
             progress=student_progress,
             completed_count=completed_count,
@@ -102,3 +103,75 @@ def view_activity(activity_id):
 def before_activities_request():
     """Log activity requests"""
     logger.debug(f"Activity route accessed: {request.endpoint}")
+
+
+@activities.route('/execute', methods=['POST'])
+@limiter.limit("20 per minute")
+def execute_code():
+    """Execute submitted code and return the results"""
+    try:
+        if not request.is_json:
+            logger.error("Invalid request format - JSON required")
+            return jsonify({
+                'success': False,
+                'error': 'Format de requête invalide'
+            }), 400
+
+        data = request.get_json()
+        if not data:
+            logger.error("No JSON data in request")
+            return jsonify({
+                'success': False,
+                'error': 'Données invalides'
+            }), 400
+
+        code = data.get('code', '').strip()
+        language = data.get('language', 'cpp').lower()
+
+        if not code:
+            return jsonify({
+                'success': False,
+                'error': 'Le code ne peut pas être vide'
+            }), 400
+
+        if language not in ['cpp', 'csharp']:
+            return jsonify({
+                'success': False,
+                'error': 'Langage non supporté'
+            }), 400
+
+        logger.debug(f"Executing {language} code")
+        result = compile_and_run(code, language)
+
+        if not result:
+            return jsonify({
+                'success': False,
+                'error': "Une erreur s'est produite lors de l'exécution"
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'output': result.get('output', ''),
+            'error': result.get('error')
+        })
+
+    except CompilerError as e:
+        logger.error(f"Compilation error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+    except ExecutionError as e:
+        logger.error(f"Execution error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f"Erreur d'exécution: {str(e)}"
+        }), 400
+
+    except Exception as e:
+        logger.error(f"Unexpected error in execute_code: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "Une erreur inattendue s'est produite"
+        }), 500

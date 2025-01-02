@@ -46,6 +46,7 @@ class Program {
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
+            console.log("Switching language to:", language);
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
             editor.setValue(templates[language]);
             editor.refresh();
@@ -67,23 +68,34 @@ class Program {
             outputDiv.innerHTML = '<div class="loading">Exécution du code...</div>';
 
             try {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                if (!csrfToken) {
+                    throw new Error('CSRF token not found');
+                }
+
                 const response = await fetch('/execute', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value
+                        'X-CSRF-TOKEN': csrfToken
                     },
                     body: JSON.stringify({
                         code,
-                        language: languageSelect.value
+                        language: languageSelect ? languageSelect.value : 'cpp'
                     })
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.error || `HTTP error! status: ${response.status}`);
+                }
 
                 const data = await response.json();
                 outputDiv.innerHTML = data.error ? 
                     `<div class="error">${data.error}</div>` : 
                     `<pre>${data.output || 'Pas de sortie'}</pre>`;
             } catch (error) {
+                console.error('Execution error:', error);
                 outputDiv.innerHTML = `<div class="error">Erreur d'exécution: ${error.message}</div>`;
             } finally {
                 runButton.disabled = false;
