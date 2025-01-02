@@ -40,9 +40,9 @@
 
             <div class="row mb-3">
                 <div class="col">
-                    <select id="languageSelect" class="form-select">
-                        <option value="cpp" selected>C++</option>
-                        <option value="csharp">C#</option>
+                    <select id="languageSelect" class="form-select" onchange="updateTemplate()">
+                        <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
+                        <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
                     </select>
                 </div>
                 <div class="col-auto">
@@ -53,7 +53,7 @@
             </div>
 
             <div class="editor-container">
-                <textarea id="editor"></textarea>
+                <textarea id="editor">{{ initial_code if initial_code else templates[language] }}</textarea>
             </div>
 
             <div class="card mt-3">
@@ -73,11 +73,107 @@
         </div>
     </div>
 </div>
+
+<!-- Template strings for different languages -->
+<script type="text/template" id="cpp-template">
+#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    // Votre code ici
+
+    return 0;
+}
+</script>
+
+<script type="text/template" id="csharp-template">
+using System;
+
+class Program {
+    static void Main() {
+        // Votre code ici
+
+    }
+}
+</script>
 {% endblock %}
 
 {% block scripts %}
 <!-- Load scripts in the right order -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script>
+// Initialize editor with proper mode and theme
+let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+    mode: "text/x-c++src",
+    theme: "dracula",
+    lineNumbers: true,
+    autoCloseBrackets: true,
+    matchBrackets: true,
+    indentUnit: 4,
+    tabSize: 4,
+    indentWithTabs: true,
+    extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"},
+    viewportMargin: Infinity
+});
+
+// Function to update editor mode and template based on language selection
+function updateTemplate() {
+    const language = document.getElementById("languageSelect").value;
+    const templateId = `${language}-template`;
+    const template = document.getElementById(templateId).textContent;
+
+    // Only update if editor content is empty or unchanged from previous template
+    if (editor.getValue().trim() === "" || 
+        editor.getValue() === document.getElementById("cpp-template").textContent.trim() ||
+        editor.getValue() === document.getElementById("csharp-template").textContent.trim()) {
+        editor.setValue(template);
+    }
+
+    // Update editor mode based on language
+    editor.setOption("mode", language === "cpp" ? "text/x-c++src" : "text/x-csharp");
+}
+
+// Add event listener for language change
+document.getElementById("languageSelect").addEventListener("change", updateTemplate);
+
+// Execute code when run button is clicked
+document.getElementById("runButton").addEventListener("click", function() {
+    const output = document.getElementById("output");
+    output.textContent = "Exécution en cours...";
+
+    const language = document.getElementById("languageSelect").value;
+    const code = editor.getValue();
+
+    fetch("/activities/execute", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector('[name=csrf_token]').value
+        },
+        body: JSON.stringify({
+            code: code,
+            language: language
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            output.textContent = data.output || "Programme exécuté avec succès.";
+            if (data.error) {
+                output.textContent += "\nAvertissements:\n" + data.error;
+            }
+        } else {
+            output.textContent = data.error || "Une erreur s'est produite lors de l'exécution.";
+        }
+    })
+    .catch(error => {
+        output.textContent = "Erreur: " + error.message;
+    });
+});
+
+// Set initial editor mode based on selected language
+updateTemplate();
+</script>
 {% endblock %}

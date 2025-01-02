@@ -15,6 +15,7 @@
                     </h3>
                 </div>
                 <div class="card-body">
+                    {# Commented out authentication-dependent progress display
                     {% if current_user.is_authenticated %}
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -33,19 +34,16 @@
                             </div>
                         </div>
                     {% endif %}
+                    #}
 
                     <div class="list-group">
                         {% for activity in activities %}
                         <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" 
-                           class="list-group-item list-group-item-action {% if activity.id in progress and progress[activity.id].completed %}list-group-item-success{% endif %}">
+                           class="list-group-item list-group-item-action">
                             <div class="d-flex w-100 justify-content-between align-items-start">
                                 <div>
                                     <h5 class="mb-1">
-                                        {% if activity.id in progress and progress[activity.id].completed %}
-                                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                                        {% else %}
-                                            <i class="bi bi-circle me-2"></i>
-                                        {% endif %}
+                                        <i class="bi bi-circle me-2"></i>
                                         {{ activity.title }}
                                     </h5>
                                     <p class="mb-1">{{ activity.description }}</p>
@@ -60,20 +58,10 @@
                                             {% endif %}
                                         </span>
                                         <span class="badge bg-info">{{ activity.points }} {% if lang == 'fr' %}points{% else %}points{% endif %}</span>
-                                        {% if activity.id in progress %}
-                                            <span class="badge bg-secondary">
-                                                <i class="bi bi-clock"></i> 
-                                                {{ progress[activity.id].attempts }} {% if lang == 'fr' %}tentative{{ 's' if progress[activity.id].attempts != 1 }}{% else %}attempt{{ 's' if progress[activity.id].attempts != 1 }}{% endif %}
-                                            </span>
-                                        {% endif %}
                                     </div>
                                 </div>
-                                <button class="btn btn-sm {% if activity.id in progress and progress[activity.id].completed %}btn-success{% else %}btn-primary{% endif %}">
-                                    {% if activity.id in progress and progress[activity.id].completed %}
-                                        <i class="bi bi-check2"></i> {% if lang == 'fr' %}Revoir{% else %}Review{% endif %}
-                                    {% else %}
-                                        <i class="bi bi-code-slash"></i> {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
-                                    {% endif %}
+                                <button class="btn btn-sm btn-primary">
+                                    <i class="bi bi-code-slash"></i> {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
                                 </button>
                             </div>
                         </a>

@@ -6,6 +6,7 @@ from flask_caching import Cache
 from flask_compress import Compress
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
+# from flask_login import LoginManager  # Commented for now
 from datetime import timedelta
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 cache = Cache()
 compress = Compress()
 csrf = CSRFProtect()
+# login_manager = LoginManager()  # Commented for now
 migrate = Migrate()
 
 # Configure rate limiter with reasonable defaults
@@ -30,6 +32,13 @@ limiter = Limiter(
 def init_extensions(app, db):
     """Initialize all Flask extensions"""
     try:
+        # Configure login manager
+        # Commented out authentication for now
+        # login_manager.init_app(app)
+        # login_manager.login_view = 'auth.login'
+        # login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
+        # login_manager.login_message_category = 'info'
+
         # Basic session configuration
         app.config.update(
             SESSION_COOKIE_SECURE=False,  # Set to True in production
@@ -51,6 +60,16 @@ def init_extensions(app, db):
         csrf.init_app(app)
         limiter.init_app(app)
         migrate.init_app(app, db)
+
+        # Commented out user loader for now
+        # @login_manager.user_loader
+        # def load_user(user_id):
+        #     try:
+        #         from models import Student
+        #         return Student.query.get(int(user_id))
+        #     except Exception as e:
+        #         logger.error(f"Error loading user: {str(e)}")
+        #         return None
 
     except Exception as e:
         logger.error(f"Failed to initialize extensions: {str(e)}")

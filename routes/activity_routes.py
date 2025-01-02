@@ -1,8 +1,11 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
+# from flask_login import current_user, login_required  # Commented for now
 from flask_wtf.csrf import CSRFProtect
-from models import CodingActivity, db
+from models import CodingActivity, db  # StudentProgress, CodeSubmission removed temporarily
 from extensions import limiter, cache
 import logging
+# from datetime import datetime  # Commented for now
+# from sqlalchemy import func  # Commented for now
 from compiler_service import compile_and_run, CompilerError, ExecutionError
 
 activities = Blueprint('activities', __name__)
@@ -32,6 +35,25 @@ def list_activities(grade=None):
 
         activities_list = query.all()
         logger.debug(f"Found {len(activities_list)} activities")
+
+        # Commented out progress calculation for now
+        # student_progress = {}
+        # completed_count = 0
+        # total_count = len(activities_list)
+        #
+        # if current_user.is_authenticated:
+        #     for activity in activities_list:
+        #         progress = StudentProgress.query.filter_by(
+        #             student_id=current_user.id,
+        #             activity_id=activity.id
+        #         ).first()
+        #
+        #         if progress:
+        #             student_progress[activity.id] = progress
+        #             if progress.completed:
+        #                 completed_count += 1
+        #
+        # completion_percentage = (completed_count / total_count * 100) if total_count > 0 else 0
 
         return render_template(
             'activities/list.html',
@@ -64,22 +86,37 @@ def view_activity(activity_id):
         # Use activity's starter code from database
         starter_code = activity.starter_code
 
-        # If no starter code in database, use appropriate template based on language
+        # If no starter code in database, use curriculum-specific template
         if not starter_code:
-            if activity.language == 'cpp':
+            if activity.curriculum == 'TEJ2O':  # Grade 10 C++
                 starter_code = """#include <iostream>
+#include <string>
 using namespace std;
 
+// Programme principal
 int main() {
+    // Déclaration des variables
+
     // Votre code ici
+
     return 0;
 }"""
-            else:  # C#
+            else:  # Grade 11 C# (ICS3U)
                 starter_code = """using System;
 
 class Program {
     static void Main() {
+        // Déclaration des variables
+
         // Votre code ici
+
+        // N'oubliez pas de gérer les exceptions
+        try {
+            // Code principal ici
+        }
+        catch (Exception e) {
+            Console.WriteLine($"Une erreur s'est produite: {e.Message}");
+        }
     }
 }"""
 

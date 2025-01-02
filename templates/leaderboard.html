@@ -6,9 +6,11 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="mb-0">Classement des Défis de Programmation</h3>
+                    {# Commented out authentication-dependent content
                     {% if current_user.is_authenticated %}
                         <span class="badge bg-info">Votre Rang: #{{ current_user_rank }}</span>
                     {% endif %}
+                    #}
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -24,7 +26,7 @@
                             </thead>
                             <tbody>
                                 {% for student in top_students %}
-                                <tr {% if current_user.is_authenticated and current_user.id == student.id %}class="table-primary"{% endif %}>
+                                <tr>
                                     <th scope="row">{{ loop.index }}</th>
                                     <td>{{ student.username }}</td>
                                     <td>{{ student.score }}</td>

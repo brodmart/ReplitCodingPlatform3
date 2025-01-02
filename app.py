@@ -18,6 +18,26 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Define default templates for each language
+TEMPLATES = {
+    'cpp': """#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    // Votre code ici
+
+    return 0;
+}""",
+    'csharp': """using System;
+
+class Program {
+    static void Main() {
+        // Votre code ici
+    }
+}"""
+}
+
 def create_app():
     """Create and configure the Flask application"""
     try:
@@ -85,7 +105,11 @@ def create_app():
                 lang = session.get('lang', 'fr')
                 language = request.args.get('language', 'cpp')
                 logger.info(f"Rendering editor template with language: {language}")
-                return render_template('editor.html', lang=lang, language=language)
+                return render_template('editor.html', 
+                                    lang=lang, 
+                                    language=language,
+                                    templates=TEMPLATES,
+                                    initial_code=None)
             except Exception as e:
                 logger.error(f"Error in index route: {str(e)}", exc_info=True)
                 return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
