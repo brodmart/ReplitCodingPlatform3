@@ -12,7 +12,7 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <style>
         .navbar-brand img {
-            height: 40px;
+            height: 80px;
             margin-right: 10px;
             vertical-align: middle;
         }
@@ -29,7 +29,7 @@
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <img src="{{ url_for('static', filename='codingmountains.webp') }}" alt="Coding Mountains Logo" class="me-2">
-                {% if lang == 'fr' %}Plateforme d'Apprentissage{% else %}Learning Platform{% endif %}
+                {% if lang == 'fr' %}FluentLogic{% else %}FluentLogic{% endif %}
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -89,9 +89,9 @@
                 <div class="col-md-4">
                     <p class="text-center mb-0">
                         {% if lang == 'fr' %}
-                        © 2025 Plateforme d'Apprentissage. Tous droits réservés.
+                        © 2025 FluentLogic. Tous droits réservés.
                         {% else %}
-                        © 2025 Learning Platform. All rights reserved.
+                        © 2025 FluentLogic. All rights reserved.
                         {% endif %}
                     </p>
                 </div>
