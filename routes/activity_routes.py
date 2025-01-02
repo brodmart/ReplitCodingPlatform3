@@ -78,7 +78,13 @@ def list_activities(grade=None):
 def view_activity(activity_id):
     """View a specific coding activity"""
     try:
+        # Get the activity and verify it exists
         activity = CodingActivity.query.get_or_404(activity_id)
+
+        # Log the activity details for debugging
+        logger.debug(f"Loading activity {activity_id}: {activity.title}")
+        logger.debug(f"Curriculum: {activity.curriculum}, Language: {activity.language}")
+        logger.debug(f"Starter code length: {len(activity.starter_code) if activity.starter_code else 0}")
 
         # Get progress for current user if authenticated
         progress = None
@@ -88,23 +94,33 @@ def view_activity(activity_id):
                 activity_id=activity_id
             ).first()
 
+            if not progress:
+                # Create new progress entry if it doesn't exist
+                progress = StudentProgress(
+                    student_id=current_user.id,
+                    activity_id=activity_id,
+                    started_at=datetime.utcnow()
+                )
+                db.session.add(progress)
+                db.session.commit()
+
+        # Ensure we have starter code, use empty string if None
+        initial_code = activity.starter_code if activity.starter_code else ''
+
+        # Log the initial code being sent to template
+        logger.debug(f"Sending initial code to template (first 100 chars): {initial_code[:100]}")
+
         return render_template(
             'activity.html',
             activity=activity,
             progress=progress,
-            initial_code=activity.starter_code,
+            initial_code=initial_code,
             lang=session.get('lang', 'fr')
         )
     except Exception as e:
-        logger.error(f"Error viewing activity: {str(e)}")
-        flash("Une erreur s'est produite.", "danger")
+        logger.error(f"Error viewing activity: {str(e)}", exc_info=True)
+        flash("Une erreur s'est produite lors du chargement de l'activité.", "danger")
         return redirect(url_for('activities.list_activities'))
-
-@activities.before_request
-def before_activities_request():
-    """Log activity requests"""
-    logger.debug(f"Activity route accessed: {request.endpoint}")
-
 
 @activities.route('/execute', methods=['POST'])
 @limiter.limit("20 per minute")
@@ -176,3 +192,8 @@ def execute_code():
             'success': False,
             'error': "Une erreur inattendue s'est produite"
         }), 500
+
+@activities.before_request
+def before_activities_request():
+    """Log activity requests"""
+    logger.debug(f"Activity route accessed: {request.endpoint}")

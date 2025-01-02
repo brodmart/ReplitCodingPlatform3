@@ -46,72 +46,79 @@ def create_app():
         }
     )
 
-    # Initialize CSRF protection first
-    csrf = CSRFProtect()
-    csrf.init_app(app)
+    try:
+        # Initialize CSRF protection first
+        csrf = CSRFProtect()
+        csrf.init_app(app)
 
-    # Initialize database
-    init_db(app)
+        # Initialize database
+        logger.info("Initializing database...")
+        init_db(app)
 
-    # Initialize migrations
-    migrate = Migrate(app, db)
+        # Initialize migrations
+        migrate = Migrate(app, db)
 
-    # Initialize extensions with db instance
-    init_extensions(app, db)
+        # Initialize extensions with db instance
+        init_extensions(app, db)
 
-    # Enable CORS with specific origins
-    CORS(app, resources={
-        r"/auth/*": {"origins": "*"},
-        r"/activities/*": {"origins": "*"}
-    })
+        # Enable CORS with specific origins
+        CORS(app, resources={
+            r"/auth/*": {"origins": "*"},
+            r"/activities/*": {"origins": "*"}
+        })
 
-    # Register blueprints with URL prefixes
-    app.register_blueprint(auth)
-    app.register_blueprint(activities, url_prefix='/activities')
+        # Register blueprints with URL prefixes
+        logger.info("Registering blueprints...")
+        app.register_blueprint(auth)
+        app.register_blueprint(activities, url_prefix='/activities')
 
-    @app.route('/')
-    def index():
-        """Main editor page - accessible without authentication"""
-        try:
-            # Always render the editor page without requiring authentication
-            lang = session.get('lang', 'fr')
-            logger.debug("Rendering editor template")
-            return render_template('index.html', lang=lang)
-        except Exception as e:
-            logger.error(f"Error rendering editor template: {str(e)}")
-            return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
+        @app.route('/')
+        def index():
+            """Main editor page - accessible without authentication"""
+            try:
+                # Always render the editor page without requiring authentication
+                lang = session.get('lang', 'fr')
+                logger.debug("Rendering editor template")
+                return render_template('index.html', lang=lang)
+            except Exception as e:
+                logger.error(f"Error rendering editor template: {str(e)}")
+                return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
-    @app.route('/grade/<grade>')
-    def redirect_to_activities(grade):
-        """Redirect to activities list - accessible without authentication"""
-        return redirect(url_for('activities.list_activities', grade=grade))
+        @app.route('/grade/<grade>')
+        def redirect_to_activities(grade):
+            """Redirect to activities list - accessible without authentication"""
+            return redirect(url_for('activities.list_activities', grade=grade))
 
-    @app.before_request
-    def before_request():
-        g.start_time = time.time()
-        g.user = current_user
-        if 'lang' not in session:
-            session['lang'] = 'fr'
-        logger.debug(f"Processing request: {request.endpoint}")
+        @app.before_request
+        def before_request():
+            g.start_time = time.time()
+            g.user = current_user
+            if 'lang' not in session:
+                session['lang'] = 'fr'
+            logger.debug(f"Processing request: {request.endpoint}")
 
-    @app.after_request
-    def after_request(response):
-        if hasattr(g, 'start_time'):
-            elapsed = time.time() - g.start_time
-            response.headers['X-Response-Time'] = str(elapsed)
+        @app.after_request
+        def after_request(response):
+            if hasattr(g, 'start_time'):
+                elapsed = time.time() - g.start_time
+                response.headers['X-Response-Time'] = str(elapsed)
 
-        if app.debug:
-            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
+            if app.debug:
+                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+                response.headers['Pragma'] = 'no-cache'
+                response.headers['Expires'] = '0'
 
-        return response
+            return response
 
-    @app.teardown_appcontext
-    def shutdown_session(exception=None):
-        db.session.remove()
+        @app.teardown_appcontext
+        def shutdown_session(exception=None):
+            db.session.remove()
 
-    return app
+        return app
+
+    except Exception as e:
+        logger.error(f"Error creating application: {str(e)}", exc_info=True)
+        raise
 
 app = create_app()
 

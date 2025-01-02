@@ -6,6 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Get initial code from the textarea
+    const initialCode = editorElement.value;
+
     // Initialize CodeMirror
     const editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
@@ -19,35 +22,18 @@ document.addEventListener('DOMContentLoaded', function() {
         extraKeys: {"Ctrl-Space": "autocomplete"}
     });
 
-    // Default templates
-    const templates = {
-        cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    cout << "Hello World!" << endl;
-    return 0;
-}`,
-        csharp: `using System;
-
-class Program {
-    static void Main(string[] args) {
-        Console.WriteLine("Hello World!");
-    }
-}`
-    };
-
-    // Set initial template and refresh editor
-    editor.setValue(templates.cpp);
+    // Set initial code and refresh editor
+    editor.setValue(initialCode || '');
     editor.refresh();
 
     // Handle language changes
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
+        editor.setOption('mode', languageSelect.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+
         languageSelect.addEventListener('change', function() {
             const language = this.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            editor.setValue(templates[language]);
             editor.refresh();
         });
     }
