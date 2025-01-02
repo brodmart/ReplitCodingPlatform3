@@ -13,11 +13,12 @@ logger = logging.getLogger(__name__)
 @activities.route('/')
 @activities.route('/<grade>')
 @login_required
+@limiter.limit("30 per minute")  # Increased from 5 to 30 per minute
 def list_activities(grade=None):
     """List all coding activities for a specific grade"""
     try:
         # Convert grade parameter to curriculum code
-        curriculum = 'ICS3U' if grade == '11' else 'TEJ2O'
+        curriculum = 'ICS3U' if grade == '11' else 'TEJ2O' if grade == '10' else 'TEJ2O'  # Default to TEJ2O
         logger.debug(f"Listing activities for curriculum: {curriculum}")
 
         # Query activities for the specified curriculum
@@ -51,6 +52,7 @@ def list_activities(grade=None):
 
 @activities.route('/activity/<int:activity_id>')
 @login_required
+@limiter.limit("30 per minute")  # Increased from 5 to 30 per minute
 def view_activity(activity_id):
     """View a specific coding activity"""
     try:
@@ -75,8 +77,8 @@ def view_activity(activity_id):
         flash("Une erreur s'est produite.", "danger")
         return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
+# Remove global rate limit as we're using per-route limits
 @activities.before_request
-@limiter.limit("60 per minute")
-def limit_activities():
-    """Rate limit all activity routes"""
-    pass
+def before_activities_request():
+    """Log activity requests"""
+    logger.debug(f"Activity route accessed: {request.endpoint}")

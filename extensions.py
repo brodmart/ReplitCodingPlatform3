@@ -18,24 +18,21 @@ csrf = CSRFProtect()
 login_manager = LoginManager()
 migrate = Migrate()
 
-# Configure rate limiter with proper error handling
-try:
-    limiter = Limiter(
-        get_remote_address,
-        storage_uri="memory://",
-        storage_options={},
-        default_limits=["200 per day", "50 per hour"],
-        headers_enabled=True,
-        strategy="fixed-window"
-    )
-except Exception as e:
-    logger.error(f"Failed to initialize rate limiter: {str(e)}")
-    raise
+# Configure rate limiter with proper configuration
+limiter = Limiter(
+    key_func=get_remote_address,
+    storage_uri="memory://",
+    storage_options={},
+    default_limits=["200 per day", "50 per hour"],
+    headers_enabled=True,
+    strategy="fixed-window",
+    retry_after="http-date"
+)
 
-def init_extensions(app):
+def init_extensions(app, db): # Added db parameter here
     """Initialize all Flask extensions with proper error handling"""
     try:
-        # Configure login manager first
+        # Configure login manager
         login_manager.init_app(app)
         login_manager.login_view = 'auth.login'
         login_manager.login_message = 'Please log in to access this page.'
@@ -63,7 +60,7 @@ def init_extensions(app):
         compress.init_app(app)
         csrf.init_app(app)
         limiter.init_app(app)
-        migrate.init_app(app)
+        migrate.init_app(app, db) # Added db parameter here
 
         @login_manager.user_loader
         def load_user(user_id):

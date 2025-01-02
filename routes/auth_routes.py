@@ -17,7 +17,7 @@ def is_safe_url(target):
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("15 per minute")  # Increased from 5 to 15 per minute
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -73,6 +73,7 @@ def logout():
         return redirect(url_for('index'))
 
 @auth.route('/register', methods=['GET', 'POST'])
+@limiter.limit("10 per minute")  # Added rate limit for registration
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))

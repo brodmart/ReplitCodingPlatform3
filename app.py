@@ -35,12 +35,23 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
         WTF_CSRF_TIME_LIMIT=3600,
         WTF_CSRF_SSL_STRICT=False,
-        LOGIN_VIEW='auth.login'
+        RATELIMIT_DEFAULT="200 per day",
+        RATELIMIT_STORAGE_URL="memory://",
+        RATELIMIT_HEADERS_ENABLED=True,
+        SQLALCHEMY_ENGINE_OPTIONS={
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+        }
     )
 
-    # Initialize database and extensions
+    # Initialize database first
     init_db(app)
-    init_extensions(app)
+
+    # Initialize extensions with db instance
+    init_extensions(app, db)
+
+    # Enable CORS
+    CORS(app)
 
     # Register blueprints with correct URL prefixes
     app.register_blueprint(auth, url_prefix='/auth')
@@ -87,7 +98,6 @@ def create_app():
 
     return app
 
-# Create the application instance
 app = create_app()
 
 if __name__ == '__main__':
