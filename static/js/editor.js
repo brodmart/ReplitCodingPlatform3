@@ -6,19 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Get CSRF token from either hidden input or meta tag
-    const getCsrfToken = () => {
-        const tokenInput = document.querySelector('input[name="csrf_token"]');
-        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-        const token = tokenInput?.value || tokenMeta?.content;
-
-        if (!token) {
-            console.error('CSRF token not found in DOM');
-            return null;
-        }
-        return token;
-    };
-
     // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
@@ -42,9 +29,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Set initial code and refresh editor
-    editor.setValue(initialCode || getTemplateForLanguage('cpp'));
+    // Set initial code
+    const initialCode = editorElement.value;
+    editor.setValue(initialCode || '');
     editor.refresh();
+
+    // Get CSRF token from meta tag
+    const getCsrfToken = () => {
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        if (!tokenMeta) {
+            console.error('CSRF token meta tag not found');
+            return null;
+        }
+        return tokenMeta.content;
+    };
 
     // Track if code has been executed and modified
     let hasExecuted = false;
@@ -217,7 +215,7 @@ class Program {
                 return;
             }
 
-            // Get current CSRF token
+            // Get CSRF token
             const csrfToken = getCsrfToken();
             if (!csrfToken) {
                 outputDiv.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
@@ -237,7 +235,9 @@ class Program {
                 </div>`;
 
             try {
-                console.log('Sending request to execute code...');
+                const language = document.getElementById('languageSelect')?.value || 'cpp';
+                console.log('Executing code:', { language, codeLength: code.length });
+
                 const response = await fetch('/activities/execute', {
                     method: 'POST',
                     headers: {
@@ -246,30 +246,28 @@ class Program {
                     },
                     body: JSON.stringify({
                         code: code,
-                        language: document.getElementById('languageSelect')?.value || 'cpp'
+                        language: language
                     })
                 });
 
-                console.log('Response received:', response.status);
-                const contentType = response.headers.get('content-type');
-                console.log('Content-Type:', contentType);
+                // Log response details for debugging
+                console.log('Response status:', response.status);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-                // First get the response text
-                const responseText = await response.text();
-                console.log('Response text:', responseText);
-
-                // Try to parse as JSON
-                let data;
-                try {
-                    data = JSON.parse(responseText);
-                } catch (e) {
-                    console.error('Failed to parse JSON response:', e);
-                    console.error('Raw response:', responseText);
-                    throw new Error('Le serveur a retourné une réponse invalide');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
-                if (!response.ok || !data.success) {
-                    throw new Error(data.error || `Erreur HTTP: ${response.status}`);
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+
+                const data = await response.json();
+                console.log('Execution response:', data);
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Unknown error occurred');
                 }
 
                 // Display successful execution
@@ -283,8 +281,8 @@ class Program {
                         <div class="alert alert-warning mt-3">
                             <i class="bi bi-exclamation-triangle me-2"></i>
                             ${data.error}
-                        </div>` : ''}
-                `;
+                        </div>` : ''}`;
+
             } catch (error) {
                 console.error('Execution error:', error);
                 outputDiv.innerHTML = `

@@ -1,5 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, Response
-from flask_wtf.csrf import CSRFProtect
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 from models import CodingActivity, db
 from extensions import limiter, cache
 import logging
@@ -17,24 +16,6 @@ def handle_error(error):
         'error': "Une erreur inattendue s'est produite"
     }), 500
 
-@activities.before_request
-def before_activities_request():
-    """Log activity requests"""
-    logger.debug(f"Activity route accessed: {request.endpoint}")
-    logger.debug(f"Request method: {request.method}")
-    logger.debug(f"Request headers: {dict(request.headers)}")
-    if request.is_json:
-        logger.debug(f"Request JSON data: {request.get_json(silent=True)}")
-
-@activities.after_request
-def after_activities_request(response):
-    """Log activity responses"""
-    if not response.is_json and response.mimetype != 'application/json':
-        logger.warning(f"Response is not JSON: {response.mimetype}")
-    logger.debug(f"Response status: {response.status}")
-    logger.debug(f"Response headers: {dict(response.headers)}")
-    return response
-
 @activities.route('/execute', methods=['POST'])
 @limiter.limit("20 per minute")
 def execute_code():
@@ -43,11 +24,7 @@ def execute_code():
         # Log the incoming request
         logger.debug("Received code execution request")
         logger.debug(f"Content-Type: {request.headers.get('Content-Type')}")
-        logger.debug(f"CSRF Token Header: {request.headers.get('X-CSRF-Token')}")
-
-        # Force JSON content type for response
-        response = Response()
-        response.headers['Content-Type'] = 'application/json'
+        logger.debug(f"Request data: {request.get_json(silent=True)}")
 
         if not request.is_json:
             logger.error("Invalid request format: not JSON")
@@ -68,7 +45,7 @@ def execute_code():
         language = data.get('language', 'cpp').lower()
 
         logger.debug(f"Executing code in {language}")
-        logger.debug(f"Request data: {data}")
+        logger.debug(f"Code length: {len(code)}")
 
         if not code:
             return jsonify({
@@ -91,14 +68,11 @@ def execute_code():
                 'error': "Une erreur s'est produite lors de l'exécution"
             }), 500
 
-        response = jsonify({
+        return jsonify({
             'success': True,
             'output': result.get('output', ''),
             'error': result.get('error')
         })
-        response.headers['Content-Type'] = 'application/json'
-        logger.debug(f"Sending response: {response.get_data(as_text=True)}")
-        return response
 
     except CompilerError as e:
         logger.error(f"Compilation error: {str(e)}")
@@ -159,7 +133,6 @@ def view_activity(activity_id):
     """View a specific coding activity"""
     try:
         activity = CodingActivity.query.get_or_404(activity_id)
-
         return render_template(
             'activity.html',
             activity=activity,
