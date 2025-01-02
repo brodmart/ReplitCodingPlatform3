@@ -27,8 +27,13 @@ def login():
         try:
             user = Student.query.filter_by(username=form.username.data).first()
             if user and user.check_password(form.password.data):
+                if user.is_account_locked():
+                    flash('Compte temporairement bloqué. Réessayez plus tard.', 'danger')
+                    return render_template('login.html', form=form, lang=session.get('lang', 'fr'))
+
                 # Reset failed login attempts on successful login
                 user.reset_failed_login()
+                db.session.commit()
                 login_user(user, remember=form.remember_me.data)
 
                 # Handle next page redirect
@@ -44,15 +49,14 @@ def login():
                     user.increment_failed_login()
                     db.session.commit()
                 logger.warning(f"Failed login attempt for username: {form.username.data}")
-                flash('Nom d\'utilisateur ou mot de passe incorrect', 'error')
+                flash('Nom d\'utilisateur ou mot de passe incorrect', 'danger')
 
         except SQLAlchemyError as e:
             logger.error(f"Database error during login: {str(e)}")
             db.session.rollback()
-            flash('Une erreur de serveur est survenue. Veuillez réessayer.', 'error')
-            return render_template('login.html', form=form), 500
+            flash('Une erreur de serveur est survenue. Veuillez réessayer.', 'danger')
 
-    return render_template('login.html', form=form)
+    return render_template('login.html', form=form, lang=session.get('lang', 'fr'))
 
 @auth.route('/logout')
 @login_required
@@ -65,7 +69,7 @@ def logout():
         return redirect(url_for('auth.login'))
     except Exception as e:
         logger.error(f"Error during logout: {str(e)}")
-        flash('Erreur lors de la déconnexion', 'error')
+        flash('Erreur lors de la déconnexion', 'danger')
         return redirect(url_for('index'))
 
 @auth.route('/register', methods=['GET', 'POST'])
@@ -88,6 +92,6 @@ def register():
         except SQLAlchemyError as e:
             logger.error(f"Database error during registration: {str(e)}")
             db.session.rollback()
-            flash('Une erreur est survenue lors de la création du compte.', 'error')
-            return render_template('register.html', form=form)
-    return render_template('register.html', form=form)
+            flash('Une erreur est survenue lors de la création du compte.', 'danger')
+
+    return render_template('register.html', form=form, lang=session.get('lang', 'fr'))

@@ -26,7 +26,7 @@ try:
         storage_options={},
         default_limits=["200 per day", "50 per hour"],
         headers_enabled=True,
-        strategy="fixed-window"  # Added explicit strategy
+        strategy="fixed-window"
     )
 except Exception as e:
     logger.error(f"Failed to initialize rate limiter: {str(e)}")
@@ -35,20 +35,23 @@ except Exception as e:
 def init_extensions(app):
     """Initialize all Flask extensions with proper error handling"""
     try:
-        # Configure session handling with strict security settings
+        # Configure login manager first
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message = 'Please log in to access this page.'
+        login_manager.login_message_category = 'info'
+        login_manager.session_protection = 'strong'
+
+        # Configure session handling
         app.config.update(
-            SESSION_COOKIE_SECURE=True,
+            SESSION_COOKIE_SECURE=False,  # Set to True in production
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
             PERMANENT_SESSION_LIFETIME=timedelta(minutes=60),
-            SESSION_PROTECTION='strong',
-            REMEMBER_COOKIE_SECURE=True,
-            REMEMBER_COOKIE_HTTPONLY=True,
-            REMEMBER_COOKIE_DURATION=timedelta(days=14),
-            REMEMBER_COOKIE_REFRESH_EACH_REQUEST=False
+            SESSION_PROTECTION='strong'
         )
 
-        # Initialize caching with optimized settings
+        # Initialize caching
         cache_config = {
             'CACHE_TYPE': 'simple',
             'CACHE_DEFAULT_TIMEOUT': 300,
@@ -56,31 +59,17 @@ def init_extensions(app):
         }
         cache.init_app(app, config=cache_config)
 
-        # Initialize compression
+        # Initialize other extensions
         compress.init_app(app)
-
-        # Initialize CSRF protection
         csrf.init_app(app)
-
-        # Initialize rate limiting
         limiter.init_app(app)
-
-        # Configure login manager with strict session protection
-        login_manager.init_app(app)
-        login_manager.login_view = 'auth.login'
-        login_manager.session_protection = 'strong'
-        login_manager.refresh_view = 'auth.login'
-        login_manager.needs_refresh_message = 'Please log in again to confirm your identity'
-        login_manager.needs_refresh_message_category = 'info'
-
-        # Initialize database migrations
         migrate.init_app(app)
 
         @login_manager.user_loader
-        def load_user(id):
+        def load_user(user_id):
             try:
                 from models import Student
-                return Student.query.get(int(id))
+                return Student.query.get(int(user_id))
             except Exception as e:
                 logger.error(f"Error loading user: {str(e)}")
                 return None
