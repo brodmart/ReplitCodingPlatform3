@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 @activities.route('/')
 @activities.route('/<grade>')
-@limiter.limit("30 per minute")  # Increased from 5 to 30 per minute
+@limiter.limit("30 per minute")
 def list_activities(grade=None):
     """List all coding activities for a specific grade"""
     try:
@@ -20,31 +20,39 @@ def list_activities(grade=None):
         curriculum = 'ICS3U' if grade == '11' else 'TEJ2O' if grade == '10' else 'TEJ2O'  # Default to TEJ2O
         logger.debug(f"Listing activities for curriculum: {curriculum}")
 
-        # Group activities by curriculum and language
-        activities_query = CodingActivity.query.filter_by(curriculum=curriculum).order_by(
-            CodingActivity.sequence
-        )
-        activities_list = activities_query.all()
+        # Build query based on curriculum
+        query = CodingActivity.query.filter_by(curriculum=curriculum)
+
+        # For TEJ2O, only show C++ activities
+        if curriculum == 'TEJ2O':
+            query = query.filter_by(language='cpp')
+
+        # Order activities by sequence
+        activities_list = query.order_by(CodingActivity.sequence).all()
+        logger.debug(f"Found {len(activities_list)} activities for curriculum {curriculum}")
 
         # Group activities by curriculum and language
         grouped_activities = {}
-        for activity in activities_list:
-            key = (activity.curriculum, activity.language)
-            if key not in grouped_activities:
-                grouped_activities[key] = []
 
-            # If user is authenticated, get their progress
-            if current_user.is_authenticated:
-                progress = StudentProgress.query.filter_by(
-                    student_id=current_user.id,
-                    activity_id=activity.id
-                ).all()
-                activity.student_progress = progress
-            else:
-                activity.student_progress = []
+        with db.session.no_autoflush:
+            for activity in activities_list:
+                key = (activity.curriculum, activity.language)
+                if key not in grouped_activities:
+                    grouped_activities[key] = []
 
-            grouped_activities[key].append(activity)
+                # Only fetch progress if user is authenticated
+                if current_user.is_authenticated:
+                    progress = StudentProgress.query.filter_by(
+                        student_id=current_user.id,
+                        activity_id=activity.id
+                    ).first()
+                    activity.student_progress = [progress] if progress else []
+                else:
+                    activity.student_progress = []
 
+                grouped_activities[key].append(activity)
+
+        logger.debug(f"Grouped activities: {len(grouped_activities)} curriculum-language pairs")
         return render_template(
             'activities.html',
             grouped_activities=grouped_activities,
@@ -53,6 +61,7 @@ def list_activities(grade=None):
         )
     except Exception as e:
         logger.error(f"Error listing activities: {str(e)}", exc_info=True)
+        db.session.rollback()  # Rollback any failed transaction
         flash("Une erreur s'est produite lors du chargement des activités.", "danger")
         return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
@@ -66,10 +75,11 @@ def view_activity(activity_id):
         # Get progress for current user if authenticated
         progress = None
         if current_user.is_authenticated:
-            progress = StudentProgress.query.filter_by(
-                student_id=current_user.id,
-                activity_id=activity_id
-            ).first()
+            with db.session.no_autoflush:
+                progress = StudentProgress.query.filter_by(
+                    student_id=current_user.id,
+                    activity_id=activity_id
+                ).first()
 
         return render_template(
             'activity.html',
@@ -79,7 +89,8 @@ def view_activity(activity_id):
             lang=session.get('lang', 'fr')
         )
     except Exception as e:
-        logger.error(f"Error viewing activity: {str(e)}", exc_info=True)
+        logger.error(f"Error viewing activity: {str(e)}")
+        db.session.rollback()  # Rollback any failed transaction
         flash("Une erreur s'est produite.", "danger")
         return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
