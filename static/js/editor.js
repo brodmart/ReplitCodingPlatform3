@@ -23,19 +23,62 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Set initial code and refresh editor
-    editor.setValue(initialCode || '');
+    editor.setValue(initialCode || getTemplateForLanguage('cpp'));
     editor.refresh();
 
     // Handle language changes
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
-        editor.setOption('mode', languageSelect.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+        const initialLanguage = languageSelect.value || 'cpp';
+        editor.setOption('mode', getEditorMode(initialLanguage));
 
         languageSelect.addEventListener('change', function() {
             const language = this.value;
-            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+            editor.setOption('mode', getEditorMode(language));
+
+            // Only set template if the editor is empty or contains the default template
+            if (!editor.getValue().trim() || isDefaultTemplate(editor.getValue(), getOtherLanguage(language))) {
+                editor.setValue(getTemplateForLanguage(language));
+            }
+
             editor.refresh();
         });
+    }
+
+    // Helper function to get editor mode based on language
+    function getEditorMode(language) {
+        return language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+    }
+
+    // Helper function to get the other language
+    function getOtherLanguage(language) {
+        return language === 'cpp' ? 'csharp' : 'cpp';
+    }
+
+    // Helper function to check if code is a default template
+    function isDefaultTemplate(code, language) {
+        return code.trim() === getTemplateForLanguage(language).trim();
+    }
+
+    // Helper function to get template for specific language
+    function getTemplateForLanguage(language) {
+        if (language === 'cpp') {
+            return `#include <iostream>
+using namespace std;
+
+int main() {
+    // Votre code ici
+    return 0;
+}`;
+        } else {
+            return `using System;
+
+class Program {
+    static void Main() {
+        // Votre code ici
+    }
+}`;
+        }
     }
 
     // Handle run button clicks

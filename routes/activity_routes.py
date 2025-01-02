@@ -85,6 +85,8 @@ def view_activity(activity_id):
         logger.debug(f"Loading activity {activity_id}: {activity.title}")
         logger.debug(f"Curriculum: {activity.curriculum}, Language: {activity.language}")
         logger.debug(f"Starter code length: {len(activity.starter_code) if activity.starter_code else 0}")
+        logger.debug(f"Hints: {activity.hints}")
+        logger.debug(f"Common errors: {activity.common_errors}")
 
         # Get progress for current user if authenticated
         progress = None
@@ -104,19 +106,43 @@ def view_activity(activity_id):
                 db.session.add(progress)
                 db.session.commit()
 
-        # Ensure we have starter code, use empty string if None
-        initial_code = activity.starter_code if activity.starter_code else ''
+        # Use activity's starter code from database
+        starter_code = activity.starter_code
 
-        # Log the initial code being sent to template
-        logger.debug(f"Sending initial code to template (first 100 chars): {initial_code[:100]}")
+        # If no starter code in database, use appropriate template based on language
+        if not starter_code:
+            if activity.language == 'cpp':
+                starter_code = """#include <iostream>
+using namespace std;
+
+int main() {
+    // Votre code ici
+    return 0;
+}"""
+            else:  # C#
+                starter_code = """using System;
+
+class Program {
+    static void Main() {
+        // Votre code ici
+    }
+}"""
+
+        # Log the data being sent to template
+        logger.debug(f"Sending to template - starter code (first 100 chars): {starter_code[:100]}")
+        logger.debug(f"Hints count: {len(activity.hints) if activity.hints else 0}")
+        logger.debug(f"Common errors count: {len(activity.common_errors) if activity.common_errors else 0}")
 
         return render_template(
             'activity.html',
             activity=activity,
             progress=progress,
-            initial_code=initial_code,
+            initial_code=starter_code,
+            hints=activity.hints,
+            common_errors=activity.common_errors,
             lang=session.get('lang', 'fr')
         )
+
     except Exception as e:
         logger.error(f"Error viewing activity: {str(e)}", exc_info=True)
         flash("Une erreur s'est produite lors du chargement de l'activité.", "danger")

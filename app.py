@@ -78,8 +78,9 @@ def create_app():
             try:
                 # Always render the editor page without requiring authentication
                 lang = session.get('lang', 'fr')
-                logger.debug("Rendering editor template")
-                return render_template('index.html', lang=lang)
+                language = request.args.get('language', 'cpp')  # Get language from query params
+                logger.debug(f"Rendering editor template with language: {language}")
+                return render_template('index.html', lang=lang, language=language)
             except Exception as e:
                 logger.error(f"Error rendering editor template: {str(e)}")
                 return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500

@@ -45,8 +45,8 @@
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
                         <select id="languageSelect" class="form-select w-auto">
-                            <option value="cpp" selected>C++</option>
-                            <option value="csharp">C#</option>
+                            <option value="cpp" {% if not language or language == 'cpp' %}selected{% endif %}>C++</option>
+                            <option value="csharp" {% if language == 'csharp' %}selected{% endif %}>C#</option>
                         </select>
                         <button id="runButton" class="btn btn-primary">
                             {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
