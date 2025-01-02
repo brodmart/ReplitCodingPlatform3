@@ -254,14 +254,17 @@ class Program {
                 const contentType = response.headers.get('content-type');
                 console.log('Content-Type:', contentType);
 
-                let data;
+                // First get the response text
                 const responseText = await response.text();
                 console.log('Response text:', responseText);
 
+                // Try to parse as JSON
+                let data;
                 try {
                     data = JSON.parse(responseText);
                 } catch (e) {
                     console.error('Failed to parse JSON response:', e);
+                    console.error('Raw response:', responseText);
                     throw new Error('Le serveur a retourné une réponse invalide');
                 }
 
@@ -269,6 +272,7 @@ class Program {
                     throw new Error(data.error || `Erreur HTTP: ${response.status}`);
                 }
 
+                // Display successful execution
                 outputDiv.innerHTML = `
                     <div class="alert alert-success mb-3">
                         <i class="bi bi-check-circle me-2"></i>

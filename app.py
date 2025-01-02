@@ -58,6 +58,7 @@ def create_app():
             WTF_CSRF_ENABLED=True,
             WTF_CSRF_TIME_LIMIT=3600,
             WTF_CSRF_SSL_STRICT=False,
+            WTF_CSRF_CHECK_DEFAULT=False,  # Disable default CSRF checking
             RATELIMIT_DEFAULT="200 per day",
             RATELIMIT_STORAGE_URL="memory://",
             RATELIMIT_HEADERS_ENABLED=True,
@@ -68,15 +69,15 @@ def create_app():
         )
         logger.info("Application configuration completed")
 
+        # Initialize CSRF protection before other extensions
+        csrf = CSRFProtect()
+        csrf.init_app(app)
+        logger.info("CSRF protection initialized")
+
         # Initialize database
         logger.info("Initializing database...")
         init_db(app)
         logger.info("Database initialization completed")
-
-        # Initialize CSRF protection
-        csrf = CSRFProtect()
-        csrf.init_app(app)
-        logger.info("CSRF protection initialized")
 
         # Initialize migrations
         migrate = Migrate(app, db)

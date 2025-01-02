@@ -41,6 +41,7 @@ def execute_code():
         # Log the incoming request
         logger.debug("Received code execution request")
         logger.debug(f"Content-Type: {request.headers.get('Content-Type')}")
+        logger.debug(f"CSRF Token Header: {request.headers.get('X-CSRF-Token')}")
 
         if not request.is_json:
             logger.error("Invalid request format: not JSON")
