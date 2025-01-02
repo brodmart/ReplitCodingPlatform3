@@ -80,76 +80,83 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script>
-// Initialize editor with proper mode and theme
-let editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-    mode: "text/x-c++src",
-    theme: "dracula",
-    lineNumbers: true,
-    autoCloseBrackets: true,
-    matchBrackets: true,
-    indentUnit: 4,
-    tabSize: 4,
-    indentWithTabs: true,
-    extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"},
-    viewportMargin: Infinity
-});
+document.addEventListener('DOMContentLoaded', function() {
+    // Get templates from Flask
+    const templates = {{ templates | tojson | safe }};
+    console.log("Templates loaded:", templates);
 
-// Define templates
-const templates = {{ templates | tojson | safe }};
+    // Get initial language
+    const initialLanguage = document.getElementById("languageSelect").value;
+    console.log("Initial language:", initialLanguage);
 
-// Function to update editor mode and template
-function updateTemplate() {
-    const language = document.getElementById("languageSelect").value;
-    const currentCode = editor.getValue().trim();
+    // Initialize CodeMirror
+    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: initialLanguage === "cpp" ? "text/x-c++src" : "text/x-csharp",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: true,
+        extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"},
+        viewportMargin: Infinity
+    });
 
-    // Always update the mode based on the selected language
-    editor.setOption("mode", language === "cpp" ? "text/x-c++src" : "text/x-csharp");
+    // Set initial content
+    editor.setValue(templates[initialLanguage]);
 
-    // Update the template if the current code is empty or matches one of the templates
-    if (currentCode === "" || 
-        Object.values(templates).some(template => currentCode === template.trim())) {
+    // Language change handler
+    document.getElementById("languageSelect").addEventListener("change", function() {
+        const language = this.value;
+        console.log("Switching to language:", language);
+
+        // Update editor mode
+        const mode = language === "cpp" ? "text/x-c++src" : "text/x-csharp";
+        console.log("Setting mode to:", mode);
+        editor.setOption("mode", mode);
+
+        // Set template content for the selected language
         editor.setValue(templates[language]);
-    }
-}
 
-// Set initial content
-editor.setValue(templates[document.getElementById("languageSelect").value]);
+        // Force refresh to ensure proper syntax highlighting
+        editor.refresh();
+    });
 
-// Add event listener for language change
-document.getElementById("languageSelect").addEventListener("change", updateTemplate);
+    // Execute code handler
+    document.getElementById("runButton").addEventListener("click", function() {
+        const output = document.getElementById("output");
+        output.textContent = "Exécution en cours...";
 
-// Execute code when run button is clicked
-document.getElementById("runButton").addEventListener("click", function() {
-    const output = document.getElementById("output");
-    output.textContent = "Exécution en cours...";
+        const language = document.getElementById("languageSelect").value;
+        const code = editor.getValue();
 
-    const language = document.getElementById("languageSelect").value;
-    const code = editor.getValue();
-
-    fetch("/activities/execute", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": document.querySelector('[name=csrf_token]').value
-        },
-        body: JSON.stringify({
-            code: code,
-            language: language
+        fetch("/activities/execute", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('[name=csrf_token]').value
+            },
+            body: JSON.stringify({
+                code: code,
+                language: language
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            output.textContent = data.output || "Programme exécuté avec succès.";
-            if (data.error) {
-                output.textContent += "\nAvertissements:\n" + data.error;
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                output.textContent = data.output || "Programme exécuté avec succès.";
+                if (data.error) {
+                    output.textContent += "\nAvertissements:\n" + data.error;
+                }
+            } else {
+                output.textContent = data.error || "Une erreur s'est produite lors de l'exécution.";
             }
-        } else {
-            output.textContent = data.error || "Une erreur s'est produite lors de l'exécution.";
-        }
-    })
-    .catch(error => {
-        output.textContent = "Erreur: " + error.message;
+        })
+        .catch(error => {
+            console.error("Execution error:", error);
+            output.textContent = "Erreur: " + error.message;
+        });
     });
 });
 </script>

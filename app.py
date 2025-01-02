@@ -26,7 +26,6 @@ using namespace std;
 
 int main() {
     // Votre code ici
-
     return 0;
 }""",
     'csharp': """using System;
@@ -103,12 +102,18 @@ def create_app():
             try:
                 logger.debug("Accessing index route")
                 lang = session.get('lang', 'fr')
-                language = request.args.get('language', 'cpp')
+                language = request.args.get('language', 'cpp').lower()
+
+                if language not in TEMPLATES:
+                    language = 'cpp'
+
                 logger.info(f"Rendering editor template with language: {language}")
-                return render_template('editor.html', 
-                                    lang=lang, 
-                                    language=language,
-                                    templates=TEMPLATES)
+                return render_template(
+                    'editor.html',
+                    lang=lang,
+                    language=language,
+                    templates=TEMPLATES
+                )
             except Exception as e:
                 logger.error(f"Error in index route: {str(e)}", exc_info=True)
                 return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
