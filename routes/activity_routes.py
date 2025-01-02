@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
+from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, Response
 from flask_wtf.csrf import CSRFProtect
 from models import CodingActivity, db
 from extensions import limiter, cache
@@ -66,14 +66,24 @@ def execute_code():
     """Execute submitted code and return the results"""
     try:
         if not request.is_json:
+            logger.error("Invalid request format: not JSON")
             return jsonify({
                 'success': False,
                 'error': 'Format de requête invalide'
             }), 400
 
         data = request.get_json()
+        if not data:
+            logger.error("No JSON data in request")
+            return jsonify({
+                'success': False,
+                'error': 'Données manquantes'
+            }), 400
+
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
+
+        logger.debug(f"Executing code in {language}")
 
         if not code:
             return jsonify({
@@ -88,6 +98,7 @@ def execute_code():
             }), 400
 
         result = compile_and_run(code, language)
+        logger.debug(f"Execution result: {result}")
 
         if not result:
             return jsonify({
@@ -95,11 +106,13 @@ def execute_code():
                 'error': "Une erreur s'est produite lors de l'exécution"
             }), 500
 
-        return jsonify({
+        response = jsonify({
             'success': True,
             'output': result.get('output', ''),
             'error': result.get('error')
         })
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except CompilerError as e:
         logger.error(f"Compilation error: {str(e)}")
