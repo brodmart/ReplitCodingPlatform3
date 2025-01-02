@@ -6,6 +6,7 @@ import tempfile
 import os
 import logging
 from typing import Dict, Optional, Any
+from compiler_service import compile_and_run as service_compile_and_run
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +20,15 @@ class ExecutionError(Exception):
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Compile and run code for testing purposes
+    Compile and run code for testing purposes.
+    This is a wrapper around the more detailed compiler_service implementation.
     """
     try:
-        # For now, return a mock successful compilation as we're focusing on auth
-        return {
-            'success': True,
-            'output': 'Mock compilation successful',
-            'error': None
-        }
+        return service_compile_and_run(code, language, input_data)
     except Exception as e:
         logger.error(f"Error in compile_and_run: {str(e)}")
-        raise ExecutionError(f"Failed to execute code: {str(e)}")
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Une erreur s'est produite lors de l'exécution: {str(e)}"
+        }

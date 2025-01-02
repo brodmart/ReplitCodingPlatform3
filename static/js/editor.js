@@ -1,4 +1,4 @@
-// Initialize CodeMirror editor with default settings
+// Initialize CodeMirror editor with enhanced settings
 document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     if (!editorElement) {
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get initial code from the textarea
     const initialCode = editorElement.value;
 
-    // Initialize CodeMirror
+    // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
         theme: 'dracula',
@@ -19,7 +19,17 @@ document.addEventListener('DOMContentLoaded', function() {
         indentUnit: 4,
         tabSize: 4,
         lineWrapping: true,
-        extraKeys: {"Ctrl-Space": "autocomplete"}
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
+        lint: true,
+        extraKeys: {
+            "Ctrl-Space": "autocomplete",
+            "F11": function(cm) {
+                cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+            },
+            "Esc": function(cm) {
+                if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+            }
+        }
     });
 
     // Set initial code and refresh editor
@@ -33,6 +43,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Store initial template for comparison
     let currentTemplate = getTemplateForLanguage('cpp');
 
+    // Error marker management
+    let errorMarkers = [];
+
+    function clearErrorMarkers() {
+        errorMarkers.forEach(marker => marker.clear());
+        errorMarkers = [];
+    }
+
+    function addErrorMarker(line, message) {
+        const lineNumber = line - 1;  // CodeMirror lines are 0-based
+        const marker = editor.markText(
+            {line: lineNumber, ch: 0},
+            {line: lineNumber, ch: editor.getLine(lineNumber).length},
+            {
+                className: 'error-line',
+                title: message
+            }
+        );
+        errorMarkers.push(marker);
+    }
+
     // Handle language changes
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
@@ -42,6 +73,9 @@ document.addEventListener('DOMContentLoaded', function() {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
             const currentCode = editor.getValue().trim();
+
+            // Clear any existing error markers
+            clearErrorMarkers();
 
             // Always update the editor mode for proper syntax highlighting
             editor.setOption('mode', getEditorMode(language));
@@ -66,6 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     editor.on('change', function() {
         const currentCode = editor.getValue().trim();
         isModified = currentCode !== currentTemplate.trim();
+        clearErrorMarkers();  // Clear error markers when code changes
     });
 
     // Helper function to get editor mode based on language
@@ -112,20 +147,45 @@ class Program {
         }
     }
 
-    // Handle run button clicks
+    // Enhanced error display in output
+    function displayError(outputDiv, error) {
+        if (typeof error === 'object' && error.error_details) {
+            // Clear previous error markers
+            clearErrorMarkers();
+
+            // Add new error marker
+            addErrorMarker(error.error_details.line, error.error_details.message);
+
+            // Display formatted error message
+            outputDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Erreur ligne ${error.error_details.line}:</strong>
+                    <pre>${error.error_details.message}</pre>
+                </div>`;
+        } else {
+            outputDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <pre>${error}</pre>
+                </div>`;
+        }
+    }
+
+    // Handle run button clicks with enhanced error handling
     const runButton = document.getElementById('runButton');
     const outputDiv = document.getElementById('output');
     if (runButton && outputDiv) {
         runButton.addEventListener('click', async function() {
             const code = editor.getValue().trim();
             if (!code) {
-                outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
+                outputDiv.innerHTML = '<div class="alert alert-warning">Le code ne peut pas être vide</div>';
                 return;
             }
 
+            // Update UI for execution
             runButton.disabled = true;
             outputDiv.innerHTML = '<div class="loading">Exécution du code...</div>';
-            hasExecuted = true;  // Set execution flag
+            clearErrorMarkers();
+            hasExecuted = true;
 
             try {
                 // Get CSRF token from meta tag
@@ -152,17 +212,51 @@ class Program {
                 }
 
                 const data = await response.json();
-                outputDiv.innerHTML = data.error ? 
-                    `<div class="error">${data.error}</div>` : 
-                    `<pre>${data.output || 'Pas de sortie'}</pre>`;
+
+                if (!data.success) {
+                    displayError(outputDiv, data.error);
+                } else {
+                    clearErrorMarkers();
+                    outputDiv.innerHTML = `
+                        <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
+                        ${data.error ? `<div class="alert alert-warning mt-2">${data.error}</div>` : ''}
+                    `;
+                }
             } catch (error) {
                 console.error('Execution error:', error);
-                outputDiv.innerHTML = `<div class="error">Erreur d'exécution: ${error.message}</div>`;
+                outputDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Erreur d'exécution:</strong>
+                        <pre>${error.message}</pre>
+                    </div>`;
             } finally {
                 runButton.disabled = false;
             }
         });
     }
+
+    // Add custom styles for error highlighting
+    const style = document.createElement('style');
+    style.textContent = `
+        .error-line {
+            background-color: rgba(255, 0, 0, 0.2);
+            border-bottom: 2px solid #ff0000;
+        }
+        .loading {
+            padding: 1rem;
+            text-align: center;
+            color: #666;
+        }
+        .alert {
+            margin-bottom: 0;
+        }
+        .alert pre {
+            margin-bottom: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    `;
+    document.head.appendChild(style);
 
     // Log successful initialization
     console.log('Editor initialized successfully');
