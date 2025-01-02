@@ -18,40 +18,44 @@ csrf = CSRFProtect()
 login_manager = LoginManager()
 migrate = Migrate()
 
-# Configure rate limiter with proper configuration
+# Configure rate limiter with more permissive defaults
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri="memory://",
     storage_options={},
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["500 per day", "100 per hour"],  # Increased limits
     headers_enabled=True,
-    strategy="fixed-window",
-    retry_after="http-date"
+    strategy="moving-window",  # Changed to moving-window for better handling
+    retry_after="http-date",
+    default_limits_deduct_when=lambda response: response.status_code != 429
 )
 
-def init_extensions(app, db): # Added db parameter here
+def init_extensions(app, db):
     """Initialize all Flask extensions with proper error handling"""
     try:
         # Configure login manager
         login_manager.init_app(app)
         login_manager.login_view = 'auth.login'
-        login_manager.login_message = 'Please log in to access this page.'
+        login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
         login_manager.login_message_category = 'info'
         login_manager.session_protection = 'strong'
+        login_manager.refresh_view = 'auth.login'
+        login_manager.needs_refresh_message = 'Session expirée, veuillez vous reconnecter.'
+        login_manager.needs_refresh_message_category = 'info'
 
-        # Configure session handling
+        # Configure session handling with longer duration
         app.config.update(
             SESSION_COOKIE_SECURE=False,  # Set to True in production
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
-            PERMANENT_SESSION_LIFETIME=timedelta(minutes=60),
+            PERMANENT_SESSION_LIFETIME=timedelta(hours=24),  # Increased to 24 hours
             SESSION_PROTECTION='strong'
         )
 
-        # Initialize caching
+        # Initialize caching with longer timeout
         cache_config = {
             'CACHE_TYPE': 'simple',
-            'CACHE_DEFAULT_TIMEOUT': 300,
+            'CACHE_DEFAULT_TIMEOUT': 3600,  # Increased to 1 hour
             'CACHE_THRESHOLD': 1000
         }
         cache.init_app(app, config=cache_config)
@@ -60,7 +64,7 @@ def init_extensions(app, db): # Added db parameter here
         compress.init_app(app)
         csrf.init_app(app)
         limiter.init_app(app)
-        migrate.init_app(app, db) # Added db parameter here
+        migrate.init_app(app, db)
 
         @login_manager.user_loader
         def load_user(user_id):

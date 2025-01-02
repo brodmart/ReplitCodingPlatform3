@@ -50,12 +50,15 @@ def create_app():
     # Initialize extensions with db instance
     init_extensions(app, db)
 
-    # Enable CORS
-    CORS(app)
+    # Enable CORS with specific origins
+    CORS(app, resources={
+        r"/auth/*": {"origins": "*"},
+        r"/activities/*": {"origins": "*"}
+    })
 
-    # Register blueprints with correct URL prefixes
-    app.register_blueprint(auth, url_prefix='/auth')
-    app.register_blueprint(activities, url_prefix='/activities')
+    # Register blueprints with URL prefixes
+    app.register_blueprint(auth)  # URL prefix is already set in blueprint definition
+    app.register_blueprint(activities)  # URL prefix is already set in blueprint definition
 
     @app.route('/')
     def index():

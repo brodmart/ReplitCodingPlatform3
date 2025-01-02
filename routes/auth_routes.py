@@ -8,7 +8,7 @@ from extensions import limiter
 import logging
 from urllib.parse import urlparse, urljoin
 
-auth = Blueprint('auth', __name__)
+auth = Blueprint('auth', __name__, url_prefix='/auth')
 logger = logging.getLogger(__name__)
 
 def is_safe_url(target):
@@ -17,7 +17,7 @@ def is_safe_url(target):
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth.route('/login', methods=['GET', 'POST'])
-@limiter.limit("15 per minute")  # Increased from 5 to 15 per minute
+@limiter.limit("30 per minute")  # Increased from 5 to 30 per minute
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -58,22 +58,8 @@ def login():
 
     return render_template('login.html', form=form, lang=session.get('lang', 'fr'))
 
-@auth.route('/logout')
-@login_required
-def logout():
-    try:
-        # Clear all session data
-        session.clear()
-        logout_user()
-        flash('Vous avez été déconnecté avec succès', 'success')
-        return redirect(url_for('auth.login'))
-    except Exception as e:
-        logger.error(f"Error during logout: {str(e)}")
-        flash('Erreur lors de la déconnexion', 'danger')
-        return redirect(url_for('index'))
-
 @auth.route('/register', methods=['GET', 'POST'])
-@limiter.limit("10 per minute")  # Added rate limit for registration
+@limiter.limit("20 per minute")  # Increased from 10 to 20 per minute
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -96,3 +82,17 @@ def register():
             flash('Une erreur est survenue lors de la création du compte.', 'danger')
 
     return render_template('register.html', form=form, lang=session.get('lang', 'fr'))
+
+@auth.route('/logout')
+@login_required
+def logout():
+    try:
+        # Clear all session data
+        session.clear()
+        logout_user()
+        flash('Vous avez été déconnecté avec succès', 'success')
+        return redirect(url_for('auth.login'))
+    except Exception as e:
+        logger.error(f"Error during logout: {str(e)}")
+        flash('Erreur lors de la déconnexion', 'danger')
+        return redirect(url_for('index'))
