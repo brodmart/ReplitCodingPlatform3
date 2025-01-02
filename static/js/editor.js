@@ -45,23 +45,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Error marker management
     let errorMarkers = [];
+    let errorWidgets = [];
 
-    function clearErrorMarkers() {
+    function clearErrorIndicators() {
+        // Clear error markers
         errorMarkers.forEach(marker => marker.clear());
         errorMarkers = [];
+
+        // Clear error widgets
+        errorWidgets.forEach(widget => widget.clear());
+        errorWidgets = [];
+
+        // Clear error line classes
+        editor.eachLine(line => {
+            editor.removeLineClass(line, 'background', 'error-line');
+            editor.removeLineClass(line, 'background', 'warning-line');
+        });
     }
 
-    function addErrorMarker(line, message) {
+    function addErrorHighlight(line, type = 'error') {
         const lineNumber = line - 1;  // CodeMirror lines are 0-based
-        const marker = editor.markText(
-            {line: lineNumber, ch: 0},
-            {line: lineNumber, ch: editor.getLine(lineNumber).length},
-            {
-                className: 'error-line',
-                title: message
-            }
-        );
-        errorMarkers.push(marker);
+        const lineHandle = editor.getLineHandle(lineNumber);
+        if (lineHandle) {
+            editor.addLineClass(lineHandle, 'background', `${type}-line`);
+        }
+    }
+
+    function addErrorWidget(line, message, type = 'error') {
+        const lineNumber = line - 1;
+        const widget = document.createElement('div');
+        widget.className = `compiler-${type}-widget`;
+        widget.innerHTML = `<i class="bi ${type === 'error' ? 'bi-exclamation-circle' : 'bi-exclamation-triangle'}"></i> ${message}`;
+
+        const widgetMarker = editor.addLineWidget(lineNumber, widget, {
+            coverGutter: false,
+            noHScroll: true
+        });
+        errorWidgets.push(widgetMarker);
     }
 
     // Handle language changes
@@ -72,19 +92,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         languageSelect.addEventListener('change', function() {
             const language = this.value;
-            const currentCode = editor.getValue().trim();
+            console.log("Switching to language:", language);
 
-            // Clear any existing error markers
-            clearErrorMarkers();
+            // Clear any existing error indicators
+            clearErrorIndicators();
 
-            // Always update the editor mode for proper syntax highlighting
-            editor.setOption('mode', getEditorMode(language));
+            // Update editor mode for proper syntax highlighting
+            const mode = getEditorMode(language);
+            console.log("Setting mode to:", mode);
+            editor.setOption('mode', mode);
 
-            // Reset to template if:
-            // 1. Code has been executed
-            // 2. Current code matches other language's characteristics
-            // 3. Editor is empty
-            if (hasExecuted || shouldUseTemplate(currentCode, language) || !currentCode) {
+            // Reset to template if needed
+            if (hasExecuted || shouldUseTemplate(editor.getValue().trim(), language) || !editor.getValue().trim()) {
                 const newTemplate = getTemplateForLanguage(language);
                 editor.setValue(newTemplate);
                 currentTemplate = newTemplate;
@@ -100,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     editor.on('change', function() {
         const currentCode = editor.getValue().trim();
         isModified = currentCode !== currentTemplate.trim();
-        clearErrorMarkers();  // Clear error markers when code changes
+        clearErrorIndicators();  // Clear error indicators when code changes
     });
 
     // Helper function to get editor mode based on language
@@ -112,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function shouldUseTemplate(currentCode, newLanguage) {
         if (!currentCode) return true;
 
-        // Check if the current code matches either language's characteristics
         const isCppCode = currentCode.includes('#include') || 
                          currentCode.includes('using namespace std') ||
                          currentCode.includes('int main()');
@@ -121,7 +139,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             currentCode.includes('class Program') ||
                             currentCode.includes('static void Main');
 
-        // If switching from C++ to C# or vice versa, use template
         return (newLanguage === 'cpp' && isCsharpCode) || 
                (newLanguage === 'csharp' && isCppCode);
     }
@@ -130,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function getTemplateForLanguage(language) {
         if (language === 'cpp') {
             return `#include <iostream>
+#include <string>
 using namespace std;
 
 int main() {
@@ -147,25 +165,33 @@ class Program {
         }
     }
 
-    // Enhanced error display in output
+    // Enhanced error display in output with visual indicators
     function displayError(outputDiv, error) {
+        clearErrorIndicators();
+
         if (typeof error === 'object' && error.error_details) {
-            // Clear previous error markers
-            clearErrorMarkers();
+            const { line, message, type = 'error' } = error.error_details;
 
-            // Add new error marker
-            addErrorMarker(error.error_details.line, error.error_details.message);
+            // Add visual indicators
+            addErrorHighlight(line, type);
+            addErrorWidget(line, message, type);
 
-            // Display formatted error message
+            // Update output div with formatted message
             outputDiv.innerHTML = `
-                <div class="alert alert-danger">
-                    <strong>Erreur ligne ${error.error_details.line}:</strong>
-                    <pre>${error.error_details.message}</pre>
+                <div class="alert alert-${type === 'error' ? 'danger' : 'warning'}">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi ${type === 'error' ? 'bi-exclamation-circle' : 'bi-exclamation-triangle'} me-2"></i>
+                        <strong>${type === 'error' ? 'Erreur' : 'Avertissement'} ligne ${line}:</strong>
+                    </div>
+                    <pre class="mb-0 ps-4">${message}</pre>
                 </div>`;
         } else {
             outputDiv.innerHTML = `
                 <div class="alert alert-danger">
-                    <pre>${error}</pre>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <pre class="mb-0">${error}</pre>
+                    </div>
                 </div>`;
         }
     }
@@ -183,12 +209,19 @@ class Program {
 
             // Update UI for execution
             runButton.disabled = true;
-            outputDiv.innerHTML = '<div class="loading">Exécution du code...</div>';
-            clearErrorMarkers();
+            outputDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        Exécution du code...
+                    </div>
+                </div>`;
+            clearErrorIndicators();
             hasExecuted = true;
 
             try {
-                // Get CSRF token from meta tag
                 const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
                 if (!csrfToken) {
                     throw new Error('CSRF token not found');
@@ -216,18 +249,29 @@ class Program {
                 if (!data.success) {
                     displayError(outputDiv, data.error);
                 } else {
-                    clearErrorMarkers();
+                    clearErrorIndicators();
                     outputDiv.innerHTML = `
+                        <div class="alert alert-success mb-3">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Code exécuté avec succès
+                        </div>
                         <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
-                        ${data.error ? `<div class="alert alert-warning mt-2">${data.error}</div>` : ''}
+                        ${data.error ? `
+                            <div class="alert alert-warning mt-3">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                ${data.error}
+                            </div>` : ''}
                     `;
                 }
             } catch (error) {
                 console.error('Execution error:', error);
                 outputDiv.innerHTML = `
                     <div class="alert alert-danger">
-                        <strong>Erreur d'exécution:</strong>
-                        <pre>${error.message}</pre>
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-exclamation-circle me-2"></i>
+                            <strong>Erreur d'exécution:</strong>
+                        </div>
+                        <pre class="mb-0 ps-4">${error.message}</pre>
                     </div>`;
             } finally {
                 runButton.disabled = false;
@@ -235,17 +279,34 @@ class Program {
         });
     }
 
-    // Add custom styles for error highlighting
+    // Add custom styles for error highlighting and widgets
     const style = document.createElement('style');
     style.textContent = `
         .error-line {
-            background-color: rgba(255, 0, 0, 0.2);
-            border-bottom: 2px solid #ff0000;
+            background-color: rgba(255, 0, 0, 0.1);
+            border-left: 3px solid #dc3545;
         }
-        .loading {
-            padding: 1rem;
-            text-align: center;
-            color: #666;
+        .warning-line {
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+        }
+        .compiler-error-widget {
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem 0;
+            background-color: rgba(220, 53, 69, 0.1);
+            border-left: 3px solid #dc3545;
+            color: #dc3545;
+            font-family: var(--bs-font-monospace);
+            font-size: 0.875rem;
+        }
+        .compiler-warning-widget {
+            padding: 0.25rem 0.5rem;
+            margin: 0.25rem 0;
+            background-color: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+            color: #856404;
+            font-family: var(--bs-font-monospace);
+            font-size: 0.875rem;
         }
         .alert {
             margin-bottom: 0;
