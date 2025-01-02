@@ -2,41 +2,31 @@ import os
 import logging
 import secrets
 import time
-from flask import Flask, render_template, request, jsonify, session, g, flash, send_from_directory, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session, g, flash, redirect, url_for
 from flask_cors import CORS
-from database import init_db, db
-from flask_wtf.csrf import CSRFProtect
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_compress import Compress
 from flask_migrate import Migrate
-from extensions import init_extensions
-from routes.activity_routes import activities
-from routes.tutorial import tutorial_bp
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
-# Configure logging with more detailed format
+# Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Define default templates for each language
-TEMPLATES = {
-    'cpp': """#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Votre code ici
-    return 0;
-}""",
-    'csharp': """using System;
-
-class Program {
-    static void Main() {
-        // Votre code ici
-    }
-}"""
-}
+# Initialize extensions
+db = SQLAlchemy()
+csrf = CSRFProtect()
+compress = Compress()
+migrate = Migrate()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 def create_app():
     """Create and configure the Flask application"""
@@ -58,73 +48,56 @@ def create_app():
             WTF_CSRF_ENABLED=True,
             WTF_CSRF_TIME_LIMIT=3600,
             WTF_CSRF_SSL_STRICT=False,
-            WTF_CSRF_CHECK_DEFAULT=False,  # Disable default CSRF checking
             RATELIMIT_DEFAULT="200 per day",
             RATELIMIT_STORAGE_URL="memory://",
             RATELIMIT_HEADERS_ENABLED=True,
             SQLALCHEMY_ENGINE_OPTIONS={
                 "pool_pre_ping": True,
                 "pool_recycle": 300,
-            }
+            },
+            JSON_AS_ASCII=False,
+            JSONIFY_PRETTYPRINT_REGULAR=False,
+            JSONIFY_MIMETYPE='application/json'
         )
         logger.info("Application configuration completed")
 
-        # Initialize CSRF protection before other extensions
-        csrf = CSRFProtect()
+        # Initialize extensions
+        db.init_app(app)
         csrf.init_app(app)
-        logger.info("CSRF protection initialized")
-
-        # Initialize database
-        logger.info("Initializing database...")
-        init_db(app)
-        logger.info("Database initialization completed")
-
-        # Initialize migrations
-        migrate = Migrate(app, db)
-        logger.info("Database migrations initialized")
-
-        # Initialize extensions with db instance
-        init_extensions(app, db)
+        compress.init_app(app)
+        migrate.init_app(app, db)
+        limiter.init_app(app)
         logger.info("Extensions initialized")
+
+        # Add CSRF error handler
+        @app.errorhandler(CSRFError)
+        def handle_csrf_error(e):
+            logger.error(f"CSRF error: {str(e)}")
+            response = jsonify({
+                'success': False,
+                'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
+            })
+            response.headers['Content-Type'] = 'application/json; charset=utf-8'
+            return response, 400
 
         # Enable CORS with specific origins
         CORS(app, resources={
-            r"/activities/*": {"origins": "*"}
+            r"/activities/*": {
+                "origins": "*",
+                "supports_credentials": True,
+                "allow_headers": ["Content-Type", "X-CSRF-Token"],
+                "methods": ["GET", "POST", "OPTIONS"]
+            }
         })
         logger.info("CORS configured")
 
         # Register blueprints
-        logger.info("Registering blueprints...")
+        from routes.activity_routes import activities
+        from routes.tutorial import tutorial_bp
+
         app.register_blueprint(activities, url_prefix='/activities')
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
-        logger.info("Blueprints registered successfully")
-
-        @app.route('/')
-        def index():
-            """Main editor page - accessible without authentication"""
-            try:
-                logger.debug("Accessing index route")
-                lang = session.get('lang', 'fr')
-                language = request.args.get('language', 'cpp').lower()
-
-                if language not in TEMPLATES:
-                    language = 'cpp'
-
-                logger.info(f"Rendering editor template with language: {language}")
-                return render_template(
-                    'editor.html',
-                    lang=lang,
-                    language=language,
-                    templates=TEMPLATES
-                )
-            except Exception as e:
-                logger.error(f"Error in index route: {str(e)}", exc_info=True)
-                return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
-
-        @app.route('/grade/<grade>')
-        def redirect_to_activities(grade):
-            """Redirect to activities list"""
-            return redirect(url_for('activities.list_activities', grade=grade))
+        logger.info("Blueprints registered")
 
         @app.before_request
         def before_request():
@@ -142,22 +115,21 @@ def create_app():
                 response.headers['X-Response-Time'] = str(elapsed)
                 logger.debug(f"Request processed in {elapsed:.3f}s")
 
-            if app.debug:
-                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-                response.headers['Pragma'] = 'no-cache'
-                response.headers['Expires'] = '0'
+            # Ensure JSON responses have correct content type
+            if response.mimetype == 'application/json':
+                response.headers['Content-Type'] = 'application/json; charset=utf-8'
+
+            # Add CORS headers for JSON responses
+            if request.method == 'OPTIONS':
+                response.headers['Access-Control-Allow-Credentials'] = 'true'
+                response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+                response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-CSRF-Token'
 
             return response
 
-        @app.teardown_appcontext
-        def shutdown_session(exception=None):
-            """Clean up database session"""
-            if exception:
-                logger.error(f"Error during request: {str(exception)}")
-            db.session.remove()
-
         logger.info("Application creation completed successfully")
         return app
+
     except Exception as e:
         logger.error(f"Failed to create application: {str(e)}", exc_info=True)
         raise
@@ -167,4 +139,4 @@ app = create_app()
 
 if __name__ == '__main__':
     logger.info("Starting development server...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
