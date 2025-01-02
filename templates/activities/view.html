@@ -16,24 +16,6 @@
                 </div>
             </div>
 
-            {% if current_user.is_authenticated %}
-                <div class="progress mb-4">
-                    {% if progress and progress.completed %}
-                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%">
-                            {% if lang == 'fr' %}Terminé{% else %}Completed{% endif %}
-                        </div>
-                    {% elif progress %}
-                        <div class="progress-bar" role="progressbar" style="width: 50%">
-                            {% if lang == 'fr' %}En cours{% else %}In Progress{% endif %}
-                        </div>
-                    {% else %}
-                        <div class="progress-bar" role="progressbar" style="width: 0%">
-                            {% if lang == 'fr' %}Non commencé{% else %}Not Started{% endif %}
-                        </div>
-                    {% endif %}
-                </div>
-            {% endif %}
-
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <span class="badge bg-{{ 'success' if activity.difficulty == 'easy' else 'warning' if activity.difficulty == 'medium' else 'danger' }}">
                     {{ activity.difficulty }}
@@ -44,16 +26,6 @@
             <a href="{{ url_for('activities.start_activity', activity_id=activity.id) }}" class="btn btn-primary">
                 {% if lang == 'fr' %}Commencer l'activité{% else %}Start Activity{% endif %}
             </a>
-
-            {% if not current_user.is_authenticated %}
-                <div class="alert alert-info mt-3">
-                    {% if lang == 'fr' %}
-                        Connectez-vous pour sauvegarder votre progression
-                    {% else %}
-                        Log in to save your progress
-                    {% endif %}
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>

@@ -10,34 +10,10 @@
         {% endif %}
     </h1>
 
-    {% if current_user.is_authenticated %}
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="mb-0">{% if lang == 'fr' %}Progression{% else %}Progress{% endif %}</h3>
-        </div>
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span>{{ completed_count }}/{{ total_count }} {% if lang == 'fr' %}Activités Complétées{% else %}Activities Completed{% endif %}</span>
-                <span class="badge bg-info">{{ completion_percentage|round|int }}%</span>
-            </div>
-            <div class="progress" style="height: 20px;">
-                <div class="progress-bar {% if completion_percentage == 100 %}bg-success{% else %}bg-primary{% endif %}" 
-                     role="progressbar" 
-                     style="width: {{ completion_percentage }}%"
-                     aria-valuenow="{{ completion_percentage }}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100">
-                    {{ completion_percentage|round|int }}%
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
     <div class="row">
         {% for activity in activities %}
         <div class="col-md-6 mb-4">
-            <div class="card h-100 {% if activity.id in progress and progress[activity.id].completed %}border-success{% endif %}">
+            <div class="card h-100">
                 <div class="card-body">
                     <h5 class="card-title">{{ activity.title }}</h5>
                     <p class="card-text">{{ activity.description }}</p>
@@ -53,29 +29,10 @@
                         </span>
                         <span class="badge bg-info">{{ activity.points }} {% if lang == 'fr' %}points{% else %}points{% endif %}</span>
                     </div>
-                    {% if activity.id in progress %}
-                        {% set student_progress = progress[activity.id] %}
-                        <div class="mt-2">
-                            <span class="badge bg-secondary">
-                                <i class="bi bi-clock"></i> 
-                                {{ student_progress.attempts }} {% if lang == 'fr' %}tentative{{ 's' if student_progress.attempts != 1 }}{% else %}attempt{{ 's' if student_progress.attempts != 1 }}{% endif %}
-                            </span>
-                            {% if student_progress.completed %}
-                                <span class="badge bg-success">
-                                    <i class="bi bi-check-circle"></i> 
-                                    {% if lang == 'fr' %}Complété{% else %}Completed{% endif %}
-                                </span>
-                            {% endif %}
-                        </div>
-                    {% endif %}
                 </div>
                 <div class="card-footer">
                     <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" class="btn btn-primary">
-                        {% if activity.id in progress and progress[activity.id].completed %}
-                            {% if lang == 'fr' %}Revoir{% else %}Review{% endif %}
-                        {% else %}
-                            {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
-                        {% endif %}
+                        {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
                     </a>
                 </div>
             </div>

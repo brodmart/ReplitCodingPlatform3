@@ -1,11 +1,8 @@
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
-from flask_login import current_user, login_required
 from flask_wtf.csrf import CSRFProtect
-from models import CodingActivity, StudentProgress, CodeSubmission, db
+from models import CodingActivity, db
 from extensions import limiter, cache
 import logging
-from datetime import datetime
-from sqlalchemy import func
 from compiler_service import compile_and_run, CompilerError, ExecutionError
 
 activities = Blueprint('activities', __name__)
@@ -36,33 +33,9 @@ def list_activities(grade=None):
         activities_list = query.all()
         logger.debug(f"Found {len(activities_list)} activities")
 
-        # Calculate progress if user is authenticated
-        student_progress = {}
-        completed_count = 0
-        total_count = len(activities_list)
-
-        if current_user.is_authenticated:
-            for activity in activities_list:
-                progress = StudentProgress.query.filter_by(
-                    student_id=current_user.id,
-                    activity_id=activity.id
-                ).first()
-
-                if progress:
-                    student_progress[activity.id] = progress
-                    if progress.completed:
-                        completed_count += 1
-
-        # Calculate completion percentage
-        completion_percentage = (completed_count / total_count * 100) if total_count > 0 else 0
-
         return render_template(
             'activities/list.html',
             activities=activities_list,
-            progress=student_progress,
-            completed_count=completed_count,
-            total_count=total_count,
-            completion_percentage=completion_percentage,
             curriculum=curriculum,
             lang=session.get('lang', 'fr'),
             grade=grade
@@ -88,24 +61,6 @@ def view_activity(activity_id):
         logger.debug(f"Hints: {activity.hints}")
         logger.debug(f"Common errors: {activity.common_errors}")
 
-        # Get progress for current user if authenticated
-        progress = None
-        if current_user.is_authenticated:
-            progress = StudentProgress.query.filter_by(
-                student_id=current_user.id,
-                activity_id=activity_id
-            ).first()
-
-            if not progress:
-                # Create new progress entry if it doesn't exist
-                progress = StudentProgress(
-                    student_id=current_user.id,
-                    activity_id=activity_id,
-                    started_at=datetime.utcnow()
-                )
-                db.session.add(progress)
-                db.session.commit()
-
         # Use activity's starter code from database
         starter_code = activity.starter_code
 
@@ -128,15 +83,9 @@ class Program {
     }
 }"""
 
-        # Log the data being sent to template
-        logger.debug(f"Sending to template - starter code (first 100 chars): {starter_code[:100]}")
-        logger.debug(f"Hints count: {len(activity.hints) if activity.hints else 0}")
-        logger.debug(f"Common errors count: {len(activity.common_errors) if activity.common_errors else 0}")
-
         return render_template(
             'activity.html',
             activity=activity,
-            progress=progress,
             initial_code=starter_code,
             hints=activity.hints,
             common_errors=activity.common_errors,

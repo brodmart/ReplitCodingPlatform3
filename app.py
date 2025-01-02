@@ -7,11 +7,8 @@ from flask_cors import CORS
 from database import init_db, db
 from flask_wtf.csrf import CSRFProtect
 from flask_compress import Compress
-from flask_login import current_user
 from flask_migrate import Migrate
 from extensions import init_extensions
-from models import Student
-from routes.auth_routes import auth
 from routes.activity_routes import activities
 
 # Configure logging with more detailed format
@@ -35,7 +32,7 @@ def create_app():
             TEMPLATES_AUTO_RELOAD=True,
             SEND_FILE_MAX_AGE_DEFAULT=0,
             DEBUG=True,
-            SESSION_COOKIE_SECURE=False,  # Set to True in production
+            SESSION_COOKIE_SECURE=False,
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
             WTF_CSRF_ENABLED=True,
@@ -71,14 +68,12 @@ def create_app():
 
         # Enable CORS with specific origins
         CORS(app, resources={
-            r"/auth/*": {"origins": "*"},
             r"/activities/*": {"origins": "*"}
         })
         logger.info("CORS configured")
 
-        # Register blueprints with URL prefixes
+        # Register activities blueprint
         logger.info("Registering blueprints...")
-        app.register_blueprint(auth)
         app.register_blueprint(activities, url_prefix='/activities')
         logger.info("Blueprints registered successfully")
 
@@ -90,7 +85,7 @@ def create_app():
                 lang = session.get('lang', 'fr')
                 language = request.args.get('language', 'cpp')
                 logger.info(f"Rendering editor template with language: {language}")
-                return render_template('index.html', lang=lang, language=language)
+                return render_template('editor.html', lang=lang, language=language)
             except Exception as e:
                 logger.error(f"Error in index route: {str(e)}", exc_info=True)
                 return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
@@ -104,7 +99,6 @@ def create_app():
         def before_request():
             """Log request information and set up request context"""
             g.start_time = time.time()
-            g.user = current_user
             if 'lang' not in session:
                 session['lang'] = 'fr'
             logger.debug(f"Processing request: {request.endpoint}")
