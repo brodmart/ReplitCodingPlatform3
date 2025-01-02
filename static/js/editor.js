@@ -222,7 +222,7 @@ class Program {
             hasExecuted = true;
 
             try {
-                const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
                 if (!csrfToken) {
                     throw new Error('CSRF token not found');
                 }
