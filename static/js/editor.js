@@ -38,8 +38,7 @@ class Program {
     };
 
     // Set initial template and refresh editor
-    const initialLanguage = document.getElementById('languageSelect')?.value || 'cpp';
-    editor.setValue(templates[initialLanguage]);
+    editor.setValue(templates.cpp);
     editor.refresh();
 
     // Handle language changes
@@ -47,7 +46,6 @@ class Program {
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
-            console.log('Switching language to:', language);
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
             editor.setValue(templates[language]);
             editor.refresh();
@@ -61,12 +59,12 @@ class Program {
         runButton.addEventListener('click', async function() {
             const code = editor.getValue().trim();
             if (!code) {
-                outputDiv.innerHTML = '<div class="error">Code cannot be empty</div>';
+                outputDiv.innerHTML = '<div class="error">Le code ne peut pas être vide</div>';
                 return;
             }
 
             runButton.disabled = true;
-            outputDiv.innerHTML = '<div class="loading">Running code...</div>';
+            outputDiv.innerHTML = '<div class="loading">Exécution du code...</div>';
 
             try {
                 const response = await fetch('/execute', {
@@ -84,9 +82,9 @@ class Program {
                 const data = await response.json();
                 outputDiv.innerHTML = data.error ? 
                     `<div class="error">${data.error}</div>` : 
-                    `<pre>${data.output || 'No output'}</pre>`;
+                    `<pre>${data.output || 'Pas de sortie'}</pre>`;
             } catch (error) {
-                outputDiv.innerHTML = `<div class="error">Execution error: ${error.message}</div>`;
+                outputDiv.innerHTML = `<div class="error">Erreur d'exécution: ${error.message}</div>`;
             } finally {
                 runButton.disabled = false;
             }

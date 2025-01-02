@@ -8,7 +8,7 @@
         </div>
         <div class="card-body">
             <p class="lead">{{ activity.description }}</p>
-            
+
             <div class="mb-4">
                 <h4>Instructions</h4>
                 <div class="alert alert-info">
@@ -41,16 +41,16 @@
                 <span class="text-muted">{{ activity.points }} points</span>
             </div>
 
-            {% if current_user.is_authenticated %}
-                <a href="{{ url_for('activities.start_activity', activity_id=activity.id) }}" class="btn btn-primary">
-                    {% if lang == 'fr' %}Commencer l'activité{% else %}Start Activity{% endif %}
-                </a>
-            {% else %}
-                <div class="alert alert-warning">
+            <a href="{{ url_for('activities.start_activity', activity_id=activity.id) }}" class="btn btn-primary">
+                {% if lang == 'fr' %}Commencer l'activité{% else %}Start Activity{% endif %}
+            </a>
+
+            {% if not current_user.is_authenticated %}
+                <div class="alert alert-info mt-3">
                     {% if lang == 'fr' %}
-                        Connectez-vous pour commencer cette activité
+                        Connectez-vous pour sauvegarder votre progression
                     {% else %}
-                        Please log in to start this activity
+                        Log in to save your progress
                     {% endif %}
                 </div>
             {% endif %}

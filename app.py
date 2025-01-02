@@ -62,20 +62,23 @@ def create_app():
 
     # Register blueprints with URL prefixes
     app.register_blueprint(auth)  # URL prefix is already set in blueprint definition
-    app.register_blueprint(activities)  # URL prefix is already set in blueprint definition
+    app.register_blueprint(activities, url_prefix='/activities')  # Set explicit URL prefix
 
     @app.route('/')
     def index():
+        """Main editor page - accessible without authentication"""
         try:
+            # Always render the editor page without requiring authentication
             lang = session.get('lang', 'fr')
-            logger.debug("Rendering index template")
-            return render_template('index.html', lang=lang)
+            logger.debug("Rendering editor template")
+            return render_template('editor.html', lang=lang)
         except Exception as e:
-            logger.error(f"Error rendering template: {str(e)}")
+            logger.error(f"Error rendering editor template: {str(e)}")
             return render_template('errors/500.html', lang=session.get('lang', 'fr')), 500
 
     @app.route('/grade/<grade>')
     def redirect_to_activities(grade):
+        """Redirect to activities list - accessible without authentication"""
         return redirect(url_for('activities.list_activities', grade=grade))
 
     @app.before_request
