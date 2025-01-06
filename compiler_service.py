@@ -201,12 +201,21 @@ class RequestQueue:
         self.start_workers()
         logger.info(f"RequestQueue initialized with {max_workers} workers")
 
-    def _execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
+    def execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
         """Execute code with strict memory limits"""
-        if language == 'cpp':
-            return _compile_and_run_cpp(code, input_data)
-        else:
-            return _compile_and_run_csharp(code, input_data)
+        try:
+            logger.info(f"Executing {language} code")
+            if language == 'cpp':
+                return _compile_and_run_cpp(code, input_data)
+            else:
+                return _compile_and_run_csharp(code, input_data)
+        except Exception as e:
+            logger.error(f"Error executing {language} code: {str(e)}")
+            return {
+                'success': False,
+                'output': '',
+                'error': f"Erreur d'exécution: {str(e)}"
+            }
 
     def start_workers(self):
         """Start worker threads with resource monitoring"""
@@ -248,7 +257,7 @@ class RequestQueue:
 
                         # Track compilation and execution separately
                         compile_start = time.time()
-                        result = self._execute_code(code, language, input_data)
+                        result = self.execute_code(code, language, input_data)
                         compile_end = time.time()
 
                         metrics.compilation_time = compile_end - compile_start
