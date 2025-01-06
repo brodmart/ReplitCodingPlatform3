@@ -347,10 +347,19 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                     'error': f"Erreur d'exécution: {run_process.stderr}"
                 }
 
+            # Filter out debug messages from stderr
+            error_output = run_process.stderr
+            if error_output:
+                # Only keep actual error messages, filter out debug logs
+                error_lines = [line for line in error_output.split('\n')
+                               if not any(debug_text in line.lower()
+                                          for debug_text in ['debug', 'monitoring', 'process'])]
+                error_output = '\n'.join(error_lines).strip()
+
             return {
                 'success': True,
                 'output': run_process.stdout,
-                'error': run_process.stderr if run_process.stderr else None
+                'error': error_output if error_output else None
             }
 
         except subprocess.TimeoutExpired as e:
