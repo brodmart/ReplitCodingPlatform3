@@ -273,54 +273,48 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
         executable = Path(temp_dir) / "program.exe"
 
         try:
+            # Write source code to file
             with open(source_file, 'w') as f:
                 f.write(code)
 
-            # Pre-allocate memory for mono
-            memory_pre_allocated = False
-            try:
-                # Try to allocate memory before starting mono
-                memory_block = bytearray(4 * 1024 * 1024)  # 4MB pre-allocation
-                memory_pre_allocated = True
-            except Exception as e:
-                logger.warning(f"Failed to pre-allocate memory: {e}")
+            logger.debug(f"C# Source code written to {source_file}")
+            logger.debug(f"Code content: {code}")
 
-            # Compile with optimization and security flags
+            # Compile with more detailed output
             compile_process = subprocess.run(
-                ['mcs', '-debug-', '-optimize+', '-define:SECURITY_CHECK',
+                ['mcs', '-debug-', '-optimize+',
                  str(source_file), '-out:' + str(executable)],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
 
+            logger.debug(f"Compilation output: {compile_process.stdout}")
+            logger.debug(f"Compilation errors: {compile_process.stderr}")
+
             if compile_process.returncode != 0:
                 error_info = format_compiler_error(compile_process.stderr, 'csharp')
-                raise CompilerError(error_info['formatted_message'])
+                logger.error(f"C# compilation failed: {error_info}")
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': error_info['formatted_message']
+                }
 
-            # Execute with minimal GC parameters
+            # Execute with simplified mono parameters
             run_process = subprocess.run(
-                ['nice', '-n', '19',  # Lower priority
-                 'mono',
+                ['mono',
                  '--debug',
-                 '--gc=sgen',
-                 '--gc-params=max-heap-size=4M',  # Reduced to 4MB
-                 '--gc-params=soft-heap-limit=3M',  # Even lower soft limit
-                 '--gc-params=nursery-size=128K',  # Minimal nursery size
                  str(executable)],
                 input=input_data,
                 capture_output=True,
                 text=True,
-                timeout=5,  # 5 seconds timeout
-                preexec_fn=lambda: (
-                    os.setsid(),  # New process group
-                    set_memory_limit()  # Memory limit from earlier function
-                )
+                timeout=5,
+                preexec_fn=lambda: os.setsid()  # Only set process group
             )
 
-            # Release pre-allocated memory if we used it
-            if memory_pre_allocated:
-                del memory_block
+            logger.debug(f"Execution output: {run_process.stdout}")
+            logger.debug(f"Execution errors: {run_process.stderr}")
 
             return {
                 'success': True,
@@ -329,14 +323,17 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
             }
 
         except subprocess.TimeoutExpired:
-            os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill all processes in group
-            raise TimeoutError('Le programme a dépassé la limite de temps de 5 secondes')
-        except subprocess.CalledProcessError as e:
-            raise ExecutionError(f"Erreur d'exécution: {e}")
-        except OSError as e:
-            if e.errno == errno.ENOMEM:
-                raise MemoryLimitExceeded('Le programme a dépassé la limite de mémoire')
-            raise ExecutionError(f"Erreur système: {e}")
+            logger.error("C# execution timeout")
+            os.killpg(os.getpgid(0), signal.SIGKILL)
+            return {
+                'success': False,
+                'output': '',
+                'error': 'Le programme a dépassé la limite de temps de 5 secondes'
+            }
         except Exception as e:
-            logger.error(f"Unexpected error in C# execution: {str(e)}")
-            raise ExecutionError(str(e))
+            logger.error(f"Unexpected error in C# execution: {str(e)}", exc_info=True)
+            return {
+                'success': False,
+                'output': '',
+                'error': f"Erreur lors de l'exécution: {str(e)}"
+            }
