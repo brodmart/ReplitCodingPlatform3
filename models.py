@@ -156,6 +156,30 @@ class CodingActivity(db.Model):
 
     student_progress = db.relationship('StudentProgress', back_populates='activity')
 
+    @staticmethod
+    def get_starter_code(language: str) -> str:
+        """Return the appropriate starter code template based on language"""
+        if language == 'cpp':
+            return """#include <iostream>
+using namespace std;
+
+int main() {
+    // Votre code ici
+    return 0;
+}"""
+        else:  # csharp
+            return """using System;
+
+namespace ProgrammingActivity
+{
+    public class Program 
+    {
+        public static void Main(string[] args)
+        {
+            // Votre code ici
+        }
+    }
+}"""
 
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
