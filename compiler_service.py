@@ -360,8 +360,8 @@ class RequestQueue:
 
                         # Get detailed memory stats  (This part needs improvement for accuracy)
                         process = psutil.Process()
-                        metrics.memory_usage = process.memory_info().rss / (1024 * 1024) # MB
-                        metrics.peak_memory = process.memory_info().peak_wset / (1024 * 1024) # MB
+                        metrics.memory_usage = process.memory_info().rss / (1024 * 1024)  # MB
+                        metrics.peak_memory = process.memory_info().vms / (1024 * 1024)  # MB
 
 
                         metrics.success = result.get('success', False)
