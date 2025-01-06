@@ -101,8 +101,8 @@ def create_temp_directory():
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
 def set_memory_limit():
-    """Set memory limit to 50MB - reduced from 100MB to prevent allocation issues"""
-    memory_limit = 50 * 1024 * 1024  # 50MB in bytes
+    """Set memory limit to 25MB - reduced from 50MB to prevent allocation issues"""
+    memory_limit = 25 * 1024 * 1024  # 25MB in bytes
     try:
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
     except Exception as e:
@@ -159,11 +159,10 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
         with open(source_file, 'w') as f:
             f.write(code)
 
-        # Compile with basic safety flags, removing ASan which can cause allocation issues
+        # Compile with basic safety flags, removing optimization and sanitizer flags
         compile_process = subprocess.run(
-            ['g++', '-Wall', '-Wextra', '-Werror', 
-             '-O1',  # Reduced optimization level
-             '-fstack-protector-strong',
+            ['g++', '-Wall', '-Wextra', '-Werror',
+             '-fstack-protector',
              str(source_file), '-o', str(executable)],
             capture_output=True,
             text=True,
@@ -179,8 +178,8 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
         def preexec_fn():
             """Setup process isolation and basic resource limits"""
             try:
-                # Set a soft memory limit of 50MB
-                resource.setrlimit(resource.RLIMIT_AS, (50 * 1024 * 1024, -1))
+                # Set a soft memory limit of 25MB
+                resource.setrlimit(resource.RLIMIT_AS, (25 * 1024 * 1024, -1))
                 # Set CPU time limit
                 resource.setrlimit(resource.RLIMIT_CPU, (5, -1))
                 # Create new process group for easier cleanup
@@ -203,23 +202,13 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
             'error': run_process.stderr if run_process.stderr else None
         }
 
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill all processes in group
-        except:
-            pass  # Ignore cleanup errors
-        return {
-            'success': False,
-            'output': '',
-            'error': 'Le programme a dépassé la limite de temps de 5 secondes'
-        }
     except OSError as e:
         if e.errno == errno.ENOMEM:
             logger.error("Memory allocation error: %s", str(e))
             return {
                 'success': False,
                 'output': '',
-                'error': 'Le programme nécessite trop de mémoire. Veuillez réduire l\'utilisation de la mémoire.'
+                'error': 'Le programme nécessite trop de mémoire. Veuillez réduire l\'utilisation de la mémoire ou utiliser des tableaux plus petits.'
             }
         return {
             'success': False,
