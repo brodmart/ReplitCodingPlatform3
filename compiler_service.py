@@ -12,8 +12,15 @@ from pathlib import Path
 import re
 from typing import Dict, Any, Optional
 from contextlib import contextmanager
+import queue
+import threading
+import time
 
 logger = logging.getLogger(__name__)
+
+# Global request queue
+request_queue = queue.Queue(maxsize=5)  # Limit concurrent requests
+MAX_WORKERS = 2  # Maximum number of worker threads
 
 class CompilerError(Exception):
     """Custom exception for compiler-related errors"""
@@ -47,7 +54,6 @@ def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
     if lang == 'cpp':
         for line in error_lines:
             if 'error:' in line:
-                # Extract line number and error message for C++
                 match = re.search(r'program\.cpp:(\d+):(\d+):\s*error:\s*(.+)', line)
                 if match:
                     line_num, col_num, message = match.groups()
@@ -61,7 +67,6 @@ def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
     else:  # C#
         for line in error_lines:
             if '(CS' in line:
-                # Extract line number and error message for C#
                 match = re.search(r'program\.cs\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
                 if match:
                     line_num, col_num, error_code, message = match.groups()
@@ -110,186 +115,217 @@ def set_memory_limit():
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
     except Exception as e:
         logger.error(f"Failed to set memory limit: {e}")
-        # Continue execution with default limits
         return False
     return True
 
+class RequestQueue:
+    """Manages code execution requests with memory and concurrency limits"""
+    def __init__(self, max_workers=MAX_WORKERS):
+        self.queue = queue.Queue(maxsize=5)
+        self.workers = []
+        self.max_workers = max_workers
+        self.start_workers()
+
+    def start_workers(self):
+        """Start worker threads"""
+        for _ in range(self.max_workers):
+            worker = threading.Thread(target=self._worker_loop, daemon=True)
+            worker.start()
+            self.workers.append(worker)
+
+    def _worker_loop(self):
+        """Worker thread main loop"""
+        while True:
+            try:
+                code, language, input_data, result_queue = self.queue.get()
+                try:
+                    result = self._execute_code(code, language, input_data)
+                    result_queue.put(result)
+                except Exception as e:
+                    logger.error(f"Worker error: {str(e)}")
+                    result_queue.put({
+                        'success': False,
+                        'output': '',
+                        'error': str(e)
+                    })
+                finally:
+                    self.queue.task_done()
+            except Exception as e:
+                logger.error(f"Worker loop error: {str(e)}")
+                time.sleep(1)  # Prevent tight loop on error
+
+    def _execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
+        """Execute code with proper isolation and resource limits"""
+        if language == 'cpp':
+            return _compile_and_run_cpp(code, input_data)
+        else:
+            return _compile_and_run_csharp(code, input_data)
+
+    def submit(self, code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+        """Submit code for execution"""
+        result_queue = queue.Queue()
+        try:
+            self.queue.put((code, language, input_data, result_queue), timeout=5)
+            return result_queue.get(timeout=10)
+        except queue.Full:
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le serveur est occupé. Veuillez réessayer dans quelques instants."
+            }
+        except queue.Empty:
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le délai d'exécution a été dépassé."
+            }
+
+# Global request queue instance
+request_queue = RequestQueue()
+
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Compile and run code with enhanced security and resource limits"""
+    """Submit code to the request queue for execution"""
     if language not in ['cpp', 'csharp']:
         raise ValueError(f"Unsupported language: {language}")
 
+    return request_queue.submit(code, language, input_data)
+
+def _compile_and_run_cpp(code: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+    """Compile and run C++ code with enhanced security and memory management"""
     with create_temp_directory() as temp_dir:
+        source_file = Path(temp_dir) / "program.cpp"
+        executable = Path(temp_dir) / "program"
+
         try:
-            if language == 'cpp':
-                return _compile_and_run_cpp(code, temp_dir, input_data)
-            else:
-                return _compile_and_run_csharp(code, temp_dir, input_data)
-        except CompilerError as e:
-            logger.error(f"Compilation error: {str(e)}")
+            # Write source code to file
+            with open(source_file, 'w') as f:
+                f.write(code)
+
+            # Compile with safety flags
+            compile_process = subprocess.run(
+                ['g++', '-Wall', '-Wextra', '-Werror',
+                 '-fstack-protector',
+                 str(source_file), '-o', str(executable)],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if compile_process.returncode != 0:
+                error_info = format_compiler_error(compile_process.stderr, 'cpp')
+                logger.error(f"Compilation failed: {error_info['formatted_message']}")
+                raise CompilerError(error_info['formatted_message'])
+
+            def preexec_fn():
+                """Setup process isolation and resource limits"""
+                try:
+                    resource.setrlimit(resource.RLIMIT_AS, (25 * 1024 * 1024, -1))
+                    resource.setrlimit(resource.RLIMIT_CPU, (5, -1))
+                    os.setsid()
+                except Exception as e:
+                    logger.warning(f"Failed to set resource limits: {e}")
+
+            run_process = subprocess.run(
+                [str(executable)],
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                preexec_fn=preexec_fn
+            )
+
             return {
-                'success': False,
-                'output': '',
-                'error': str(e)
+                'success': True,
+                'output': run_process.stdout,
+                'error': run_process.stderr if run_process.stderr else None
             }
-        except (ExecutionError, MemoryLimitExceeded, TimeoutError) as e:
-            error_msg = {
-                ExecutionError: "Erreur d'exécution",
-                MemoryLimitExceeded: "Limite de mémoire dépassée (100MB)",
-                TimeoutError: "Temps d'exécution dépassé (5 secondes)"
-            }.get(type(e), "Erreur inattendue")
-            logger.error(f"{error_msg}: {str(e)}")
+
+        except OSError as e:
+            if e.errno == errno.ENOMEM:
+                logger.error("Memory allocation error: %s", str(e))
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': 'Le programme nécessite trop de mémoire. Veuillez réduire l\'utilisation de la mémoire.'
+                }
             return {
                 'success': False,
                 'output': '',
-                'error': f"{error_msg}: {str(e)}"
+                'error': f'Erreur système: {str(e)}'
             }
         except Exception as e:
-            logger.error(f"Unexpected error in compile_and_run: {e}")
+            logger.error(f"Unexpected error in C++ execution: {str(e)}")
             return {
                 'success': False,
                 'output': '',
-                'error': "Une erreur inattendue s'est produite"
+                'error': 'Une erreur inattendue s\'est produite lors de l\'exécution'
             }
 
-def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Compile and run C++ code with enhanced security and memory management"""
-    source_file = Path(temp_dir) / "program.cpp"
-    executable = Path(temp_dir) / "program"
-
-    try:
-        # Write source code to file
-        with open(source_file, 'w') as f:
-            f.write(code)
-
-        # Compile with basic safety flags, removing optimization and sanitizer flags
-        compile_process = subprocess.run(
-            ['g++', '-Wall', '-Wextra', '-Werror',
-             '-fstack-protector',
-             str(source_file), '-o', str(executable)],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-
-        if compile_process.returncode != 0:
-            error_info = format_compiler_error(compile_process.stderr, 'cpp')
-            logger.error(f"Compilation failed: {error_info['formatted_message']}")
-            raise CompilerError(error_info['formatted_message'])
-
-        # Set basic ulimit for the child process
-        def preexec_fn():
-            """Setup process isolation and basic resource limits"""
-            try:
-                # Set a soft memory limit of 25MB
-                resource.setrlimit(resource.RLIMIT_AS, (25 * 1024 * 1024, -1))
-                # Set CPU time limit
-                resource.setrlimit(resource.RLIMIT_CPU, (5, -1))
-                # Create new process group for easier cleanup
-                os.setsid()
-            except Exception as e:
-                logger.warning(f"Failed to set resource limits: {e}")
-
-        run_process = subprocess.run(
-            [str(executable)],
-            input=input_data,
-            capture_output=True,
-            text=True,
-            timeout=5,  # 5 seconds timeout
-            preexec_fn=preexec_fn
-        )
-
-        return {
-            'success': True,
-            'output': run_process.stdout,
-            'error': run_process.stderr if run_process.stderr else None
-        }
-
-    except OSError as e:
-        if e.errno == errno.ENOMEM:
-            logger.error("Memory allocation error: %s", str(e))
-            return {
-                'success': False,
-                'output': '',
-                'error': 'Le programme nécessite trop de mémoire. Veuillez réduire l\'utilisation de la mémoire ou utiliser des tableaux plus petits.'
-            }
-        return {
-            'success': False,
-            'output': '',
-            'error': f'Erreur système: {str(e)}'
-        }
-    except Exception as e:
-        logger.error(f"Unexpected error in C++ execution: {str(e)}")
-        return {
-            'success': False,
-            'output': '',
-            'error': 'Une erreur inattendue s\'est produite lors de l\'exécution'
-        }
-
-def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run C# code with enhanced security and memory management"""
-    source_file = Path(temp_dir) / "program.cs"
-    executable = Path(temp_dir) / "program.exe"
+    with create_temp_directory() as temp_dir:
+        source_file = Path(temp_dir) / "program.cs"
+        executable = Path(temp_dir) / "program.exe"
 
-    try:
-        with open(source_file, 'w') as f:
-            f.write(code)
+        try:
+            with open(source_file, 'w') as f:
+                f.write(code)
 
-        # Compile with optimization and security flags
-        compile_process = subprocess.run(
-            ['mcs', '-debug-', '-optimize+', '-define:SECURITY_CHECK',
-             str(source_file), '-out:' + str(executable)],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-
-        if compile_process.returncode != 0:
-            error_info = format_compiler_error(compile_process.stderr, 'csharp')
-            raise CompilerError(error_info['formatted_message'])
-
-        # Execute with resource limits and isolation
-        run_process = subprocess.run(
-            ['nice', '-n', '19',  # Lower priority
-             'mono',
-             '--debug',
-             '--gc=sgen',
-             '--gc-params=max-heap-size=8M',
-             '--gc-params=nursery-size=256K',
-             '--gc-params=major=marksweep-conc',  # Use concurrent mark & sweep
-             '--gc-params=soft-heap-limit=8M',    # Reduced soft limit
-             '--gc-params=minor=split',           # Split nursery
-             '--gc-params=mode=throughput',       # Optimize for throughput
-             '--gc-params=stack-mark=conservative',# Use conservative stack marking
-             '--gc-params=dynamic-nursery',       # Enable dynamic nursery sizing
-             '--gc-params=concurrent-sweep',      # Enable concurrent sweep
-             '--gc-params=evacuation-threshold=50',# Set evacuation threshold to 50%
-             str(executable)],
-            input=input_data,
-            capture_output=True,
-            text=True,
-            timeout=5,  # 5 seconds timeout
-            preexec_fn=lambda: (
-                os.setsid(),  # New process group
-                set_memory_limit()  # Memory limit from earlier function
+            # Compile with optimization and security flags
+            compile_process = subprocess.run(
+                ['mcs', '-debug-', '-optimize+', '-define:SECURITY_CHECK',
+                 str(source_file), '-out:' + str(executable)],
+                capture_output=True,
+                text=True,
+                timeout=10
             )
-        )
 
-        return {
-            'success': True,
-            'output': run_process.stdout,
-            'error': run_process.stderr if run_process.stderr else None
-        }
+            if compile_process.returncode != 0:
+                error_info = format_compiler_error(compile_process.stderr, 'csharp')
+                raise CompilerError(error_info['formatted_message'])
 
-    except subprocess.TimeoutExpired:
-        os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill all processes in group
-        raise TimeoutError('Le programme a dépassé la limite de temps de 5 secondes')
-    except subprocess.CalledProcessError as e:
-        raise ExecutionError(f"Erreur d'exécution: {e}")
-    except OSError as e:
-        if e.errno == errno.ENOMEM:
-            raise MemoryLimitExceeded('Le programme a dépassé la limite de mémoire')
-        raise ExecutionError(f"Erreur système: {e}")
-    except Exception as e:
-        logger.error(f"Unexpected error in C# execution: {str(e)}")
-        raise ExecutionError(str(e))
+            # Execute with optimized GC parameters
+            run_process = subprocess.run(
+                ['nice', '-n', '19',  # Lower priority
+                 'mono',
+                 '--debug',
+                 '--gc=sgen',
+                 '--gc-params=max-heap-size=8M',
+                 '--gc-params=nursery-size=256K',
+                 '--gc-params=major=marksweep-conc',  # Use concurrent mark & sweep
+                 '--gc-params=soft-heap-limit=8M',    # Reduced soft limit
+                 '--gc-params=minor=split',           # Split nursery
+                 '--gc-params=mode=throughput',       # Optimize for throughput
+                 '--gc-params=stack-mark=conservative',# Use conservative stack marking
+                 '--gc-params=dynamic-nursery',       # Enable dynamic nursery sizing
+                 '--gc-params=concurrent-sweep',      # Enable concurrent sweep
+                 '--gc-params=evacuation-threshold=50',# Set evacuation threshold to 50%
+                 str(executable)],
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=5,  # 5 seconds timeout
+                preexec_fn=lambda: (
+                    os.setsid(),  # New process group
+                    set_memory_limit()  # Memory limit from earlier function
+                )
+            )
+
+            return {
+                'success': True,
+                'output': run_process.stdout,
+                'error': run_process.stderr if run_process.stderr else None
+            }
+
+        except subprocess.TimeoutExpired:
+            os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill all processes in group
+            raise TimeoutError('Le programme a dépassé la limite de temps de 5 secondes')
+        except subprocess.CalledProcessError as e:
+            raise ExecutionError(f"Erreur d'exécution: {e}")
+        except OSError as e:
+            if e.errno == errno.ENOMEM:
+                raise MemoryLimitExceeded('Le programme a dépassé la limite de mémoire')
+            raise ExecutionError(f"Erreur système: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error in C# execution: {str(e)}")
+            raise ExecutionError(str(e))
