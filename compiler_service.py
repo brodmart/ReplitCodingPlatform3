@@ -1,3 +1,6 @@
+"""
+Compiler service for code execution and testing.
+"""
 import subprocess
 import tempfile
 import os
