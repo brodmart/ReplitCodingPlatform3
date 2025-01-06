@@ -246,16 +246,21 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
             raise CompilerError(error_info['formatted_message'])
 
         # Execute with resource limits and isolation
+        # Add Mono GC optimization flags
         run_process = subprocess.run(
             ['nice', '-n', '19',  # Lower priority
-             'mono', '--debug', str(executable)],
+             'mono', '--debug',
+             '--gc=sgen',  # Use SGen GC
+             '--gc-params=max-heap-size=25M',  # Limit heap size
+             '--gc-params=nursery-size=2M',    # Smaller nursery for more frequent but faster collections
+             str(executable)],
             input=input_data,
             capture_output=True,
             text=True,
             timeout=5,  # 5 seconds timeout
             preexec_fn=lambda: (
                 os.setsid(),  # New process group
-                set_memory_limit()  # 100MB memory limit
+                set_memory_limit()  # Memory limit from earlier function
             )
         )
 
@@ -272,7 +277,7 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
         raise ExecutionError(f"Erreur d'exécution: {e}")
     except OSError as e:
         if e.errno == errno.ENOMEM:
-            raise MemoryLimitExceeded('Le programme a dépassé la limite de mémoire de 100MB')
+            raise MemoryLimitExceeded('Le programme a dépassé la limite de mémoire')
         raise ExecutionError(f"Erreur système: {e}")
     except Exception as e:
         logger.error(f"Unexpected error in C# execution: {str(e)}")
