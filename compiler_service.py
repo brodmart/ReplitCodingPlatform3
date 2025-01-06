@@ -425,7 +425,12 @@ class RequestQueue:
         while not self._shutdown.is_set():
             try:
                 with self.active_workers:
-                    request = self.queue.get(timeout=1)
+                    # Use timeout to prevent indefinite blocking
+                    try:
+                        request = self.queue.get(timeout=1)
+                    except queue.Empty:
+                        continue
+
                     if request is None:
                         break
 
@@ -437,12 +442,15 @@ class RequestQueue:
                         timestamp=datetime.now(),
                         language=language,
                         queue_size=self.queue.qsize(),
-                        concurrent_requests=threading.active_count() - 1,  # Exclude main thread
+                        concurrent_requests=threading.active_count() - 1,
                         worker_id=threading.current_thread().name,
                         client_info=client_info
                     )
 
                     try:
+                        # Set execution timeout
+                        signal.alarm(10)  # 10 second timeout
+
                         # Memory pre-check with enhanced monitoring
                         if not check_memory_availability():
                             raise MemoryLimitExceeded("Insufficient memory available")
@@ -452,42 +460,68 @@ class RequestQueue:
                         result = self.execute_code(code, language, input_data)
                         compile_end = time.time()
 
+                        # Reset alarm
+                        signal.alarm(0)
+
                         metrics.compilation_time = compile_end - compile_start
                         metrics.execution_time = time.time() - compile_end
                         metrics.total_time = time.time() - start_time
 
-                        # Get detailed memory stats  (This part needs improvement for accuracy)
+                        # Get detailed memory stats
                         process = psutil.Process()
                         metrics.memory_usage = process.memory_info().rss / (1024 * 1024)  # MB
                         metrics.peak_memory = process.memory_info().vms / (1024 * 1024)  # MB
 
-
                         metrics.success = result.get('success', False)
-                        if not result.get('success', False):
+                        if not metrics.success:
                             metrics.error_type = 'compilation_error' if 'error' in result else 'runtime_error'
-                            metrics.error_details = result.get('error')
+                            metrics.error_details = {'message': result.get('error', 'Unknown error')}
 
-                        result_queue.put(result)
+                        # Put result in queue with timeout
+                        try:
+                            result_queue.put(result, timeout=2)
+                        except queue.Full:
+                            logger.error("Result queue is full - possible deadlock")
+                            result_queue.put({
+                                'success': False,
+                                'output': '',
+                                'error': 'Erreur système: délai d\'attente dépassé'
+                            }, block=False)
 
                     except MemoryLimitExceeded as e:
+                        signal.alarm(0)  # Reset alarm
                         logger.error(f"Memory limit exceeded: {str(e)}")
                         metrics.error_type = 'memory_limit_exceeded'
-                        metrics.error_details = str(e)
+                        metrics.error_details = {'message': str(e)}
                         result_queue.put({
                             'success': False,
                             'output': '',
                             'error': 'Mémoire insuffisante. Réduisez la taille des variables ou des tableaux.'
-                        })
+                        }, block=False)
+
+                    except TimeoutError:
+                        logger.error("Execution timeout")
+                        metrics.error_type = 'timeout'
+                        metrics.error_details = {'message': 'Execution timeout'}
+                        result_queue.put({
+                            'success': False,
+                            'output': '',
+                            'error': 'Le délai d\'exécution a été dépassé.'
+                        }, block=False)
+
                     except Exception as e:
+                        signal.alarm(0)  # Reset alarm
                         logger.error(f"Worker error: {str(e)}", exc_info=True)
                         metrics.error_type = 'system_error'
-                        metrics.error_details = str(e)
+                        metrics.error_details = {'message': str(e)}
                         result_queue.put({
                             'success': False,
                             'output': '',
                             'error': f"Erreur d'exécution: {str(e)}"
-                        })
+                        }, block=False)
+
                     finally:
+                        signal.alarm(0)  # Ensure alarm is reset
                         self.monitor.add_metric(CompilerMetrics(
                             language=language,
                             compilation_time=metrics.compilation_time,
@@ -500,11 +534,9 @@ class RequestQueue:
                         ))
                         self.queue.task_done()
 
-            except queue.Empty:
-                continue
             except Exception as e:
-                logger.error(f"Worker loop error: {str(e)}", exc_info=True)
-                time.sleep(1)
+                logger.error(f"Critical worker loop error: {str(e)}", exc_info=True)
+                time.sleep(1)  # Prevent tight loop on repeated errors
 
     def submit(self, code: str, language: str, input_data: Optional[str] = None, client_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Submit code for execution with enhanced error handling"""
@@ -752,8 +784,7 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                                           for debug_text in ['debug', 'monitoring', 'process'])]
                 error_output = '\n'.join(error_lines).strip()
 
-            return {
-                'success': True,
+            return {                'success': True,
                 'output': run_process.stdout,
                 'error': error_output if error_output else None,
                 'memory_usage': 0.0, # Placeholder
