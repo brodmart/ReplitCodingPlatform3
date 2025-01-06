@@ -359,53 +359,34 @@ class RequestQueue:
 
     def execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
         """Execute code with strict memory limits and performance monitoring"""
-        metric = CompilerMetrics(
-            language=language,
-            compilation_time=0.0,
-            execution_time=0.0,
-            memory_used=0.0,
-            peak_memory=0.0
-        )
-
         try:
-            compile_start = time.time()
+            logger.info(f"Starting code execution for language: {language}")
             if language == 'cpp':
                 result = _compile_and_run_cpp(code, input_data)
             else:
                 result = _compile_and_run_csharp(code, input_data)
-            compile_end = time.time()
-
-            # Update metrics
-            metric.compilation_time = compile_end - compile_start
-            metric.execution_time = time.time() - compile_end
 
             # Get memory statistics
-            try:
-                with open('/proc/self/status') as f:
-                    for line in f:
-                        if 'VmPeak:' in line:
-                            metric.peak_memory = float(line.split()[1]) / 1024  # KB to MB
-                        elif 'VmSize:' in line:
-                            metric.memory_used = float(line.split()[1]) / 1024
-            except Exception as e:
-                logger.error(f"Error reading memory stats: {e}")
+            process = psutil.Process()
+            memory_info = process.memory_info()
+            memory_used = memory_info.rss / (1024 * 1024)  # Convert to MB
+            peak_memory = memory_info.vms / (1024 * 1024)  # Convert to MB
 
-            if not result.get('success', False):
-                metric.error_type = 'compilation_error' if 'error' in result else 'runtime_error'
-                metric.error_details = result.get('error')
-
-            monitoring_system.add_metric(metric)
+            logger.info(f"Code execution completed. Memory used: {memory_used:.2f}MB")
+            result.update({
+                'memory_usage': memory_used,
+                'peak_memory': peak_memory
+            })
             return result
 
         except Exception as e:
-            logger.error(f"Error executing {language} code: {str(e)}")
-            metric.error_type = 'system_error'
-            metric.error_details = {'message': str(e)}
-            monitoring_system.add_metric(metric)
+            logger.error(f"Error executing {language} code: {str(e)}", exc_info=True)
             return {
                 'success': False,
                 'output': '',
-                'error': f"Erreur d'exécution: {str(e)}"
+                'error': f"Erreur d'exécution: {str(e)}",
+                'memory_usage': 0.0,
+                'peak_memory': 0.0
             }
 
     def start_workers(self):
@@ -549,23 +530,44 @@ class RequestQueue:
                     'error': 'Le serveur est actuellement sous charge. Veuillez réessayer dans quelques instants.'
                 }
 
-            self.queue.put((code, language, input_data, result_queue, client_info), timeout=5)
-            result = result_queue.get(timeout=10)
-            result['client_info'] = client_info
-            return result
-        except queue.Full:
-            logger.warning(f"Request queue full (size: {self.queue.qsize()})")
+            # Set timeout for queue operations
+            submit_timeout = 5
+            execution_timeout = 10
+
+            logger.info(f"Submitting code execution request for language: {language}")
+
+            # Try to put the request in the queue with timeout
+            try:
+                self.queue.put((code, language, input_data, result_queue, client_info), timeout=submit_timeout)
+            except queue.Full:
+                logger.warning(f"Request queue full (size: {self.queue.qsize()})")
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': "Le serveur est occupé. Veuillez réessayer dans quelques instants."
+                }
+
+            # Wait for result with timeout
+            try:
+                logger.info("Waiting for execution result...")
+                result = result_queue.get(timeout=execution_timeout)
+                logger.info("Execution result received")
+                result['client_info'] = client_info
+                return result
+            except queue.Empty:
+                logger.error("Execution timeout - no result received")
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': "Le délai d'exécution a été dépassé."
+                }
+
+        except Exception as e:
+            logger.error(f"Unexpected error in submit: {str(e)}", exc_info=True)
             return {
                 'success': False,
                 'output': '',
-                'error': "Le serveur est occupé. Veuillez réessayer dans quelques instants."
-            }
-        except queue.Empty:
-            logger.error("Execution timeout")
-            return {
-                'success': False,
-                'output': '',
-                'error': "Le délai d'exécution a été dépassé."
+                'error': f"Une erreur inattendue s'est produite: {str(e)}"
             }
 
     def shutdown(self):
