@@ -229,23 +229,17 @@ namespace ProgrammingActivity
 
             // Update UI for execution
             runButton.disabled = true;
-            outputDiv.innerHTML = `
-                <div class="alert alert-info">
-                    <div class="d-flex align-items-center">
-                        <div class="spinner-border spinner-border-sm me-2" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        Exécution du code...
-                    </div>
-                </div>`;
-
+            let abortController = null;
             try {
                 const language = document.getElementById('languageSelect')?.value || 'cpp';
                 console.log('Executing code:', { language, codeLength: code.length });
 
                 // Set up timeout for the fetch request
-                const controller = new AbortController();
-                const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                abortController = new AbortController();
+                const timeoutId = setTimeout(() => {
+                    abortController.abort();
+                    throw new Error('La requête a pris trop de temps. Vérifiez votre connexion et réessayez.');
+                }, 10000); // 10 second timeout
 
                 const response = await fetch('/activities/execute', {
                     method: 'POST',
@@ -257,14 +251,10 @@ namespace ProgrammingActivity
                         code: code,
                         language: language
                     }),
-                    signal: controller.signal
+                    signal: abortController.signal
                 });
 
-                clearTimeout(timeout);
-
-                // Log response details for debugging
-                console.log('Response status:', response.status);
-                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                clearTimeout(timeoutId);
 
                 if (!response.ok) {
                     if (response.status === 429) {
@@ -318,6 +308,13 @@ namespace ProgrammingActivity
                     </div>`;
             } finally {
                 runButton.disabled = false;
+                if (abortController) {
+                    try {
+                        abortController.abort(); // Clean up any pending request
+                    } catch (e) {
+                        console.error('Error aborting request:', e);
+                    }
+                }
             }
         });
     }
