@@ -101,8 +101,8 @@ def create_temp_directory():
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
 def set_memory_limit():
-    """Set memory limit to 25MB - reduced from 50MB to prevent allocation issues"""
-    memory_limit = 25 * 1024 * 1024  # 25MB in bytes
+    """Set memory limit to 20MB - reduced from 25MB to prevent allocation issues"""
+    memory_limit = 20 * 1024 * 1024  # 20MB in bytes
     try:
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
     except Exception as e:
@@ -224,7 +224,7 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
         }
 
 def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Compile and run C# code with enhanced security"""
+    """Compile and run C# code with enhanced security and memory management"""
     source_file = Path(temp_dir) / "program.cs"
     executable = Path(temp_dir) / "program.exe"
 
