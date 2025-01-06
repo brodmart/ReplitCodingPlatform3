@@ -311,9 +311,8 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
             run_cmd = [
                 'mono',
                 '--debug',
-                '--debugger-agent=transport=none',
                 '--gc=sgen',
-                '--gc-params=mode=throughput',
+                '--gc-params=mode=throughput,max-heap-size=25m',
                 str(executable)
             ]
             logger.debug(f"Execution command: {' '.join(run_cmd)}")
