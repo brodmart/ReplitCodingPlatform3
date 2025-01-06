@@ -5,9 +5,20 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
 <style>
+    .editor-row {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+        min-height: 500px;
+    }
     .editor-container {
+        flex: 1;
         height: 500px;
-        margin-bottom: 20px;
+    }
+    .output-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
     }
     .CodeMirror {
         height: 100% !important;
@@ -22,43 +33,47 @@
         color: #d4d4d4;
         padding: 1rem;
         border-radius: 4px;
-        min-height: 100px;
-        max-height: 300px;
+        flex-grow: 1;
         overflow-y: auto;
+    }
+    .card.output-card {
+        height: 100%;
+        margin: 0;
+    }
+    .card-body {
+        height: calc(100% - 48px); /* Account for card header */
+        padding: 0;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-12">
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
             <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
-
             <!-- Add CSRF token -->
             <form id="code-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             </form>
-
-            <div class="row mb-3">
-                <div class="col">
-                    <select id="languageSelect" class="form-select">
-                        <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
-                        <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
-                    </select>
-                </div>
-                <div class="col-auto">
-                    <button id="runButton" class="btn btn-primary">
-                        {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-                    </button>
-                </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <select id="languageSelect" class="form-select" style="width: auto;">
+                    <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
+                    <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
+                </select>
+                <button id="runButton" class="btn btn-primary">
+                    {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+                </button>
             </div>
+        </div>
+    </div>
 
-            <div class="editor-container">
-                <textarea id="editor"></textarea>
-            </div>
-
-            <div class="card mt-3">
+    <div class="editor-row">
+        <div class="editor-container">
+            <textarea id="editor"></textarea>
+        </div>
+        <div class="output-container">
+            <div class="card output-card">
                 <div class="card-header">
                     {% if lang == 'fr' %}Sortie{% else %}Output{% endif %}
                 </div>
@@ -107,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set initial content
     editor.setValue(templates[initialLanguage]);
+    editor.refresh();
 
     // Language change handler
     document.getElementById("languageSelect").addEventListener("change", function() {
@@ -125,46 +141,88 @@ document.addEventListener('DOMContentLoaded', function() {
         editor.refresh();
     });
 
-    // Execute code handler
-    document.getElementById("runButton").addEventListener("click", function() {
+    // Execute code handler with enhanced error display
+    document.getElementById("runButton").addEventListener("click", async function() {
         const output = document.getElementById("output");
         output.textContent = "Exécution en cours...";
 
-        const language = document.getElementById("languageSelect").value;
-        const code = editor.getValue();
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-
-        if (!csrfToken) {
-            output.textContent = "CSRF token not found. Please refresh the page.";
+        const code = editor.getValue().trim();
+        if (!code) {
+            output.innerHTML = '<div class="alert alert-warning">Le code ne peut pas être vide</div>';
             return;
         }
 
-        fetch("/activities/execute", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-Token": csrfToken
-            },
-            body: JSON.stringify({
-                code: code,
-                language: language
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                output.textContent = data.output || "Programme exécuté avec succès.";
-                if (data.error) {
-                    output.textContent += "\nAvertissements:\n" + data.error;
-                }
-            } else {
-                output.textContent = data.error || "Une erreur s'est produite lors de l'exécution.";
+        // Get CSRF token
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+        if (!csrfToken) {
+            output.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
+            return;
+        }
+
+        // Update UI for execution
+        const runButton = document.getElementById("runButton");
+        runButton.disabled = true;
+        output.innerHTML = `
+            <div class="alert alert-info">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border spinner-border-sm me-2" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    Exécution du code...
+                </div>
+            </div>`;
+
+        try {
+            const language = document.getElementById('languageSelect')?.value || 'cpp';
+            console.log('Executing code:', { language, codeLength: code.length });
+
+            const response = await fetch('/activities/execute', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    code: code,
+                    language: language
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        })
-        .catch(error => {
-            console.error("Execution error:", error);
-            output.textContent = "Erreur: " + error.message;
-        });
+
+            const data = await response.json();
+            console.log('Execution response:', data);
+
+            if (data.success) {
+                output.innerHTML = `
+                    <div class="alert alert-success mb-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Code exécuté avec succès
+                    </div>
+                    <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
+                    ${data.error ? `
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            ${data.error}
+                        </div>` : ''}`;
+            } else {
+                throw new Error(data.error || 'Une erreur inconnue s\'est produite');
+            }
+        } catch (error) {
+            console.error('Execution error:', error);
+            output.innerHTML = `
+                <div class="alert alert-danger">
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <strong>Erreur:</strong>
+                    </div>
+                    <pre class="mb-0">${error.message}</pre>
+                </div>`;
+        } finally {
+            runButton.disabled = false;
+        }
     });
 });
 </script>
