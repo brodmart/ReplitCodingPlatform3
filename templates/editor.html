@@ -40,12 +40,29 @@
     .card {
         height: 100%;
         margin: 0;
-        border: 1px solid #ced4da; /* Added border for consistency */
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Added box-shadow for consistency */
+        border: 1px solid #ced4da;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .card-body {
         height: calc(100% - 48px); /* Account for card header */
         padding: 0;
+    }
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #ced4da;
+    }
+    .header-title {
+        font-weight: 500;
+        margin: 0;
+    }
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
     }
 </style>
 {% endblock %}
@@ -59,15 +76,10 @@
             <form id="code-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             </form>
-            <div class="d-flex justify-content-between align-items-center">
-                <select id="languageSelect" class="form-select" style="width: auto;">
-                    <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
-                    <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
-                </select>
-                <button id="runButton" class="btn btn-primary">
-                    {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-                </button>
-            </div>
+            <select id="languageSelect" class="form-select" style="width: auto;">
+                <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
+                <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
+            </select>
         </div>
     </div>
 
@@ -75,7 +87,12 @@
         <div class="editor-container">
             <div class="card">
                 <div class="card-header">
-                    {% if lang == 'fr' %}Code{% else %}Code{% endif %}
+                    <span class="header-title">{% if lang == 'fr' %}Code{% else %}Code{% endif %}</span>
+                    <div class="header-actions">
+                        <button id="runButton" class="btn btn-primary">
+                            {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <textarea id="editor"></textarea>
@@ -85,7 +102,7 @@
         <div class="output-container">
             <div class="card">
                 <div class="card-header">
-                    {% if lang == 'fr' %}Sortie{% else %}Output{% endif %}
+                    <span class="header-title">{% if lang == 'fr' %}Sortie{% else %}Output{% endif %}</span>
                 </div>
                 <div class="card-body">
                     <div id="output" class="console-output">
