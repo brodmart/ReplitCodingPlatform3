@@ -15,149 +15,108 @@ from contextlib import contextmanager
 import queue
 import threading
 import time
+from dataclasses import dataclass
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Global request queue
-request_queue = queue.Queue(maxsize=5)  # Limit concurrent requests
-MAX_WORKERS = 2  # Maximum number of worker threads
+@dataclass
+class ExecutionMetrics:
+    """Track execution metrics for monitoring"""
+    request_id: str
+    timestamp: datetime
+    wait_time: float = 0.0
+    execution_time: float = 0.0
+    queue_size: int = 0
+    success: bool = False
+    error: Optional[str] = None
 
-class CompilerError(Exception):
-    """Custom exception for compiler-related errors"""
-    pass
+class QueueMonitor:
+    """Monitor queue performance and health"""
+    def __init__(self):
+        self.metrics = []
+        self.max_metrics = 1000  # Keep last 1000 requests
+        self._lock = threading.Lock()
 
-class ExecutionError(Exception):
-    """Custom exception for execution-related errors"""
-    pass
+    def add_metric(self, metric: ExecutionMetrics):
+        with self._lock:
+            self.metrics.append(metric)
+            if len(self.metrics) > self.max_metrics:
+                self.metrics.pop(0)
 
-class MemoryLimitExceeded(ExecutionError):
-    """Custom exception for memory limit violations"""
-    pass
+    def get_stats(self) -> Dict[str, Any]:
+        with self._lock:
+            if not self.metrics:
+                return {}
 
-class TimeoutError(ExecutionError):
-    """Custom exception for execution timeout"""
-    pass
+            total_requests = len(self.metrics)
+            successful = sum(1 for m in self.metrics if m.success)
+            avg_wait = sum(m.wait_time for m in self.metrics) / total_requests if total_requests > 0 else 0
+            avg_exec = sum(m.execution_time for m in self.metrics) / total_requests if total_requests > 0 else 0
 
-def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
-    """Format compiler error messages to be more user-friendly"""
-    if not error_text:
-        return {
-            'error_details': None,
-            'full_error': '',
-            'formatted_message': "Une erreur inconnue est survenue"
-        }
-
-    # Extract the main error message
-    error_lines = error_text.split('\n')
-    main_error = None
-
-    if lang == 'cpp':
-        for line in error_lines:
-            if 'error:' in line:
-                match = re.search(r'program\.cpp:(\d+):(\d+):\s*error:\s*(.+)', line)
-                if match:
-                    line_num, col_num, message = match.groups()
-                    main_error = {
-                        'line': int(line_num),
-                        'column': int(col_num),
-                        'message': message.strip(),
-                        'type': 'error'
-                    }
-                    break
-    else:  # C#
-        for line in error_lines:
-            if '(CS' in line:
-                match = re.search(r'program\.cs\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
-                if match:
-                    line_num, col_num, error_code, message = match.groups()
-                    main_error = {
-                        'line': int(line_num),
-                        'column': int(col_num),
-                        'code': error_code,
-                        'message': message.strip(),
-                        'type': 'error'
-                    }
-                    break
-
-    if main_error:
-        formatted_msg = (
-            f"Erreur ligne {main_error['line']}: {main_error['message']}"
-            if 'code' not in main_error else
-            f"Erreur {main_error['code']} ligne {main_error['line']}: {main_error['message']}"
-        )
-        return {
-            'error_details': main_error,
-            'full_error': error_text,
-            'formatted_message': formatted_msg
-        }
-    return {
-        'error_details': None,
-        'full_error': error_text,
-        'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
-    }
-
-@contextmanager
-def create_temp_directory():
-    """Create and clean up temporary directory with proper context management"""
-    temp_dir = tempfile.mkdtemp()
-    try:
-        yield temp_dir
-    finally:
-        try:
-            subprocess.run(['rm', '-rf', temp_dir], check=True)
-        except subprocess.CalledProcessError as e:
-            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
-
-def set_memory_limit():
-    """Set memory limit to 20MB - reduced from 25MB to prevent allocation issues"""
-    memory_limit = 20 * 1024 * 1024  # 20MB in bytes
-    try:
-        # Set both soft and hard limits
-        resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
-        # Set data segment limit
-        resource.setrlimit(resource.RLIMIT_DATA, (memory_limit, memory_limit))
-        # Set stack size limit
-        resource.setrlimit(resource.RLIMIT_STACK, (2 * 1024 * 1024, 2 * 1024 * 1024))  # 2MB stack
-        return True
-    except Exception as e:
-        logger.error(f"Failed to set memory limit: {e}")
-        return False
+            return {
+                'total_requests': total_requests,
+                'success_rate': successful / total_requests if total_requests > 0 else 0,
+                'avg_wait_time': avg_wait,
+                'avg_execution_time': avg_exec,
+                'current_queue_size': self.metrics[-1].queue_size if self.metrics else 0
+            }
 
 class RequestQueue:
-    """Manages code execution requests with memory and concurrency limits"""
-    def __init__(self, max_workers=MAX_WORKERS):
-        self.queue = queue.Queue(maxsize=5)
+    """Enhanced request queue with monitoring and better resource management"""
+    def __init__(self, max_workers=2, max_queue_size=5):
+        self.queue = queue.Queue(maxsize=max_queue_size)
         self.workers = []
         self.max_workers = max_workers
+        self.monitor = QueueMonitor()
+        self.active_workers = threading.Semaphore(max_workers)
+        self._shutdown = threading.Event()
         self.start_workers()
 
     def start_workers(self):
-        """Start worker threads"""
+        """Start worker threads with enhanced monitoring"""
         for _ in range(self.max_workers):
             worker = threading.Thread(target=self._worker_loop, daemon=True)
             worker.start()
             self.workers.append(worker)
 
     def _worker_loop(self):
-        """Worker thread main loop"""
-        while True:
+        """Enhanced worker loop with better resource management"""
+        while not self._shutdown.is_set():
             try:
-                code, language, input_data, result_queue = self.queue.get()
-                try:
-                    result = self._execute_code(code, language, input_data)
-                    result_queue.put(result)
-                except Exception as e:
-                    logger.error(f"Worker error: {str(e)}")
-                    result_queue.put({
-                        'success': False,
-                        'output': '',
-                        'error': str(e)
-                    })
-                finally:
-                    self.queue.task_done()
+                with self.active_workers:
+                    request = self.queue.get(timeout=1)
+                    if request is None:
+                        break
+
+                    code, language, input_data, result_queue, metrics = request
+                    start_time = time.time()
+
+                    try:
+                        metrics.wait_time = start_time - metrics.timestamp.timestamp()
+                        result = self._execute_code(code, language, input_data)
+                        metrics.success = result.get('success', False)
+                        metrics.error = result.get('error')
+                        result_queue.put(result)
+                    except Exception as e:
+                        logger.error(f"Worker error: {str(e)}", exc_info=True)
+                        metrics.error = str(e)
+                        result_queue.put({
+                            'success': False,
+                            'output': '',
+                            'error': f"Erreur d'exécution: {str(e)}"
+                        })
+                    finally:
+                        metrics.execution_time = time.time() - start_time
+                        metrics.queue_size = self.queue.qsize()
+                        self.monitor.add_metric(metrics)
+                        self.queue.task_done()
+
+            except queue.Empty:
+                continue
             except Exception as e:
-                logger.error(f"Worker loop error: {str(e)}")
-                time.sleep(1)  # Prevent tight loop on error
+                logger.error(f"Worker loop error: {str(e)}", exc_info=True)
+                time.sleep(1)
 
     def _execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
         """Execute code with proper isolation and resource limits"""
@@ -167,23 +126,42 @@ class RequestQueue:
             return _compile_and_run_csharp(code, input_data)
 
     def submit(self, code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-        """Submit code for execution"""
+        """Submit code for execution with enhanced monitoring"""
         result_queue = queue.Queue()
+        metrics = ExecutionMetrics(
+            request_id=f"{time.time()}-{threading.get_ident()}",
+            timestamp=datetime.now(),
+            queue_size=self.queue.qsize()
+        )
+
         try:
-            self.queue.put((code, language, input_data, result_queue), timeout=5)
+            self.queue.put((code, language, input_data, result_queue, metrics), timeout=5)
             return result_queue.get(timeout=10)
         except queue.Full:
+            logger.warning(f"Queue full, size: {self.queue.qsize()}")
             return {
                 'success': False,
                 'output': '',
                 'error': "Le serveur est occupé. Veuillez réessayer dans quelques instants."
             }
         except queue.Empty:
+            logger.error("Execution timeout")
             return {
                 'success': False,
                 'output': '',
                 'error': "Le délai d'exécution a été dépassé."
             }
+
+    def shutdown(self):
+        """Graceful shutdown of workers"""
+        self._shutdown.set()
+        for _ in range(self.max_workers):
+            try:
+                self.queue.put(None, timeout=1)
+            except queue.Full:
+                break
+        for worker in self.workers:
+            worker.join(timeout=2)
 
 # Global request queue instance
 request_queue = RequestQueue()
@@ -377,3 +355,104 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                 'output': '',
                 'error': f"Erreur lors de l'exécution: {str(e)}"
             }
+
+@contextmanager
+def create_temp_directory():
+    """Create and clean up temporary directory with proper context management"""
+    temp_dir = tempfile.mkdtemp()
+    try:
+        yield temp_dir
+    finally:
+        try:
+            subprocess.run(['rm', '-rf', temp_dir], check=True)
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
+
+def set_memory_limit():
+    """Set memory limit to 20MB - reduced from 25MB to prevent allocation issues"""
+    memory_limit = 20 * 1024 * 1024  # 20MB in bytes
+    try:
+        # Set both soft and hard limits
+        resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+        # Set data segment limit
+        resource.setrlimit(resource.RLIMIT_DATA, (memory_limit, memory_limit))
+        # Set stack size limit
+        resource.setrlimit(resource.RLIMIT_STACK, (2 * 1024 * 1024, 2 * 1024 * 1024))  # 2MB stack
+        return True
+    except Exception as e:
+        logger.error(f"Failed to set memory limit: {e}")
+        return False
+
+def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
+    """Format compiler error messages to be more user-friendly"""
+    if not error_text:
+        return {
+            'error_details': None,
+            'full_error': '',
+            'formatted_message': "Une erreur inconnue est survenue"
+        }
+
+    # Extract the main error message
+    error_lines = error_text.split('\n')
+    main_error = None
+
+    if lang == 'cpp':
+        for line in error_lines:
+            if 'error:' in line:
+                match = re.search(r'program\.cpp:(\d+):(\d+):\s*error:\s*(.+)', line)
+                if match:
+                    line_num, col_num, message = match.groups()
+                    main_error = {
+                        'line': int(line_num),
+                        'column': int(col_num),
+                        'message': message.strip(),
+                        'type': 'error'
+                    }
+                    break
+    else:  # C#
+        for line in error_lines:
+            if '(CS' in line:
+                match = re.search(r'program\.cs\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
+                if match:
+                    line_num, col_num, error_code, message = match.groups()
+                    main_error = {
+                        'line': int(line_num),
+                        'column': int(col_num),
+                        'code': error_code,
+                        'message': message.strip(),
+                        'type': 'error'
+                    }
+                    break
+
+    if main_error:
+        formatted_msg = (
+            f"Erreur ligne {main_error['line']}: {main_error['message']}"
+            if 'code' not in main_error else
+            f"Erreur {main_error['code']} ligne {main_error['line']}: {main_error['message']}"
+        )
+        return {
+            'error_details': main_error,
+            'full_error': error_text,
+            'formatted_message': formatted_msg
+        }
+    return {
+        'error_details': None,
+        'full_error': error_text,
+        'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
+    }
+
+class CompilerError(Exception):
+    """Custom exception for compiler-related errors"""
+    pass
+
+class ExecutionError(Exception):
+    """Custom exception for execution-related errors"""
+    pass
+
+class MemoryLimitExceeded(ExecutionError):
+    """Custom exception for memory limit violations"""
+    pass
+
+class TimeoutError(ExecutionError):
+    """Custom exception for execution timeout"""
+    pass
