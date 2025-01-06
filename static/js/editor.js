@@ -165,9 +165,14 @@ int main() {
         } else {
             return `using System;
 
-class Program {
-    static void Main() {
-        // Votre code ici
+namespace ProgrammingActivity
+{
+    class Program 
+    {
+        static void Main(string[] args)
+        {
+            // Votre code ici
+        }
     }
 }`;
         }
