@@ -312,7 +312,6 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                 'mono',
                 '--debug',
                 '--gc=sgen',
-                '--gc-params=mode=conservative,max-heap-size=20m,nursery-size=2m',
                 str(executable)
             ]
             logger.debug(f"Execution command: {' '.join(run_cmd)}")
@@ -322,9 +321,9 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                 os.setsid()
                 # Set lower process priority
                 os.nice(10)
-                # Set memory limits - adjusted for Mono
-                resource.setrlimit(resource.RLIMIT_AS, (30 * 1024 * 1024, -1))  # 30MB virtual memory
-                resource.setrlimit(resource.RLIMIT_DATA, (20 * 1024 * 1024, -1))  # 20MB data segment
+                # Set memory limits - adjusted for Mono runtime needs
+                resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, -1))  # 100MB virtual memory
+                resource.setrlimit(resource.RLIMIT_DATA, (50 * 1024 * 1024, -1))  # 50MB data segment
                 logger.debug("Process monitoring and limits set")
 
             run_process = subprocess.run(
