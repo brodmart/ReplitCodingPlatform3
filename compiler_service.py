@@ -253,10 +253,14 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
              '--gc=sgen',
              '--gc-params=max-heap-size=12M',     # Reduced from 16M
              '--gc-params=nursery-size=512K',     # Reduced from 1M
-             '--gc-params=major=marksweep',       # Use mark & sweep GC
+             '--gc-params=major=marksweep-conc',  # Use concurrent mark & sweep
              '--gc-params=soft-heap-limit=8M',    # Reduced soft limit
-             '--gc-params=minor=split',           # Split nursery for better memory management
-             '--gc-params=cleanup-frequency=1',   # More frequent cleanup
+             '--gc-params=minor=split',           # Split nursery
+             '--gc-params=mode=throughput',       # Optimize for throughput
+             '--gc-params=stack-mark=conservative',# Use conservative stack marking
+             '--gc-params=dynamic-nursery',       # Enable dynamic nursery sizing
+             '--gc-params=concurrent-sweep',      # Enable concurrent sweep
+             '--gc-params=evacuation-threshold=50',# Set evacuation threshold to 50%
              str(executable)],
             input=input_data,
             capture_output=True,
