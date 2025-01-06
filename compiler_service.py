@@ -1,6 +1,6 @@
 """
 Compiler service for code execution and testing.
-Focused on memory management and resource limits.
+Advanced memory management and resource monitoring.
 """
 import subprocess
 import tempfile
@@ -11,7 +11,7 @@ import resource
 import errno
 from pathlib import Path
 import re
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from contextlib import contextmanager
 import queue
 import threading
@@ -20,6 +20,18 @@ from datetime import datetime
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class ExecutionMetrics:
+    """Track execution metrics for monitoring"""
+    request_id: str
+    timestamp: datetime
+    queue_size: int = 0
+    wait_time: float = 0.0
+    execution_time: float = 0.0
+    memory_usage: float = 0.0  # Track memory usage in MB
+    success: bool = False
+    error: Optional[str] = None
 
 class CompilerError(Exception):
     """Custom exception for compiler-related errors"""
@@ -37,59 +49,160 @@ class TimeoutError(ExecutionError):
     """Custom exception for execution timeout"""
     pass
 
+def check_memory_availability(required_mb: int = 20) -> bool:
+    """
+    Check if enough memory is available before attempting allocation
+    """
+    try:
+        # Get memory info
+        with open('/proc/meminfo', 'r') as f:
+            meminfo = {}
+            for line in f:
+                key, value = line.split(':')
+                meminfo[key.strip()] = int(value.split()[0])  # Values are in KB
+
+        available_mb = (meminfo.get('MemAvailable', 0)) / 1024  # Convert to MB
+        logger.debug(f"Available memory: {available_mb:.2f}MB, Required: {required_mb}MB")
+
+        return available_mb >= required_mb
+    except Exception as e:
+        logger.error(f"Error checking memory availability: {e}")
+        return False
+
+def set_memory_limit(memory_mb: int = 20) -> bool:
+    """Set memory limit with pre-check"""
+    try:
+        if not check_memory_availability(memory_mb):
+            logger.error(f"Insufficient memory available for {memory_mb}MB allocation")
+            return False
+
+        memory_bytes = memory_mb * 1024 * 1024
+        # Set both soft and hard limits
+        resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        # Set data segment limit
+        resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes // 2, memory_bytes // 2))
+        # Set stack size limit
+        resource.setrlimit(resource.RLIMIT_STACK, (2 * 1024 * 1024, 2 * 1024 * 1024))  # 2MB stack
+
+        logger.info(f"Memory limits set successfully: {memory_mb}MB")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to set memory limit: {e}")
+        return False
+
+class QueueMonitor:
+    """Monitor queue performance and resource usage"""
+    def __init__(self):
+        self.metrics: List[ExecutionMetrics] = []
+        self.max_metrics = 1000
+        self._lock = threading.Lock()
+
+    def add_metric(self, metric: ExecutionMetrics):
+        with self._lock:
+            self.metrics.append(metric)
+            if len(self.metrics) > self.max_metrics:
+                self.metrics.pop(0)
+
+            # Log significant events
+            if not metric.success:
+                logger.warning(f"Failed execution - ID: {metric.request_id}, Error: {metric.error}")
+            if metric.memory_usage > 15:  # High memory usage warning
+                logger.warning(f"High memory usage - ID: {metric.request_id}, Memory: {metric.memory_usage}MB")
+
+    def get_stats(self) -> Dict[str, Any]:
+        with self._lock:
+            if not self.metrics:
+                return {}
+
+            total_requests = len(self.metrics)
+            successful = sum(1 for m in self.metrics if m.success)
+            avg_memory = sum(m.memory_usage for m in self.metrics) / total_requests if total_requests > 0 else 0
+
+            return {
+                'total_requests': total_requests,
+                'success_rate': successful / total_requests if total_requests > 0 else 0,
+                'avg_memory_usage': avg_memory,
+                'current_queue_size': self.metrics[-1].queue_size if self.metrics else 0
+            }
+
 class RequestQueue:
-    """Manages code execution requests with strict memory limits"""
-    def __init__(self, max_workers=2):
-        self.queue = queue.Queue(maxsize=5)  # Limit concurrent requests
-        self.workers = []
+    """Manages code execution requests with enhanced memory management"""
+    def __init__(self, max_workers: int = 2):
+        self.queue = queue.Queue(maxsize=5)
+        self.workers: List[threading.Thread] = []
         self.max_workers = max_workers
+        self.monitor = QueueMonitor()
         self._shutdown = threading.Event()
+        self.active_workers = threading.Semaphore(max_workers)
         self.start_workers()
+        logger.info(f"RequestQueue initialized with {max_workers} workers")
 
     def start_workers(self):
-        """Start worker threads with resource limits"""
-        for _ in range(self.max_workers):
-            worker = threading.Thread(target=self._worker_loop, daemon=True)
+        """Start worker threads with resource monitoring"""
+        for i in range(self.max_workers):
+            worker = threading.Thread(
+                target=self._worker_loop,
+                name=f"CompilerWorker-{i}",
+                daemon=True
+            )
             worker.start()
             self.workers.append(worker)
+            logger.info(f"Started worker thread {worker.name}")
 
     def _worker_loop(self):
         """Worker thread main loop with enhanced error handling"""
         while not self._shutdown.is_set():
             try:
-                request = self.queue.get(timeout=1)
-                if request is None:
-                    break
+                with self.active_workers:
+                    request = self.queue.get(timeout=1)
+                    if request is None:
+                        break
 
-                code, language, input_data, result_queue = request
-                try:
-                    # Set process-specific memory limits
-                    if not set_memory_limit():
-                        raise MemoryLimitExceeded("Failed to set memory limits")
+                    code, language, input_data, result_queue = request
+                    metrics = ExecutionMetrics(
+                        request_id=f"{time.time()}-{threading.current_thread().name}",
+                        timestamp=datetime.now(),
+                        queue_size=self.queue.qsize()
+                    )
 
-                    result = self._execute_code(code, language, input_data)
-                    result_queue.put(result)
-                except MemoryLimitExceeded as e:
-                    logger.error(f"Memory limit exceeded: {str(e)}")
-                    result_queue.put({
-                        'success': False,
-                        'output': '',
-                        'error': 'Limite de mémoire dépassée. Réduisez l\'utilisation de la mémoire.'
-                    })
-                except Exception as e:
-                    logger.error(f"Worker error: {str(e)}")
-                    result_queue.put({
-                        'success': False,
-                        'output': '',
-                        'error': str(e)
-                    })
-                finally:
-                    self.queue.task_done()
+                    try:
+                        # Memory pre-check
+                        if not check_memory_availability():
+                            raise MemoryLimitExceeded("Insufficient memory available")
+
+                        start_time = time.time()
+                        result = self._execute_code(code, language, input_data)
+
+                        metrics.execution_time = time.time() - start_time
+                        metrics.success = result.get('success', False)
+                        metrics.error = result.get('error')
+
+                        result_queue.put(result)
+
+                    except MemoryLimitExceeded as e:
+                        logger.error(f"Memory limit exceeded: {str(e)}")
+                        metrics.error = str(e)
+                        result_queue.put({
+                            'success': False,
+                            'output': '',
+                            'error': 'Mémoire insuffisante. Réduisez la taille des variables ou des tableaux.'
+                        })
+                    except Exception as e:
+                        logger.error(f"Worker error: {str(e)}", exc_info=True)
+                        metrics.error = str(e)
+                        result_queue.put({
+                            'success': False,
+                            'output': '',
+                            'error': f"Erreur d'exécution: {str(e)}"
+                        })
+                    finally:
+                        self.monitor.add_metric(metrics)
+                        self.queue.task_done()
 
             except queue.Empty:
                 continue
             except Exception as e:
-                logger.error(f"Worker loop error: {str(e)}")
+                logger.error(f"Worker loop error: {str(e)}", exc_info=True)
                 time.sleep(1)
 
     def _execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
@@ -100,18 +213,27 @@ class RequestQueue:
             return _compile_and_run_csharp(code, input_data)
 
     def submit(self, code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-        """Submit code for execution with timeout"""
+        """Submit code for execution with enhanced error handling"""
         result_queue = queue.Queue()
         try:
+            if not check_memory_availability():
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': 'Le serveur est actuellement sous charge. Veuillez réessayer dans quelques instants.'
+                }
+
             self.queue.put((code, language, input_data, result_queue), timeout=5)
             return result_queue.get(timeout=10)
         except queue.Full:
+            logger.warning(f"Request queue full (size: {self.queue.qsize()})")
             return {
                 'success': False,
                 'output': '',
                 'error': "Le serveur est occupé. Veuillez réessayer dans quelques instants."
             }
         except queue.Empty:
+            logger.error("Execution timeout")
             return {
                 'success': False,
                 'output': '',
@@ -120,6 +242,7 @@ class RequestQueue:
 
     def shutdown(self):
         """Graceful shutdown with cleanup"""
+        logger.info("Initiating RequestQueue shutdown")
         self._shutdown.set()
         for _ in range(self.max_workers):
             try:
@@ -128,6 +251,7 @@ class RequestQueue:
                 break
         for worker in self.workers:
             worker.join(timeout=2)
+            logger.info(f"Worker {worker.name} shutdown complete")
 
 # Global request queue instance
 request_queue = RequestQueue()
@@ -341,21 +465,6 @@ def create_temp_directory():
         except subprocess.CalledProcessError as e:
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
-def set_memory_limit():
-    """Set memory limit to 20MB - reduced from 25MB to prevent allocation issues"""
-    memory_limit = 20 * 1024 * 1024  # 20MB in bytes
-    try:
-        # Set both soft and hard limits
-        resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
-        # Set data segment limit
-        resource.setrlimit(resource.RLIMIT_DATA, (memory_limit, memory_limit))
-        # Set stack size limit
-        resource.setrlimit(resource.RLIMIT_STACK, (2 * 1024 * 1024, 2 * 1024 * 1024))  # 2MB stack
-        return True
-    except Exception as e:
-        logger.error(f"Failed to set memory limit: {e}")
-        return False
-
 def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
     """Format compiler error messages to be more user-friendly"""
     if not error_text:
@@ -413,45 +522,3 @@ def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
         'full_error': error_text,
         'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
     }
-
-@dataclass
-class ExecutionMetrics:
-    """Track execution metrics for monitoring"""
-    request_id: str
-    timestamp: datetime
-    queue_size: int = 0
-    wait_time: float = 0.0
-    execution_time: float = 0.0
-    success: bool = False
-    error: Optional[str] = None
-
-class QueueMonitor:
-    """Monitor queue performance and health"""
-    def __init__(self):
-        self.metrics = []
-        self.max_metrics = 1000  # Keep last 1000 requests
-        self._lock = threading.Lock()
-
-    def add_metric(self, metric: ExecutionMetrics):
-        with self._lock:
-            self.metrics.append(metric)
-            if len(self.metrics) > self.max_metrics:
-                self.metrics.pop(0)
-
-    def get_stats(self) -> Dict[str, Any]:
-        with self._lock:
-            if not self.metrics:
-                return {}
-
-            total_requests = len(self.metrics)
-            successful = sum(1 for m in self.metrics if m.success)
-            avg_wait = sum(m.wait_time for m in self.metrics) / total_requests if total_requests > 0 else 0
-            avg_exec = sum(m.execution_time for m in self.metrics) / total_requests if total_requests > 0 else 0
-
-            return {
-                'total_requests': total_requests,
-                'success_rate': successful / total_requests if total_requests > 0 else 0,
-                'avg_wait_time': avg_wait,
-                'avg_execution_time': avg_exec,
-                'current_queue_size': self.metrics[-1].queue_size if self.metrics else 0
-            }
