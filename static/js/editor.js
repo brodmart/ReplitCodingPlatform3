@@ -204,7 +204,7 @@ class Program {
         }
     }
 
-    // Handle run button clicks with enhanced error handling
+    // Handle run button clicks with enhanced error handling and network timeout
     const runButton = document.getElementById('runButton');
     const outputDiv = document.getElementById('output');
     if (runButton && outputDiv) {
@@ -238,6 +238,10 @@ class Program {
                 const language = document.getElementById('languageSelect')?.value || 'cpp';
                 console.log('Executing code:', { language, codeLength: code.length });
 
+                // Set up timeout for the fetch request
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
                 const response = await fetch('/activities/execute', {
                     method: 'POST',
                     headers: {
@@ -247,27 +251,33 @@ class Program {
                     body: JSON.stringify({
                         code: code,
                         language: language
-                    })
+                    }),
+                    signal: controller.signal
                 });
+
+                clearTimeout(timeout);
 
                 // Log response details for debugging
                 console.log('Response status:', response.status);
                 console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    if (response.status === 429) {
+                        throw new Error('Trop de requêtes. Veuillez attendre quelques secondes avant de réessayer.');
+                    }
+                    throw new Error(`Erreur serveur (${response.status}). Veuillez réessayer.`);
                 }
 
                 const contentType = response.headers.get('content-type');
                 if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned non-JSON response');
+                    throw new Error('Le serveur a retourné une réponse invalide. Veuillez rafraîchir la page.');
                 }
 
                 const data = await response.json();
                 console.log('Execution response:', data);
 
                 if (!data.success) {
-                    throw new Error(data.error || 'Unknown error occurred');
+                    throw new Error(data.error || 'Une erreur inconnue s\'est produite');
                 }
 
                 // Display successful execution
@@ -285,13 +295,21 @@ class Program {
 
             } catch (error) {
                 console.error('Execution error:', error);
+                let errorMessage = error.message;
+
+                if (error.name === 'AbortError') {
+                    errorMessage = 'La requête a pris trop de temps. Vérifiez votre connexion et réessayez.';
+                } else if (!navigator.onLine) {
+                    errorMessage = 'Pas de connexion Internet. Vérifiez votre connexion et réessayez.';
+                }
+
                 outputDiv.innerHTML = `
                     <div class="alert alert-danger">
                         <div class="d-flex align-items-center mb-2">
                             <i class="bi bi-exclamation-circle me-2"></i>
-                            <strong>Erreur d'exécution:</strong>
+                            <strong>Erreur:</strong>
                         </div>
-                        <pre class="mb-0 ps-4">${error.message}</pre>
+                        <pre class="mb-0 ps-4">${errorMessage}</pre>
                     </div>`;
             } finally {
                 runButton.disabled = false;

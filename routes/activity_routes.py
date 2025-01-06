@@ -4,6 +4,7 @@ from models import CodingActivity
 from extensions import limiter, cache
 import logging
 from compiler_service import compile_and_run, CompilerError, ExecutionError
+from werkzeug.exceptions import RequestTimeout
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -12,9 +13,14 @@ logger = logging.getLogger(__name__)
 def handle_error(error):
     """Global error handler for the blueprint"""
     logger.error(f"Uncaught exception in activities blueprint: {str(error)}", exc_info=True)
+    if isinstance(error, RequestTimeout):
+        return jsonify({
+            'success': False,
+            'error': "La requête a pris trop de temps. Veuillez réessayer."
+        }), 408
     return jsonify({
         'success': False,
-        'error': "Une erreur inattendue s'est produite"
+        'error': "Une erreur inattendue s'est produite. Veuillez réessayer."
     }), 500
 
 @activities.route('/test')
@@ -120,33 +126,34 @@ def view_activity(activity_id):
         }), 500
 
 @activities.route('/execute', methods=['POST'])
-@limiter.limit("20 per minute")
+@limiter.limit("10 per minute")  # Reduced rate limit to prevent overload
 def execute_code():
-    """Execute submitted code and return the results"""
+    """Execute submitted code and return the results with improved error handling"""
     try:
-        # Log the incoming request
-        logger.debug("Received code execution request")
+        # Log the incoming request with client info
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        logger.debug(f"Received code execution request from {client_ip}")
         logger.debug(f"Content-Type: {request.headers.get('Content-Type')}")
 
         if not request.is_json:
-            logger.error("Invalid request format: not JSON")
+            logger.error(f"Invalid request format from {client_ip}: not JSON")
             return jsonify({
                 'success': False,
-                'error': 'Format de requête invalide'
+                'error': 'Format de requête invalide. Veuillez rafraîchir la page et réessayer.'
             }), 400
 
         data = request.get_json()
         if not data:
-            logger.error("No JSON data in request")
+            logger.error(f"No JSON data in request from {client_ip}")
             return jsonify({
                 'success': False,
-                'error': 'Données manquantes'
+                'error': 'Données manquantes. Veuillez réessayer.'
             }), 400
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
 
-        logger.debug(f"Executing code in {language}")
+        logger.debug(f"Executing {language} code for {client_ip}")
         logger.debug(f"Code length: {len(code)}")
 
         if not code:
@@ -161,32 +168,40 @@ def execute_code():
                 'error': 'Langage non supporté'
             }), 400
 
+        # Set a timeout for the compilation and execution
         result = compile_and_run(code, language)
-        logger.debug(f"Execution result: {result}")
+        logger.debug(f"Execution result for {client_ip}: {result}")
+
+        if not result.get('success', False):
+            error_msg = result.get('error', 'Une erreur s\'est produite')
+            if 'memory' in error_msg.lower():
+                error_msg += ". Essayez de réduire la taille des variables ou des tableaux."
+            elif 'timeout' in error_msg.lower():
+                error_msg += ". Vérifiez s'il y a des boucles infinies."
 
         return jsonify({
-            'success': True,
+            'success': result.get('success', False),
             'output': result.get('output', ''),
             'error': result.get('error', None)
         })
 
     except CompilerError as e:
-        logger.error(f"Compilation error: {str(e)}")
+        logger.error(f"Compilation error for {client_ip}: {str(e)}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 400
 
     except ExecutionError as e:
-        logger.error(f"Execution error: {str(e)}")
+        logger.error(f"Execution error for {client_ip}: {str(e)}")
         return jsonify({
             'success': False,
             'error': f"Erreur d'exécution: {str(e)}"
         }), 400
 
     except Exception as e:
-        logger.error(f"Unexpected error in execute_code: {str(e)}", exc_info=True)
+        logger.error(f"Unexpected error in execute_code for {client_ip}: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "Une erreur inattendue s'est produite"
+            'error': "Une erreur réseau s'est produite. Veuillez réessayer dans quelques instants."
         }), 500
