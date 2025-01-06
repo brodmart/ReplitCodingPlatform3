@@ -112,11 +112,16 @@ def set_memory_limit():
     """Set memory limit to 20MB - reduced from 25MB to prevent allocation issues"""
     memory_limit = 20 * 1024 * 1024  # 20MB in bytes
     try:
+        # Set both soft and hard limits
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
+        # Set data segment limit
+        resource.setrlimit(resource.RLIMIT_DATA, (memory_limit, memory_limit))
+        # Set stack size limit
+        resource.setrlimit(resource.RLIMIT_STACK, (2 * 1024 * 1024, 2 * 1024 * 1024))  # 2MB stack
+        return True
     except Exception as e:
         logger.error(f"Failed to set memory limit: {e}")
         return False
-    return True
 
 class RequestQueue:
     """Manages code execution requests with memory and concurrency limits"""
@@ -271,6 +276,15 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
             with open(source_file, 'w') as f:
                 f.write(code)
 
+            # Pre-allocate memory for mono
+            memory_pre_allocated = False
+            try:
+                # Try to allocate memory before starting mono
+                memory_block = bytearray(4 * 1024 * 1024)  # 4MB pre-allocation
+                memory_pre_allocated = True
+            except Exception as e:
+                logger.warning(f"Failed to pre-allocate memory: {e}")
+
             # Compile with optimization and security flags
             compile_process = subprocess.run(
                 ['mcs', '-debug-', '-optimize+', '-define:SECURITY_CHECK',
@@ -284,22 +298,15 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                 error_info = format_compiler_error(compile_process.stderr, 'csharp')
                 raise CompilerError(error_info['formatted_message'])
 
-            # Execute with optimized GC parameters
+            # Execute with minimal GC parameters
             run_process = subprocess.run(
                 ['nice', '-n', '19',  # Lower priority
                  'mono',
                  '--debug',
                  '--gc=sgen',
-                 '--gc-params=max-heap-size=8M',
-                 '--gc-params=nursery-size=256K',
-                 '--gc-params=major=marksweep-conc',  # Use concurrent mark & sweep
-                 '--gc-params=soft-heap-limit=8M',    # Reduced soft limit
-                 '--gc-params=minor=split',           # Split nursery
-                 '--gc-params=mode=throughput',       # Optimize for throughput
-                 '--gc-params=stack-mark=conservative',# Use conservative stack marking
-                 '--gc-params=dynamic-nursery',       # Enable dynamic nursery sizing
-                 '--gc-params=concurrent-sweep',      # Enable concurrent sweep
-                 '--gc-params=evacuation-threshold=50',# Set evacuation threshold to 50%
+                 '--gc-params=max-heap-size=4M',  # Reduced to 4MB
+                 '--gc-params=soft-heap-limit=3M',  # Even lower soft limit
+                 '--gc-params=nursery-size=128K',  # Minimal nursery size
                  str(executable)],
                 input=input_data,
                 capture_output=True,
@@ -310,6 +317,10 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                     set_memory_limit()  # Memory limit from earlier function
                 )
             )
+
+            # Release pre-allocated memory if we used it
+            if memory_pre_allocated:
+                del memory_block
 
             return {
                 'success': True,
