@@ -251,8 +251,8 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
              'mono',
              '--debug',
              '--gc=sgen',
-             '--gc-params=max-heap-size=12M',     # Reduced from 16M
-             '--gc-params=nursery-size=512K',     # Reduced from 1M
+             '--gc-params=max-heap-size=8M',
+             '--gc-params=nursery-size=256K',
              '--gc-params=major=marksweep-conc',  # Use concurrent mark & sweep
              '--gc-params=soft-heap-limit=8M',    # Reduced soft limit
              '--gc-params=minor=split',           # Split nursery
