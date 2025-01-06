@@ -246,13 +246,15 @@ def _compile_and_run_csharp(code: str, temp_dir: str, input_data: Optional[str] 
             raise CompilerError(error_info['formatted_message'])
 
         # Execute with resource limits and isolation
-        # Add Mono GC optimization flags
         run_process = subprocess.run(
             ['nice', '-n', '19',  # Lower priority
-             'mono', '--debug',
-             '--gc=sgen',  # Use SGen GC
-             '--gc-params=max-heap-size=25M',  # Limit heap size
-             '--gc-params=nursery-size=2M',    # Smaller nursery for more frequent but faster collections
+             'mono',
+             '--debug',
+             '--gc=sgen',
+             '--gc-params=max-heap-size=16M',  # Reduced from 25M
+             '--gc-params=nursery-size=1M',    # Reduced from 2M
+             '--gc-params=major=marksweep',    # Use mark & sweep GC
+             '--gc-params=soft-heap-limit=12M', # Soft limit before aggressive GC
              str(executable)],
             input=input_data,
             capture_output=True,
