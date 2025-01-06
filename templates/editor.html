@@ -13,7 +13,8 @@
     }
     .editor-container {
         flex: 1;
-        height: 500px;
+        display: flex;
+        flex-direction: column;
     }
     .output-container {
         flex: 1;
@@ -36,9 +37,11 @@
         flex-grow: 1;
         overflow-y: auto;
     }
-    .card.output-card {
+    .card {
         height: 100%;
         margin: 0;
+        border: 1px solid #ced4da; /* Added border for consistency */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Added box-shadow for consistency */
     }
     .card-body {
         height: calc(100% - 48px); /* Account for card header */
@@ -70,10 +73,17 @@
 
     <div class="editor-row">
         <div class="editor-container">
-            <textarea id="editor"></textarea>
+            <div class="card">
+                <div class="card-header">
+                    {% if lang == 'fr' %}Code{% else %}Code{% endif %}
+                </div>
+                <div class="card-body">
+                    <textarea id="editor"></textarea>
+                </div>
+            </div>
         </div>
         <div class="output-container">
-            <div class="card output-card">
+            <div class="card">
                 <div class="card-header">
                     {% if lang == 'fr' %}Sortie{% else %}Output{% endif %}
                 </div>
