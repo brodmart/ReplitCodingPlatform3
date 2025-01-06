@@ -101,13 +101,15 @@ def create_temp_directory():
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
 def set_memory_limit():
-    """Set memory limit to 100MB"""
-    memory_limit = 100 * 1024 * 1024  # 100MB in bytes
+    """Set memory limit to 50MB - reduced from 100MB to prevent allocation issues"""
+    memory_limit = 50 * 1024 * 1024  # 50MB in bytes
     try:
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit, memory_limit))
     except Exception as e:
         logger.error(f"Failed to set memory limit: {e}")
-        raise ExecutionError("Failed to set memory limit")
+        # Continue execution with default limits
+        return False
+    return True
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with enhanced security and resource limits"""
@@ -148,7 +150,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             }
 
 def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Compile and run C++ code with enhanced security"""
+    """Compile and run C++ code with enhanced security and memory management"""
     source_file = Path(temp_dir) / "program.cpp"
     executable = Path(temp_dir) / "program"
 
@@ -157,10 +159,14 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
         with open(source_file, 'w') as f:
             f.write(code)
 
-        # Compile with additional safety flags
+        # Compile with memory safety flags
         compile_process = subprocess.run(
-            ['g++', '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
-             '-fno-sanitize-recover=all', '-D_FORTIFY_SOURCE=2', '-fstack-protector-strong',
+            ['g++', '-Wall', '-Wextra', '-Werror', 
+             '-O1',  # Reduced optimization level
+             '-fsanitize=address,undefined',
+             '-fno-sanitize-recover=all',
+             '-D_FORTIFY_SOURCE=2',
+             '-fstack-protector-strong',
              str(source_file), '-o', str(executable)],
             capture_output=True,
             text=True,
@@ -172,7 +178,13 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
             logger.error(f"Compilation failed: {error_info['formatted_message']}")
             raise CompilerError(error_info['formatted_message'])
 
-        # Execute with resource limits and isolation
+        # Execute with resource limits and enhanced error handling
+        def preexec_fn():
+            """Setup process isolation and limits"""
+            os.setsid()  # New process group
+            if not set_memory_limit():
+                logger.warning("Failed to set memory limit, using system defaults")
+
         run_process = subprocess.run(
             ['nice', '-n', '19',  # Lower priority
              str(executable)],
@@ -180,10 +192,7 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
             capture_output=True,
             text=True,
             timeout=5,  # 5 seconds timeout
-            preexec_fn=lambda: (
-                os.setsid(),  # New process group
-                set_memory_limit()  # 100MB memory limit
-            )
+            preexec_fn=preexec_fn
         )
 
         return {
@@ -193,13 +202,19 @@ def _compile_and_run_cpp(code: str, temp_dir: str, input_data: Optional[str] = N
         }
 
     except subprocess.TimeoutExpired:
-        os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill all processes in group
+        try:
+            os.killpg(os.getpgid(0), signal.SIGKILL)  # Kill all processes in group
+        except:
+            pass  # Ignore cleanup errors
         raise TimeoutError('Le programme a dépassé la limite de temps de 5 secondes')
-    except subprocess.CalledProcessError as e:
-        raise ExecutionError(f"Erreur d'exécution: {e}")
     except OSError as e:
         if e.errno == errno.ENOMEM:
-            raise MemoryLimitExceeded('Le programme a dépassé la limite de mémoire de 100MB')
+            logger.error("Memory allocation error: %s", str(e))
+            return {
+                'success': False,
+                'output': '',
+                'error': 'Le programme nécessite trop de mémoire. Veuillez réduire l\'utilisation de la mémoire.'
+            }
         raise ExecutionError(f"Erreur système: {e}")
     except Exception as e:
         logger.error(f"Unexpected error in C++ execution: {str(e)}")
