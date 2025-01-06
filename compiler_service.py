@@ -267,30 +267,35 @@ def _compile_and_run_cpp(code: str, input_data: Optional[str] = None) -> Dict[st
             }
 
 def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Compile and run C# code with enhanced security and memory management"""
+    """Compile and run C# code with enhanced monitoring"""
     with create_temp_directory() as temp_dir:
         source_file = Path(temp_dir) / "program.cs"
         executable = Path(temp_dir) / "program.exe"
 
         try:
+            logger.info("Starting C# compilation and execution process")
+            logger.debug(f"Working directory: {temp_dir}")
+
             # Write source code to file
             with open(source_file, 'w') as f:
                 f.write(code)
+            logger.info(f"Source code written to {source_file}")
 
-            logger.debug(f"C# Source code written to {source_file}")
-            logger.debug(f"Code content: {code}")
+            # Compile with detailed output capture
+            logger.info("Starting C# compilation")
+            compile_cmd = ['mcs', '-debug+', '-checked+', str(source_file), '-out:' + str(executable)]
+            logger.debug(f"Compilation command: {' '.join(compile_cmd)}")
 
-            # Compile with more detailed output
             compile_process = subprocess.run(
-                ['mcs', '-debug-', '-optimize+',
-                 str(source_file), '-out:' + str(executable)],
+                compile_cmd,
                 capture_output=True,
                 text=True,
                 timeout=10
             )
 
-            logger.debug(f"Compilation output: {compile_process.stdout}")
-            logger.debug(f"Compilation errors: {compile_process.stderr}")
+            logger.debug(f"Compilation return code: {compile_process.returncode}")
+            logger.debug(f"Compilation stdout: {compile_process.stdout}")
+            logger.debug(f"Compilation stderr: {compile_process.stderr}")
 
             if compile_process.returncode != 0:
                 error_info = format_compiler_error(compile_process.stderr, 'csharp')
@@ -301,20 +306,48 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                     'error': error_info['formatted_message']
                 }
 
-            # Execute with simplified mono parameters
+            # Execute with detailed monitoring
+            logger.info("Starting C# execution")
+            run_cmd = [
+                'mono',
+                '--debug',
+                '--debugger-agent=transport=none',
+                '--gc=sgen',
+                '--gc-params=mode=throughput',
+                str(executable)
+            ]
+            logger.debug(f"Execution command: {' '.join(run_cmd)}")
+
+            def monitor_preexec():
+                """Monitor process execution"""
+                os.setsid()
+                # Set lower process priority
+                os.nice(10)
+                # Set memory limits
+                resource.setrlimit(resource.RLIMIT_AS, (50 * 1024 * 1024, -1))  # 50MB virtual memory
+                resource.setrlimit(resource.RLIMIT_DATA, (25 * 1024 * 1024, -1))  # 25MB data segment
+                logger.debug("Process monitoring and limits set")
+
             run_process = subprocess.run(
-                ['mono',
-                 '--debug',
-                 str(executable)],
+                run_cmd,
                 input=input_data,
                 capture_output=True,
                 text=True,
                 timeout=5,
-                preexec_fn=lambda: os.setsid()  # Only set process group
+                preexec_fn=monitor_preexec
             )
 
-            logger.debug(f"Execution output: {run_process.stdout}")
-            logger.debug(f"Execution errors: {run_process.stderr}")
+            logger.debug(f"Execution return code: {run_process.returncode}")
+            logger.debug(f"Execution stdout: {run_process.stdout}")
+            logger.debug(f"Execution stderr: {run_process.stderr}")
+
+            if run_process.returncode != 0:
+                logger.error(f"C# execution failed with return code {run_process.returncode}")
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': f"Erreur d'exécution: {run_process.stderr}"
+                }
 
             return {
                 'success': True,
@@ -322,8 +355,8 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str] = None) -> Dict
                 'error': run_process.stderr if run_process.stderr else None
             }
 
-        except subprocess.TimeoutExpired:
-            logger.error("C# execution timeout")
+        except subprocess.TimeoutExpired as e:
+            logger.error(f"C# execution timeout: {str(e)}")
             os.killpg(os.getpgid(0), signal.SIGKILL)
             return {
                 'success': False,
