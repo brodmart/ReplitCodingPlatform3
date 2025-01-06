@@ -94,7 +94,7 @@ class MonitoringSystem:
                 # Special handling for libstdc++.so.6 errors
                 if 'libstdc++.so.6' in str(metric.error_details):
                     concurrent_users = len([m for m in self.metrics 
-                                             if abs((m.timestamp - metric.timestamp).total_seconds()) < 60])
+                                          if abs((m.timestamp - metric.timestamp).total_seconds()) < 60])
                     logger.warning(
                         f"libstdc++.so.6 error detected:\n"
                         f"Time: {metric.timestamp}\n"
@@ -119,7 +119,7 @@ class MonitoringSystem:
             return {}
 
     def get_performance_report(self) -> Dict[str, Any]:
-        """Generate comprehensive performance report"""
+        """Generate comprehensive performance report with predictive analytics"""
         with self._lock:
             current_time = datetime.now()
             recent_window = 300  # 5 minutes
@@ -131,6 +131,9 @@ class MonitoringSystem:
 
             total_requests = len(recent_metrics)
             error_count = sum(1 for m in recent_metrics if m.error_type is not None)
+
+            # Get resource predictions
+            resource_analysis = self.analyze_resource_trends()
 
             report = {
                 'current_load': self.get_current_load(),
@@ -147,7 +150,8 @@ class MonitoringSystem:
                 'error_patterns': {
                     error_type: len(errors) 
                     for error_type, errors in self.error_patterns.items()
-                }
+                },
+                'resource_analysis': resource_analysis
             }
 
             # Add performance alerts
@@ -162,9 +166,103 @@ class MonitoringSystem:
                     'level': 'critical',
                     'message': "Low memory availability"
                 })
-            report['alerts'] = alerts
 
+            # Add predictive alerts
+            if resource_analysis.get('prediction', {}).get('expected_load') == 'high':
+                alerts.append({
+                    'level': 'info',
+                    'message': "High load period expected, consider scaling resources"
+                })
+
+            report['alerts'] = alerts
             return report
+
+    def analyze_resource_trends(self) -> Dict[str, Any]:
+        """Analyze resource usage trends and provide scaling recommendations"""
+        with self._lock:
+            current_time = datetime.now()
+            window_size = 3600  # 1 hour
+            recent_metrics = [m for m in self.metrics 
+                            if (current_time - m.timestamp).total_seconds() < window_size]
+
+            if not recent_metrics:
+                return {
+                    'status': 'insufficient_data',
+                    'message': 'Not enough data for analysis'
+                }
+
+            # Calculate load patterns
+            hourly_load = defaultdict(int)
+            for metric in recent_metrics:
+                hour = metric.timestamp.strftime('%H')
+                hourly_load[hour] += 1
+
+            # Calculate resource utilization trends
+            avg_memory_usage = sum(m.memory_used for m in recent_metrics) / len(recent_metrics)
+            peak_memory = max(m.peak_memory for m in recent_metrics)
+            current_load = self.get_current_load()
+
+            # Predict near-future resource needs
+            busy_threshold = len(recent_metrics) / 36  # More than 100 requests per hour is considered busy
+            is_busy_hour = any(count > busy_threshold for count in hourly_load.values())
+
+            # Generate scaling recommendations
+            recommendations = []
+
+            # Memory-based recommendations
+            if peak_memory > 500:  # More than 500MB peak usage
+                recommendations.append({
+                    'type': 'memory',
+                    'action': 'increase',
+                    'reason': 'High peak memory usage detected'
+                })
+
+            # Concurrency-based recommendations
+            concurrent_requests = current_load.get('concurrent_compilations', 0)
+            if concurrent_requests > 3:  # More than 3 concurrent requests
+                recommendations.append({
+                    'type': 'workers',
+                    'action': 'increase',
+                    'reason': 'High concurrent request load'
+                })
+
+            # CPU-based recommendations
+            cpu_percent = current_load.get('cpu_percent', 0)
+            if cpu_percent > 70:  # CPU usage above 70%
+                recommendations.append({
+                    'type': 'cpu',
+                    'action': 'optimize',
+                    'reason': 'High CPU utilization'
+                })
+
+            # Compile error patterns
+            error_rate = sum(1 for m in recent_metrics if m.error_type is not None) / len(recent_metrics)
+            if error_rate > 0.1:  # More than 10% error rate
+                recommendations.append({
+                    'type': 'reliability',
+                    'action': 'investigate',
+                    'reason': f'High error rate: {error_rate*100:.1f}%'
+                })
+
+            return {
+                'timestamp': current_time.isoformat(),
+                'analysis_window_seconds': window_size,
+                'metrics_analyzed': len(recent_metrics),
+                'current_load': current_load,
+                'resource_usage': {
+                    'average_memory_mb': avg_memory_usage,
+                    'peak_memory_mb': peak_memory,
+                    'cpu_percent': cpu_percent
+                },
+                'load_patterns': dict(hourly_load),
+                'is_busy_period': is_busy_hour,
+                'scaling_recommendations': recommendations,
+                'prediction': {
+                    'expected_load': 'high' if is_busy_hour else 'normal',
+                    'recommended_workers': max(2, concurrent_requests) if concurrent_requests > 2 else 2,
+                    'recommended_memory_limit': max(512, int(peak_memory * 1.2))  # 20% buffer
+                }
+            }
 
 # Initialize the monitoring system
 monitoring_system = MonitoringSystem()
