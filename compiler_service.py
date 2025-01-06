@@ -122,7 +122,6 @@ class QueueMonitor:
             lang_stats['avg_time'] = (lang_stats['avg_time'] * (lang_stats['total'] - 1) + 
                                     metric.total_time) / lang_stats['total'] if lang_stats['total'] > 0 else metric.total_time
 
-
             # Track hourly patterns
             hour = metric.timestamp.strftime('%Y-%m-%d %H:00')
             self.hourly_stats[hour]['total'] += 1
@@ -201,6 +200,13 @@ class RequestQueue:
         self.active_workers = threading.Semaphore(max_workers)
         self.start_workers()
         logger.info(f"RequestQueue initialized with {max_workers} workers")
+
+    def _execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
+        """Execute code with strict memory limits"""
+        if language == 'cpp':
+            return _compile_and_run_cpp(code, input_data)
+        else:
+            return _compile_and_run_csharp(code, input_data)
 
     def start_workers(self):
         """Start worker threads with resource monitoring"""
