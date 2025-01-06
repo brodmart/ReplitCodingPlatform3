@@ -11,16 +11,163 @@ import resource
 import errno
 from pathlib import Path
 import re
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from contextlib import contextmanager
 import queue
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from dataclasses import dataclass
 from collections import defaultdict
+import psutil
 
 logger = logging.getLogger(__name__)
+
+@dataclass
+class CompilerMetrics:
+    """Detailed metrics for compiler performance"""
+    language: str
+    compilation_time: float
+    execution_time: float
+    memory_used: float
+    peak_memory: float
+    error_type: Optional[str] = None
+    error_details: Optional[Dict[str, Any]] = None
+    client_info: Optional[Dict[str, str]] = None
+    timestamp: datetime = datetime.now()
+
+class MonitoringSystem:
+    """Enhanced monitoring system for compiler performance and resource usage"""
+    def __init__(self):
+        self.metrics_window = 3600  # 1 hour window for metrics
+        self.metrics: List[CompilerMetrics] = []
+        self.error_patterns = defaultdict(list)
+        self.hourly_stats = defaultdict(lambda: defaultdict(int))
+        self.language_stats = defaultdict(lambda: {
+            'total_requests': 0,
+            'success_count': 0,
+            'avg_compile_time': 0.0,
+            'avg_execution_time': 0.0,
+            'avg_memory_used': 0.0,
+            'peak_memory': 0.0,
+            'error_count': 0
+        })
+        self._lock = threading.Lock()
+
+    def add_metric(self, metric: CompilerMetrics):
+        """Add new compilation metric with enhanced tracking"""
+        with self._lock:
+            current_time = datetime.now()
+            # Clean old metrics
+            self.metrics = [m for m in self.metrics 
+                          if (current_time - m.timestamp).total_seconds() < self.metrics_window]
+
+            # Add new metric
+            self.metrics.append(metric)
+
+            # Update language statistics
+            lang_stats = self.language_stats[metric.language]
+            lang_stats['total_requests'] += 1
+            if metric.error_type is None:
+                lang_stats['success_count'] += 1
+            else:
+                lang_stats['error_count'] += 1
+
+            # Update averages
+            n = lang_stats['total_requests']
+            lang_stats['avg_compile_time'] = (lang_stats['avg_compile_time'] * (n-1) + metric.compilation_time) / n if n > 0 else metric.compilation_time
+            lang_stats['avg_execution_time'] = (lang_stats['avg_execution_time'] * (n-1) + metric.execution_time) / n if n > 0 else metric.execution_time
+            lang_stats['avg_memory_used'] = (lang_stats['avg_memory_used'] * (n-1) + metric.memory_used) / n if n > 0 else metric.memory_used
+            lang_stats['peak_memory'] = max(lang_stats['peak_memory'], metric.peak_memory)
+
+            # Track error patterns
+            if metric.error_type:
+                hour_key = metric.timestamp.strftime('%Y-%m-%d %H:00')
+                self.error_patterns[metric.error_type].append({
+                    'timestamp': metric.timestamp,
+                    'language': metric.language,
+                    'client_info': metric.client_info,
+                    'memory_used': metric.memory_used,
+                    'details': metric.error_details
+                })
+
+                # Special handling for libstdc++.so.6 errors
+                if 'libstdc++.so.6' in str(metric.error_details):
+                    concurrent_users = len([m for m in self.metrics 
+                                             if abs((m.timestamp - metric.timestamp).total_seconds()) < 60])
+                    logger.warning(
+                        f"libstdc++.so.6 error detected:\n"
+                        f"Time: {metric.timestamp}\n"
+                        f"Concurrent Users: {concurrent_users}\n"
+                        f"Memory Used: {metric.memory_used}MB\n"
+                        f"Client Info: {metric.client_info}"
+                    )
+
+    def get_current_load(self) -> Dict[str, Any]:
+        """Get current system load metrics"""
+        try:
+            memory = psutil.virtual_memory()
+            return {
+                'cpu_percent': psutil.cpu_percent(),
+                'memory_percent': memory.percent,
+                'memory_available': memory.available / (1024 * 1024),  # MB
+                'concurrent_compilations': len([m for m in self.metrics 
+                    if (datetime.now() - m.timestamp).total_seconds() < 60])
+            }
+        except Exception as e:
+            logger.error(f"Error getting system metrics: {e}")
+            return {}
+
+    def get_performance_report(self) -> Dict[str, Any]:
+        """Generate comprehensive performance report"""
+        with self._lock:
+            current_time = datetime.now()
+            recent_window = 300  # 5 minutes
+            recent_metrics = [m for m in self.metrics 
+                            if (current_time - m.timestamp).total_seconds() < recent_window]
+
+            if not recent_metrics:
+                return {'status': 'No recent metrics available'}
+
+            total_requests = len(recent_metrics)
+            error_count = sum(1 for m in recent_metrics if m.error_type is not None)
+
+            report = {
+                'current_load': self.get_current_load(),
+                'recent_metrics': {
+                    'window_seconds': recent_window,
+                    'total_requests': total_requests,
+                    'error_rate': error_count / total_requests if total_requests > 0 else 0,
+                    'avg_compilation_time': sum(m.compilation_time for m in recent_metrics) / total_requests if total_requests > 0 else 0,
+                    'avg_execution_time': sum(m.execution_time for m in recent_metrics) / total_requests if total_requests > 0 else 0,
+                    'avg_memory_used': sum(m.memory_used for m in recent_metrics) / total_requests if total_requests > 0 else 0,
+                    'peak_memory': max(m.peak_memory for m in recent_metrics) if recent_metrics else 0
+                },
+                'language_stats': dict(self.language_stats),
+                'error_patterns': {
+                    error_type: len(errors) 
+                    for error_type, errors in self.error_patterns.items()
+                }
+            }
+
+            # Add performance alerts
+            alerts = []
+            if report['recent_metrics']['error_rate'] > 0.1:  # More than 10% errors
+                alerts.append({
+                    'level': 'warning',
+                    'message': f"High error rate: {report['recent_metrics']['error_rate']*100:.1f}%"
+                })
+            if report['current_load'].get('memory_available', float('inf')) < 1000:  # Less than 1GB available
+                alerts.append({
+                    'level': 'critical',
+                    'message': "Low memory availability"
+                })
+            report['alerts'] = alerts
+
+            return report
+
+# Initialize the monitoring system
+monitoring_system = MonitoringSystem()
 
 @dataclass
 class ExecutionMetrics:
@@ -41,6 +188,7 @@ class ExecutionMetrics:
     concurrent_requests: int = 0    # Track concurrent requests
     worker_id: Optional[str] = None # Track which worker handled it
     client_info: Optional[Dict[str, Any]] = None  # Store client details
+
 
 class CompilerError(Exception):
     """Custom exception for compiler-related errors"""
@@ -99,118 +247,63 @@ def set_memory_limit(memory_mb: int = 20) -> bool:
         logger.error(f"Failed to set memory limit: {e}")
         return False
 
-class QueueMonitor:
-    """Enhanced monitor for queue performance and resource usage"""
-    def __init__(self):
-        self.metrics: List[ExecutionMetrics] = []
-        self.max_metrics = 1000
-        self._lock = threading.Lock()
-        self.error_patterns = defaultdict(int)
-        self.language_stats = defaultdict(lambda: defaultdict(int))
-        self.hourly_stats = defaultdict(lambda: defaultdict(int))
-
-    def add_metric(self, metric: ExecutionMetrics):
-        with self._lock:
-            self.metrics.append(metric)
-            if len(self.metrics) > self.max_metrics:
-                self.metrics.pop(0)
-
-            # Update language statistics
-            lang_stats = self.language_stats[metric.language]
-            lang_stats['total'] += 1
-            lang_stats['success' if metric.success else 'failed'] += 1
-            lang_stats['avg_time'] = (lang_stats['avg_time'] * (lang_stats['total'] - 1) + 
-                                    metric.total_time) / lang_stats['total'] if lang_stats['total'] > 0 else metric.total_time
-
-            # Track hourly patterns
-            hour = metric.timestamp.strftime('%Y-%m-%d %H:00')
-            self.hourly_stats[hour]['total'] += 1
-            self.hourly_stats[hour]['success' if metric.success else 'failed'] += 1
-
-            # Track error patterns
-            if not metric.success and metric.error_type:
-                self.error_patterns[metric.error_type] += 1
-                if 'libstdc++.so.6' in str(metric.error_details):
-                    logger.warning(
-                        f"libstdc++.so.6 error detected - Time: {metric.timestamp}, "
-                        f"Concurrent Users: {metric.concurrent_requests}"
-                    )
-
-            # Log critical events
-            if not metric.success:
-                logger.warning(
-                    f"Failed execution - ID: {metric.request_id}, "
-                    f"Language: {metric.language}, "
-                    f"Error Type: {metric.error_type}, "
-                    f"Queue Size: {metric.queue_size}"
-                )
-            if metric.memory_usage > 15:  # High memory usage warning
-                logger.warning(
-                    f"High memory usage - ID: {metric.request_id}, "
-                    f"Memory: {metric.memory_usage}MB, "
-                    f"Peak: {metric.peak_memory}MB"
-                )
-
-    def get_stats(self) -> Dict[str, Any]:
-        """Get comprehensive statistics about system performance"""
-        with self._lock:
-            if not self.metrics:
-                return {}
-
-            recent_metrics = self.metrics[-100:]  # Last 100 requests
-            total_requests = len(recent_metrics)
-            successful = sum(1 for m in recent_metrics if m.success)
-
-            stats = {
-                'overall': {
-                    'total_requests': total_requests,
-                    'success_rate': successful / total_requests if total_requests > 0 else 0,
-                    'avg_response_time': sum(m.total_time for m in recent_metrics) / total_requests if total_requests > 0 else 0,
-                    'avg_memory_usage': sum(m.memory_usage for m in recent_metrics) / total_requests if total_requests > 0 else 0,
-                    'peak_memory': max(m.peak_memory for m in recent_metrics) if recent_metrics else 0,
-                    'current_queue_size': self.metrics[-1].queue_size if self.metrics else 0
-                },
-                'language_stats': dict(self.language_stats),
-                'error_patterns': dict(self.error_patterns),
-                'hourly_stats': dict(self.hourly_stats)
-            }
-
-            # Add performance alerts
-            alerts = []
-            if stats['overall']['success_rate'] < 0.9:
-                alerts.append("Success rate below 90%")
-            if stats['overall']['avg_response_time'] > 5.0:
-                alerts.append("High average response time")
-            if stats['overall']['avg_memory_usage'] > 15:
-                alerts.append("High average memory usage")
-
-            if alerts:
-                logger.warning(f"Performance Alerts: {', '.join(alerts)}")
-
-            return stats
-
 class RequestQueue:
     """Manages code execution requests with enhanced memory management"""
     def __init__(self, max_workers: int = 2):
         self.queue = queue.Queue(maxsize=5)
         self.workers: List[threading.Thread] = []
         self.max_workers = max_workers
-        self.monitor = QueueMonitor()
-        self._shutdown = threading.Event()
         self.active_workers = threading.Semaphore(max_workers)
+        self._shutdown = threading.Event()
+        self.monitor = monitoring_system # Using the new MonitoringSystem
         self.start_workers()
         logger.info(f"RequestQueue initialized with {max_workers} workers")
 
     def execute_code(self, code: str, language: str, input_data: Optional[str]) -> Dict[str, Any]:
-        """Execute code with strict memory limits"""
+        """Execute code with strict memory limits and performance monitoring"""
+        metric = CompilerMetrics(
+            language=language,
+            compilation_time=0.0,
+            execution_time=0.0,
+            memory_used=0.0,
+            peak_memory=0.0
+        )
+
         try:
-            logger.info(f"Executing {language} code")
+            compile_start = time.time()
             if language == 'cpp':
-                return _compile_and_run_cpp(code, input_data)
+                result = _compile_and_run_cpp(code, input_data)
             else:
-                return _compile_and_run_csharp(code, input_data)
+                result = _compile_and_run_csharp(code, input_data)
+            compile_end = time.time()
+
+            # Update metrics
+            metric.compilation_time = compile_end - compile_start
+            metric.execution_time = time.time() - compile_end
+
+            # Get memory statistics
+            try:
+                with open('/proc/self/status') as f:
+                    for line in f:
+                        if 'VmPeak:' in line:
+                            metric.peak_memory = float(line.split()[1]) / 1024  # KB to MB
+                        elif 'VmSize:' in line:
+                            metric.memory_used = float(line.split()[1]) / 1024
+            except Exception as e:
+                logger.error(f"Error reading memory stats: {e}")
+
+            if not result.get('success', False):
+                metric.error_type = 'compilation_error' if 'error' in result else 'runtime_error'
+                metric.error_details = result.get('error')
+
+            monitoring_system.add_metric(metric)
+            return result
+
         except Exception as e:
             logger.error(f"Error executing {language} code: {str(e)}")
+            metric.error_type = 'system_error'
+            metric.error_details = {'message': str(e)}
+            monitoring_system.add_metric(metric)
             return {
                 'success': False,
                 'output': '',
@@ -238,7 +331,7 @@ class RequestQueue:
                     if request is None:
                         break
 
-                    code, language, input_data, result_queue = request
+                    code, language, input_data, result_queue, client_info = request
                     start_time = time.time()
 
                     metrics = ExecutionMetrics(
@@ -247,7 +340,8 @@ class RequestQueue:
                         language=language,
                         queue_size=self.queue.qsize(),
                         concurrent_requests=threading.active_count() - 1,  # Exclude main thread
-                        worker_id=threading.current_thread().name
+                        worker_id=threading.current_thread().name,
+                        client_info=client_info
                     )
 
                     try:
@@ -264,13 +358,11 @@ class RequestQueue:
                         metrics.execution_time = time.time() - compile_end
                         metrics.total_time = time.time() - start_time
 
-                        # Get detailed memory stats
-                        with open('/proc/self/status') as f:
-                            for line in f:
-                                if 'VmPeak:' in line:
-                                    metrics.peak_memory = float(line.split()[1]) / 1024  # Convert KB to MB
-                                elif 'VmSize:' in line:
-                                    metrics.memory_usage = float(line.split()[1]) / 1024
+                        # Get detailed memory stats  (This part needs improvement for accuracy)
+                        process = psutil.Process()
+                        metrics.memory_usage = process.memory_info().rss / (1024 * 1024) # MB
+                        metrics.peak_memory = process.memory_info().peak_wset / (1024 * 1024) # MB
+
 
                         metrics.success = result.get('success', False)
                         if not result.get('success', False):
@@ -298,7 +390,16 @@ class RequestQueue:
                             'error': f"Erreur d'exécution: {str(e)}"
                         })
                     finally:
-                        self.monitor.add_metric(metrics)
+                        self.monitor.add_metric(CompilerMetrics(
+                            language=language,
+                            compilation_time=metrics.compilation_time,
+                            execution_time=metrics.execution_time,
+                            memory_used=metrics.memory_usage,
+                            peak_memory=metrics.peak_memory,
+                            error_type=metrics.error_type,
+                            error_details=metrics.error_details,
+                            client_info=client_info
+                        ))
                         self.queue.task_done()
 
             except queue.Empty:
@@ -318,7 +419,7 @@ class RequestQueue:
                     'error': 'Le serveur est actuellement sous charge. Veuillez réessayer dans quelques instants.'
                 }
 
-            self.queue.put((code, language, input_data, result_queue), timeout=5)
+            self.queue.put((code, language, input_data, result_queue, client_info), timeout=5)
             result = result_queue.get(timeout=10)
             result['client_info'] = client_info
             return result
@@ -354,11 +455,24 @@ class RequestQueue:
 request_queue = RequestQueue()
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None, client_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Submit code to the request queue"""
+    """Submit code to the request queue with enhanced monitoring"""
     if language not in ['cpp', 'csharp']:
         raise ValueError(f"Unsupported language: {language}")
 
-    return request_queue.submit(code, language, input_data, client_info)
+    try:
+        result = request_queue.submit(code, language, input_data, client_info)
+        # Add performance metrics to the response
+        performance_report = monitoring_system.get_performance_report()
+        if performance_report.get('alerts'):
+            logger.warning(f"Performance alerts: {performance_report['alerts']}")
+        return result
+    except Exception as e:
+        logger.error(f"Error in compile_and_run: {str(e)}")
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Une erreur s'est produite lors de l'exécution: {str(e)}"
+        }
 
 def _compile_and_run_cpp(code: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run C++ code with enhanced memory management"""
