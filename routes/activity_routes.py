@@ -3,21 +3,76 @@ from database import db
 from models import CodingActivity
 from extensions import limiter, cache
 import logging
+import time
 from compiler_service import compile_and_run, CompilerError, ExecutionError
 from werkzeug.exceptions import RequestTimeout
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
 
+# Configure logging for API monitoring
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - [%(levelname)s] - %(message)s'
+)
+
+def log_api_request(start_time, client_ip, endpoint, status_code, error=None):
+    """Log API request details"""
+    duration = round((time.time() - start_time) * 1000, 2)  # Duration in milliseconds
+    logger.info(f"""
+    API Request Details:
+    - Client IP: {client_ip}
+    - Endpoint: {endpoint}
+    - Duration: {duration}ms
+    - Status: {status_code}
+    {f'- Error: {error}' if error else ''}
+    """)
+
+@activities.before_request
+def before_request():
+    """Store request start time for duration calculation"""
+    request.start_time = time.time()
+
+@activities.after_request
+def after_request(response):
+    """Log request details after completion"""
+    if request.endpoint:
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        log_api_request(
+            request.start_time,
+            client_ip,
+            request.endpoint,
+            response.status_code
+        )
+    return response
+
 @activities.errorhandler(Exception)
 def handle_error(error):
-    """Global error handler for the blueprint"""
-    logger.error(f"Uncaught exception in activities blueprint: {str(error)}", exc_info=True)
+    """Global error handler for the blueprint with enhanced logging"""
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    error_details = f"{type(error).__name__}: {str(error)}"
+    logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
+
     if isinstance(error, RequestTimeout):
+        log_api_request(
+            request.start_time,
+            client_ip,
+            request.endpoint,
+            408,
+            "Request timeout"
+        )
         return jsonify({
             'success': False,
             'error': "La requête a pris trop de temps. Veuillez réessayer."
         }), 408
+
+    log_api_request(
+        request.start_time,
+        client_ip,
+        request.endpoint,
+        500,
+        error_details
+    )
     return jsonify({
         'success': False,
         'error': "Une erreur inattendue s'est produite. Veuillez réessayer."
@@ -126,14 +181,20 @@ def view_activity(activity_id):
         }), 500
 
 @activities.route('/execute', methods=['POST'])
-@limiter.limit("10 per minute")  # Reduced rate limit to prevent overload
+@limiter.limit("10 per minute")
 def execute_code():
-    """Execute submitted code and return the results with improved error handling"""
+    """Execute submitted code with enhanced monitoring"""
+    start_time = time.time()
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+
     try:
-        # Log the incoming request with client info
-        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        logger.debug(f"Received code execution request from {client_ip}")
-        logger.debug(f"Content-Type: {request.headers.get('Content-Type')}")
+        # Detailed request logging
+        logger.info(f"""
+        Code Execution Request:
+        - Client IP: {client_ip}
+        - Content-Type: {request.headers.get('Content-Type')}
+        - User-Agent: {request.headers.get('User-Agent')}
+        """)
 
         if not request.is_json:
             logger.error(f"Invalid request format from {client_ip}: not JSON")
@@ -153,8 +214,13 @@ def execute_code():
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
 
-        logger.debug(f"Executing {language} code for {client_ip}")
-        logger.debug(f"Code length: {len(code)}")
+        # Log execution details
+        logger.info(f"""
+        Starting Code Execution:
+        - Client IP: {client_ip}
+        - Language: {language}
+        - Code Length: {len(code)}
+        """)
 
         if not code:
             return jsonify({
@@ -168,9 +234,19 @@ def execute_code():
                 'error': 'Langage non supporté'
             }), 400
 
-        # Set a timeout for the compilation and execution
+        # Execute code and measure performance
+        execution_start = time.time()
         result = compile_and_run(code, language)
-        logger.debug(f"Execution result for {client_ip}: {result}")
+        execution_time = round((time.time() - execution_start) * 1000, 2)
+
+        # Log execution results
+        logger.info(f"""
+        Code Execution Complete:
+        - Client IP: {client_ip}
+        - Execution Time: {execution_time}ms
+        - Success: {result.get('success', False)}
+        - Error: {result.get('error', 'None')}
+        """)
 
         if not result.get('success', False):
             error_msg = result.get('error', 'Une erreur s\'est produite')
@@ -185,22 +261,19 @@ def execute_code():
             'error': result.get('error', None)
         })
 
-    except CompilerError as e:
-        logger.error(f"Compilation error for {client_ip}: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 400
-
-    except ExecutionError as e:
-        logger.error(f"Execution error for {client_ip}: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': f"Erreur d'exécution: {str(e)}"
-        }), 400
-
     except Exception as e:
-        logger.error(f"Unexpected error in execute_code for {client_ip}: {str(e)}", exc_info=True)
+        error_msg = str(e)
+        logger.error(f"Error in execute_code for {client_ip}: {error_msg}", exc_info=True)
+
+        # Log error details
+        log_api_request(
+            start_time,
+            client_ip,
+            'execute_code',
+            500,
+            error_msg
+        )
+
         return jsonify({
             'success': False,
             'error': "Une erreur réseau s'est produite. Veuillez réessayer dans quelques instants."
