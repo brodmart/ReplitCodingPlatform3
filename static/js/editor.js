@@ -6,10 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Get initial language and templates
-    const languageSelect = document.getElementById('languageSelect');
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-
     // Helper function to get template for specific language
     function getTemplateForLanguage(language) {
         if (language === 'cpp') {
@@ -21,7 +17,7 @@ int main() {
     // Votre code ici
     return 0;
 }`;
-        } else {
+        } else if (language === 'csharp') {
             return `using System;
 
 namespace ProgrammingActivity
@@ -35,7 +31,13 @@ namespace ProgrammingActivity
     }
 }`;
         }
+        return '';
     }
+
+    // Get initial language
+    const languageSelect = document.getElementById('languageSelect');
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+    console.log('Initial language:', initialLanguage);
 
     // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
@@ -60,10 +62,61 @@ namespace ProgrammingActivity
         }
     });
 
-    // Set initial template content
+    // Set initial template content and force refresh
     const initialTemplate = getTemplateForLanguage(initialLanguage);
     editor.setValue(initialTemplate);
-    editor.refresh();
+    setTimeout(() => editor.refresh(), 100);
+
+    // Track if code has been executed and modified
+    let hasExecuted = false;
+    let isModified = false;
+    let currentTemplate = initialTemplate;
+
+    // Error marker management
+    let errorMarkers = [];
+    let errorWidgets = [];
+
+    function clearErrorIndicators() {
+        // Clear error markers
+        errorMarkers.forEach(marker => marker.clear());
+        errorMarkers = [];
+
+        // Clear error widgets
+        errorWidgets.forEach(widget => widget.clear());
+        errorWidgets = [];
+
+        // Clear error line classes
+        editor.eachLine(line => {
+            editor.removeLineClass(line, 'background', 'error-line');
+            editor.removeLineClass(line, 'background', 'warning-line');
+        });
+    }
+
+    // Handle language changes
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            const language = this.value;
+            console.log("Switching to language:", language);
+
+            // Clear any existing error indicators
+            clearErrorIndicators();
+
+            // Update editor mode for proper syntax highlighting
+            const mode = language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            console.log("Setting mode to:", mode);
+            editor.setOption('mode', mode);
+
+            // Set template content for the selected language
+            const newTemplate = getTemplateForLanguage(language);
+            editor.setValue(newTemplate);
+            currentTemplate = newTemplate;
+            isModified = false;
+            hasExecuted = false;
+
+            // Force refresh to ensure proper display
+            setTimeout(() => editor.refresh(), 100);
+        });
+    }
 
     // Track if code has been executed and modified
     let hasExecuted = false;
@@ -109,37 +162,6 @@ namespace ProgrammingActivity
             noHScroll: true
         });
         errorWidgets.push(widgetMarker);
-    }
-
-    // Handle language changes
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        const initialLanguage = languageSelect.value || 'cpp';
-        editor.setOption('mode', getEditorMode(initialLanguage));
-
-        languageSelect.addEventListener('change', function() {
-            const language = this.value;
-            console.log("Switching to language:", language);
-
-            // Clear any existing error indicators
-            clearErrorIndicators();
-
-            // Update editor mode for proper syntax highlighting
-            const mode = getEditorMode(language);
-            console.log("Setting mode to:", mode);
-            editor.setOption('mode', mode);
-
-            // Reset to template if needed
-            if (hasExecuted || shouldUseTemplate(editor.getValue().trim(), language) || !editor.getValue().trim()) {
-                const newTemplate = getTemplateForLanguage(language);
-                editor.setValue(newTemplate);
-                currentTemplate = newTemplate;
-                isModified = false;
-                hasExecuted = false;
-            }
-
-            editor.refresh();
-        });
     }
 
     // Handle code changes
