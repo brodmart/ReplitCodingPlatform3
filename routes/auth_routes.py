@@ -17,7 +17,7 @@ def is_safe_url(target):
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth.route('/login', methods=['GET', 'POST'])
-@limiter.limit("30 per minute")  # Increased from 5 to 30 per minute
+@limiter.limit("30 per minute")
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -29,14 +29,12 @@ def login():
             if user and user.check_password(form.password.data):
                 if user.is_account_locked():
                     flash('Compte temporairement bloqué. Réessayez plus tard.', 'danger')
-                    return render_template('login.html', form=form, lang=session.get('lang', 'fr'))
+                    return render_template('auth/login.html', form=form, lang=session.get('lang', 'fr'))
 
-                # Reset failed login attempts on successful login
                 user.reset_failed_login()
                 db.session.commit()
                 login_user(user, remember=form.remember_me.data)
 
-                # Handle next page redirect
                 next_page = request.args.get('next')
                 if not next_page or not is_safe_url(next_page):
                     next_page = url_for('index')
@@ -44,7 +42,6 @@ def login():
                 flash('Connexion réussie!', 'success')
                 return redirect(next_page)
             else:
-                # Handle failed login attempt
                 if user:
                     user.increment_failed_login()
                     db.session.commit()
@@ -56,10 +53,10 @@ def login():
             db.session.rollback()
             flash('Une erreur de serveur est survenue. Veuillez réessayer.', 'danger')
 
-    return render_template('login.html', form=form, lang=session.get('lang', 'fr'))
+    return render_template('auth/login.html', form=form, lang=session.get('lang', 'fr'))
 
 @auth.route('/register', methods=['GET', 'POST'])
-@limiter.limit("20 per minute")  # Increased from 10 to 20 per minute
+@limiter.limit("20 per minute")
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -74,7 +71,7 @@ def register():
             success, message = user.set_password(form.password.data)
             if not success:
                 flash(message, 'danger')
-                return render_template('register.html', form=form, lang=session.get('lang', 'fr'))
+                return render_template('auth/register.html', form=form, lang=session.get('lang', 'fr'))
 
             db.session.add(user)
             db.session.commit()
@@ -85,13 +82,12 @@ def register():
             db.session.rollback()
             flash('Une erreur est survenue lors de la création du compte.', 'danger')
 
-    return render_template('register.html', form=form, lang=session.get('lang', 'fr'))
+    return render_template('auth/register.html', form=form, lang=session.get('lang', 'fr'))
 
 @auth.route('/logout')
 @login_required
 def logout():
     try:
-        # Clear all session data
         session.clear()
         logout_user()
         flash('Vous avez été déconnecté avec succès', 'success')

@@ -1,0 +1,64 @@
+2025-01-07 13:49:59.86
+55ad0a91
+User
+2025-01-07 18:49:59,864 - __main__ - ERROR - [app.py:129] - Unhandled exception: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2025-01-07 13:49:59.86
+55ad0a91
+User
+Traceback (most recent call last):
+2025-01-07 13:49:59.86
+55ad0a91
+User
+File "/home/runner/ff8f8f0b-34d0-4442-aecd-6b9992859b6b/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 917, in full_dispatch_request
+2025-01-07 13:49:59.86
+55ad0a91
+User
+rv = self.dispatch_request()
+2025-01-07 13:49:59.86
+55ad0a91
+User
+^^^^^^^^^^^^^^^^^^^^^^^
+2025-01-07 13:49:59.86
+55ad0a91
+User
+File "/home/runner/ff8f8f0b-34d0-4442-aecd-6b9992859b6b/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 891, in dispatch_request
+2025-01-07 13:49:59.86
+55ad0a91
+User
+self.raise_routing_exception(req)
+2025-01-07 13:49:59.86
+55ad0a91
+User
+File "/home/runner/ff8f8f0b-34d0-4442-aecd-6b9992859b6b/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 500, in raise_routing_exception
+2025-01-07 13:49:59.86
+55ad0a91
+User
+raise request.routing_exception # type: ignore[misc]
+2025-01-07 13:49:59.86
+55ad0a91
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-01-07 13:49:59.86
+55ad0a91
+User
+File "/home/runner/ff8f8f0b-34d0-4442-aecd-6b9992859b6b/.pythonlibs/lib/python3.11/site-packages/flask/ctx.py", line 362, in match_request
+2025-01-07 13:49:59.86
+55ad0a91
+User
+result = self.url_adapter.match(return_rule=True) # type: ignore
+2025-01-07 13:49:59.86
+55ad0a91
+User
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-01-07 13:49:59.86
+55ad0a91
+User
+File "/home/runner/ff8f8f0b-34d0-4442-aecd-6b9992859b6b/.pythonlibs/lib/python3.11/site-packages/werkzeug/routing/map.py", line 629, in match
+2025-01-07 13:49:59.86
+55ad0a91
+User
+raise NotFound() from None
+2025-01-07 13:49:59.86
+55ad0a91
+User
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
