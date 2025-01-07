@@ -20,8 +20,171 @@ from datetime import datetime, timedelta
 from dataclasses import dataclass
 from collections import defaultdict
 import psutil
+import numpy as np
+from sklearn.linear_model import LinearRegression
 
 logger = logging.getLogger(__name__)
+
+class ResourceAnalyzer:
+    """Analyzes and predicts resource usage patterns"""
+    def __init__(self, history_window: int = 3600):
+        self.history_window = history_window  # 1 hour default
+        self.usage_history: List[Dict[str, Any]] = []
+        self.last_cleanup = datetime.now()
+        self._lock = threading.Lock()
+
+    def add_usage_data(self, data: Dict[str, Any]):
+        """Add new resource usage data point"""
+        with self._lock:
+            current_time = datetime.now()
+            self.usage_history.append({
+                'timestamp': current_time,
+                **data
+            })
+
+            # Cleanup old data
+            if (current_time - self.last_cleanup).total_seconds() > 300:  # Every 5 minutes
+                self._cleanup_old_data()
+                self.last_cleanup = current_time
+
+    def _cleanup_old_data(self):
+        """Remove data points older than history window"""
+        cutoff_time = datetime.now() - timedelta(seconds=self.history_window)
+        self.usage_history = [
+            data for data in self.usage_history
+            if data['timestamp'] > cutoff_time
+        ]
+
+    def predict_resource_needs(self, future_minutes: int = 30) -> Dict[str, Any]:
+        """Predict future resource needs based on historical patterns"""
+        with self._lock:
+            if not self.usage_history:
+                return {
+                    'status': 'insufficient_data',
+                    'message': 'Not enough historical data for prediction'
+                }
+
+            # Prepare time series data
+            current_time = datetime.now()
+            timestamps = [(data['timestamp'] - current_time).total_seconds() / 60 
+                         for data in self.usage_history]
+            memory_usage = [data.get('memory_used', 0) for data in self.usage_history]
+            cpu_usage = [data.get('cpu_percent', 0) for data in self.usage_history]
+
+            try:
+                # Prepare data for linear regression
+                X = np.array(timestamps).reshape(-1, 1)
+
+                # Predict memory usage
+                mem_model = LinearRegression()
+                mem_model.fit(X, memory_usage)
+                future_memory = mem_model.predict([[future_minutes]])[0]
+
+                # Predict CPU usage
+                cpu_model = LinearRegression()
+                cpu_model.fit(X, cpu_usage)
+                future_cpu = cpu_model.predict([[future_minutes]])[0]
+
+                # Calculate confidence intervals
+                memory_std = np.std(memory_usage)
+                cpu_std = np.std(cpu_usage)
+
+                return {
+                    'predictions': {
+                        'memory_usage': max(0, future_memory),
+                        'memory_confidence_interval': (
+                            max(0, future_memory - 2 * memory_std),
+                            future_memory + 2 * memory_std
+                        ),
+                        'cpu_usage': max(0, min(100, future_cpu)),
+                        'cpu_confidence_interval': (
+                            max(0, future_cpu - 2 * cpu_std),
+                            min(100, future_cpu + 2 * cpu_std)
+                        )
+                    },
+                    'current_trends': {
+                        'memory_usage_trend': mem_model.coef_[0],
+                        'cpu_usage_trend': cpu_model.coef_[0]
+                    }
+                }
+            except Exception as e:
+                logger.error(f"Error in resource prediction: {e}")
+                return {
+                    'status': 'prediction_error',
+                    'message': str(e)
+                }
+
+    def get_scaling_recommendations(self) -> Dict[str, Any]:
+        """Generate scaling recommendations based on predictions"""
+        predictions = self.predict_resource_needs()
+        if 'status' in predictions:
+            return predictions
+
+        current_metrics = self._get_current_metrics()
+        pred_metrics = predictions['predictions']
+        trends = predictions['current_trends']
+
+        recommendations = []
+
+        # Memory-based recommendations
+        if pred_metrics['memory_usage'] > current_metrics['memory_limit'] * 0.8:
+            recommendations.append({
+                'resource': 'memory',
+                'action': 'increase',
+                'urgency': 'high',
+                'reason': 'Predicted memory usage approaching limit'
+            })
+        elif pred_metrics['memory_usage'] < current_metrics['memory_limit'] * 0.3:
+            recommendations.append({
+                'resource': 'memory',
+                'action': 'decrease',
+                'urgency': 'low',
+                'reason': 'Memory consistently underutilized'
+            })
+
+        # CPU-based recommendations
+        if pred_metrics['cpu_usage'] > 80:
+            recommendations.append({
+                'resource': 'cpu',
+                'action': 'increase',
+                'urgency': 'high',
+                'reason': 'High CPU utilization predicted'
+            })
+
+        # Worker scaling recommendations
+        concurrent_requests = current_metrics['concurrent_requests']
+        if concurrent_requests > current_metrics['worker_count'] * 0.8:
+            recommendations.append({
+                'resource': 'workers',
+                'action': 'increase',
+                'urgency': 'medium',
+                'reason': 'High concurrent request load'
+            })
+
+        return {
+            'current_metrics': current_metrics,
+            'predictions': pred_metrics,
+            'trends': trends,
+            'recommendations': recommendations
+        }
+
+    def _get_current_metrics(self) -> Dict[str, Any]:
+        """Get current system metrics"""
+        try:
+            process = psutil.Process()
+            memory_info = process.memory_info()
+
+            return {
+                'memory_used': memory_info.rss / (1024 * 1024),  # MB
+                'memory_limit': resource.getrlimit(resource.RLIMIT_AS)[0] / (1024 * 1024),  # MB
+                'cpu_percent': process.cpu_percent(),
+                'worker_count': threading.active_count() - 1,  # Exclude main thread
+                'concurrent_requests': len([t for t in threading.enumerate() 
+                                            if t.name.startswith('CompilerWorker')])
+            }
+        except Exception as e:
+            logger.error(f"Error getting current metrics: {e}")
+            return {}
 
 @dataclass
 class CompilerMetrics:
@@ -43,6 +206,7 @@ class MonitoringSystem:
         self.metrics: List[CompilerMetrics] = []
         self.error_patterns = defaultdict(list)
         self._lock = threading.Lock()
+        self.resource_analyzer = ResourceAnalyzer()
 
     def add_metric(self, metric: CompilerMetrics):
         """Add new compilation metric with enhanced tracking"""
@@ -50,8 +214,13 @@ class MonitoringSystem:
             current_time = datetime.now()
             # Clean old metrics
             self.metrics = [m for m in self.metrics 
-                          if (current_time - m.timestamp).total_seconds() < self.metrics_window]
+                              if (current_time - m.timestamp).total_seconds() < self.metrics_window]
             self.metrics.append(metric)
+            self.resource_analyzer.add_usage_data({
+                'memory_used': metric.memory_used,
+                'cpu_percent': psutil.cpu_percent(), #Add CPU usage
+            })
+
 
 class CompilerError(Exception):
     """Custom exception for compiler-related errors"""
@@ -88,6 +257,7 @@ class RequestQueue:
         self.max_workers = max_workers
         self._shutdown = threading.Event()
         self.monitor = MonitoringSystem()
+        self.resource_analyzer = ResourceAnalyzer()
         self.workers = []
         self.start_workers()
 
@@ -95,18 +265,43 @@ class RequestQueue:
         """Execute code with strict resource limits"""
         start_time = time.time()
         try:
+            # Get initial resource state
+            process = psutil.Process()
+            initial_cpu = process.cpu_percent()
+            initial_memory = process.memory_info().rss / (1024 * 1024)
+
             if language == 'cpp':
                 result = self._compile_and_run_cpp(code, input_data)
             else:
                 result = self._compile_and_run_csharp(code, input_data)
 
-            # Get memory statistics
-            process = psutil.Process()
-            memory_info = process.memory_info()
-            result.update({
-                'memory_usage': memory_info.rss / (1024 * 1024),  # MB
-                'peak_memory': memory_info.vms / (1024 * 1024)    # MB
+            # Get final resource state
+            final_cpu = process.cpu_percent()
+            final_memory = process.memory_info().rss / (1024 * 1024)
+
+            # Add resource usage data
+            self.resource_analyzer.add_usage_data({
+                'memory_used': final_memory,
+                'memory_delta': final_memory - initial_memory,
+                'cpu_percent': final_cpu,
+                'cpu_delta': final_cpu - initial_cpu,
+                'execution_time': time.time() - start_time,
+                'language': language,
+                'success': result.get('success', False)
             })
+
+            # Add resource metrics to result
+            result.update({
+                'memory_usage': final_memory,
+                'peak_memory': process.memory_info().vms / (1024 * 1024)
+            })
+
+            # Check if scaling is needed
+            recommendations = self.resource_analyzer.get_scaling_recommendations()
+            if recommendations.get('recommendations'):
+                for rec in recommendations['recommendations']:
+                    if rec['urgency'] == 'high':
+                        logger.warning(f"Resource scaling recommended: {rec}")
 
             return result
 
@@ -343,7 +538,7 @@ class RequestQueue:
                     'error': f"Erreur: {str(e)}"
                 }
 
-# Initialize global queue
+# Initialize global queue with resource analysis
 request_queue = RequestQueue(max_workers=2)
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None,

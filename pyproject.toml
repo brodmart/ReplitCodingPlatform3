@@ -25,4 +25,6 @@ dependencies = [
     "pyotp>=2.9.0",
     "flask-cors>=5.0.0",
     "psutil>=6.1.1",
+    "numpy>=2.2.1",
+    "scikit-learn>=1.6.0",
 ]
