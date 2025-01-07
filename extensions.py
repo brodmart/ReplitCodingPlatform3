@@ -1,3 +1,4 @@
+"""Flask extensions initialization"""
 from datetime import timedelta
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -6,13 +7,10 @@ from flask_compress import Compress
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from flask_cors import CORS
-import logging
-
-# Import db from database
-from database import db
+from utils.logger import get_logger
 
 # Configure logging
-logger = logging.getLogger(__name__)
+logger = get_logger('extensions')
 
 # Initialize extensions
 cache = Cache()
@@ -24,11 +22,11 @@ cors = CORS()
 # Configure rate limiter with proper storage
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day"],
+    default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
 
-def init_extensions(app):
+def init_extensions(app, db=None):
     """Initialize Flask extensions"""
     try:
         logger.info("Starting extension initialization...")
@@ -79,12 +77,13 @@ def init_extensions(app):
             logger.error(f"Failed to initialize rate limiter: {str(e)}")
             raise
 
-        try:
-            migrate.init_app(app, db)
-            logger.debug("Database migrations initialized")
-        except Exception as e:
-            logger.error(f"Failed to initialize migrations: {str(e)}")
-            raise
+        if db is not None:
+            try:
+                migrate.init_app(app, db)
+                logger.debug("Database migrations initialized")
+            except Exception as e:
+                logger.error(f"Failed to initialize migrations: {str(e)}")
+                raise
 
         try:
             cors.init_app(app)

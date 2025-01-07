@@ -1,7 +1,7 @@
 import logging
 import traceback
 from functools import wraps
-from flask import request, g, current_app
+from flask import request, g, current_app, has_app_context
 import json
 from datetime import datetime
 
@@ -15,23 +15,25 @@ def log_error(error, error_type="ERROR", include_trace=True, **additional_data):
     error_data = {
         "timestamp": datetime.utcnow().isoformat(),
         "type": error_type,
-        "message": str(error),
-        "endpoint": request.endpoint if request else None,
-        "method": request.method if request else None,
-        "path": request.path if request else None,
-        "ip": request.remote_addr if request else None,
-        "user_agent": str(request.user_agent) if request and request.user_agent else None,
+        "message": str(error)
     }
+
+    # Only add request context information if we're in a request context
+    if has_app_context():
+        error_data.update({
+            "endpoint": request.endpoint if request else None,
+            "method": request.method if request else None,
+            "path": request.path if request else None,
+            "ip": request.remote_addr if request else None,
+            "user_agent": str(request.user_agent) if request and request.user_agent else None,
+            "request_duration": (datetime.utcnow() - g.request_start_time).total_seconds() if hasattr(g, 'request_start_time') else None
+        })
 
     if include_trace:
         error_data["traceback"] = traceback.format_exc()
 
     if additional_data:
         error_data.update(additional_data)
-
-    if hasattr(g, 'request_start_time'):
-        duration = datetime.utcnow() - g.request_start_time
-        error_data["request_duration"] = duration.total_seconds()
 
     logger.error(json.dumps(error_data))
     return error_data
@@ -65,6 +67,14 @@ class StructuredLogger:
             "message": message,
             "logger": self.logger.name
         }
+
+        # Only add request context information if we're in a request context
+        if has_app_context():
+            log_data.update({
+                "request_id": getattr(g, 'request_id', None),
+                "user_id": getattr(g, 'user_id', None)
+            })
+
         if kwargs:
             log_data.update(kwargs)
         return json.dumps(log_data)

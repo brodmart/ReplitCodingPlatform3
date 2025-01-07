@@ -3,10 +3,14 @@ import logging
 import logging.config
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, g
+from flask_login import LoginManager
 from flask_cors import CORS
-from flask_wtf.csrf import CSRFError
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from werkzeug.middleware.proxy_fix import ProxyFix
 from utils.logger import log_error, log_exception, get_logger
+from database import db, init_db
+from extensions import init_extensions
+from models import Student
 
 # Configure logging from file
 logging.config.fileConfig('logging.conf')
@@ -33,15 +37,28 @@ def create_app():
 
         # Initialize database first
         logger.info("Initializing database...")
-        from database import init_db, db
         init_db(app)
         logger.info("Database initialized successfully")
 
         # Initialize extensions
         logger.info("Initializing extensions...")
-        from extensions import init_extensions
-        init_extensions(app)
+        init_extensions(app, db)
         logger.info("Extensions initialized successfully")
+
+        # Initialize login manager
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
+        login_manager.login_message_category = 'info'
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            try:
+                return Student.query.get(int(user_id))
+            except Exception as e:
+                logger.error(f"Error loading user {user_id}: {str(e)}")
+                return None
 
         # Handle proxy headers
         app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -92,22 +109,13 @@ def create_app():
         @app.before_request
         def before_request():
             g.request_start_time = datetime.utcnow()
-            logger.info("Incoming request", 
-                method=request.method,
-                path=request.path,
-                remote_addr=request.remote_addr,
-                headers=dict(request.headers),
-                args=dict(request.args))
+            logger.info(f"Incoming request: {request.method} {request.path}")
 
         @app.after_request
         def after_request(response):
             if hasattr(g, 'request_start_time'):
                 duration = datetime.utcnow() - g.request_start_time
-                logger.info("Request completed",
-                    path=request.path,
-                    status_code=response.status_code,
-                    duration=duration.total_seconds(),
-                    response_headers=dict(response.headers))
+                logger.info(f"Request completed: {request.path} - Status: {response.status_code} - Duration: {duration.total_seconds()}s")
             return response
 
         # Register blueprints
@@ -144,14 +152,13 @@ def create_app():
             }
 
             return render_template('index.html',
-                                lang=session.get('lang', 'fr'),
-                                language=language,
-                                templates=templates)
+                               lang=session.get('lang', 'fr'),
+                               language=language,
+                               templates=templates)
 
         # Create database tables
         with app.app_context():
             try:
-                import models
                 db.create_all()
                 logger.info("Database tables created successfully")
             except Exception as e:
@@ -168,4 +175,4 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)

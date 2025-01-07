@@ -1,0 +1,228 @@
+2025-01-07 19:14:23 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.514585", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:14:23 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.514898", "level": "INFO", "message": "Configuring database connection...", "logger": "database"}
+2025-01-07 19:14:23 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select pg_catalog.version()
+2025-01-07 19:14:23 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:14:23 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select current_schema()
+2025-01-07 19:14:23 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:14:23 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - show standard_conforming_strings
+2025-01-07 19:14:23 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:14:23 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.926144", "level": "INFO", "message": "Database connection configured", "logger": "database", "request_id": null, "user_id": null, "connection_id": 140546852479168, "settings": {"timezone": "UTC", "encoding": "UTF8"}}
+2025-01-07 19:14:23 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.966621", "level": "INFO", "message": "Database connection successful", "logger": "database", "request_id": null, "user_id": null}
+2025-01-07 19:14:23 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.966916", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:14:23 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.967064", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:14:23 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.967169", "level": "INFO", "message": "Starting extension initialization...", "logger": "extensions"}
+2025-01-07 19:14:23 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.971635", "level": "INFO", "message": "All extensions initialized successfully", "logger": "extensions"}
+2025-01-07 19:14:23 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.971725", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:14:23 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.971872", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:14:23 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:23.974379", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:14:24 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-0
+2025-01-07 19:14:24 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-1
+2025-01-07 19:14:24 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:24.795902", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:14:24 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:24.797801", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:2701] - _connection_begin_impl() - BEGIN (implicit)
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [generated in 0.00029s] {'table_name': 'student', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.02188s ago] {'table_name': 'achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.04263s ago] {'table_name': 'student_achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.06372s ago] {'table_name': 'code_submission', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.08505s ago] {'table_name': 'shared_code', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1056s ago] {'table_name': 'coding_activity', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:24 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1267s ago] {'table_name': 'student_progress', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:2707] - _connection_commit_impl() - COMMIT
+2025-01-07 19:14:25 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:25.031177", "level": "INFO", "message": "Database tables created successfully", "logger": "app", "request_id": null, "user_id": null}
+2025-01-07 19:14:25 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:25.031638", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:14:25 - werkzeug - INFO - [_internal.py:97] - _log() - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:14:25 - werkzeug - INFO - [_internal.py:97] - _log() - [33mPress CTRL+C to quit[0m
+2025-01-07 19:14:25 - werkzeug - INFO - [_internal.py:97] - _log() -  * Restarting with stat
+2025-01-07 19:14:25 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:25.641999", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:14:25 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:25.642241", "level": "INFO", "message": "Configuring database connection...", "logger": "database"}
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select pg_catalog.version()
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select current_schema()
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - show standard_conforming_strings
+2025-01-07 19:14:25 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:14:26 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.036287", "level": "INFO", "message": "Database connection configured", "logger": "database", "request_id": null, "user_id": null, "connection_id": 139953742913728, "settings": {"timezone": "UTC", "encoding": "UTF8"}}
+2025-01-07 19:14:26 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.075692", "level": "INFO", "message": "Database connection successful", "logger": "database", "request_id": null, "user_id": null}
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.075985", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.076162", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:14:26 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.076305", "level": "INFO", "message": "Starting extension initialization...", "logger": "extensions"}
+2025-01-07 19:14:26 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.082345", "level": "INFO", "message": "All extensions initialized successfully", "logger": "extensions"}
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.082459", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.082663", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.085218", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:14:26 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-0
+2025-01-07 19:14:26 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-1
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.868944", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:14:26 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:26.870584", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:2701] - _connection_begin_impl() - BEGIN (implicit)
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [generated in 0.00065s] {'table_name': 'student', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.02191s ago] {'table_name': 'achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.04221s ago] {'table_name': 'student_achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:26 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.06262s ago] {'table_name': 'code_submission', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.0842s ago] {'table_name': 'shared_code', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1052s ago] {'table_name': 'coding_activity', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1266s ago] {'table_name': 'student_progress', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:14:27 - sqlalchemy.engine.Engine - INFO - [base.py:2707] - _connection_commit_impl() - COMMIT
+2025-01-07 19:14:27 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:27.103545", "level": "INFO", "message": "Database tables created successfully", "logger": "app", "request_id": null, "user_id": null}
+2025-01-07 19:14:27 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:14:27.103987", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:14:27 - werkzeug - WARNING - [_internal.py:97] - _log() -  * Debugger is active!
+2025-01-07 19:14:27 - werkzeug - INFO - [_internal.py:97] - _log() -  * Debugger PIN: 116-735-058
+2025-01-07 19:15:05 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:05.938278", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:15:05 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:05.939345", "level": "INFO", "message": "Configuring database connection...", "logger": "database"}
+2025-01-07 19:15:06 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select pg_catalog.version()
+2025-01-07 19:15:06 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:15:06 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select current_schema()
+2025-01-07 19:15:06 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:15:06 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - show standard_conforming_strings
+2025-01-07 19:15:06 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:15:06 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.333125", "level": "INFO", "message": "Database connection configured", "logger": "database", "request_id": null, "user_id": null, "connection_id": 140081346126016, "settings": {"timezone": "UTC", "encoding": "UTF8"}}
+2025-01-07 19:15:06 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.372432", "level": "INFO", "message": "Database connection successful", "logger": "database", "request_id": null, "user_id": null}
+2025-01-07 19:15:06 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.372844", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:15:06 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.372999", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:15:06 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.373104", "level": "INFO", "message": "Starting extension initialization...", "logger": "extensions"}
+2025-01-07 19:15:06 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.377946", "level": "INFO", "message": "All extensions initialized successfully", "logger": "extensions"}
+2025-01-07 19:15:06 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.378423", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:15:06 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.378704", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:15:06 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:06.382914", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:15:07 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-0
+2025-01-07 19:15:07 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-1
+2025-01-07 19:15:07 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:07.256636", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:15:07 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:07.258619", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:2701] - _connection_begin_impl() - BEGIN (implicit)
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [generated in 0.00051s] {'table_name': 'student', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.02254s ago] {'table_name': 'achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.04369s ago] {'table_name': 'student_achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.06523s ago] {'table_name': 'code_submission', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.08855s ago] {'table_name': 'shared_code', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1125s ago] {'table_name': 'coding_activity', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1402s ago] {'table_name': 'student_progress', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:07 - sqlalchemy.engine.Engine - INFO - [base.py:2707] - _connection_commit_impl() - COMMIT
+2025-01-07 19:15:07 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:07.504449", "level": "INFO", "message": "Database tables created successfully", "logger": "app", "request_id": null, "user_id": null}
+2025-01-07 19:15:07 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:07.505024", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:15:07 - werkzeug - INFO - [_internal.py:97] - _log() - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:15:07 - werkzeug - INFO - [_internal.py:97] - _log() - [33mPress CTRL+C to quit[0m
+2025-01-07 19:15:07 - werkzeug - INFO - [_internal.py:97] - _log() -  * Restarting with stat
+2025-01-07 19:15:08 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:08.577338", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:15:08 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:08.577646", "level": "INFO", "message": "Configuring database connection...", "logger": "database"}
+2025-01-07 19:15:08 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select pg_catalog.version()
+2025-01-07 19:15:08 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:15:08 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - select current_schema()
+2025-01-07 19:15:08 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:15:08 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - show standard_conforming_strings
+2025-01-07 19:15:08 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [raw sql] {}
+2025-01-07 19:15:09 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.011386", "level": "INFO", "message": "Database connection configured", "logger": "database", "request_id": null, "user_id": null, "connection_id": 139742965489856, "settings": {"timezone": "UTC", "encoding": "UTF8"}}
+2025-01-07 19:15:09 - database - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.052894", "level": "INFO", "message": "Database connection successful", "logger": "database", "request_id": null, "user_id": null}
+2025-01-07 19:15:09 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.053209", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:15:09 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.053359", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:15:09 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.053557", "level": "INFO", "message": "Starting extension initialization...", "logger": "extensions"}
+2025-01-07 19:15:09 - extensions - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.060021", "level": "INFO", "message": "All extensions initialized successfully", "logger": "extensions"}
+2025-01-07 19:15:09 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.060175", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:15:09 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.060456", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:15:09 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:09.065084", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:15:10 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-0
+2025-01-07 19:15:10 - compiler_service - INFO - [compiler_service.py:382] - start_workers() - Started worker thread CompilerWorker-1
+2025-01-07 19:15:10 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:10.227598", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:15:10 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:10.229476", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:2701] - _connection_begin_impl() - BEGIN (implicit)
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [generated in 0.00039s] {'table_name': 'student', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.02474s ago] {'table_name': 'achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.04706s ago] {'table_name': 'student_achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.06886s ago] {'table_name': 'code_submission', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.09119s ago] {'table_name': 'shared_code', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1147s ago] {'table_name': 'coding_activity', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:1846] - _execute_context() - [cached since 0.1372s ago] {'table_name': 'student_progress', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 19:15:10 - sqlalchemy.engine.Engine - INFO - [base.py:2707] - _connection_commit_impl() - COMMIT
+2025-01-07 19:15:10 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:10.482309", "level": "INFO", "message": "Database tables created successfully", "logger": "app", "request_id": null, "user_id": null}
+2025-01-07 19:15:10 - app - INFO - [logger.py:86] - info() - {"timestamp": "2025-01-07T19:15:10.484379", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:15:10 - werkzeug - WARNING - [_internal.py:97] - _log() -  * Debugger is active!
+2025-01-07 19:15:10 - werkzeug - INFO - [_internal.py:97] - _log() -  * Debugger PIN: 145-949-366
