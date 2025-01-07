@@ -10,7 +10,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
-    port = 5000
+    port = 80
     logger.info(f"Starting Flask server on port {port}")
     app.run(
         host='0.0.0.0',
