@@ -94,17 +94,17 @@
                 <div class="col-md-4">
                     <h5>{% if lang == 'fr' %}À propos{% else %}About{% endif %}</h5>
                     <ul class="list-unstyled">
-                        <li><a href="{{ url_for('static', filename='about.html') }}" class="text-light">{% if lang == 'fr' %}À propos de nous{% else %}About Us{% endif %}</a></li>
-                        <li><a href="{{ url_for('static', filename='contact.html') }}" class="text-light">{% if lang == 'fr' %}Contact{% else %}Contact{% endif %}</a></li>
-                        <li><a href="{{ url_for('static', filename='faq.html') }}" class="text-light">FAQ</a></li>
+                        <li><a href="{{ url_for('about') }}" class="text-light">{% if lang == 'fr' %}À propos de nous{% else %}About Us{% endif %}</a></li>
+                        <li><a href="{{ url_for('contact') }}" class="text-light">{% if lang == 'fr' %}Contact{% else %}Contact{% endif %}</a></li>
+                        <li><a href="{{ url_for('faq') }}" class="text-light">FAQ</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
                     <h5>{% if lang == 'fr' %}Ressources{% else %}Resources{% endif %}</h5>
                     <ul class="list-unstyled">
-                        <li><a href="{{ url_for('static', filename='terms.html') }}" class="text-light">{% if lang == 'fr' %}Conditions d'utilisation{% else %}Terms of Use{% endif %}</a></li>
-                        <li><a href="{{ url_for('static', filename='privacy.html') }}" class="text-light">{% if lang == 'fr' %}Politique de confidentialité{% else %}Privacy Policy{% endif %}</a></li>
-                        <li><a href="{{ url_for('static', filename='accessibility.html') }}" class="text-light">{% if lang == 'fr' %}Accessibilité{% else %}Accessibility{% endif %}</a></li>
+                        <li><a href="{{ url_for('terms') }}" class="text-light">{% if lang == 'fr' %}Conditions d'utilisation{% else %}Terms of Use{% endif %}</a></li>
+                        <li><a href="{{ url_for('privacy') }}" class="text-light">{% if lang == 'fr' %}Politique de confidentialité{% else %}Privacy Policy{% endif %}</a></li>
+                        <li><a href="{{ url_for('accessibility') }}" class="text-light">{% if lang == 'fr' %}Accessibilité{% else %}Accessibility{% endif %}</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">

@@ -74,9 +74,47 @@ def create_app():
         # Register blueprints
         from routes.activity_routes import activities
         from routes.tutorial import tutorial_bp
+        from routes.auth_routes import auth
 
         app.register_blueprint(activities, url_prefix='/activities')
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+        app.register_blueprint(auth, url_prefix='/auth')
+
+        @app.route('/')
+        def index():
+            """Root route handler"""
+            return render_template('editor.html', 
+                                lang=session.get('lang', 'fr'),
+                                templates={
+                                    'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
+                                    'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
+                                })
+
+        # Routes for static pages
+        @app.route('/about')
+        def about():
+            return render_template('about.html', lang=session.get('lang', 'fr'))
+
+        @app.route('/contact')
+        def contact():
+            return render_template('contact.html', lang=session.get('lang', 'fr'))
+
+        @app.route('/faq')
+        def faq():
+            return render_template('faq.html', lang=session.get('lang', 'fr'))
+
+        @app.route('/terms')
+        def terms():
+            return render_template('terms.html', lang=session.get('lang', 'fr'))
+
+        @app.route('/privacy')
+        def privacy():
+            return render_template('privacy.html', lang=session.get('lang', 'fr'))
+
+        @app.route('/accessibility')
+        def accessibility():
+            return render_template('accessibility.html', lang=session.get('lang', 'fr'))
+
 
         @app.errorhandler(CSRFError)
         def handle_csrf_error(e):
@@ -93,16 +131,6 @@ def create_app():
                 'success': False,
                 'error': "Une erreur inattendue s'est produite"
             }), 500
-
-        @app.route('/')
-        def index():
-            """Root route handler"""
-            return render_template('editor.html', 
-                                lang=session.get('lang', 'fr'),
-                                templates={
-                                    'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
-                                    'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
-                                })
 
         # Create all database tables
         with app.app_context():
