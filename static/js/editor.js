@@ -6,40 +6,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Get initial language and templates
-    const languageSelect = document.getElementById('languageSelect');
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-
-    // Helper function to get template for specific language
-    function getTemplateForLanguage(language) {
-        if (language === 'cpp') {
-            return `#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Votre code ici
-    return 0;
-}`;
-        } else {
-            return `using System;
-
-namespace ProgrammingActivity
-{
-    class Program 
-    {
-        static void Main(string[] args)
-        {
-            // Votre code ici
-        }
-    }
-}`;
-        }
-    }
-
-    // Initialize CodeMirror
+    // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
-        mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
+        mode: 'text/x-c++src',
         theme: 'dracula',
         lineNumbers: true,
         autoCloseBrackets: true,
@@ -49,27 +18,38 @@ namespace ProgrammingActivity
         lineWrapping: true,
         gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
         lint: true,
-        viewportMargin: Infinity,
         extraKeys: {
             "Ctrl-Space": "autocomplete",
-            "Tab": "indentMore",
-            "Shift-Tab": "indentLess"
+            "F11": function(cm) {
+                cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+            },
+            "Esc": function(cm) {
+                if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+            }
         }
     });
 
-    // Set initial template content and force refresh
-    const initialTemplate = getTemplateForLanguage(initialLanguage);
-    editor.setValue(initialTemplate);
+    // Set initial code
+    const initialCode = editorElement.value;
+    editor.setValue(initialCode || '');
+    editor.refresh();
 
-    // Force a refresh to ensure proper rendering
-    setTimeout(() => {
-        editor.refresh();
-    }, 100);
+    // Get CSRF token from meta tag
+    const getCsrfToken = () => {
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        if (!tokenMeta) {
+            console.error('CSRF token meta tag not found');
+            return null;
+        }
+        return tokenMeta.content;
+    };
 
     // Track if code has been executed and modified
     let hasExecuted = false;
     let isModified = false;
-    let currentTemplate = initialTemplate;
+
+    // Store initial template for comparison
+    let currentTemplate = getTemplateForLanguage('cpp');
 
     // Error marker management
     let errorMarkers = [];
@@ -171,6 +151,32 @@ namespace ProgrammingActivity
                (newLanguage === 'csharp' && isCppCode);
     }
 
+    // Helper function to get template for specific language
+    function getTemplateForLanguage(language) {
+        if (language === 'cpp') {
+            return `#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    // Votre code ici
+    return 0;
+}`;
+        } else {
+            return `using System;
+
+namespace ProgrammingActivity
+{
+    class Program 
+    {
+        static void Main(string[] args)
+        {
+            // Votre code ici
+        }
+    }
+}`;
+        }
+    }
 
     // Enhanced error display in output with visual indicators
     function displayError(outputDiv, error) {
@@ -352,17 +358,6 @@ namespace ProgrammingActivity
         }
     `;
     document.head.appendChild(style);
-
-    // Get CSRF token from meta tag
-    const getCsrfToken = () => {
-        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-        if (!tokenMeta) {
-            console.error('CSRF token meta tag not found');
-            return null;
-        }
-        return tokenMeta.content;
-    };
-
 
     // Log successful initialization
     console.log('Editor initialized successfully');
