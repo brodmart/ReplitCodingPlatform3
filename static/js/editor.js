@@ -37,6 +37,9 @@ namespace ProgrammingActivity
         }
     }
 
+    // Hide the original textarea
+    editorElement.style.display = 'none';
+
     // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
         mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
