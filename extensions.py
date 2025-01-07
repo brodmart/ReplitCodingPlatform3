@@ -1,14 +1,31 @@
 import time
 import logging
+from datetime import timedelta
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
 from flask_compress import Compress
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
-from datetime import timedelta
 
+# Import db from database instead of creating new SQLAlchemy instance
+from database import db
+
+# Configure logger
 logger = logging.getLogger(__name__)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
+
+# Add file handler for error logging
+error_handler = logging.FileHandler('error.log')
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(formatter)
+logger.addHandler(error_handler)
+
+# Add stream handler for debug logging
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.DEBUG)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
 
 # Initialize extensions without app context
 cache = Cache()
@@ -21,37 +38,53 @@ limiter = Limiter(
     key_func=get_remote_address,
     storage_uri="memory://",
     storage_options={},
-    default_limits=["200 per day"],  # More permissive default limit
+    default_limits=["200 per day"],
     headers_enabled=True,
-    strategy="fixed-window",  # Simpler strategy
+    strategy="fixed-window",
     retry_after="delta-seconds"
 )
 
-def init_extensions(app, db):
-    """Initialize all Flask extensions"""
+def init_extensions(app):
+    """Initialize all Flask extensions with enhanced error handling"""
     try:
+        logger.info("Starting extension initialization...")
+
         # Basic session configuration
         app.config.update(
             SESSION_COOKIE_SECURE=False,  # Set to True in production
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
-            PERMANENT_SESSION_LIFETIME=timedelta(days=7),  # Longer session lifetime
-            SESSION_PROTECTION='basic'  # Less strict protection
+            PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+            SESSION_PROTECTION='basic'
         )
+        logger.debug("Session configuration updated")
 
         # Initialize caching with simple configuration
-        cache_config = {
-            'CACHE_TYPE': 'simple',
-            'CACHE_DEFAULT_TIMEOUT': 3600
-        }
-        cache.init_app(app, config=cache_config)
+        try:
+            cache_config = {
+                'CACHE_TYPE': 'simple',
+                'CACHE_DEFAULT_TIMEOUT': 3600
+            }
+            cache.init_app(app, config=cache_config)
+            logger.info("Cache initialization successful")
+        except Exception as e:
+            logger.error(f"Cache initialization failed: {str(e)}", exc_info=True)
+            raise
 
         # Initialize other extensions
-        compress.init_app(app)
-        csrf.init_app(app)
-        limiter.init_app(app)
-        migrate.init_app(app, db)
+        try:
+            compress.init_app(app)
+            csrf.init_app(app)
+            limiter.init_app(app)
+            migrate.init_app(app, db)
+            logger.info("All other extensions initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize extensions: {str(e)}", exc_info=True)
+            raise
+
+        logger.info("All extensions initialized successfully")
+        return True
 
     except Exception as e:
-        logger.error(f"Failed to initialize extensions: {str(e)}")
+        logger.error(f"Critical error during extension initialization: {str(e)}", exc_info=True)
         raise

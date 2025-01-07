@@ -1,0 +1,40 @@
+2025-01-07 18:36:24,144 - extensions - ERROR - [extensions.py:66] - Database initialization failed: A 'SQLAlchemy' instance has already been registered on this Flask app. Import and use that instance instead.
+Traceback (most recent call last):
+  File "/home/runner/codecrafthub/extensions.py", line 63, in init_extensions
+    db.init_app(app)
+  File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 312, in init_app
+    raise RuntimeError(
+RuntimeError: A 'SQLAlchemy' instance has already been registered on this Flask app. Import and use that instance instead.
+2025-01-07 18:36:24,146 - extensions - ERROR - [extensions.py:96] - Critical error during extension initialization: A 'SQLAlchemy' instance has already been registered on this Flask app. Import and use that instance instead.
+Traceback (most recent call last):
+  File "/home/runner/codecrafthub/extensions.py", line 63, in init_extensions
+    db.init_app(app)
+  File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 312, in init_app
+    raise RuntimeError(
+RuntimeError: A 'SQLAlchemy' instance has already been registered on this Flask app. Import and use that instance instead.
+2025-01-07 18:36:24,147 - __main__ - ERROR - [app.py:173] - Failed to create application: A 'SQLAlchemy' instance has already been registered on this Flask app. Import and use that instance instead.
+Traceback (most recent call last):
+  File "/home/runner/codecrafthub/app.py", line 74, in create_app
+    init_extensions(app)
+  File "/home/runner/codecrafthub/extensions.py", line 63, in init_extensions
+    db.init_app(app)
+  File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 312, in init_app
+    raise RuntimeError(
+RuntimeError: A 'SQLAlchemy' instance has already been registered on this Flask app. Import and use that instance instead.
+2025-01-07 18:36:24,147 - __main__ - ERROR - [app.py:174] - Stack trace:   File "/home/runner/codecrafthub/app.py", line 74, in create_app
+    init_extensions(app)
+  File "/home/runner/codecrafthub/extensions.py", line 63, in init_extensions
+    db.init_app(app)
+  File "/home/runner/codecrafthub/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 312, in init_app
+    raise RuntimeError(
+
+2025-01-07 18:36:52,507 - __main__ - ERROR - [app.py:173] - Failed to create application: name 'CSRFError' is not defined
+Traceback (most recent call last):
+  File "/home/runner/codecrafthub/app.py", line 146, in create_app
+    @app.errorhandler(CSRFError)
+                      ^^^^^^^^^
+NameError: name 'CSRFError' is not defined
+2025-01-07 18:36:52,510 - __main__ - ERROR - [app.py:174] - Stack trace:   File "/home/runner/codecrafthub/app.py", line 146, in create_app
+    @app.errorhandler(CSRFError)
+                      ^^^^^^^^^
+

@@ -1,29 +1,38 @@
 import os
 import logging
 import secrets
-from flask import Flask, render_template, request, jsonify, session
+from datetime import datetime
+from flask import Flask, render_template, request, jsonify, session, g
 from flask_cors import CORS
-from flask_wtf.csrf import CSRFError, CSRFProtect
-from flask_compress import Compress
-from flask_migrate import Migrate
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFError
+import traceback
 
-# Configure logging
+# Enhanced logging configuration
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
-# Initialize extensions
-csrf = CSRFProtect()
-compress = Compress()
-migrate = Migrate()
-limiter = Limiter(
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"]
-)
+# Add file handler for error logging
+error_handler = logging.FileHandler('error.log')
+error_handler.setLevel(logging.ERROR)
+error_handler.setFormatter(logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+))
+logger.addHandler(error_handler)
+
+def log_request_info():
+    """Log detailed request information"""
+    logger.debug(f"""
+Request Details:
+    Path: {request.path}
+    Method: {request.method}
+    Headers: {dict(request.headers)}
+    Args: {dict(request.args)}
+    Form: {dict(request.form)}
+    Session: {dict(session)}
+    """.strip())
 
 def create_app():
     """Create and configure the Flask application"""
@@ -36,7 +45,7 @@ def create_app():
             SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32)),
             TEMPLATES_AUTO_RELOAD=True,
             SEND_FILE_MAX_AGE_DEFAULT=0,
-            DEBUG=True,  # Changed to True for debugging
+            DEBUG=True,
             SESSION_COOKIE_SECURE=False,
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
@@ -49,7 +58,6 @@ def create_app():
             JSON_AS_ASCII=False,
             JSONIFY_PRETTYPRINT_REGULAR=False,
             JSONIFY_MIMETYPE='application/json',
-            # Add SQLAlchemy configuration
             SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
             SQLALCHEMY_TRACK_MODIFICATIONS=False,
             SQLALCHEMY_ENGINE_OPTIONS={
@@ -62,11 +70,9 @@ def create_app():
         from database import init_db, db
         init_db(app)
 
-        # Initialize extensions
-        csrf.init_app(app)
-        compress.init_app(app)
-        migrate.init_app(app, db)
-        limiter.init_app(app)
+        # Initialize all extensions
+        from extensions import init_extensions
+        init_extensions(app)
 
         # Enable CORS with specific origins
         CORS(app, resources={
@@ -87,6 +93,20 @@ def create_app():
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(auth, url_prefix='/auth')
 
+        @app.before_request
+        def before_request():
+            """Log request information before processing"""
+            g.request_start_time = datetime.utcnow()
+            log_request_info()
+
+        @app.after_request
+        def after_request(response):
+            """Log response information after processing"""
+            if hasattr(g, 'request_start_time'):
+                duration = datetime.utcnow() - g.request_start_time
+                logger.info(f"Request completed in {duration.total_seconds():.3f}s with status {response.status_code}")
+            return response
+
         @app.route('/')
         def index():
             """Root route handler"""
@@ -103,50 +123,30 @@ def create_app():
                 }
                 logger.debug("Template data prepared successfully")
 
-                # Log render parameters
-                logger.debug(f"Rendering with params - lang: {session.get('lang', 'fr')}, language: {language}")
-
                 # Ensure session has required values
                 if 'lang' not in session:
                     logger.debug("Setting default language in session to 'fr'")
                     session['lang'] = 'fr'
 
+                logger.debug(f"Rendering index with params - lang: {session.get('lang', 'fr')}, language: {language}")
                 return render_template('index.html', 
                                    lang=session.get('lang', 'fr'),
                                    language=language,
                                    templates=templates)
             except Exception as e:
                 logger.error(f"Error rendering index template: {str(e)}", exc_info=True)
+                logger.error(f"Stack trace: {''.join(traceback.format_tb(e.__traceback__))}")
                 return render_template('errors/500.html'), 500
 
-        # Routes for static pages
-        @app.route('/about')
-        def about():
-            return render_template('about.html', lang=session.get('lang', 'fr'))
-
-        @app.route('/contact')
-        def contact():
-            return render_template('contact.html', lang=session.get('lang', 'fr'))
-
-        @app.route('/faq')
-        def faq():
-            return render_template('faq.html', lang=session.get('lang', 'fr'))
-
-        @app.route('/terms')
-        def terms():
-            return render_template('terms.html', lang=session.get('lang', 'fr'))
-
-        @app.route('/privacy')
-        def privacy():
-            return render_template('privacy.html', lang=session.get('lang', 'fr'))
-
-        @app.route('/accessibility')
-        def accessibility():
-            return render_template('accessibility.html', lang=session.get('lang', 'fr'))
+        # Enhanced error handlers
+        @app.errorhandler(404)
+        def not_found_error(error):
+            logger.warning(f"404 error: {request.url}")
+            return render_template('errors/404.html'), 404
 
         @app.errorhandler(CSRFError)
         def handle_csrf_error(e):
-            logger.error(f"CSRF error: {str(e)}")
+            logger.error(f"CSRF error on {request.url}: {str(e)}")
             return jsonify({
                 'success': False,
                 'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
@@ -154,7 +154,8 @@ def create_app():
 
         @app.errorhandler(Exception)
         def handle_exception(e):
-            logger.error(f"Unhandled exception: {str(e)}", exc_info=True)
+            logger.error(f"Unhandled exception on {request.url}: {str(e)}", exc_info=True)
+            logger.error(f"Stack trace: {''.join(traceback.format_tb(e.__traceback__))}")
             return jsonify({
                 'success': False,
                 'error': "Une erreur inattendue s'est produite"
@@ -162,7 +163,6 @@ def create_app():
 
         # Create all database tables
         with app.app_context():
-            # Import models here to avoid circular imports
             import models
             db.create_all()
             logger.info("Database tables created successfully")
@@ -172,6 +172,7 @@ def create_app():
 
     except Exception as e:
         logger.error(f"Failed to create application: {str(e)}", exc_info=True)
+        logger.error(f"Stack trace: {''.join(traceback.format_tb(e.__traceback__))}")
         raise
 
 # Create the Flask application
@@ -179,4 +180,4 @@ app = create_app()
 
 if __name__ == '__main__':
     logger.info("Starting development server...")
-    app.run(host='0.0.0.0', port=5000)  # Changed port to 5000
+    app.run(host='0.0.0.0', port=5000)
