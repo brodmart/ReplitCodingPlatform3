@@ -1,5 +1,4 @@
 import time
-import logging
 from datetime import timedelta
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -10,22 +9,6 @@ from flask_migrate import Migrate
 
 # Import db from database instead of creating new SQLAlchemy instance
 from database import db
-
-# Configure logger
-logger = logging.getLogger(__name__)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
-
-# Add file handler for error logging
-error_handler = logging.FileHandler('error.log')
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(formatter)
-logger.addHandler(error_handler)
-
-# Add stream handler for debug logging
-stream_handler = logging.StreamHandler()
-stream_handler.setLevel(logging.DEBUG)
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
 
 # Initialize extensions without app context
 cache = Cache()
@@ -47,7 +30,7 @@ limiter = Limiter(
 def init_extensions(app):
     """Initialize all Flask extensions with enhanced error handling"""
     try:
-        logger.info("Starting extension initialization...")
+        app.logger.info("Starting extension initialization...")
 
         # Basic session configuration
         app.config.update(
@@ -57,7 +40,7 @@ def init_extensions(app):
             PERMANENT_SESSION_LIFETIME=timedelta(days=7),
             SESSION_PROTECTION='basic'
         )
-        logger.debug("Session configuration updated")
+        app.logger.debug("Session configuration updated")
 
         # Initialize caching with simple configuration
         try:
@@ -65,10 +48,11 @@ def init_extensions(app):
                 'CACHE_TYPE': 'simple',
                 'CACHE_DEFAULT_TIMEOUT': 3600
             }
-            cache.init_app(app, config=cache_config)
-            logger.info("Cache initialization successful")
+            app.config.update(cache_config)
+            cache.init_app(app)
+            app.logger.info("Cache initialization successful")
         except Exception as e:
-            logger.error(f"Cache initialization failed: {str(e)}", exc_info=True)
+            app.logger.error(f"Cache initialization failed: {str(e)}", exc_info=True)
             raise
 
         # Initialize other extensions
@@ -77,14 +61,14 @@ def init_extensions(app):
             csrf.init_app(app)
             limiter.init_app(app)
             migrate.init_app(app, db)
-            logger.info("All other extensions initialized successfully")
+            app.logger.info("All other extensions initialized successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize extensions: {str(e)}", exc_info=True)
+            app.logger.error(f"Failed to initialize extensions: {str(e)}", exc_info=True)
             raise
 
-        logger.info("All extensions initialized successfully")
+        app.logger.info("All extensions initialized successfully")
         return True
 
     except Exception as e:
-        logger.error(f"Critical error during extension initialization: {str(e)}", exc_info=True)
+        app.logger.error(f"Critical error during extension initialization: {str(e)}", exc_info=True)
         raise

@@ -1,0 +1,48 @@
+[2025-01-07 18:40:29,459] INFO in app [/home/runner/codecrafthub/app.py:78]:
+Starting application creation...
+[2025-01-07 18:40:31,675] INFO in app [/home/runner/codecrafthub/app.py:228]:
+Database tables created successfully
+[2025-01-07 18:40:31,675] INFO in app [/home/runner/codecrafthub/app.py:230]:
+Application creation completed successfully
+[2025-01-07 18:40:31,676] INFO in app [/home/runner/codecrafthub/app.py:246]:
+Starting development server...
+[2025-01-07 18:40:31,905] INFO in app [/home/runner/codecrafthub/app.py:78]:
+Starting application creation...
+[2025-01-07 18:40:33,630] INFO in app [/home/runner/codecrafthub/app.py:228]:
+Database tables created successfully
+[2025-01-07 18:40:33,630] INFO in app [/home/runner/codecrafthub/app.py:230]:
+Application creation completed successfully
+[2025-01-07 18:40:33,630] INFO in app [/home/runner/codecrafthub/app.py:246]:
+Starting development server...
+[2025-01-07 18:41:37,795] INFO in app [/home/runner/codecrafthub/app.py:87]:
+Starting application creation...
+[2025-01-07 18:41:40,206] INFO in app [/home/runner/codecrafthub/app.py:237]:
+Database tables created successfully
+[2025-01-07 18:41:40,206] INFO in app [/home/runner/codecrafthub/app.py:239]:
+Application creation completed successfully
+[2025-01-07 18:41:40,206] INFO in app [/home/runner/codecrafthub/app.py:255]:
+Starting development server...
+[2025-01-07 18:41:40,415] INFO in app [/home/runner/codecrafthub/app.py:87]:
+Starting application creation...
+[2025-01-07 18:41:42,150] INFO in app [/home/runner/codecrafthub/app.py:237]:
+Database tables created successfully
+[2025-01-07 18:41:42,150] INFO in app [/home/runner/codecrafthub/app.py:239]:
+Application creation completed successfully
+[2025-01-07 18:41:42,150] INFO in app [/home/runner/codecrafthub/app.py:255]:
+Starting development server...
+[2025-01-07 18:42:09,958] INFO in app [/home/runner/codecrafthub/app.py:87]:
+Starting application creation...
+[2025-01-07 18:42:12,356] INFO in app [/home/runner/codecrafthub/app.py:237]:
+Database tables created successfully
+[2025-01-07 18:42:12,357] INFO in app [/home/runner/codecrafthub/app.py:239]:
+Application creation completed successfully
+[2025-01-07 18:42:12,357] INFO in app [/home/runner/codecrafthub/app.py:255]:
+Starting development server...
+[2025-01-07 18:42:12,561] INFO in app [/home/runner/codecrafthub/app.py:87]:
+Starting application creation...
+[2025-01-07 18:42:14,318] INFO in app [/home/runner/codecrafthub/app.py:237]:
+Database tables created successfully
+[2025-01-07 18:42:14,318] INFO in app [/home/runner/codecrafthub/app.py:239]:
+Application creation completed successfully
+[2025-01-07 18:42:14,319] INFO in app [/home/runner/codecrafthub/app.py:255]:
+Starting development server...

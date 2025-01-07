@@ -1,41 +1,88 @@
 import os
 import logging
 import secrets
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, g
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFError
 import traceback
 
-# Enhanced logging configuration
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+# Enhanced logging configuration with rotation
+log_formatter = logging.Formatter(
+    '[%(asctime)s] %(levelname)s in %(module)s [%(pathname)s:%(lineno)d]:\n%(message)s'
 )
-logger = logging.getLogger(__name__)
 
-# Add file handler for error logging
-error_handler = logging.FileHandler('error.log')
-error_handler.setLevel(logging.ERROR)
-error_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
-))
-logger.addHandler(error_handler)
+def setup_logging():
+    """Configure logging with rotation and proper handlers"""
+    logger = logging.getLogger('codecrafthub')
+    logger.setLevel(logging.DEBUG)
+
+    # Clear any existing handlers
+    logger.handlers.clear()
+
+    # Console handler for all logs
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    console_handler.setLevel(logging.DEBUG)
+    logger.addHandler(console_handler)
+
+    # Rotating file handler for errors
+    error_handler = RotatingFileHandler(
+        'error.log', 
+        maxBytes=10485760,  # 10MB
+        backupCount=10,
+        encoding='utf-8'
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(log_formatter)
+    logger.addHandler(error_handler)
+
+    # Access log handler
+    access_handler = RotatingFileHandler(
+        'access.log',
+        maxBytes=10485760,  # 10MB
+        backupCount=10,
+        encoding='utf-8'
+    )
+    access_handler.setLevel(logging.INFO)
+    access_handler.setFormatter(log_formatter)
+    logger.addHandler(access_handler)
+
+    return logger
+
+# Initialize logger
+logger = setup_logging()
 
 def log_request_info():
-    """Log detailed request information"""
-    logger.debug(f"""
-Request Details:
-    Path: {request.path}
-    Method: {request.method}
-    Headers: {dict(request.headers)}
-    Args: {dict(request.args)}
-    Form: {dict(request.form)}
-    Session: {dict(session)}
-    """.strip())
+    """Log detailed request information with enhanced formatting"""
+    try:
+        log_data = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'method': request.method,
+            'path': request.path,
+            'query_string': request.query_string.decode('utf-8'),
+            'headers': dict(request.headers),
+            'source_ip': request.remote_addr,
+            'user_agent': request.user_agent.string
+        }
+
+        # Add form/json data if present
+        if request.form:
+            log_data['form_data'] = dict(request.form)
+        if request.is_json:
+            log_data['json_data'] = request.get_json()
+
+        # Add session info if available
+        if session:
+            log_data['session_id'] = session.get('_id')
+
+        logger.info(f"Request Details:\n" + "\n".join(f"{k}: {v}" for k, v in log_data.items()))
+    except Exception as e:
+        logger.error(f"Error logging request info: {str(e)}", exc_info=True)
 
 def create_app():
-    """Create and configure the Flask application"""
+    """Create and configure the Flask application with enhanced error handling"""
     try:
         logger.info("Starting application creation...")
         app = Flask(__name__)
@@ -141,12 +188,26 @@ def create_app():
         # Enhanced error handlers
         @app.errorhandler(404)
         def not_found_error(error):
-            logger.warning(f"404 error: {request.url}")
+            """Enhanced 404 error handler with detailed logging"""
+            error_details = {
+                'url': request.url,
+                'method': request.method,
+                'headers': dict(request.headers),
+                'error': str(error)
+            }
+            logger.warning(f"404 Error Details:\n" + "\n".join(f"{k}: {v}" for k, v in error_details.items()))
             return render_template('errors/404.html'), 404
 
         @app.errorhandler(CSRFError)
         def handle_csrf_error(e):
-            logger.error(f"CSRF error on {request.url}: {str(e)}")
+            """Enhanced CSRF error handler with security logging"""
+            error_details = {
+                'url': request.url,
+                'method': request.method,
+                'headers': dict(request.headers),
+                'error': str(e)
+            }
+            logger.error(f"CSRF Error Details:\n" + "\n".join(f"{k}: {v}" for k, v in error_details.items()))
             return jsonify({
                 'success': False,
                 'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
@@ -154,8 +215,16 @@ def create_app():
 
         @app.errorhandler(Exception)
         def handle_exception(e):
-            logger.error(f"Unhandled exception on {request.url}: {str(e)}", exc_info=True)
-            logger.error(f"Stack trace: {''.join(traceback.format_tb(e.__traceback__))}")
+            """Enhanced exception handler with detailed error logging"""
+            error_details = {
+                'error_type': type(e).__name__,
+                'error_message': str(e),
+                'url': request.url,
+                'method': request.method,
+                'headers': dict(request.headers),
+                'traceback': traceback.format_exc()
+            }
+            logger.error(f"Unhandled Exception Details:\n" + "\n".join(f"{k}: {v}" for k, v in error_details.items()))
             return jsonify({
                 'success': False,
                 'error': "Une erreur inattendue s'est produite"
@@ -171,8 +240,12 @@ def create_app():
         return app
 
     except Exception as e:
-        logger.error(f"Failed to create application: {str(e)}", exc_info=True)
-        logger.error(f"Stack trace: {''.join(traceback.format_tb(e.__traceback__))}")
+        error_details = {
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'traceback': traceback.format_exc()
+        }
+        logger.error(f"Application Creation Failed:\n" + "\n".join(f"{k}: {v}" for k, v in error_details.items()))
         raise
 
 # Create the Flask application
