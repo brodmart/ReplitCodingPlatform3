@@ -22,6 +22,7 @@ cors = CORS()
 # Configure rate limiter
 limiter = Limiter(
     key_func=get_remote_address,
+    storage_uri="memory://",
     default_limits=["200 per day", "50 per hour"]
 )
 
@@ -33,8 +34,10 @@ def init_extensions(app, db=None):
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
             PERMANENT_SESSION_LIFETIME=timedelta(days=7),
-            CACHE_TYPE='simple',
-            CACHE_DEFAULT_TIMEOUT=3600
+            CACHE_TYPE='SimpleCache',
+            CACHE_DEFAULT_TIMEOUT=3600,
+            RATELIMIT_ENABLED=True,
+            RATELIMIT_HEADERS_ENABLED=True
         )
 
         # Initialize extensions

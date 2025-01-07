@@ -1416,3 +1416,15 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-07 19:27:17 - sqlalchemy.engine.Engine - INFO - COMMIT
 2025-01-07 19:27:17 - app - INFO - {"timestamp": "2025-01-07T19:27:17.217127", "level": "INFO", "message": "Database tables created successfully", "logger": "app", "process_id": 10288, "thread_id": 139740359306816}
 2025-01-07 19:27:17 - app - INFO - {"timestamp": "2025-01-07T19:27:17.217391", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app", "process_id": 10288, "thread_id": 139740359306816}
+2025-01-07 20:41:49 - app - INFO - Enhanced logging system initialized
+2025-01-07 20:41:49 - app - INFO - Initializing database...
+2025-01-07 20:41:49 - app - INFO - Database initialized successfully
+2025-01-07 20:41:49 - app - INFO - Initializing extensions...
+2025-01-07 20:41:49 - app - INFO - Extensions initialized successfully
+2025-01-07 20:41:49 - app - INFO - Starting blueprint registration...
+2025-01-07 20:41:49 - app - INFO - Registered auth blueprint
+2025-01-07 20:41:50 - app - INFO - Registered activities blueprint
+2025-01-07 20:41:50 - app - INFO - Registered tutorial blueprint
+2025-01-07 20:41:50 - app - ERROR - Error occurred: DB_CONNECTION_LOST
+2025-01-07 20:42:12 - app - ERROR - Error occurred: DB_CONNECTION_LOST
+2025-01-07 20:42:12 - app - CRITICAL - Failed to initialize application: DBAPIError.__init__() missing 2 required positional arguments: 'params' and 'orig'

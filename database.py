@@ -20,155 +20,92 @@ db = SQLAlchemy(model_class=Base)
 
 def init_db(app):
     """Initialize database with application context"""
-    logger.info("Configuring database connection...")
-
     try:
         # Configure database
         app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'pool_size': 20,
-            'max_overflow': 40,
+            'pool_size': 5,
+            'max_overflow': 10,
             'pool_timeout': 30,
-            'pool_recycle': 1800,
-            'pool_pre_ping': True,
-            'echo_pool': True
+            'pool_recycle': 1800
         }
 
         # Initialize the db with the Flask app
         db.init_app(app)
 
         with app.app_context():
-            try:
-                # Setup event listeners for detailed logging
-                @event.listens_for(db.engine, 'connect')
-                def receive_connect(dbapi_connection, connection_record):
-                    """Configure connection on creation"""
-                    try:
-                        cursor = dbapi_connection.cursor()
-                        cursor.execute("SET timezone='UTC'")
-                        cursor.execute("SET client_encoding='UTF8'")
-                        cursor.execute("SET application_name='codecrafthub'")
-                        logger.info("Database connection configured", 
-                                  connection_id=id(dbapi_connection),
-                                  settings={"timezone": "UTC", "encoding": "UTF8"})
-                        cursor.close()
-                    except Exception as e:
-                        log_error(e, error_type="DB_CONNECTION_CONFIG_ERROR")
-                        raise
+            # Setup event listeners for connection handling
+            @event.listens_for(db.engine, 'connect')
+            def receive_connect(dbapi_connection, connection_record):
+                try:
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute("SET timezone='UTC'")
+                    cursor.close()
+                    logger.info("Database connection configured successfully")
+                except Exception as e:
+                    logger.error(f"Failed to configure database connection: {str(e)}")
+                    raise
 
-                @event.listens_for(db.engine, 'checkout')
-                def receive_checkout(dbapi_connection, connection_record, connection_proxy):
-                    """Verify connection is valid on checkout"""
-                    try:
-                        cursor = dbapi_connection.cursor()
-                        start_time = datetime.utcnow()
-                        cursor.execute("SELECT 1")
-                        duration = (datetime.utcnow() - start_time).total_seconds()
-                        logger.debug("Connection health check", 
-                                   connection_id=id(dbapi_connection),
-                                   duration=duration)
-                        cursor.close()
-                    except Exception as e:
-                        log_error(e, error_type="DB_CONNECTION_LOST",
-                                connection_id=id(dbapi_connection))
-                        raise OperationalError("Database connection lost")
+            @event.listens_for(db.engine, 'checkout')
+            def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+                try:
+                    cursor = dbapi_connection.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.close()
+                    logger.debug("Connection health check passed")
+                except Exception as e:
+                    logger.error(f"Connection health check failed: {str(e)}")
+                    raise OperationalError(statement="Connection lost", 
+                                        params=None,
+                                        orig=e)
 
-                @event.listens_for(db.session, 'after_commit')
-                def receive_after_commit(session):
-                    """Log successful commits with performance metrics"""
-                    logger.info("Transaction committed",
-                              session_id=id(session),
-                              changes=len(session.dirty) + len(session.new))
-
-                @event.listens_for(db.session, 'after_rollback')
-                def receive_after_rollback(session):
-                    """Log detailed rollback information"""
-                    logger.warning("Transaction rolled back",
-                                 session_id=id(session),
-                                 pending_changes=len(session.dirty) + len(session.new))
-
-                @event.listens_for(db.engine, 'before_cursor_execute')
-                def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-                    conn.info.setdefault('query_start_time', []).append(datetime.utcnow())
-
-                @event.listens_for(db.engine, 'after_cursor_execute')
-                def after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
-                    total_time = datetime.utcnow() - conn.info['query_start_time'].pop()
-                    logger.debug("SQL Query executed",
-                               duration=total_time.total_seconds(),
-                               statement=statement[:200] + '...' if len(statement) > 200 else statement)
-
-                # Verify connection
-                db.engine.connect()
-                logger.info("Database connection successful")
-
-            except Exception as e:
-                log_error(e, error_type="DB_INITIALIZATION_ERROR")
-                raise
+            # Verify connection
+            db.engine.connect()
+            logger.info("Database connection successful")
 
     except Exception as e:
-        log_error(e, error_type="DB_CONFIG_ERROR")
+        logger.error(f"Database initialization error: {str(e)}")
         raise
 
 @contextmanager
 def transaction_context():
-    """Context manager for database transactions with performance tracking"""
-    start_time = datetime.utcnow()
+    """Context manager for database transactions"""
     try:
         yield
-        duration = (datetime.utcnow() - start_time).total_seconds()
         db.session.commit()
-        logger.info("Transaction completed successfully", duration=duration)
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        duration = (datetime.utcnow() - start_time).total_seconds()
-        log_error(e, error_type="DB_TRANSACTION_ERROR", duration=duration)
-        raise
+        logger.info("Transaction completed successfully")
     except Exception as e:
         db.session.rollback()
-        duration = (datetime.utcnow() - start_time).total_seconds()
-        log_error(e, error_type="DB_UNEXPECTED_ERROR", duration=duration)
+        logger.error(f"Transaction error: {str(e)}")
         raise
 
 class DatabaseHealthCheck:
-    """Database health monitoring with enhanced metrics"""
+    """Database health monitoring"""
 
     @staticmethod
-    def check_connection() -> tuple[bool, Optional[str]]:
-        """Check database connection health with detailed diagnostics"""
-        start_time = datetime.utcnow()
+    def check_connection():
+        """Check database connection health"""
         try:
             with db.engine.connect() as conn:
-                # Run comprehensive health check
                 conn.execute(text("SELECT 1"))
-                version = conn.execute(text("SELECT version()")).scalar()
-                duration = (datetime.utcnow() - start_time).total_seconds()
-                logger.info("Database health check successful",
-                          duration=duration,
-                          version=version)
                 return True, None
         except Exception as e:
-            duration = (datetime.utcnow() - start_time).total_seconds()
-            log_error(e, error_type="DB_HEALTH_CHECK_ERROR", duration=duration)
+            logger.error(f"Database health check failed: {str(e)}")
             return False, str(e)
 
     @staticmethod
-    def get_connection_stats() -> dict:
-        """Get detailed database connection pool statistics"""
+    def get_connection_stats():
+        """Get database connection pool statistics"""
         try:
-            stats = {
+            return {
                 'pool_size': db.engine.pool.size(),
                 'checkedin': db.engine.pool.checkedin(),
                 'checkedout': db.engine.pool.checkedout(),
-                'overflow': db.engine.pool.overflow(),
-                'timeout': db.engine.pool._timeout,
-                'recycle': db.engine.pool._recycle
+                'overflow': db.engine.pool.overflow()
             }
-            logger.info("Database connection stats retrieved", **stats)
-            return stats
         except Exception as e:
-            log_error(e, error_type="DB_STATS_ERROR")
+            logger.error(f"Failed to get connection stats: {str(e)}")
             raise
 
     @staticmethod

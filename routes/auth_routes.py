@@ -67,6 +67,8 @@ def after_auth_request(response):
 @limiter.limit("30 per minute")
 def login():
     """Gestion de l'authentification des utilisateurs"""
+    start_time = time.time()  # Initialize start_time at the beginning
+
     if current_user.is_authenticated:
         logger.info("Already authenticated user attempting to access login page", 
                    user_id=current_user.id,
@@ -76,7 +78,6 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         try:
-            start_time = time.time()
             user = Student.query.filter_by(username=form.username.data).first()
 
             # Log authentication attempt with detailed context
@@ -137,9 +138,9 @@ def login():
                                 duration=time.time() - start_time)
             db.session.rollback()
             logger.critical("Database error during login",
-                         error_id=error_data.get('id'),
-                         error_details=str(e),
-                         username=form.username.data)
+                          error_id=error_data.get('id'),
+                          error_details=str(e),
+                          username=form.username.data)
             flash('Une erreur de serveur est survenue. Veuillez réessayer.', 'danger')
 
     return render_template('auth/login.html', form=form, lang=session.get('lang', 'fr'))
@@ -148,6 +149,8 @@ def login():
 @limiter.limit("20 per minute")
 def register():
     """Gestion de l'enregistrement des nouveaux utilisateurs"""
+    start_time = time.time()  # Initialize start_time at the beginning
+
     if current_user.is_authenticated:
         logger.info("Authenticated user attempting to access register page",
                    user_id=current_user.id,
@@ -157,7 +160,6 @@ def register():
     form = RegisterForm()
     if form.validate_on_submit():
         try:
-            start_time = time.time()
             logger.info("Registration attempt",
                        username=form.username.data,
                        email=form.email.data,
@@ -198,9 +200,9 @@ def register():
                                 duration=time.time() - start_time)
             db.session.rollback()
             logger.critical("Database error during registration",
-                         error_id=error_data.get('id'),
-                         error_details=str(e),
-                         username=form.username.data)
+                          error_id=error_data.get('id'),
+                          error_details=str(e),
+                          username=form.username.data)
             flash('Une erreur est survenue lors de la création du compte.', 'danger')
 
     return render_template('auth/register.html', form=form, lang=session.get('lang', 'fr'))
@@ -209,11 +211,11 @@ def register():
 @login_required
 def logout():
     """Gestion de la déconnexion des utilisateurs"""
-    try:
-        start_time = time.time()
-        user_id = current_user.id if current_user.is_authenticated else None
-        username = current_user.username if current_user.is_authenticated else None
+    start_time = time.time()  # Initialize start_time at the beginning
+    user_id = current_user.id if current_user.is_authenticated else None
+    username = current_user.username if current_user.is_authenticated else None
 
+    try:
         session.clear()
         logout_user()
 
@@ -227,11 +229,11 @@ def logout():
         return redirect(url_for('auth.login'))
     except Exception as e:
         error_data = log_error(e, error_type="LOGOUT_ERROR",
-                            user_id=user_id if 'user_id' in locals() else None,
+                            user_id=user_id,
                             duration=time.time() - start_time)
         logger.error("Error during logout",
                     error_id=error_data.get('id'),
                     error_details=str(e),
-                    user_id=user_id if 'user_id' in locals() else None)
+                    user_id=user_id)
         flash('Erreur lors de la déconnexion', 'danger')
         return redirect(url_for('index'))
