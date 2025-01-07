@@ -226,11 +226,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (data.success) {
                 output.innerHTML = `
-                    <div class="alert alert-success mb-3">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Code exécuté avec succès
+                    <div class="alert alert-success">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-check-circle me-2"></i>
+                            Code exécuté avec succès
+                        </div>
+                        <pre class="mt-3 p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
                     </div>
-                    <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
                     ${data.error ? `
                         <div class="alert alert-warning mt-3">
                             <i class="bi bi-exclamation-triangle me-2"></i>
