@@ -1,18 +1,18 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, session
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
+from typing import Tuple, Optional
 from models import Student
 from forms import LoginForm, RegisterForm
 from database import db, transaction_context
 from extensions import limiter
-import logging
 from urllib.parse import urlparse, urljoin
 from utils.logger import log_error, get_logger
 
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 logger = get_logger('auth')
 
-def is_safe_url(target):
+def is_safe_url(target: str) -> bool:
     ref_url = urlparse(request.host_url)
     test_url = urlparse(urljoin(request.host_url, target))
     return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
@@ -154,7 +154,7 @@ def logout():
         return redirect(url_for('auth.login'))
     except Exception as e:
         error_data = log_error(e, error_type="LOGOUT_ERROR",
-                            user_id=user_id if 'user_id' in locals() else None)
+                            user_id=user_id if user_id else None)
         logger.error("Error during logout",
                     error_id=error_data.get('id'),
                     error_details=str(e))
