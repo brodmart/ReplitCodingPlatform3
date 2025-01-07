@@ -13,6 +13,25 @@ import time
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 logger = get_logger('auth')
 
+def get_system_metrics():
+    """Collecte les métriques système de manière sécurisée"""
+    try:
+        import psutil
+        import platform
+        process = psutil.Process()
+        return {
+            'memory_usage': process.memory_info().rss / 1024 / 1024,
+            'cpu_percent': process.cpu_percent(),
+            'python_version': platform.python_version(),
+            'platform': platform.platform(),
+            'thread_count': len(process.threads()),
+            'open_files': len(process.open_files()),
+            'connections': len(process.connections())
+        }
+    except Exception as e:
+        logger.warning(f"Impossible de collecter les métriques système: {str(e)}")
+        return {}
+
 def is_safe_url(target: str) -> bool:
     """Vérifie si l'URL de redirection est sécurisée"""
     ref_url = urlparse(request.host_url)
@@ -23,21 +42,25 @@ def is_safe_url(target: str) -> bool:
 def before_auth_request():
     """Log authentication request details"""
     g.request_start_time = time.time()
+    metrics = get_system_metrics()
     logger.info("Authentication request started",
                 endpoint=request.endpoint,
                 method=request.method,
                 ip=request.remote_addr,
-                user_agent=str(request.user_agent))
+                user_agent=str(request.user_agent),
+                system_info=metrics)
 
 @auth.after_request
 def after_auth_request(response):
-    """Log authentication response details"""
+    """Log authentication response details with performance metrics"""
     if hasattr(g, 'request_start_time'):
         duration = time.time() - g.request_start_time
+        metrics = get_system_metrics()
         logger.info("Authentication request completed",
                    endpoint=request.endpoint,
                    status_code=response.status_code,
-                   duration=duration)
+                   duration=duration,
+                   performance_metrics=metrics)
     return response
 
 @auth.route('/login', methods=['GET', 'POST'])

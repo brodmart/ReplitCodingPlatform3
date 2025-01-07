@@ -6,16 +6,13 @@ from flask import request, g, current_app, has_request_context
 import json
 from datetime import datetime
 import uuid
-import platform
-import psutil
 import os
-import threading
+from logging import LogRecord
 
-# Configure base logger
 logger = logging.getLogger(__name__)
 
-class JsonFormatter(logging.Formatter):
-    """Formateur personnalisé pour la sortie JSON des logs avec contexte enrichi"""
+class SimpleFormatter(logging.Formatter):
+    """Formateur simplifié pour les logs avec informations essentielles"""
     def format(self, record):
         log_data = {
             'timestamp': datetime.fromtimestamp(record.created).isoformat(),
@@ -24,63 +21,24 @@ class JsonFormatter(logging.Formatter):
             'message': record.getMessage(),
             'path': record.pathname,
             'line': record.lineno,
-            'function': record.funcName,
-            'thread': record.threadName,
-            'process': record.process,
-            'process_name': record.processName,
-            'hostname': platform.node(),
-            'environment': os.getenv('FLASK_ENV', 'development')
+            'function': record.funcName
         }
 
-        # Ajouter le context d'exécution
-        if hasattr(record, 'duration'):
-            log_data['duration'] = record.duration
-        if hasattr(record, 'error_id'):
-            log_data['error_id'] = record.error_id
-
-        # Ajouter les informations de performance
-        try:
-            process = psutil.Process()
-            log_data.update({
-                'memory_usage': process.memory_info().rss / 1024 / 1024,  # MB
-                'cpu_percent': process.cpu_percent(),
-                'thread_count': len(process.threads()),
-                'open_files': len(process.open_files()),
-                'connections': len(process.connections())
-            })
-        except Exception:
-            pass
-
-        # Ajouter la stack trace si disponible
-        if record.exc_info:
-            log_data['exc_info'] = self.formatException(record.exc_info)
-            log_data['exc_type'] = record.exc_info[0].__name__
-            log_data['exc_message'] = str(record.exc_info[1])
-            log_data['stack_trace'] = ''.join(traceback.format_exception(*record.exc_info))
-
-        # Ajouter le contexte de requête si disponible
+        # Ajouter le context de requête si disponible
         if has_request_context():
             try:
                 log_data['request'] = {
                     'url': request.url,
                     'method': request.method,
                     'endpoint': request.endpoint,
-                    'ip': request.remote_addr,
-                    'user_agent': str(request.user_agent),
-                    'referrer': request.referrer,
-                    'accept_languages': request.accept_languages.to_header(),
-                    'content_length': request.content_length,
-                    'content_type': request.content_type,
-                    'is_secure': request.is_secure,
-                    'host': request.host,
-                    'request_id': getattr(g, 'request_id', str(uuid.uuid4())),
+                    'ip': request.remote_addr
                 }
-                if 'user_id' in g:
-                    log_data['request']['user_id'] = g.user_id
-                if 'request_id' in g:
-                    log_data['request']['request_id'] = g.request_id
-            except Exception as e:
-                log_data['request_context_error'] = str(e)
+            except Exception:
+                pass
+
+        # Ajouter la stack trace si disponible
+        if record.exc_info:
+            log_data['exc_info'] = self.formatException(record.exc_info)
 
         # Ajouter les attributs supplémentaires du record
         if hasattr(record, 'extra_data'):
@@ -92,71 +50,32 @@ def generate_error_id() -> str:
     """Génère un identifiant unique pour chaque erreur"""
     return str(uuid.uuid4())
 
-def get_system_info() -> Dict[str, Any]:
-    """Collecte les informations système pertinentes"""
-    try:
-        process = psutil.Process()
-        return {
-            "python_version": platform.python_version(),
-            "platform": platform.system(),
-            "platform_release": platform.release(),
-            "platform_version": platform.version(),
-            "architecture": platform.machine(),
-            "processor": platform.processor(),
-            "hostname": platform.node(),
-            "memory_usage": process.memory_info().rss / 1024 / 1024,  # MB
-            "cpu_percent": process.cpu_percent(),
-            "thread_count": len(process.threads()),
-            "open_files": len(process.open_files()),
-            "connections": len(process.connections()),
-            "uptime": datetime.now().timestamp() - process.create_time()
-        }
-    except Exception as e:
-        return {"error_collecting_system_info": str(e)}
-
 def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool = True, **additional_data) -> Dict[str, Any]:
-    """
-    Log une erreur de manière structurée avec des informations contextuelles enrichies
-    """
+    """Log une erreur de manière structurée"""
     error_id = generate_error_id()
     error_data = {
         "error_id": error_id,
         "timestamp": datetime.utcnow().isoformat(),
         "type": error_type,
         "message": str(error),
-        "error_class": error.__class__.__name__,
-        "system_info": get_system_info(),
-        "environment": os.getenv('FLASK_ENV', 'development'),
-        "hostname": platform.node()
+        "error_class": error.__class__.__name__
     }
 
     if include_trace:
         error_data["traceback"] = traceback.format_exc()
-        error_data["stack_trace"] = ''.join(traceback.format_tb(error.__traceback__))
 
-    # Only add request context information if we're in a request context
+    # Ajouter le context de requête si disponible
     if has_request_context():
-        request_data = {
-            "endpoint": request.endpoint,
-            "method": request.method,
-            "path": request.path,
-            "ip": request.remote_addr,
-            "user_agent": str(request.user_agent) if request.user_agent else None,
-            "request_duration": (datetime.utcnow() - g.request_start_time).total_seconds() if hasattr(g, 'request_start_time') else None,
-            "headers": dict(request.headers),
-            "query_string": request.query_string.decode('utf-8'),
-            "is_xhr": request.is_xhr,
-            "is_secure": request.is_secure,
-            "accept_languages": request.accept_languages.to_header(),
-            "content_length": request.content_length,
-            "content_type": request.content_type,
-            "host": request.host,
-            "url": request.url,
-            "base_url": request.base_url,
-            "request_id": getattr(g, 'request_id', str(uuid.uuid4())),
-            "referrer": request.referrer
-        }
-        error_data.update({"request_info": request_data})
+        try:
+            error_data["request_info"] = {
+                "endpoint": request.endpoint,
+                "method": request.method,
+                "path": request.path,
+                "ip": request.remote_addr,
+                "user_agent": str(request.user_agent)
+            }
+        except Exception:
+            pass
 
     if additional_data:
         error_data.update({"additional_info": additional_data})
@@ -165,9 +84,7 @@ def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool =
     return error_data
 
 def log_exception(error_type: str = "EXCEPTION"):
-    """
-    Décorateur pour logger automatiquement les exceptions avec contexte enrichi
-    """
+    """Décorateur pour logger automatiquement les exceptions"""
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
@@ -178,8 +95,6 @@ def log_exception(error_type: str = "EXCEPTION"):
                     e,
                     error_type=error_type,
                     function=f.__name__,
-                    args=str(args),
-                    kwargs=str(kwargs),
                     include_trace=True
                 )
                 logger.error(
@@ -195,17 +110,14 @@ def log_exception(error_type: str = "EXCEPTION"):
     return decorator
 
 class StructuredLogger:
-    """
-    Logger personnalisé pour un format structuré avec contexte enrichi
-    """
+    """Logger personnalisé pour un format structuré"""
     def __init__(self, name: str):
         self.logger = logging.getLogger(name)
         self.name = name
 
-        # Ensure at least one handler exists
         if not self.logger.handlers:
             handler = logging.StreamHandler()
-            handler.setFormatter(JsonFormatter())
+            handler.setFormatter(SimpleFormatter())
             self.logger.addHandler(handler)
 
     def _format_message(self, message: str, level: str, **kwargs) -> str:
@@ -213,36 +125,19 @@ class StructuredLogger:
             "timestamp": datetime.utcnow().isoformat(),
             "level": level,
             "message": message,
-            "logger": self.name,
-            "process_id": os.getpid(),
-            "thread_id": threading.get_ident(),
-            "hostname": platform.node(),
-            "environment": os.getenv('FLASK_ENV', 'development')
+            "logger": self.name
         }
 
-        # Add performance metrics
-        try:
-            process = psutil.Process()
-            log_data.update({
-                "memory_usage": process.memory_info().rss / 1024 / 1024,  # MB
-                "cpu_percent": process.cpu_percent(),
-                "thread_count": len(process.threads())
-            })
-        except Exception:
-            pass
-
-        # Only add request context information if we're in a request context
         if has_request_context():
-            context_data = {
-                "request_id": getattr(g, 'request_id', str(uuid.uuid4())),
-                "user_id": getattr(g, 'user_id', None),
-                "session_id": request.cookies.get('session', None),
-                "url": request.url,
-                "method": request.method,
-                "endpoint": request.endpoint,
-                "ip": request.remote_addr
-            }
-            log_data.update({"request_context": context_data})
+            try:
+                log_data["request"] = {
+                    "url": request.url,
+                    "method": request.method,
+                    "endpoint": request.endpoint,
+                    "ip": request.remote_addr
+                }
+            except Exception:
+                pass
 
         if kwargs:
             log_data.update({"additional_info": kwargs})
@@ -267,7 +162,5 @@ class StructuredLogger:
         self.logger.critical(self._format_message(message, "CRITICAL", error_id=error_id, **kwargs))
 
 def get_logger(name: str) -> StructuredLogger:
-    """
-    Factory pour créer un nouveau logger structuré
-    """
+    """Factory pour créer un nouveau logger structuré"""
     return StructuredLogger(name)
