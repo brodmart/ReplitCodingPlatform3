@@ -22,6 +22,7 @@ from collections import defaultdict
 import psutil
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from optimization_analyzer import PerformanceOptimizer
 
 logger = logging.getLogger(__name__)
 
@@ -540,10 +541,11 @@ class RequestQueue:
 
 # Initialize global queue with resource analysis
 request_queue = RequestQueue(max_workers=2)
+optimizer = PerformanceOptimizer()
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None,
                    client_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Submit code to the request queue"""
+    """Submit code to the request queue with optimization tracking"""
     if language not in ['cpp', 'csharp']:
         return {
             'success': False,
@@ -551,7 +553,42 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None,
             'error': f"Langage non supporté: {language}"
         }
 
-    return request_queue.submit(code, language, input_data, client_info)
+    # Execute code
+    result = request_queue.submit(code, language, input_data, client_info)
+
+    # Generate optimization suggestions
+    try:
+        metrics = {
+            'language': language,
+            'compilation_time': result.get('compilation_time', 0),
+            'memory_used': result.get('memory_usage', 0),
+            'peak_memory': result.get('peak_memory', 0),
+            'success': result.get('success', False),
+            'error_type': result.get('error_type'),
+            'client_info': client_info
+        }
+
+        suggestions = optimizer.analyze_compiler_metrics(metrics)
+        if suggestions:
+            logger.info("Performance optimization suggestions generated:")
+            for suggestion in suggestions:
+                logger.info(f"- {suggestion.category} ({suggestion.priority}): {suggestion.issue}")
+                logger.info(f"  Impact: {suggestion.impact}")
+                logger.info(f"  Recommendation: {suggestion.recommendation}")
+
+            # Add suggestions to result for monitoring
+            result['optimization_suggestions'] = [
+                {
+                    'category': s.category,
+                    'priority': s.priority,
+                    'issue': s.issue,
+                    'recommendation': s.recommendation
+                } for s in suggestions
+            ]
+    except Exception as e:
+        logger.error(f"Error generating optimization suggestions: {e}")
+
+    return result
 
 def check_memory_availability(required_mb: int = 20) -> bool:
     """
