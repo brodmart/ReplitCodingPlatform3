@@ -3,7 +3,7 @@ Optimization analyzer for compiler service performance.
 Provides automated suggestions for improving system performance.
 """
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from collections import defaultdict
@@ -25,18 +25,24 @@ class PerformanceOptimizer:
         self.cpu_threshold = 70  # Percentage
         self.compile_time_threshold = 2.0  # seconds
         self.suggestions_history: List[OptimizationSuggestion] = []
-        self.language_metrics = defaultdict(lambda: {
-            'total_executions': 0,
-            'failed_executions': 0,
-            'avg_compile_time': 0.0,
-            'peak_memory': 0.0,
-            'common_errors': defaultdict(int)
-        })
+        self._init_metrics()
+
+    def _init_metrics(self):
+        """Initialize metrics with proper typing"""
+        self.language_metrics: Dict[str, Dict[str, Union[int, float, Dict[str, int]]]] = {}
+        for lang in ['cpp', 'csharp']:
+            self.language_metrics[lang] = {
+                'total_executions': 0,
+                'failed_executions': 0,
+                'avg_compile_time': 0.0,
+                'peak_memory': 0.0,
+                'common_errors': defaultdict(int)
+            }
 
     def analyze_compiler_metrics(self, metrics: Dict[str, Any]) -> List[OptimizationSuggestion]:
         """Analyze compiler performance metrics and generate optimization suggestions."""
         suggestions = []
-        
+
         # Analyze memory usage
         if metrics.get('memory_used', 0) > self.memory_threshold:
             suggestions.append(OptimizationSuggestion(
@@ -74,39 +80,52 @@ class PerformanceOptimizer:
 
     def _update_language_metrics(self, language: str, metrics: Dict[str, Any]) -> None:
         """Update language-specific performance metrics."""
+        if language not in self.language_metrics:
+            self._init_metrics()
+            if language not in self.language_metrics:
+                self.language_metrics[language] = {
+                    'total_executions': 0,
+                    'failed_executions': 0,
+                    'avg_compile_time': 0.0,
+                    'peak_memory': 0.0,
+                    'common_errors': defaultdict(int)
+                }
+
         lang_stats = self.language_metrics[language]
-        lang_stats['total_executions'] += 1
-        
+        lang_stats['total_executions'] = lang_stats.get('total_executions', 0) + 1
+
         if not metrics.get('success', True):
-            lang_stats['failed_executions'] += 1
+            lang_stats['failed_executions'] = lang_stats.get('failed_executions', 0) + 1
             error_type = metrics.get('error_type', 'unknown')
-            lang_stats['common_errors'][error_type] += 1
+            errors = lang_stats.get('common_errors', defaultdict(int))
+            errors[error_type] += 1
+            lang_stats['common_errors'] = errors
 
         # Update running averages
-        current_avg = lang_stats['avg_compile_time']
-        new_time = metrics.get('compilation_time', 0)
+        current_avg = float(lang_stats.get('avg_compile_time', 0.0))
+        new_time = float(metrics.get('compilation_time', 0.0))
+        total_execs = int(lang_stats['total_executions'])
         lang_stats['avg_compile_time'] = (
-            (current_avg * (lang_stats['total_executions'] - 1) + new_time) / 
-            lang_stats['total_executions']
+            (current_avg * (total_execs - 1) + new_time) / total_execs
         )
-        
+
         # Track peak memory
-        lang_stats['peak_memory'] = max(
-            lang_stats['peak_memory'],
-            metrics.get('peak_memory', 0)
-        )
+        current_peak = float(lang_stats.get('peak_memory', 0.0))
+        new_peak = float(metrics.get('peak_memory', 0.0))
+        lang_stats['peak_memory'] = max(current_peak, new_peak)
 
     def _analyze_error_patterns(self, language: str, metrics: Dict[str, Any]) -> Optional[OptimizationSuggestion]:
         """Analyze error patterns and generate relevant suggestions."""
         error_type = metrics.get('error_type')
-        if not error_type:
+        if not error_type or language not in self.language_metrics:
             return None
 
         lang_stats = self.language_metrics[language]
-        error_frequency = lang_stats['common_errors'][error_type]
-        total_executions = lang_stats['total_executions']
+        errors = lang_stats.get('common_errors', defaultdict(int))
+        error_frequency = errors.get(error_type, 0)
+        total_executions = int(lang_stats['total_executions'])
 
-        if error_frequency / total_executions > 0.1:  # More than 10% error rate
+        if total_executions > 0 and (error_frequency / total_executions) > 0.1:  # More than 10% error rate
             return OptimizationSuggestion(
                 category='compiler',
                 priority=5,
@@ -145,13 +164,15 @@ class PerformanceOptimizer:
 
         # Analyze per-language metrics
         for language, metrics in self.language_metrics.items():
-            failure_rate = (metrics['failed_executions'] / metrics['total_executions'] 
-                          if metrics['total_executions'] > 0 else 0)
-            
+            total_execs = int(metrics['total_executions'])
+            failed_execs = int(metrics['failed_executions'])
+
+            failure_rate = failed_execs / total_execs if total_execs > 0 else 0
+
             report['languages'][language] = {
                 'success_rate': 1 - failure_rate,
-                'avg_compile_time': metrics['avg_compile_time'],
-                'peak_memory': metrics['peak_memory'],
+                'avg_compile_time': float(metrics['avg_compile_time']),
+                'peak_memory': float(metrics['peak_memory']),
                 'common_errors': dict(metrics['common_errors'])
             }
 
