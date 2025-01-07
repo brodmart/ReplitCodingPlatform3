@@ -33,7 +33,7 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python app.py"
-waitForPort = 5000
+waitForPort = 80
 
 [[ports]]
 localPort = 80

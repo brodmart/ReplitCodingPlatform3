@@ -6,9 +6,40 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Get initial language and templates
+    const languageSelect = document.getElementById('languageSelect');
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+
+    // Helper function to get template for specific language
+    function getTemplateForLanguage(language) {
+        if (language === 'cpp') {
+            return `#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    // Votre code ici
+    return 0;
+}`;
+        } else {
+            return `using System;
+
+namespace ProgrammingActivity
+{
+    class Program 
+    {
+        static void Main(string[] args)
+        {
+            // Votre code ici
+        }
+    }
+}`;
+        }
+    }
+
     // Initialize CodeMirror with enhanced settings
     const editor = CodeMirror.fromTextArea(editorElement, {
-        mode: 'text/x-c++src',
+        mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
         theme: 'dracula',
         lineNumbers: true,
         autoCloseBrackets: true,
@@ -29,27 +60,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Set initial code
-    const initialCode = editorElement.value;
-    editor.setValue(initialCode || '');
+    // Set initial template content
+    const initialTemplate = getTemplateForLanguage(initialLanguage);
+    editor.setValue(initialTemplate);
     editor.refresh();
-
-    // Get CSRF token from meta tag
-    const getCsrfToken = () => {
-        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-        if (!tokenMeta) {
-            console.error('CSRF token meta tag not found');
-            return null;
-        }
-        return tokenMeta.content;
-    };
 
     // Track if code has been executed and modified
     let hasExecuted = false;
     let isModified = false;
-
-    // Store initial template for comparison
-    let currentTemplate = getTemplateForLanguage('cpp');
+    let currentTemplate = initialTemplate;
 
     // Error marker management
     let errorMarkers = [];
@@ -151,32 +170,6 @@ document.addEventListener('DOMContentLoaded', function() {
                (newLanguage === 'csharp' && isCppCode);
     }
 
-    // Helper function to get template for specific language
-    function getTemplateForLanguage(language) {
-        if (language === 'cpp') {
-            return `#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Votre code ici
-    return 0;
-}`;
-        } else {
-            return `using System;
-
-namespace ProgrammingActivity
-{
-    class Program 
-    {
-        static void Main(string[] args)
-        {
-            // Votre code ici
-        }
-    }
-}`;
-        }
-    }
 
     // Enhanced error display in output with visual indicators
     function displayError(outputDiv, error) {
@@ -358,6 +351,17 @@ namespace ProgrammingActivity
         }
     `;
     document.head.appendChild(style);
+
+    // Get CSRF token from meta tag
+    const getCsrfToken = () => {
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        if (!tokenMeta) {
+            console.error('CSRF token meta tag not found');
+            return null;
+        }
+        return tokenMeta.content;
+    };
+
 
     // Log successful initialization
     console.log('Editor initialized successfully');

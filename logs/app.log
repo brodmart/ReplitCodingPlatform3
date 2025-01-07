@@ -3050,3 +3050,145 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-07 21:13:21,962 - app - INFO - Application initialized successfully
 2025-01-07 21:13:22,048 - werkzeug - WARNING -  * Debugger is active!
 2025-01-07 21:13:22,050 - werkzeug - INFO -  * Debugger PIN: 162-847-627
+2025-01-07 21:17:53,082 - app - INFO - Logging configured successfully
+2025-01-07 21:17:53,082 - app - INFO - Logging configured successfully
+2025-01-07 21:17:53,083 - app - INFO - Initializing database...
+2025-01-07 21:17:53,083 - app - INFO - Initializing database...
+2025-01-07 21:17:53,101 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:17:53,101 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:17:53,101 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:17:53,102 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:17:53,104 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:17:53,104 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:17:53,104 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:17:53,599 - app - INFO - Database tables created successfully
+2025-01-07 21:17:53,599 - app - INFO - Database tables created successfully
+2025-01-07 21:17:54,526 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:17:54,527 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:17:54,532 - app - INFO - All blueprints registered successfully
+2025-01-07 21:17:54,532 - app - INFO - All blueprints registered successfully
+2025-01-07 21:17:54,534 - app - INFO - Application initialized successfully
+2025-01-07 21:17:54,534 - app - INFO - Application initialized successfully
+2025-01-07 21:17:54,593 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.140:80
+2025-01-07 21:17:54,593 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 21:17:54,594 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 21:17:55,105 - app - INFO - Logging configured successfully
+2025-01-07 21:17:55,105 - app - INFO - Logging configured successfully
+2025-01-07 21:17:55,105 - app - INFO - Initializing database...
+2025-01-07 21:17:55,105 - app - INFO - Initializing database...
+2025-01-07 21:17:55,119 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:17:55,119 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:17:55,119 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:17:55,120 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:17:55,122 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:17:55,122 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:17:55,122 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:17:55,606 - app - INFO - Database tables created successfully
+2025-01-07 21:17:55,606 - app - INFO - Database tables created successfully
+2025-01-07 21:17:56,414 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:17:56,426 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:17:56,432 - app - INFO - All blueprints registered successfully
+2025-01-07 21:17:56,432 - app - INFO - All blueprints registered successfully
+2025-01-07 21:17:56,435 - app - INFO - Application initialized successfully
+2025-01-07 21:17:56,435 - app - INFO - Application initialized successfully
+2025-01-07 21:17:56,508 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 21:17:56,510 - werkzeug - INFO -  * Debugger PIN: 956-446-828
+2025-01-07 21:18:05,564 - app - INFO - Logging configured successfully
+2025-01-07 21:18:05,564 - app - INFO - Logging configured successfully
+2025-01-07 21:18:05,565 - app - INFO - Initializing database...
+2025-01-07 21:18:05,565 - app - INFO - Initializing database...
+2025-01-07 21:18:05,582 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:18:05,582 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:18:05,582 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:18:05,587 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:18:05,590 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:18:05,592 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:18:05,594 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:18:06,104 - app - INFO - Database tables created successfully
+2025-01-07 21:18:06,104 - app - INFO - Database tables created successfully
+2025-01-07 21:18:06,896 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:18:06,897 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:18:06,902 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:06,902 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:06,905 - app - INFO - Application initialized successfully
+2025-01-07 21:18:06,905 - app - INFO - Application initialized successfully
+2025-01-07 21:18:06,969 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.140:80
+2025-01-07 21:18:06,970 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 21:18:06,971 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 21:18:07,613 - app - INFO - Logging configured successfully
+2025-01-07 21:18:07,613 - app - INFO - Logging configured successfully
+2025-01-07 21:18:07,614 - app - INFO - Initializing database...
+2025-01-07 21:18:07,614 - app - INFO - Initializing database...
+2025-01-07 21:18:07,631 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:18:07,631 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:18:07,631 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:18:07,632 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:18:07,633 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:18:07,634 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:18:07,634 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:18:08,124 - app - INFO - Database tables created successfully
+2025-01-07 21:18:08,124 - app - INFO - Database tables created successfully
+2025-01-07 21:18:08,975 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:18:08,977 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:18:08,983 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:08,983 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:08,987 - app - INFO - Application initialized successfully
+2025-01-07 21:18:08,987 - app - INFO - Application initialized successfully
+2025-01-07 21:18:09,050 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 21:18:09,052 - werkzeug - INFO -  * Debugger PIN: 406-045-941
+2025-01-07 21:18:17,140 - app - INFO - Logging configured successfully
+2025-01-07 21:18:17,140 - app - INFO - Logging configured successfully
+2025-01-07 21:18:17,140 - app - INFO - Initializing database...
+2025-01-07 21:18:17,140 - app - INFO - Initializing database...
+2025-01-07 21:18:17,157 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:18:17,158 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:18:17,158 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:18:17,159 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:18:17,161 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:18:17,161 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:18:17,162 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:18:17,676 - app - INFO - Database tables created successfully
+2025-01-07 21:18:17,676 - app - INFO - Database tables created successfully
+2025-01-07 21:18:18,388 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:18:18,389 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:18:18,395 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:18,395 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:18,398 - app - INFO - Application initialized successfully
+2025-01-07 21:18:18,398 - app - INFO - Application initialized successfully
+2025-01-07 21:18:18,473 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.140:80
+2025-01-07 21:18:18,474 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 21:18:18,474 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 21:18:19,124 - app - INFO - Logging configured successfully
+2025-01-07 21:18:19,124 - app - INFO - Logging configured successfully
+2025-01-07 21:18:19,124 - app - INFO - Initializing database...
+2025-01-07 21:18:19,124 - app - INFO - Initializing database...
+2025-01-07 21:18:19,141 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:18:19,141 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:18:19,141 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:18:19,142 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:18:19,144 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:18:19,146 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:18:19,146 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:18:19,641 - app - INFO - Database tables created successfully
+2025-01-07 21:18:19,641 - app - INFO - Database tables created successfully
+2025-01-07 21:18:20,392 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:18:20,393 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:18:20,398 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:20,398 - app - INFO - All blueprints registered successfully
+2025-01-07 21:18:20,400 - app - INFO - Application initialized successfully
+2025-01-07 21:18:20,400 - app - INFO - Application initialized successfully
+2025-01-07 21:18:20,459 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 21:18:20,461 - werkzeug - INFO -  * Debugger PIN: 105-691-169
+2025-01-07 21:18:20,531 - werkzeug - INFO - 10.83.4.115 - - [07/Jan/2025 21:18:20] "GET / HTTP/1.1" 200 -
+2025-01-07 21:18:20,561 - werkzeug - INFO - 10.83.4.115 - - [07/Jan/2025 21:18:20] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-07 21:18:20,620 - werkzeug - INFO - 10.83.1.47 - - [07/Jan/2025 21:18:20] "GET /codingmountains.webp HTTP/1.1" 200 -
+2025-01-07 21:18:20,635 - werkzeug - INFO - 10.83.3.67 - - [07/Jan/2025 21:18:20] "GET /js/editor.js HTTP/1.1" 200 -
