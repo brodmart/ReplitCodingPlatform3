@@ -37,10 +37,7 @@ namespace ProgrammingActivity
         }
     }
 
-    // Hide the original textarea
-    editorElement.style.display = 'none';
-
-    // Initialize CodeMirror with enhanced settings
+    // Initialize CodeMirror
     const editor = CodeMirror.fromTextArea(editorElement, {
         mode: initialLanguage === 'cpp' ? 'text/x-c++src' : 'text/x-csharp',
         theme: 'dracula',
@@ -52,21 +49,22 @@ namespace ProgrammingActivity
         lineWrapping: true,
         gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
         lint: true,
+        viewportMargin: Infinity,
         extraKeys: {
             "Ctrl-Space": "autocomplete",
-            "F11": function(cm) {
-                cm.setOption("fullScreen", !cm.getOption("fullScreen"));
-            },
-            "Esc": function(cm) {
-                if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
-            }
+            "Tab": "indentMore",
+            "Shift-Tab": "indentLess"
         }
     });
 
-    // Set initial template content
+    // Set initial template content and force refresh
     const initialTemplate = getTemplateForLanguage(initialLanguage);
     editor.setValue(initialTemplate);
-    editor.refresh();
+
+    // Force a refresh to ensure proper rendering
+    setTimeout(() => {
+        editor.refresh();
+    }, 100);
 
     // Track if code has been executed and modified
     let hasExecuted = false;
