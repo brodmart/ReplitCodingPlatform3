@@ -27,3 +27,151 @@
 2025-01-07 18:49:38,879 - werkzeug - INFO -  * Debugger PIN: 883-691-070
 2025-01-07 18:50:12,162 - werkzeug - INFO -  * Detected change in '/home/runner/codecrafthub/app.py', reloading
 2025-01-07 18:50:12,372 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:03:55 - app - DEBUG - [app.py:40] - create_app() - Initializing database...
+2025-01-07 19:03:56 - app - DEBUG - [app.py:43] - create_app() - Database initialized successfully
+2025-01-07 19:03:56 - app - DEBUG - [app.py:46] - create_app() - Initializing extensions...
+2025-01-07 19:03:56 - app - DEBUG - [app.py:49] - create_app() - Extensions initialized successfully
+2025-01-07 19:03:56 - app - DEBUG - [app.py:52] - create_app() - Configuring CORS...
+2025-01-07 19:03:56 - app - DEBUG - [app.py:60] - create_app() - CORS configured successfully
+2025-01-07 19:03:56 - app - DEBUG - [app.py:100] - create_app() - Starting blueprint registration...
+2025-01-07 19:03:56 - app - DEBUG - [app.py:104] - create_app() - Registered auth blueprint
+2025-01-07 19:03:57 - app - DEBUG - [app.py:108] - create_app() - Registered activities blueprint
+2025-01-07 19:03:57 - app - DEBUG - [app.py:112] - create_app() - Registered tutorial blueprint
+2025-01-07 19:03:57 - app - INFO - [app.py:143] - create_app() - Database tables created successfully
+2025-01-07 19:03:57 - app - INFO - [app.py:145] - create_app() - Application initialization completed successfully
+2025-01-07 19:03:57 - app - DEBUG - [app.py:40] - create_app() - Initializing database...
+2025-01-07 19:03:58 - app - DEBUG - [app.py:43] - create_app() - Database initialized successfully
+2025-01-07 19:03:58 - app - DEBUG - [app.py:46] - create_app() - Initializing extensions...
+2025-01-07 19:03:58 - app - DEBUG - [app.py:49] - create_app() - Extensions initialized successfully
+2025-01-07 19:03:58 - app - DEBUG - [app.py:52] - create_app() - Configuring CORS...
+2025-01-07 19:03:58 - app - DEBUG - [app.py:60] - create_app() - CORS configured successfully
+2025-01-07 19:03:58 - app - DEBUG - [app.py:100] - create_app() - Starting blueprint registration...
+2025-01-07 19:03:58 - app - DEBUG - [app.py:104] - create_app() - Registered auth blueprint
+2025-01-07 19:03:59 - app - DEBUG - [app.py:108] - create_app() - Registered activities blueprint
+2025-01-07 19:03:59 - app - DEBUG - [app.py:112] - create_app() - Registered tutorial blueprint
+2025-01-07 19:03:59 - app - INFO - [app.py:143] - create_app() - Database tables created successfully
+2025-01-07 19:03:59 - app - INFO - [app.py:145] - create_app() - Application initialization completed successfully
+2025-01-07 19:04:46 - app - DEBUG - [app.py:40] - create_app() - Initializing database...
+2025-01-07 19:04:47 - app - DEBUG - [app.py:43] - create_app() - Database initialized successfully
+2025-01-07 19:04:47 - app - DEBUG - [app.py:46] - create_app() - Initializing extensions...
+2025-01-07 19:04:47 - app - DEBUG - [app.py:49] - create_app() - Extensions initialized successfully
+2025-01-07 19:04:47 - app - DEBUG - [app.py:52] - create_app() - Configuring CORS...
+2025-01-07 19:04:47 - app - DEBUG - [app.py:60] - create_app() - CORS configured successfully
+2025-01-07 19:04:47 - app - DEBUG - [app.py:124] - create_app() - Starting blueprint registration...
+2025-01-07 19:04:47 - app - DEBUG - [app.py:128] - create_app() - Registered auth blueprint
+2025-01-07 19:04:47 - app - DEBUG - [app.py:132] - create_app() - Registered activities blueprint
+2025-01-07 19:04:47 - app - DEBUG - [app.py:136] - create_app() - Registered tutorial blueprint
+2025-01-07 19:04:48 - app - INFO - [app.py:168] - create_app() - Database tables created successfully
+2025-01-07 19:04:48 - app - INFO - [app.py:173] - create_app() - Application initialization completed successfully
+2025-01-07 19:04:48 - app - DEBUG - [app.py:40] - create_app() - Initializing database...
+2025-01-07 19:04:49 - app - DEBUG - [app.py:43] - create_app() - Database initialized successfully
+2025-01-07 19:04:49 - app - DEBUG - [app.py:46] - create_app() - Initializing extensions...
+2025-01-07 19:04:49 - app - DEBUG - [app.py:49] - create_app() - Extensions initialized successfully
+2025-01-07 19:04:49 - app - DEBUG - [app.py:52] - create_app() - Configuring CORS...
+2025-01-07 19:04:49 - app - DEBUG - [app.py:60] - create_app() - CORS configured successfully
+2025-01-07 19:04:49 - app - DEBUG - [app.py:124] - create_app() - Starting blueprint registration...
+2025-01-07 19:04:49 - app - DEBUG - [app.py:128] - create_app() - Registered auth blueprint
+2025-01-07 19:04:50 - app - DEBUG - [app.py:132] - create_app() - Registered activities blueprint
+2025-01-07 19:04:50 - app - DEBUG - [app.py:136] - create_app() - Registered tutorial blueprint
+2025-01-07 19:04:50 - app - INFO - [app.py:168] - create_app() - Database tables created successfully
+2025-01-07 19:04:50 - app - INFO - [app.py:173] - create_app() - Application initialization completed successfully
+2025-01-07 19:05:45 - app - DEBUG - [app.py:36] - create_app() - Initializing database...
+2025-01-07 19:05:45 - app - DEBUG - [app.py:39] - create_app() - Database initialized successfully
+2025-01-07 19:05:45 - app - DEBUG - [app.py:42] - create_app() - Initializing extensions...
+2025-01-07 19:05:46 - app - DEBUG - [app.py:45] - create_app() - Extensions initialized successfully
+2025-01-07 19:05:46 - app - DEBUG - [app.py:109] - create_app() - Starting blueprint registration...
+2025-01-07 19:05:46 - app - DEBUG - [app.py:113] - create_app() - Registered auth blueprint
+2025-01-07 19:05:46 - app - DEBUG - [app.py:117] - create_app() - Registered activities blueprint
+2025-01-07 19:05:46 - app - DEBUG - [app.py:121] - create_app() - Registered tutorial blueprint
+2025-01-07 19:05:46 - app - INFO - [app.py:153] - create_app() - Database tables created successfully
+2025-01-07 19:05:46 - app - INFO - [app.py:158] - create_app() - Application initialization completed successfully
+2025-01-07 19:05:47 - app - DEBUG - [app.py:36] - create_app() - Initializing database...
+2025-01-07 19:05:47 - app - DEBUG - [app.py:39] - create_app() - Database initialized successfully
+2025-01-07 19:05:47 - app - DEBUG - [app.py:42] - create_app() - Initializing extensions...
+2025-01-07 19:05:47 - app - DEBUG - [app.py:45] - create_app() - Extensions initialized successfully
+2025-01-07 19:05:47 - app - DEBUG - [app.py:109] - create_app() - Starting blueprint registration...
+2025-01-07 19:05:47 - app - DEBUG - [app.py:113] - create_app() - Registered auth blueprint
+2025-01-07 19:05:48 - app - DEBUG - [app.py:117] - create_app() - Registered activities blueprint
+2025-01-07 19:05:48 - app - DEBUG - [app.py:121] - create_app() - Registered tutorial blueprint
+2025-01-07 19:05:49 - app - INFO - [app.py:153] - create_app() - Database tables created successfully
+2025-01-07 19:05:49 - app - INFO - [app.py:158] - create_app() - Application initialization completed successfully
+2025-01-07 19:06:19 - app - DEBUG - [app.py:36] - create_app() - Initializing database...
+2025-01-07 19:06:19 - app - DEBUG - [app.py:39] - create_app() - Database initialized successfully
+2025-01-07 19:06:19 - app - DEBUG - [app.py:42] - create_app() - Initializing extensions...
+2025-01-07 19:06:20 - app - DEBUG - [app.py:45] - create_app() - Extensions initialized successfully
+2025-01-07 19:06:20 - app - DEBUG - [app.py:109] - create_app() - Starting blueprint registration...
+2025-01-07 19:06:20 - app - DEBUG - [app.py:113] - create_app() - Registered auth blueprint
+2025-01-07 19:06:20 - app - DEBUG - [app.py:117] - create_app() - Registered activities blueprint
+2025-01-07 19:06:20 - app - DEBUG - [app.py:121] - create_app() - Registered tutorial blueprint
+2025-01-07 19:06:20 - app - INFO - [app.py:153] - create_app() - Database tables created successfully
+2025-01-07 19:06:20 - app - INFO - [app.py:158] - create_app() - Application initialization completed successfully
+2025-01-07 19:06:21 - app - DEBUG - [app.py:36] - create_app() - Initializing database...
+2025-01-07 19:06:21 - app - DEBUG - [app.py:39] - create_app() - Database initialized successfully
+2025-01-07 19:06:21 - app - DEBUG - [app.py:42] - create_app() - Initializing extensions...
+2025-01-07 19:06:21 - app - DEBUG - [app.py:45] - create_app() - Extensions initialized successfully
+2025-01-07 19:06:21 - app - DEBUG - [app.py:109] - create_app() - Starting blueprint registration...
+2025-01-07 19:06:21 - app - DEBUG - [app.py:113] - create_app() - Registered auth blueprint
+2025-01-07 19:06:22 - app - DEBUG - [app.py:117] - create_app() - Registered activities blueprint
+2025-01-07 19:06:22 - app - DEBUG - [app.py:121] - create_app() - Registered tutorial blueprint
+2025-01-07 19:06:22 - app - INFO - [app.py:153] - create_app() - Database tables created successfully
+2025-01-07 19:06:22 - app - INFO - [app.py:158] - create_app() - Application initialization completed successfully
+2025-01-07 19:07:14 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:14.572725", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:07:15 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:15.270416", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:07:15 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:15.270662", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:07:15 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:15.388992", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:07:15 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:15.389443", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:07:15 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:15.415819", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:07:16 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:16.263212", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:07:16 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:16.264838", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:07:16 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:16.510662", "level": "INFO", "message": "Database tables created successfully", "logger": "app"}
+2025-01-07 19:07:16 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:16.511003", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:07:16 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:16.786407", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:07:17 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:17.518099", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:07:17 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:17.518343", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:07:17 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:17.646675", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:07:17 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:17.647095", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:07:17 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:17.675328", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:07:18 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:18.495130", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:07:18 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:18.497129", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:07:18 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:18.729615", "level": "INFO", "message": "Database tables created successfully", "logger": "app"}
+2025-01-07 19:07:18 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:07:18.729941", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:08:02 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:02.032475", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:08:02 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:02.802191", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:08:02 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:02.803098", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:08:02 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:02.937879", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:08:02 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:02.938131", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:08:02 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:02.967705", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:08:03 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:03.756382", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:08:03 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:03.758649", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:08:03 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:03.996316", "level": "INFO", "message": "Database tables created successfully", "logger": "app"}
+2025-01-07 19:08:03 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:03.996749", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:08:04 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:04.227471", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:08:04 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:04.894332", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:08:04 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:04.894549", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:08:05 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:05.001759", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:08:05 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:05.002045", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:08:05 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:05.030803", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:08:05 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:05.835919", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:08:05 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:05.838036", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:08:06 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:06.074600", "level": "INFO", "message": "Database tables created successfully", "logger": "app"}
+2025-01-07 19:08:06 - app - INFO - [logger.py:77] - info() - {"timestamp": "2025-01-07T19:08:06.075052", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:08:38 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:38.026687", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:08:38 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:38.776907", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:08:38 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:38.777372", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:08:38 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:38.878918", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:08:38 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:38.879195", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:08:38 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:38.899461", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:08:39 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:39.591758", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:08:39 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:39.593451", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:08:39 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:39.839656", "level": "INFO", "message": "Database tables created successfully", "logger": "app"}
+2025-01-07 19:08:39 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:39.840072", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
+2025-01-07 19:08:40 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:40.049401", "level": "INFO", "message": "Initializing database...", "logger": "app"}
+2025-01-07 19:08:40 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:40.715987", "level": "INFO", "message": "Database initialized successfully", "logger": "app"}
+2025-01-07 19:08:40 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:40.716213", "level": "INFO", "message": "Initializing extensions...", "logger": "app"}
+2025-01-07 19:08:40 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:40.816552", "level": "INFO", "message": "Extensions initialized successfully", "logger": "app"}
+2025-01-07 19:08:40 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:40.816818", "level": "INFO", "message": "Starting blueprint registration...", "logger": "app"}
+2025-01-07 19:08:40 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:40.838108", "level": "INFO", "message": "Registered auth blueprint", "logger": "app"}
+2025-01-07 19:08:41 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:41.514615", "level": "INFO", "message": "Registered activities blueprint", "logger": "app"}
+2025-01-07 19:08:41 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:41.516400", "level": "INFO", "message": "Registered tutorial blueprint", "logger": "app"}
+2025-01-07 19:08:41 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:41.736732", "level": "INFO", "message": "Database tables created successfully", "logger": "app"}
+2025-01-07 19:08:41 - app - INFO - [logger.py:76] - info() - {"timestamp": "2025-01-07T19:08:41.736980", "level": "INFO", "message": "Application initialization completed successfully", "logger": "app"}
