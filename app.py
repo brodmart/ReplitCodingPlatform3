@@ -3,7 +3,7 @@ import logging
 import secrets
 from flask import Flask, render_template, request, jsonify, session
 from flask_cors import CORS
-from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_wtf.csrf import CSRFError, CSRFProtect
 from flask_compress import Compress
 from flask_migrate import Migrate
 from flask_limiter import Limiter
@@ -90,12 +90,34 @@ def create_app():
         @app.route('/')
         def index():
             """Root route handler"""
-            return render_template('editor.html', 
-                                lang=session.get('lang', 'fr'),
-                                templates={
-                                    'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
-                                    'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
-                                })
+            try:
+                logger.debug("Rendering index template...")
+                language = request.args.get('language', 'cpp')
+                logger.debug(f"Selected language: {language}")
+
+                # Log template details
+                logger.debug("Setting up template data...")
+                templates = {
+                    'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
+                    'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
+                }
+                logger.debug("Template data prepared successfully")
+
+                # Log render parameters
+                logger.debug(f"Rendering with params - lang: {session.get('lang', 'fr')}, language: {language}")
+
+                # Ensure session has required values
+                if 'lang' not in session:
+                    logger.debug("Setting default language in session to 'fr'")
+                    session['lang'] = 'fr'
+
+                return render_template('index.html', 
+                                   lang=session.get('lang', 'fr'),
+                                   language=language,
+                                   templates=templates)
+            except Exception as e:
+                logger.error(f"Error rendering index template: {str(e)}", exc_info=True)
+                return render_template('errors/500.html'), 500
 
         # Routes for static pages
         @app.route('/about')
