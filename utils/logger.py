@@ -2,7 +2,7 @@ import logging
 import logging.config
 import traceback
 from functools import wraps
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Mapping
 from flask import request, g, current_app, has_request_context
 import json
 from datetime import datetime
@@ -19,15 +19,11 @@ def setup_logging(app):
             os.makedirs(log_dir)
 
         # Set up basic configuration
-        logging.config.fileConfig('logging.conf')
+        logging.basicConfig(level=logging.DEBUG if app.debug else logging.INFO)
 
         # Get root logger
         logger = logging.getLogger()
         logger.setLevel(logging.DEBUG if app.debug else logging.INFO)
-
-        # Create logs directory if it doesn't exist
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
 
         # File handler for detailed logging
         file_handler = RotatingFileHandler(
@@ -77,7 +73,7 @@ def generate_error_id() -> str:
 def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool = True, **additional_data) -> Dict[str, Any]:
     """Log an error with context"""
     error_id = generate_error_id()
-    error_data = {
+    error_data: Dict[str, Any] = {
         'id': error_id,
         'timestamp': datetime.utcnow().isoformat(),
         'type': error_type,
@@ -92,12 +88,13 @@ def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool =
         error_data.update(additional_data)
 
     if has_request_context():
-        error_data.update({
-            'url': request.url,
-            'method': request.method,
+        request_data: Dict[str, Any] = {
+            'url': str(request.url),
+            'method': str(request.method),
             'headers': dict(request.headers),
-            'remote_addr': request.remote_addr
-        })
+            'remote_addr': str(request.remote_addr)
+        }
+        error_data.update(request_data)
 
     logger = get_logger('app')
     logger.error(

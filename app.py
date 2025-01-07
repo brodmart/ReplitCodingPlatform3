@@ -12,11 +12,14 @@ from models import Student
 
 def create_app():
     """Create and configure the Flask application"""
-    app = Flask(__name__)
+    app = Flask(__name__, 
+                static_url_path='',
+                static_folder='static',
+                template_folder='templates')
 
     # Basic configuration
     app.config.update(
-        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key"),
+        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
         DEBUG=True,
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
@@ -155,7 +158,6 @@ def create_app():
         def accessibility():
             return render_template('accessibility.html', lang=session.get('lang', 'fr'))
 
-
         logger.info("Application initialized successfully")
         return app
 
@@ -163,6 +165,7 @@ def create_app():
         logger.critical(f"Failed to initialize application: {str(e)}", exc_info=True)
         raise
 
+# Create the application instance
 app = create_app()
 
 if __name__ == '__main__':

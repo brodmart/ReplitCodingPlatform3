@@ -2491,3 +2491,300 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-07 20:53:49,291 - app - INFO - Application initialized successfully
 2025-01-07 20:53:49 - werkzeug - WARNING -  * Debugger is active!
 2025-01-07 20:53:49 - werkzeug - INFO -  * Debugger PIN: 139-394-748
+2025-01-07 20:57:09,905 - app - INFO - Logging configured successfully
+2025-01-07 20:57:09,906 - app - INFO - Initializing database...
+2025-01-07 20:57:09 - extensions - INFO - Cache initialized successfully
+2025-01-07 20:57:09 - extensions - INFO - Compression initialized successfully
+2025-01-07 20:57:09 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 20:57:09 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 20:57:09 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 20:57:09 - extensions - INFO - CORS initialized successfully
+2025-01-07 20:57:09 - extensions - INFO - All extensions initialized successfully
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [raw sql] {}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('version',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('PostgreSQL 16.6 on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - select current_schema()
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [raw sql] {}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('current_schema',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('public',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [raw sql] {}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('standard_conforming_strings',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('on',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [generated in 0.00028s] {'table_name': 'student', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('student',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [cached since 0.04198s ago] {'table_name': 'achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('achievement',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [cached since 0.06326s ago] {'table_name': 'student_achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('student_achievement',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [cached since 0.08449s ago] {'table_name': 'code_submission', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('code_submission',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [cached since 0.1057s ago] {'table_name': 'shared_code', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('shared_code',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [cached since 0.1275s ago] {'table_name': 'coding_activity', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('coding_activity',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [cached since 0.1486s ago] {'table_name': 'student_progress', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Row ('student_progress',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-01-07 20:57:10,446 - app - INFO - Database tables created successfully
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - SELECT 1
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - [generated in 0.00025s] {}
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - DEBUG - Col ('?column?',)
+2025-01-07 20:57:10 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-01-07 20:57:11 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 20:57:11 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 20:57:11,144 - app - INFO - All blueprints registered successfully
+2025-01-07 20:57:11,146 - app - INFO - Application initialized successfully
+2025-01-07 20:57:11 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 20:57:11 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 20:57:11 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 20:57:11,710 - app - INFO - Logging configured successfully
+2025-01-07 20:57:11,710 - app - INFO - Initializing database...
+2025-01-07 20:57:11 - extensions - INFO - Cache initialized successfully
+2025-01-07 20:57:11 - extensions - INFO - Compression initialized successfully
+2025-01-07 20:57:11 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 20:57:11 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 20:57:11 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 20:57:11 - extensions - INFO - CORS initialized successfully
+2025-01-07 20:57:11 - extensions - INFO - All extensions initialized successfully
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - INFO - select pg_catalog.version()
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - INFO - [raw sql] {}
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - DEBUG - Col ('version',)
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - DEBUG - Row ('PostgreSQL 16.6 on x86_64-pc-linux-gnu, compiled by gcc (Debian 10.2.1-6) 10.2.1 20210110, 64-bit',)
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - INFO - select current_schema()
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - INFO - [raw sql] {}
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - DEBUG - Col ('current_schema',)
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - DEBUG - Row ('public',)
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - INFO - show standard_conforming_strings
+2025-01-07 20:57:11 - sqlalchemy.engine.Engine - INFO - [raw sql] {}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('standard_conforming_strings',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('on',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [generated in 0.00032s] {'table_name': 'student', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('student',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [cached since 0.04127s ago] {'table_name': 'achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('achievement',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [cached since 0.06193s ago] {'table_name': 'student_achievement', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('student_achievement',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [cached since 0.08321s ago] {'table_name': 'code_submission', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('code_submission',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [cached since 0.1039s ago] {'table_name': 'shared_code', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('shared_code',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [cached since 0.1247s ago] {'table_name': 'coding_activity', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('coding_activity',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT pg_catalog.pg_class.relname 
+FROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace 
+WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relkind = ANY (ARRAY[%(param_1)s, %(param_2)s, %(param_3)s, %(param_4)s, %(param_5)s]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != %(nspname_1)s
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [cached since 0.1456s ago] {'table_name': 'student_progress', 'param_1': 'r', 'param_2': 'p', 'param_3': 'f', 'param_4': 'v', 'param_5': 'm', 'nspname_1': 'pg_catalog'}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('relname',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Row ('student_progress',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-01-07 20:57:12,223 - app - INFO - Database tables created successfully
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - BEGIN (implicit)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - SELECT 1
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - [generated in 0.00024s] {}
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - DEBUG - Col ('?column?',)
+2025-01-07 20:57:12 - sqlalchemy.engine.Engine - INFO - COMMIT
+2025-01-07 20:57:12 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 20:57:12 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 20:57:12,890 - app - INFO - All blueprints registered successfully
+2025-01-07 20:57:12,893 - app - INFO - Application initialized successfully
+2025-01-07 20:57:12 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 20:57:12 - werkzeug - INFO -  * Debugger PIN: 143-702-474
+2025-01-07 20:59:32 - werkzeug - INFO -  * Detected change in '/home/runner/codecrafthub/utils/logger.py', reloading
+2025-01-07 20:59:33,333 - app - INFO - Logging configured successfully
+2025-01-07 20:59:33,333 - app - INFO - Logging configured successfully
+2025-01-07 20:59:33,333 - app - INFO - Initializing database...
+2025-01-07 20:59:33,333 - app - INFO - Initializing database...
+2025-01-07 20:59:33,346 - extensions - INFO - Cache initialized successfully
+2025-01-07 20:59:33,347 - extensions - INFO - Compression initialized successfully
+2025-01-07 20:59:33,347 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 20:59:33,347 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 20:59:33,349 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 20:59:33,349 - extensions - INFO - CORS initialized successfully
+2025-01-07 20:59:33,349 - extensions - INFO - All extensions initialized successfully
+2025-01-07 20:59:33,904 - app - INFO - Database tables created successfully
+2025-01-07 20:59:33,904 - app - INFO - Database tables created successfully
+2025-01-07 20:59:34,582 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 20:59:34,582 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 20:59:34,586 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:34,586 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:34,589 - app - INFO - Application initialized successfully
+2025-01-07 20:59:34,589 - app - INFO - Application initialized successfully
+2025-01-07 20:59:34,650 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 20:59:34,650 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 20:59:34,651 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 20:59:35,144 - app - INFO - Logging configured successfully
+2025-01-07 20:59:35,144 - app - INFO - Logging configured successfully
+2025-01-07 20:59:35,144 - app - INFO - Initializing database...
+2025-01-07 20:59:35,144 - app - INFO - Initializing database...
+2025-01-07 20:59:35,157 - extensions - INFO - Cache initialized successfully
+2025-01-07 20:59:35,158 - extensions - INFO - Compression initialized successfully
+2025-01-07 20:59:35,158 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 20:59:35,158 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 20:59:35,160 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 20:59:35,160 - extensions - INFO - CORS initialized successfully
+2025-01-07 20:59:35,160 - extensions - INFO - All extensions initialized successfully
+2025-01-07 20:59:35,696 - app - INFO - Database tables created successfully
+2025-01-07 20:59:35,696 - app - INFO - Database tables created successfully
+2025-01-07 20:59:36,359 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 20:59:36,360 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 20:59:36,365 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:36,365 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:36,367 - app - INFO - Application initialized successfully
+2025-01-07 20:59:36,367 - app - INFO - Application initialized successfully
+2025-01-07 20:59:36,420 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 20:59:36,421 - werkzeug - INFO -  * Debugger PIN: 118-694-278
+2025-01-07 20:59:54,078 - app - INFO - Logging configured successfully
+2025-01-07 20:59:54,078 - app - INFO - Logging configured successfully
+2025-01-07 20:59:54,079 - app - INFO - Initializing database...
+2025-01-07 20:59:54,079 - app - INFO - Initializing database...
+2025-01-07 20:59:54,093 - extensions - INFO - Cache initialized successfully
+2025-01-07 20:59:54,093 - extensions - INFO - Compression initialized successfully
+2025-01-07 20:59:54,093 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 20:59:54,094 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 20:59:54,096 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 20:59:54,096 - extensions - INFO - CORS initialized successfully
+2025-01-07 20:59:54,096 - extensions - INFO - All extensions initialized successfully
+2025-01-07 20:59:54,579 - app - INFO - Database tables created successfully
+2025-01-07 20:59:54,579 - app - INFO - Database tables created successfully
+2025-01-07 20:59:55,300 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 20:59:55,301 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 20:59:55,305 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:55,305 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:55,308 - app - INFO - Application initialized successfully
+2025-01-07 20:59:55,308 - app - INFO - Application initialized successfully
+2025-01-07 20:59:55,373 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 20:59:55,373 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 20:59:55,374 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 20:59:55,999 - app - INFO - Logging configured successfully
+2025-01-07 20:59:55,999 - app - INFO - Logging configured successfully
+2025-01-07 20:59:55,999 - app - INFO - Initializing database...
+2025-01-07 20:59:55,999 - app - INFO - Initializing database...
+2025-01-07 20:59:56,013 - extensions - INFO - Cache initialized successfully
+2025-01-07 20:59:56,013 - extensions - INFO - Compression initialized successfully
+2025-01-07 20:59:56,013 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 20:59:56,014 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 20:59:56,016 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 20:59:56,016 - extensions - INFO - CORS initialized successfully
+2025-01-07 20:59:56,016 - extensions - INFO - All extensions initialized successfully
+2025-01-07 20:59:56,535 - app - INFO - Database tables created successfully
+2025-01-07 20:59:56,535 - app - INFO - Database tables created successfully
+2025-01-07 20:59:57,250 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 20:59:57,250 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 20:59:57,255 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:57,255 - app - INFO - All blueprints registered successfully
+2025-01-07 20:59:57,257 - app - INFO - Application initialized successfully
+2025-01-07 20:59:57,257 - app - INFO - Application initialized successfully
+2025-01-07 20:59:57,307 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 20:59:57,308 - werkzeug - INFO -  * Debugger PIN: 782-426-466
+2025-01-07 21:00:37,046 - app - INFO - Logging configured successfully
+2025-01-07 21:00:37,046 - app - INFO - Logging configured successfully
+2025-01-07 21:00:37,046 - app - INFO - Initializing database...
+2025-01-07 21:00:37,046 - app - INFO - Initializing database...
+2025-01-07 21:00:37,059 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:00:37,059 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:00:37,059 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:00:37,060 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:00:37,061 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:00:37,061 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:00:37,062 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:00:37,560 - app - INFO - Database tables created successfully
+2025-01-07 21:00:37,560 - app - INFO - Database tables created successfully
+2025-01-07 21:00:38,249 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:00:38,249 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:00:38,255 - app - INFO - All blueprints registered successfully
+2025-01-07 21:00:38,255 - app - INFO - All blueprints registered successfully
+2025-01-07 21:00:38,257 - app - INFO - Application initialized successfully
+2025-01-07 21:00:38,257 - app - INFO - Application initialized successfully
+2025-01-07 21:00:38,313 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 21:00:38,313 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 21:00:38,314 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 21:00:38,873 - app - INFO - Logging configured successfully
+2025-01-07 21:00:38,873 - app - INFO - Logging configured successfully
+2025-01-07 21:00:38,875 - app - INFO - Initializing database...
+2025-01-07 21:00:38,875 - app - INFO - Initializing database...
+2025-01-07 21:00:38,894 - extensions - INFO - Cache initialized successfully
+2025-01-07 21:00:38,895 - extensions - INFO - Compression initialized successfully
+2025-01-07 21:00:38,895 - extensions - INFO - CSRF protection initialized successfully
+2025-01-07 21:00:38,896 - extensions - INFO - Rate limiter initialized successfully
+2025-01-07 21:00:38,898 - extensions - INFO - Database migrations initialized successfully
+2025-01-07 21:00:38,898 - extensions - INFO - CORS initialized successfully
+2025-01-07 21:00:38,898 - extensions - INFO - All extensions initialized successfully
+2025-01-07 21:00:39,383 - app - INFO - Database tables created successfully
+2025-01-07 21:00:39,383 - app - INFO - Database tables created successfully
+2025-01-07 21:00:40,205 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 21:00:40,207 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 21:00:40,212 - app - INFO - All blueprints registered successfully
+2025-01-07 21:00:40,212 - app - INFO - All blueprints registered successfully
+2025-01-07 21:00:40,215 - app - INFO - Application initialized successfully
+2025-01-07 21:00:40,215 - app - INFO - Application initialized successfully
+2025-01-07 21:00:40,277 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 21:00:40,279 - werkzeug - INFO -  * Debugger PIN: 108-688-407
