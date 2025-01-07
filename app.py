@@ -70,42 +70,53 @@ def create_app():
         @app.errorhandler(400)
         def bad_request_error(error):
             error_data = log_error(error, error_type="BAD_REQUEST", include_trace=True,
-                                client_info={
-                                    'ip': request.remote_addr,
-                                    'user_agent': str(request.user_agent),
-                                    'referrer': request.referrer
-                                })
+                                  client_info={
+                                      'ip': request.remote_addr,
+                                      'user_agent': str(request.user_agent),
+                                      'referrer': request.referrer,
+                                      'path': request.path,
+                                      'method': request.method,
+                                      'headers': dict(request.headers),
+                                      'args': dict(request.args),
+                                      'form': dict(request.form)
+                                  })
             logger.warning("Bad Request", error_id=error_data.get('id'))
             return render_template('errors/400.html', error=error_data), 400
 
         @app.errorhandler(401)
         def unauthorized_error(error):
             error_data = log_error(error, error_type="UNAUTHORIZED", include_trace=True,
-                                auth_info={
-                                    'authenticated': current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False,
-                                    'auth_type': request.headers.get('Authorization-Type')
-                                })
+                                   auth_info={
+                                       'authenticated': current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False,
+                                       'auth_type': request.headers.get('Authorization-Type'),
+                                       'client_ip': request.remote_addr,
+                                       'user_agent': str(request.user_agent)
+                                   })
             logger.warning("Unauthorized Access", error_id=error_data.get('id'))
             return render_template('errors/401.html', error=error_data), 401
 
         @app.errorhandler(403)
         def forbidden_error(error):
             error_data = log_error(error, error_type="FORBIDDEN", include_trace=True,
-                                auth_info={
-                                    'user_id': current_user.id if hasattr(current_user, 'id') else None,
-                                    'roles': getattr(current_user, 'roles', [])
-                                })
+                                   auth_info={
+                                       'user_id': current_user.id if hasattr(current_user, 'id') else None,
+                                       'roles': getattr(current_user, 'roles', []),
+                                       'request_path': request.path,
+                                       'request_method': request.method
+                                   })
             logger.warning("Forbidden Access", error_id=error_data.get('id'))
             return render_template('errors/403.html', error=error_data), 403
 
         @app.errorhandler(404)
         def not_found_error(error):
             error_data = log_error(error, error_type="NOT_FOUND", include_trace=True,
-                                request_info={
-                                    'path': request.path,
-                                    'method': request.method,
-                                    'args': dict(request.args)
-                                })
+                                   request_info={
+                                       'path': request.path,
+                                       'method': request.method,
+                                       'args': dict(request.args),
+                                       'referrer': request.referrer,
+                                       'user_agent': str(request.user_agent)
+                                   })
             logger.warning("Resource Not Found", error_id=error_data.get('id'))
             return render_template('errors/404.html', error=error_data), 404
 
@@ -114,24 +125,33 @@ def create_app():
         def internal_error(error):
             db.session.rollback()
             error_data = log_error(error, error_type="INTERNAL_SERVER_ERROR", include_trace=True,
-                                performance_metrics={
-                                    'response_time': (datetime.utcnow() - g.request_start_time).total_seconds() if hasattr(g, 'request_start_time') else None,
-                                    'memory_usage': psutil.Process().memory_info().rss / 1024 / 1024  # MB
-                                })
-            logger.error("Internal Server Error", 
-                        error_id=error_data.get('id'),
-                        error_type="INTERNAL_SERVER_ERROR",
-                        traceback=error_data.get('traceback'))
+                                   performance_metrics={
+                                       'response_time': (datetime.utcnow() - g.request_start_time).total_seconds() if hasattr(g, 'request_start_time') else None,
+                                       'memory_usage': psutil.Process().memory_info().rss / 1024 / 1024,  # MB
+                                       'cpu_percent': psutil.Process().cpu_percent(),
+                                       'thread_count': len(psutil.Process().threads())
+                                   },
+                                   system_info={
+                                       'python_version': platform.python_version(),
+                                       'platform': platform.platform(),
+                                       'processor': platform.processor()
+                                   })
+            logger.error("Internal Server Error",
+                          error_id=error_data.get('id'),
+                          error_type="INTERNAL_SERVER_ERROR",
+                          traceback=error_data.get('traceback'))
             return render_template('errors/500.html', error=error_data), 500
 
         @app.errorhandler(CSRFError)
         def handle_csrf_error(e):
             error_data = log_error(e, error_type="CSRF_ERROR", include_trace=True,
-                                security_info={
-                                    'token_present': bool(request.form.get('csrf_token')),
-                                    'referrer': request.referrer,
-                                    'origin': request.headers.get('Origin')
-                                })
+                                   security_info={
+                                       'token_present': bool(request.form.get('csrf_token')),
+                                       'referrer': request.referrer,
+                                       'origin': request.headers.get('Origin'),
+                                       'request_method': request.method,
+                                       'content_type': request.content_type
+                                   })
             logger.warning("CSRF Validation Failed", error_id=error_data.get('id'))
             return jsonify({
                 'success': False,
@@ -141,30 +161,41 @@ def create_app():
         @app.errorhandler(Exception)
         def handle_unhandled_error(error):
             error_data = log_error(error, error_type="UNHANDLED_EXCEPTION", include_trace=True,
-                                system_info={
-                                    'python_version': platform.python_version(),
-                                    'os': platform.system(),
-                                    'memory_usage': psutil.Process().memory_info().rss / 1024 / 1024,  # MB
-                                    'cpu_percent': psutil.Process().cpu_percent()
-                                })
+                                   system_info={
+                                       'python_version': platform.python_version(),
+                                       'os': platform.system(),
+                                       'memory_usage': psutil.Process().memory_info().rss / 1024 / 1024,  # MB
+                                       'cpu_percent': psutil.Process().cpu_percent(),
+                                       'open_files': len(psutil.Process().open_files()),
+                                       'connections': len(psutil.Process().connections())
+                                   })
             db.session.rollback()
             logger.critical("Unhandled Exception",
-                          error_id=error_data.get('id'),
-                          error_type=error.__class__.__name__,
-                          traceback=error_data.get('traceback'))
-            return render_template('errors/500.html', error="Une erreur inattendue s'est produite"), 500
+                             error_id=error_data.get('id'),
+                             error_type=error.__class__.__name__,
+                             traceback=error_data.get('traceback'))
+            return render_template('errors/500.html', error=error_data), 500
 
         # Register request handlers
         @app.before_request
         def before_request():
             g.request_start_time = datetime.utcnow()
-            logger.info(f"Incoming request: {request.method} {request.path}")
+            logger.info(f"Incoming request: {request.method} {request.path}",
+                         client_info={
+                             'ip': request.remote_addr,
+                             'user_agent': str(request.user_agent),
+                             'path': request.path,
+                             'method': request.method
+                         })
 
         @app.after_request
         def after_request(response):
             if hasattr(g, 'request_start_time'):
                 duration = datetime.utcnow() - g.request_start_time
-                logger.info(f"Request completed: {request.path} - Status: {response.status_code} - Duration: {duration.total_seconds()}s")
+                logger.info(f"Request completed: {request.path}",
+                             duration=duration.total_seconds(),
+                             status_code=response.status_code,
+                             content_length=response.content_length)
             return response
 
         # Register blueprints
@@ -202,9 +233,9 @@ def create_app():
             }
 
             return render_template('index.html',
-                                lang=session.get('lang', 'fr'),
-                                language=language,
-                                templates=templates)
+                                   lang=session.get('lang', 'fr'),
+                                   language=language,
+                                   templates=templates)
 
         # Create database tables
         with app.app_context():

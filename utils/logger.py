@@ -27,7 +27,9 @@ class JsonFormatter(logging.Formatter):
             'function': record.funcName,
             'thread': record.threadName,
             'process': record.process,
-            'process_name': record.processName
+            'process_name': record.processName,
+            'hostname': platform.node(),
+            'environment': os.getenv('FLASK_ENV', 'development')
         }
 
         # Ajouter le context d'exécution
@@ -36,17 +38,25 @@ class JsonFormatter(logging.Formatter):
         if hasattr(record, 'error_id'):
             log_data['error_id'] = record.error_id
 
-        # Ajouter les informations de performance si disponibles
-        if hasattr(record, 'memory_usage'):
-            log_data['memory_usage'] = record.memory_usage
-        if hasattr(record, 'cpu_percent'):
-            log_data['cpu_percent'] = record.cpu_percent
+        # Ajouter les informations de performance
+        try:
+            process = psutil.Process()
+            log_data.update({
+                'memory_usage': process.memory_info().rss / 1024 / 1024,  # MB
+                'cpu_percent': process.cpu_percent(),
+                'thread_count': len(process.threads()),
+                'open_files': len(process.open_files()),
+                'connections': len(process.connections())
+            })
+        except Exception:
+            pass
 
         # Ajouter la stack trace si disponible
         if record.exc_info:
             log_data['exc_info'] = self.formatException(record.exc_info)
             log_data['exc_type'] = record.exc_info[0].__name__
             log_data['exc_message'] = str(record.exc_info[1])
+            log_data['stack_trace'] = ''.join(traceback.format_exception(*record.exc_info))
 
         # Ajouter le contexte de requête si disponible
         if has_request_context():
@@ -58,6 +68,12 @@ class JsonFormatter(logging.Formatter):
                     'ip': request.remote_addr,
                     'user_agent': str(request.user_agent),
                     'referrer': request.referrer,
+                    'accept_languages': request.accept_languages.to_header(),
+                    'content_length': request.content_length,
+                    'content_type': request.content_type,
+                    'is_secure': request.is_secure,
+                    'host': request.host,
+                    'request_id': getattr(g, 'request_id', str(uuid.uuid4())),
                 }
                 if 'user_id' in g:
                     log_data['request']['user_id'] = g.user_id
@@ -78,12 +94,25 @@ def generate_error_id() -> str:
 
 def get_system_info() -> Dict[str, Any]:
     """Collecte les informations système pertinentes"""
-    return {
-        "python_version": platform.python_version(),
-        "platform": platform.system(),
-        "memory_usage": psutil.Process().memory_info().rss / 1024 / 1024,  # MB
-        "cpu_percent": psutil.Process().cpu_percent()
-    }
+    try:
+        process = psutil.Process()
+        return {
+            "python_version": platform.python_version(),
+            "platform": platform.system(),
+            "platform_release": platform.release(),
+            "platform_version": platform.version(),
+            "architecture": platform.machine(),
+            "processor": platform.processor(),
+            "hostname": platform.node(),
+            "memory_usage": process.memory_info().rss / 1024 / 1024,  # MB
+            "cpu_percent": process.cpu_percent(),
+            "thread_count": len(process.threads()),
+            "open_files": len(process.open_files()),
+            "connections": len(process.connections()),
+            "uptime": datetime.now().timestamp() - process.create_time()
+        }
+    except Exception as e:
+        return {"error_collecting_system_info": str(e)}
 
 def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool = True, **additional_data) -> Dict[str, Any]:
     """
@@ -96,8 +125,14 @@ def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool =
         "type": error_type,
         "message": str(error),
         "error_class": error.__class__.__name__,
-        "system_info": get_system_info()
+        "system_info": get_system_info(),
+        "environment": os.getenv('FLASK_ENV', 'development'),
+        "hostname": platform.node()
     }
+
+    if include_trace:
+        error_data["traceback"] = traceback.format_exc()
+        error_data["stack_trace"] = ''.join(traceback.format_tb(error.__traceback__))
 
     # Only add request context information if we're in a request context
     if has_request_context():
@@ -111,12 +146,17 @@ def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool =
             "headers": dict(request.headers),
             "query_string": request.query_string.decode('utf-8'),
             "is_xhr": request.is_xhr,
-            "is_secure": request.is_secure
+            "is_secure": request.is_secure,
+            "accept_languages": request.accept_languages.to_header(),
+            "content_length": request.content_length,
+            "content_type": request.content_type,
+            "host": request.host,
+            "url": request.url,
+            "base_url": request.base_url,
+            "request_id": getattr(g, 'request_id', str(uuid.uuid4())),
+            "referrer": request.referrer
         }
         error_data.update({"request_info": request_data})
-
-    if include_trace:
-        error_data["traceback"] = traceback.format_exc()
 
     if additional_data:
         error_data.update({"additional_info": additional_data})
@@ -134,12 +174,22 @@ def log_exception(error_type: str = "EXCEPTION"):
             try:
                 return f(*args, **kwargs)
             except Exception as e:
-                error_data = log_error(e, error_type=error_type, function=f.__name__, args=str(args), kwargs=str(kwargs))
-                logger.error(f"Exception in {f.__name__}",
-                           extra={
-                               'error_id': error_data.get('id'),
-                               'function': f.__name__
-                           })
+                error_data = log_error(
+                    e,
+                    error_type=error_type,
+                    function=f.__name__,
+                    args=str(args),
+                    kwargs=str(kwargs),
+                    include_trace=True
+                )
+                logger.error(
+                    f"Exception in {f.__name__}",
+                    extra={
+                        'error_id': error_data.get('error_id'),
+                        'function': f.__name__,
+                        'error_type': error_type
+                    }
+                )
                 raise
         return wrapped
     return decorator
@@ -165,15 +215,32 @@ class StructuredLogger:
             "message": message,
             "logger": self.name,
             "process_id": os.getpid(),
-            "thread_id": threading.get_ident()
+            "thread_id": threading.get_ident(),
+            "hostname": platform.node(),
+            "environment": os.getenv('FLASK_ENV', 'development')
         }
+
+        # Add performance metrics
+        try:
+            process = psutil.Process()
+            log_data.update({
+                "memory_usage": process.memory_info().rss / 1024 / 1024,  # MB
+                "cpu_percent": process.cpu_percent(),
+                "thread_count": len(process.threads())
+            })
+        except Exception:
+            pass
 
         # Only add request context information if we're in a request context
         if has_request_context():
             context_data = {
-                "request_id": getattr(g, 'request_id', None),
+                "request_id": getattr(g, 'request_id', str(uuid.uuid4())),
                 "user_id": getattr(g, 'user_id', None),
-                "session_id": request.cookies.get('session', None)
+                "session_id": request.cookies.get('session', None),
+                "url": request.url,
+                "method": request.method,
+                "endpoint": request.endpoint,
+                "ip": request.remote_addr
             }
             log_data.update({"request_context": context_data})
 
