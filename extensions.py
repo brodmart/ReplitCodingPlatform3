@@ -88,7 +88,7 @@ def init_extensions(app, db=None):
             raise
 
         try:
-            cors.init_app(app)
+            cors.init_app(app, resources={r"/*": {"origins": "*"}})
             logger.info("CORS initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize CORS: {str(e)}")
