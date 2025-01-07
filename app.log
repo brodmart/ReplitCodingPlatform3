@@ -62,3 +62,369 @@
 2025-01-07 18:56:41 - app - INFO - Application initialization completed successfully
 2025-01-07 18:56:41 - werkzeug - WARNING -  * Debugger is active!
 2025-01-07 18:56:41 - werkzeug - INFO -  * Debugger PIN: 105-798-858
+2025-01-07 18:57:57 - app - DEBUG - Initializing database...
+2025-01-07 18:57:57 - database - INFO - Configuring database connection...
+2025-01-07 18:57:58 - database - INFO - Database connection successful
+2025-01-07 18:57:58 - app - DEBUG - Database initialized successfully
+2025-01-07 18:57:58 - app - DEBUG - Initializing extensions...
+2025-01-07 18:57:58 - app - DEBUG - Extensions initialized successfully
+2025-01-07 18:57:58 - app - DEBUG - Configuring CORS...
+2025-01-07 18:57:58 - app - DEBUG - CORS configured successfully
+2025-01-07 18:57:58 - app - DEBUG - Starting blueprint registration...
+2025-01-07 18:57:58 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 18:57:58 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:57:58 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:57:58 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 18:57:58 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 18:57:58 - app - DEBUG - Registered routes:
+2025-01-07 18:57:58 - app - DEBUG - Route: /static/<path:filename> [HEAD, OPTIONS, GET] -> static
+2025-01-07 18:57:58 - app - DEBUG - Route: /auth/login [GET, HEAD, OPTIONS, POST] -> auth.login
+2025-01-07 18:57:58 - app - DEBUG - Route: /auth/register [GET, HEAD, OPTIONS, POST] -> auth.register
+2025-01-07 18:57:58 - app - DEBUG - Route: /auth/logout [HEAD, OPTIONS, GET] -> auth.logout
+2025-01-07 18:57:58 - app - DEBUG - Route: /activities/test [HEAD, OPTIONS, GET] -> activities.test_template
+2025-01-07 18:57:58 - app - DEBUG - Route: /activities/<grade> [HEAD, OPTIONS, GET] -> activities.list_activities
+2025-01-07 18:57:58 - app - DEBUG - Route: /activities/ [HEAD, OPTIONS, GET] -> activities.list_activities
+2025-01-07 18:57:58 - app - DEBUG - Route: /activities/activity/<int:activity_id> [HEAD, OPTIONS, GET] -> activities.view_activity
+2025-01-07 18:57:58 - app - DEBUG - Route: /activities/execute [OPTIONS, POST] -> activities.execute_code
+2025-01-07 18:57:58 - app - DEBUG - Route: /tutorial/tutorial [HEAD, OPTIONS, GET] -> tutorial.tutorial_view
+2025-01-07 18:57:58 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [HEAD, OPTIONS, GET] -> tutorial.get_step
+2025-01-07 18:57:59 - app - INFO - Database tables created successfully
+2025-01-07 18:57:59 - app - INFO - Application initialization completed successfully
+2025-01-07 18:57:59 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 18:57:59 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 18:57:59 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 18:57:59 - app - DEBUG - Initializing database...
+2025-01-07 18:57:59 - database - INFO - Configuring database connection...
+2025-01-07 18:57:59 - database - INFO - Database connection successful
+2025-01-07 18:57:59 - app - DEBUG - Database initialized successfully
+2025-01-07 18:57:59 - app - DEBUG - Initializing extensions...
+2025-01-07 18:58:00 - app - DEBUG - Extensions initialized successfully
+2025-01-07 18:58:00 - app - DEBUG - Configuring CORS...
+2025-01-07 18:58:00 - app - DEBUG - CORS configured successfully
+2025-01-07 18:58:00 - app - DEBUG - Starting blueprint registration...
+2025-01-07 18:58:00 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 18:58:00 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:58:00 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:58:00 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 18:58:00 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 18:58:00 - app - DEBUG - Registered routes:
+2025-01-07 18:58:00 - app - DEBUG - Route: /static/<path:filename> [HEAD, GET, OPTIONS] -> static
+2025-01-07 18:58:00 - app - DEBUG - Route: /auth/login [POST, HEAD, GET, OPTIONS] -> auth.login
+2025-01-07 18:58:00 - app - DEBUG - Route: /auth/register [POST, HEAD, GET, OPTIONS] -> auth.register
+2025-01-07 18:58:00 - app - DEBUG - Route: /auth/logout [HEAD, GET, OPTIONS] -> auth.logout
+2025-01-07 18:58:00 - app - DEBUG - Route: /activities/test [HEAD, GET, OPTIONS] -> activities.test_template
+2025-01-07 18:58:00 - app - DEBUG - Route: /activities/<grade> [HEAD, GET, OPTIONS] -> activities.list_activities
+2025-01-07 18:58:00 - app - DEBUG - Route: /activities/ [HEAD, GET, OPTIONS] -> activities.list_activities
+2025-01-07 18:58:00 - app - DEBUG - Route: /activities/activity/<int:activity_id> [HEAD, GET, OPTIONS] -> activities.view_activity
+2025-01-07 18:58:00 - app - DEBUG - Route: /activities/execute [POST, OPTIONS] -> activities.execute_code
+2025-01-07 18:58:00 - app - DEBUG - Route: /tutorial/tutorial [HEAD, GET, OPTIONS] -> tutorial.tutorial_view
+2025-01-07 18:58:00 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [HEAD, GET, OPTIONS] -> tutorial.get_step
+2025-01-07 18:58:00 - app - INFO - Database tables created successfully
+2025-01-07 18:58:00 - app - INFO - Application initialization completed successfully
+2025-01-07 18:58:00 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 18:58:00 - werkzeug - INFO -  * Debugger PIN: 585-173-296
+2025-01-07 18:58:15 - app - DEBUG - Initializing database...
+2025-01-07 18:58:15 - database - INFO - Configuring database connection...
+2025-01-07 18:58:16 - database - INFO - Database connection successful
+2025-01-07 18:58:16 - app - DEBUG - Database initialized successfully
+2025-01-07 18:58:16 - app - DEBUG - Initializing extensions...
+2025-01-07 18:58:16 - app - DEBUG - Extensions initialized successfully
+2025-01-07 18:58:16 - app - DEBUG - Configuring CORS...
+2025-01-07 18:58:16 - app - DEBUG - CORS configured successfully
+2025-01-07 18:58:16 - app - DEBUG - Starting blueprint registration...
+2025-01-07 18:58:16 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 18:58:17 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:58:17 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:58:17 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 18:58:17 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 18:58:17 - app - DEBUG - Registered routes:
+2025-01-07 18:58:17 - app - DEBUG - Route: /static/<path:filename> [GET, OPTIONS, HEAD] -> static
+2025-01-07 18:58:17 - app - DEBUG - Route: /auth/login [GET, POST, OPTIONS, HEAD] -> auth.login
+2025-01-07 18:58:17 - app - DEBUG - Route: /auth/register [GET, POST, OPTIONS, HEAD] -> auth.register
+2025-01-07 18:58:17 - app - DEBUG - Route: /auth/logout [GET, OPTIONS, HEAD] -> auth.logout
+2025-01-07 18:58:17 - app - DEBUG - Route: /activities/test [GET, OPTIONS, HEAD] -> activities.test_template
+2025-01-07 18:58:17 - app - DEBUG - Route: /activities/<grade> [GET, OPTIONS, HEAD] -> activities.list_activities
+2025-01-07 18:58:17 - app - DEBUG - Route: /activities/ [GET, OPTIONS, HEAD] -> activities.list_activities
+2025-01-07 18:58:17 - app - DEBUG - Route: /activities/activity/<int:activity_id> [GET, OPTIONS, HEAD] -> activities.view_activity
+2025-01-07 18:58:17 - app - DEBUG - Route: /activities/execute [POST, OPTIONS] -> activities.execute_code
+2025-01-07 18:58:17 - app - DEBUG - Route: /tutorial/tutorial [GET, OPTIONS, HEAD] -> tutorial.tutorial_view
+2025-01-07 18:58:17 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [GET, OPTIONS, HEAD] -> tutorial.get_step
+2025-01-07 18:58:17 - app - INFO - Database tables created successfully
+2025-01-07 18:58:17 - app - INFO - Application initialization completed successfully
+2025-01-07 18:58:17 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 18:58:17 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 18:58:17 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 18:58:17 - app - DEBUG - Initializing database...
+2025-01-07 18:58:17 - app - DEBUG - Initializing database...
+2025-01-07 18:58:18 - database - INFO - Configuring database connection...
+2025-01-07 18:58:18 - database - INFO - Database connection successful
+2025-01-07 18:58:18 - app - DEBUG - Database initialized successfully
+2025-01-07 18:58:18 - app - DEBUG - Initializing extensions...
+2025-01-07 18:58:18 - app - DEBUG - Extensions initialized successfully
+2025-01-07 18:58:18 - app - DEBUG - Configuring CORS...
+2025-01-07 18:58:18 - app - DEBUG - CORS configured successfully
+2025-01-07 18:58:18 - app - DEBUG - Starting blueprint registration...
+2025-01-07 18:58:18 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 18:58:19 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:58:19 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:58:19 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 18:58:19 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 18:58:19 - app - DEBUG - Registered routes:
+2025-01-07 18:58:19 - app - DEBUG - Route: /static/<path:filename> [OPTIONS, HEAD, GET] -> static
+2025-01-07 18:58:19 - app - DEBUG - Route: /auth/login [OPTIONS, HEAD, GET, POST] -> auth.login
+2025-01-07 18:58:19 - app - DEBUG - Route: /auth/register [OPTIONS, HEAD, GET, POST] -> auth.register
+2025-01-07 18:58:19 - app - DEBUG - Route: /auth/logout [OPTIONS, HEAD, GET] -> auth.logout
+2025-01-07 18:58:19 - app - DEBUG - Route: /activities/test [OPTIONS, HEAD, GET] -> activities.test_template
+2025-01-07 18:58:19 - app - DEBUG - Route: /activities/<grade> [OPTIONS, HEAD, GET] -> activities.list_activities
+2025-01-07 18:58:19 - app - DEBUG - Route: /activities/ [OPTIONS, HEAD, GET] -> activities.list_activities
+2025-01-07 18:58:19 - app - DEBUG - Route: /activities/activity/<int:activity_id> [OPTIONS, HEAD, GET] -> activities.view_activity
+2025-01-07 18:58:19 - app - DEBUG - Route: /activities/execute [OPTIONS, POST] -> activities.execute_code
+2025-01-07 18:58:19 - app - DEBUG - Route: /tutorial/tutorial [OPTIONS, HEAD, GET] -> tutorial.tutorial_view
+2025-01-07 18:58:19 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [OPTIONS, HEAD, GET] -> tutorial.get_step
+2025-01-07 18:58:19 - app - INFO - Database tables created successfully
+2025-01-07 18:58:19 - app - INFO - Application initialization completed successfully
+2025-01-07 18:58:19 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 18:58:19 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 18:58:19 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 18:58:19 - app - DEBUG - Initializing database...
+2025-01-07 18:58:20 - database - INFO - Configuring database connection...
+2025-01-07 18:58:20 - database - INFO - Database connection successful
+2025-01-07 18:58:20 - app - DEBUG - Database initialized successfully
+2025-01-07 18:58:20 - app - DEBUG - Initializing extensions...
+2025-01-07 18:58:20 - app - DEBUG - Extensions initialized successfully
+2025-01-07 18:58:20 - app - DEBUG - Configuring CORS...
+2025-01-07 18:58:20 - app - DEBUG - CORS configured successfully
+2025-01-07 18:58:20 - app - DEBUG - Starting blueprint registration...
+2025-01-07 18:58:20 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 18:58:21 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:58:21 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:58:21 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 18:58:21 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 18:58:21 - app - DEBUG - Registered routes:
+2025-01-07 18:58:21 - app - DEBUG - Route: /static/<path:filename> [GET, OPTIONS, HEAD] -> static
+2025-01-07 18:58:21 - app - DEBUG - Route: /auth/login [GET, OPTIONS, POST, HEAD] -> auth.login
+2025-01-07 18:58:21 - app - DEBUG - Route: /auth/register [GET, OPTIONS, POST, HEAD] -> auth.register
+2025-01-07 18:58:21 - app - DEBUG - Route: /auth/logout [GET, OPTIONS, HEAD] -> auth.logout
+2025-01-07 18:58:21 - app - DEBUG - Route: /activities/test [GET, OPTIONS, HEAD] -> activities.test_template
+2025-01-07 18:58:21 - app - DEBUG - Route: /activities/<grade> [GET, OPTIONS, HEAD] -> activities.list_activities
+2025-01-07 18:58:21 - app - DEBUG - Route: /activities/ [GET, OPTIONS, HEAD] -> activities.list_activities
+2025-01-07 18:58:21 - app - DEBUG - Route: /activities/activity/<int:activity_id> [GET, OPTIONS, HEAD] -> activities.view_activity
+2025-01-07 18:58:21 - app - DEBUG - Route: /activities/execute [OPTIONS, POST] -> activities.execute_code
+2025-01-07 18:58:21 - app - DEBUG - Route: /tutorial/tutorial [GET, OPTIONS, HEAD] -> tutorial.tutorial_view
+2025-01-07 18:58:21 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [GET, OPTIONS, HEAD] -> tutorial.get_step
+2025-01-07 18:58:21 - app - INFO - Database tables created successfully
+2025-01-07 18:58:21 - app - INFO - Application initialization completed successfully
+2025-01-07 18:58:21 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 18:58:21 - werkzeug - INFO -  * Debugger PIN: 339-525-058
+2025-01-07 19:00:16 - app - DEBUG - Initializing database...
+2025-01-07 19:00:17 - database - INFO - Configuring database connection...
+2025-01-07 19:00:17 - database - INFO - Database connection successful
+2025-01-07 19:00:17 - app - DEBUG - Database initialized successfully
+2025-01-07 19:00:17 - app - DEBUG - Initializing extensions...
+2025-01-07 19:00:17 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:00:17 - app - DEBUG - Configuring CORS...
+2025-01-07 19:00:17 - app - DEBUG - CORS configured successfully
+2025-01-07 19:00:17 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:00:17 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 19:00:18 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:00:18 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:00:18 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 19:00:18 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 19:00:18 - app - DEBUG - Registered routes:
+2025-01-07 19:00:18 - app - DEBUG - Route: /static/<path:filename> [HEAD, OPTIONS, GET] -> static
+2025-01-07 19:00:18 - app - DEBUG - Route: /auth/login [POST, HEAD, OPTIONS, GET] -> auth.login
+2025-01-07 19:00:18 - app - DEBUG - Route: /auth/register [POST, HEAD, OPTIONS, GET] -> auth.register
+2025-01-07 19:00:18 - app - DEBUG - Route: /auth/logout [HEAD, OPTIONS, GET] -> auth.logout
+2025-01-07 19:00:18 - app - DEBUG - Route: /activities/test [HEAD, OPTIONS, GET] -> activities.test_template
+2025-01-07 19:00:18 - app - DEBUG - Route: /activities/<grade> [HEAD, OPTIONS, GET] -> activities.list_activities
+2025-01-07 19:00:18 - app - DEBUG - Route: /activities/ [HEAD, OPTIONS, GET] -> activities.list_activities
+2025-01-07 19:00:18 - app - DEBUG - Route: /activities/activity/<int:activity_id> [HEAD, OPTIONS, GET] -> activities.view_activity
+2025-01-07 19:00:18 - app - DEBUG - Route: /activities/execute [POST, OPTIONS] -> activities.execute_code
+2025-01-07 19:00:18 - app - DEBUG - Route: /tutorial/tutorial [HEAD, OPTIONS, GET] -> tutorial.tutorial_view
+2025-01-07 19:00:18 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [HEAD, OPTIONS, GET] -> tutorial.get_step
+2025-01-07 19:00:18 - app - INFO - Database tables created successfully
+2025-01-07 19:00:18 - app - INFO - Application initialization completed successfully
+2025-01-07 19:00:18 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:00:18 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 19:00:18 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:00:18 - app - DEBUG - Initializing database...
+2025-01-07 19:00:19 - app - DEBUG - Initializing database...
+2025-01-07 19:00:19 - database - INFO - Configuring database connection...
+2025-01-07 19:00:19 - database - INFO - Database connection successful
+2025-01-07 19:00:19 - app - DEBUG - Database initialized successfully
+2025-01-07 19:00:19 - app - DEBUG - Initializing extensions...
+2025-01-07 19:00:20 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:00:20 - app - DEBUG - Configuring CORS...
+2025-01-07 19:00:20 - app - DEBUG - CORS configured successfully
+2025-01-07 19:00:20 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:00:20 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 19:00:20 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:00:20 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:00:20 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 19:00:20 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 19:00:20 - app - DEBUG - Registered routes:
+2025-01-07 19:00:20 - app - DEBUG - Route: /static/<path:filename> [OPTIONS, GET, HEAD] -> static
+2025-01-07 19:00:20 - app - DEBUG - Route: /auth/login [OPTIONS, GET, HEAD, POST] -> auth.login
+2025-01-07 19:00:20 - app - DEBUG - Route: /auth/register [OPTIONS, GET, HEAD, POST] -> auth.register
+2025-01-07 19:00:20 - app - DEBUG - Route: /auth/logout [OPTIONS, GET, HEAD] -> auth.logout
+2025-01-07 19:00:20 - app - DEBUG - Route: /activities/test [OPTIONS, GET, HEAD] -> activities.test_template
+2025-01-07 19:00:20 - app - DEBUG - Route: /activities/<grade> [OPTIONS, GET, HEAD] -> activities.list_activities
+2025-01-07 19:00:20 - app - DEBUG - Route: /activities/ [OPTIONS, GET, HEAD] -> activities.list_activities
+2025-01-07 19:00:20 - app - DEBUG - Route: /activities/activity/<int:activity_id> [OPTIONS, GET, HEAD] -> activities.view_activity
+2025-01-07 19:00:20 - app - DEBUG - Route: /activities/execute [OPTIONS, POST] -> activities.execute_code
+2025-01-07 19:00:20 - app - DEBUG - Route: /tutorial/tutorial [OPTIONS, GET, HEAD] -> tutorial.tutorial_view
+2025-01-07 19:00:20 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [OPTIONS, GET, HEAD] -> tutorial.get_step
+2025-01-07 19:00:20 - app - INFO - Database tables created successfully
+2025-01-07 19:00:20 - app - INFO - Application initialization completed successfully
+2025-01-07 19:00:20 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:00:20 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 19:00:20 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:00:21 - app - DEBUG - Initializing database...
+2025-01-07 19:00:21 - database - INFO - Configuring database connection...
+2025-01-07 19:00:21 - database - INFO - Database connection successful
+2025-01-07 19:00:21 - app - DEBUG - Database initialized successfully
+2025-01-07 19:00:21 - app - DEBUG - Initializing extensions...
+2025-01-07 19:00:22 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:00:22 - app - DEBUG - Configuring CORS...
+2025-01-07 19:00:22 - app - DEBUG - CORS configured successfully
+2025-01-07 19:00:22 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:00:22 - app - DEBUG - Registered auth blueprint with prefix: /auth
+2025-01-07 19:00:22 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:00:22 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:00:22 - app - DEBUG - Registered activities blueprint with prefix: /activities
+2025-01-07 19:00:22 - app - DEBUG - Registered tutorial blueprint with prefix: /tutorial
+2025-01-07 19:00:22 - app - DEBUG - Registered routes:
+2025-01-07 19:00:22 - app - DEBUG - Route: /static/<path:filename> [GET, HEAD, OPTIONS] -> static
+2025-01-07 19:00:22 - app - DEBUG - Route: /auth/login [GET, HEAD, POST, OPTIONS] -> auth.login
+2025-01-07 19:00:22 - app - DEBUG - Route: /auth/register [GET, HEAD, POST, OPTIONS] -> auth.register
+2025-01-07 19:00:22 - app - DEBUG - Route: /auth/logout [GET, HEAD, OPTIONS] -> auth.logout
+2025-01-07 19:00:22 - app - DEBUG - Route: /activities/test [GET, HEAD, OPTIONS] -> activities.test_template
+2025-01-07 19:00:22 - app - DEBUG - Route: /activities/<grade> [GET, HEAD, OPTIONS] -> activities.list_activities
+2025-01-07 19:00:22 - app - DEBUG - Route: /activities/ [GET, HEAD, OPTIONS] -> activities.list_activities
+2025-01-07 19:00:22 - app - DEBUG - Route: /activities/activity/<int:activity_id> [GET, HEAD, OPTIONS] -> activities.view_activity
+2025-01-07 19:00:22 - app - DEBUG - Route: /activities/execute [POST, OPTIONS] -> activities.execute_code
+2025-01-07 19:00:22 - app - DEBUG - Route: /tutorial/tutorial [GET, HEAD, OPTIONS] -> tutorial.tutorial_view
+2025-01-07 19:00:22 - app - DEBUG - Route: /tutorial/tutorial/step/<int:step_index> [GET, HEAD, OPTIONS] -> tutorial.get_step
+2025-01-07 19:00:23 - app - INFO - Database tables created successfully
+2025-01-07 19:00:23 - app - INFO - Application initialization completed successfully
+2025-01-07 19:00:23 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 19:00:23 - werkzeug - INFO -  * Debugger PIN: 869-777-722
+2025-01-07 19:01:01 - werkzeug - INFO -  * Detected change in '/home/runner/codecrafthub/app.py', reloading
+2025-01-07 19:01:01 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:01:02 - app - DEBUG - Initializing database...
+2025-01-07 19:01:02 - database - INFO - Configuring database connection...
+2025-01-07 19:01:03 - database - INFO - Database connection successful
+2025-01-07 19:01:03 - app - DEBUG - Database initialized successfully
+2025-01-07 19:01:03 - app - DEBUG - Initializing extensions...
+2025-01-07 19:01:03 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:01:03 - app - DEBUG - Configuring CORS...
+2025-01-07 19:01:03 - app - DEBUG - CORS configured successfully
+2025-01-07 19:01:03 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:01:03 - app - DEBUG - Registered auth blueprint
+2025-01-07 19:01:03 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:01:03 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:01:04 - app - DEBUG - Registered activities blueprint
+2025-01-07 19:01:04 - app - DEBUG - Registered tutorial blueprint
+2025-01-07 19:01:04 - app - INFO - Database tables created successfully
+2025-01-07 19:01:04 - app - INFO - Application initialization completed successfully
+2025-01-07 19:01:04 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:01:04 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 19:01:04 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:01:04 - app - DEBUG - Initializing database...
+2025-01-07 19:01:04 - database - INFO - Configuring database connection...
+2025-01-07 19:01:05 - database - INFO - Database connection successful
+2025-01-07 19:01:05 - app - DEBUG - Database initialized successfully
+2025-01-07 19:01:05 - app - DEBUG - Initializing extensions...
+2025-01-07 19:01:05 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:01:05 - app - DEBUG - Configuring CORS...
+2025-01-07 19:01:05 - app - DEBUG - CORS configured successfully
+2025-01-07 19:01:05 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:01:05 - app - DEBUG - Registered auth blueprint
+2025-01-07 19:01:05 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:01:05 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:01:06 - app - DEBUG - Registered activities blueprint
+2025-01-07 19:01:06 - app - DEBUG - Registered tutorial blueprint
+2025-01-07 19:01:06 - app - INFO - Database tables created successfully
+2025-01-07 19:01:06 - app - INFO - Application initialization completed successfully
+2025-01-07 19:01:06 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 19:01:06 - werkzeug - INFO -  * Debugger PIN: 600-786-573
+2025-01-07 19:01:41 - app - DEBUG - Initializing database...
+2025-01-07 19:01:41 - database - INFO - Configuring database connection...
+2025-01-07 19:01:42 - database - INFO - Database connection successful
+2025-01-07 19:01:42 - app - DEBUG - Database initialized successfully
+2025-01-07 19:01:42 - app - DEBUG - Initializing extensions...
+2025-01-07 19:01:42 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:01:42 - app - DEBUG - Configuring CORS...
+2025-01-07 19:01:42 - app - DEBUG - CORS configured successfully
+2025-01-07 19:01:42 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:01:42 - app - DEBUG - Registered auth blueprint
+2025-01-07 19:01:42 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:01:42 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:01:42 - app - DEBUG - Registered activities blueprint
+2025-01-07 19:01:42 - app - DEBUG - Registered tutorial blueprint
+2025-01-07 19:01:43 - app - INFO - Database tables created successfully
+2025-01-07 19:01:43 - app - INFO - Application initialization completed successfully
+2025-01-07 19:01:43 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:01:43 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 19:01:43 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:01:43 - app - DEBUG - Initializing database...
+2025-01-07 19:01:43 - database - INFO - Configuring database connection...
+2025-01-07 19:01:44 - database - INFO - Database connection successful
+2025-01-07 19:01:44 - app - DEBUG - Database initialized successfully
+2025-01-07 19:01:44 - app - DEBUG - Initializing extensions...
+2025-01-07 19:01:44 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:01:44 - app - DEBUG - Configuring CORS...
+2025-01-07 19:01:44 - app - DEBUG - CORS configured successfully
+2025-01-07 19:01:44 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:01:44 - app - DEBUG - Registered auth blueprint
+2025-01-07 19:01:45 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:01:45 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:01:45 - app - DEBUG - Registered activities blueprint
+2025-01-07 19:01:45 - app - DEBUG - Registered tutorial blueprint
+2025-01-07 19:01:45 - app - INFO - Database tables created successfully
+2025-01-07 19:01:45 - app - INFO - Application initialization completed successfully
+2025-01-07 19:01:45 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 19:01:45 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 19:01:45 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 19:01:45 - app - DEBUG - Initializing database...
+2025-01-07 19:01:45 - database - INFO - Configuring database connection...
+2025-01-07 19:01:46 - database - INFO - Database connection successful
+2025-01-07 19:01:46 - app - DEBUG - Database initialized successfully
+2025-01-07 19:01:46 - app - DEBUG - Initializing extensions...
+2025-01-07 19:01:46 - app - DEBUG - Extensions initialized successfully
+2025-01-07 19:01:46 - app - DEBUG - Configuring CORS...
+2025-01-07 19:01:46 - app - DEBUG - CORS configured successfully
+2025-01-07 19:01:46 - app - DEBUG - Starting blueprint registration...
+2025-01-07 19:01:46 - app - DEBUG - Registered auth blueprint
+2025-01-07 19:01:47 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 19:01:47 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 19:01:47 - app - DEBUG - Registered activities blueprint
+2025-01-07 19:01:47 - app - DEBUG - Registered tutorial blueprint
+2025-01-07 19:01:47 - app - INFO - Database tables created successfully
+2025-01-07 19:01:47 - app - INFO - Application initialization completed successfully
+2025-01-07 19:01:47 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 19:01:47 - werkzeug - INFO -  * Debugger PIN: 932-749-320

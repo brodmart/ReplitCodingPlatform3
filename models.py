@@ -30,10 +30,10 @@ class Student(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    achievements = db.relationship('StudentAchievement', backref='student')
-    submissions = db.relationship('CodeSubmission', back_populates='student')
-    progress = db.relationship('StudentProgress', backref='student')
-    shared_codes = db.relationship('SharedCode', back_populates='student')
+    achievements = db.relationship('StudentAchievement', backref='student', lazy=True)
+    submissions = db.relationship('CodeSubmission', back_populates='student', lazy=True)
+    progress = db.relationship('StudentProgress', backref='student', lazy=True)
+    shared_codes = db.relationship('SharedCode', back_populates='student', lazy=True)
 
     def set_password(self, password):
         """Hash password using the utility function"""
@@ -115,7 +115,7 @@ class CodeSubmission(db.Model):
     error = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    student = db.relationship('Student', back_populates='submissions')
+    student = db.relationship('Student', back_populates='submissions', lazy=True)
 
 
 class SharedCode(db.Model):
@@ -130,7 +130,7 @@ class SharedCode(db.Model):
     is_public = db.Column(db.Boolean, default=True)
     views = db.Column(db.Integer, default=0)
 
-    student = db.relationship('Student', back_populates='shared_codes')
+    student = db.relationship('Student', back_populates='shared_codes', lazy=True)
 
 
 class CodingActivity(db.Model):
@@ -154,7 +154,7 @@ class CodingActivity(db.Model):
     max_attempts = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    student_progress = db.relationship('StudentProgress', back_populates='activity')
+    student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
 
     @staticmethod
     def get_starter_code(language: str) -> str:
@@ -192,4 +192,4 @@ class StudentProgress(db.Model):
     attempts = db.Column(db.Integer, default=0)
     last_submission = db.Column(db.Text)
 
-    activity = db.relationship('CodingActivity', back_populates='student_progress')
+    activity = db.relationship('CodingActivity', back_populates='student_progress', lazy=True)

@@ -5,6 +5,9 @@ from datetime import datetime
 from flask import Flask, render_template, request, jsonify, session, g
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFError
+from flask_limiter.util import get_remote_address
+from flask_limiter import Limiter
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging from file
 logging.config.fileConfig('logging.conf')
@@ -12,23 +15,27 @@ logger = logging.getLogger('app')
 
 def create_app():
     """Create and configure the Flask application"""
-    app = Flask(__name__)
-
-    # Configure basic settings
-    app.config.update(
-        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key"),
-        DEBUG=True,
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',
-        WTF_CSRF_ENABLED=True,
-        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
-        SQLALCHEMY_ENGINE_OPTIONS={
-            "pool_recycle": 300,
-            "pool_pre_ping": True,
-        }
-    )
-
     try:
+        app = Flask(__name__)
+
+        # Configure basic settings
+        app.config.update(
+            SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key"),
+            DEBUG=True,
+            SESSION_COOKIE_HTTPONLY=True,
+            SESSION_COOKIE_SAMESITE='Lax',
+            WTF_CSRF_ENABLED=True,
+            SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
+            SQLALCHEMY_ENGINE_OPTIONS={
+                "pool_recycle": 300,
+                "pool_pre_ping": True,
+            },
+            # Rate limiter configuration
+            RATELIMIT_STORAGE_URL="memory://",
+            RATELIMIT_STRATEGY="fixed-window",
+            RATELIMIT_DEFAULT="200 per day"
+        )
+
         # Initialize database
         logger.debug("Initializing database...")
         from database import init_db, db
@@ -41,43 +48,41 @@ def create_app():
         init_extensions(app)
         logger.debug("Extensions initialized successfully")
 
-        # Enable CORS
+        # Enable CORS with proper configuration
         logger.debug("Configuring CORS...")
-        CORS(app)
+        CORS(app, resources={
+            r"/*": {
+                "origins": "*",
+                "methods": ["GET", "POST", "OPTIONS"],
+                "allow_headers": ["Content-Type", "X-CSRF-Token"]
+            }
+        })
         logger.debug("CORS configured successfully")
 
-        # Register blueprints with debug logging
-        logger.debug("Starting blueprint registration...")
+        # Handle proxy headers
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-        try:
-            from routes.auth_routes import auth
-            app.register_blueprint(auth)
-            logger.debug("Registered auth blueprint with prefix: /auth")
-        except Exception as e:
-            logger.error(f"Failed to register auth blueprint: {str(e)}", exc_info=True)
-            raise
+        # Register error handlers
+        @app.errorhandler(404)
+        def not_found_error(error):
+            logger.warning(f"404 error: {request.url}")
+            return render_template('errors/404.html'), 404
 
-        try:
-            from routes.activity_routes import activities
-            app.register_blueprint(activities, url_prefix='/activities')
-            logger.debug("Registered activities blueprint with prefix: /activities")
-        except Exception as e:
-            logger.error(f"Failed to register activities blueprint: {str(e)}", exc_info=True)
-            raise
+        @app.errorhandler(500)
+        def internal_error(error):
+            logger.error(f"500 error: {str(error)}", exc_info=True)
+            db.session.rollback()
+            return render_template('errors/500.html'), 500
 
-        try:
-            from routes.tutorial import tutorial_bp
-            app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
-            logger.debug("Registered tutorial blueprint with prefix: /tutorial")
-        except Exception as e:
-            logger.error(f"Failed to register tutorial blueprint: {str(e)}", exc_info=True)
-            raise
+        @app.errorhandler(CSRFError)
+        def handle_csrf_error(e):
+            logger.error(f"CSRF error: {str(e)}")
+            return jsonify({
+                'success': False,
+                'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
+            }), 400
 
-        # Log all registered routes for debugging
-        logger.debug("Registered routes:")
-        for rule in app.url_map.iter_rules():
-            logger.debug(f"Route: {rule.rule} [{', '.join(rule.methods)}] -> {rule.endpoint}")
-
+        # Register request handlers
         @app.before_request
         def before_request():
             g.request_start_time = datetime.utcnow()
@@ -90,46 +95,46 @@ def create_app():
                 logger.debug(f"Request completed: {request.path} -> {response.status_code} in {duration.total_seconds():.3f}s")
             return response
 
+        # Register blueprints
+        try:
+            logger.debug("Starting blueprint registration...")
+
+            from routes.auth_routes import auth
+            app.register_blueprint(auth)
+            logger.debug("Registered auth blueprint")
+
+            from routes.activity_routes import activities
+            app.register_blueprint(activities, url_prefix='/activities')
+            logger.debug("Registered activities blueprint")
+
+            from routes.tutorial import tutorial_bp
+            app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+            logger.debug("Registered tutorial blueprint")
+
+        except Exception as e:
+            logger.error(f"Failed to register blueprints: {str(e)}", exc_info=True)
+            raise
+
+        # Root route
         @app.route('/')
         def index():
             try:
                 language = request.args.get('language', 'cpp')
+                if 'lang' not in session:
+                    session['lang'] = 'fr'
+
                 templates = {
                     'cpp': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Votre code ici\n    return 0;\n}',
                     'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Votre code ici\n    }\n}'
                 }
 
-                if 'lang' not in session:
-                    session['lang'] = 'fr'
-
                 return render_template('index.html',
-                                   lang=session.get('lang', 'fr'),
-                                   language=language,
-                                   templates=templates)
+                                    lang=session.get('lang', 'fr'),
+                                    language=language,
+                                    templates=templates)
             except Exception as e:
                 logger.error(f"Error rendering index: {str(e)}", exc_info=True)
                 return render_template('errors/500.html'), 500
-
-        @app.errorhandler(404)
-        def not_found_error(error):
-            logger.warning(f"404 error: {request.url}")
-            return render_template('errors/404.html'), 404
-
-        @app.errorhandler(CSRFError)
-        def handle_csrf_error(e):
-            logger.error(f"CSRF error: {str(e)}")
-            return jsonify({
-                'success': False,
-                'error': 'Token de sécurité invalide. Veuillez rafraîchir la page.'
-            }), 400
-
-        @app.errorhandler(Exception)
-        def handle_exception(e):
-            logger.error(f"Unhandled error: {str(e)}", exc_info=True)
-            return jsonify({
-                'success': False,
-                'error': "Une erreur inattendue s'est produite"
-            }), 500
 
         # Create database tables
         with app.app_context():
