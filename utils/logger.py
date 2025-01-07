@@ -15,9 +15,8 @@ import threading
 logger = logging.getLogger(__name__)
 
 class JsonFormatter(logging.Formatter):
-    """Formateur personnalisé pour la sortie JSON des logs"""
+    """Formateur personnalisé pour la sortie JSON des logs avec contexte enrichi"""
     def format(self, record):
-        # Récupérer les attributs standard du record
         log_data = {
             'timestamp': datetime.fromtimestamp(record.created).isoformat(),
             'name': record.name,
@@ -27,23 +26,51 @@ class JsonFormatter(logging.Formatter):
             'line': record.lineno,
             'function': record.funcName,
             'thread': record.threadName,
-            'process': record.process
+            'process': record.process,
+            'process_name': record.processName
         }
 
-        # Ajouter les attributs supplémentaires s'ils existent
+        # Ajouter le context d'exécution
+        if hasattr(record, 'duration'):
+            log_data['duration'] = record.duration
+        if hasattr(record, 'error_id'):
+            log_data['error_id'] = record.error_id
+
+        # Ajouter les informations de performance si disponibles
+        if hasattr(record, 'memory_usage'):
+            log_data['memory_usage'] = record.memory_usage
+        if hasattr(record, 'cpu_percent'):
+            log_data['cpu_percent'] = record.cpu_percent
+
+        # Ajouter la stack trace si disponible
         if record.exc_info:
             log_data['exc_info'] = self.formatException(record.exc_info)
+            log_data['exc_type'] = record.exc_info[0].__name__
+            log_data['exc_message'] = str(record.exc_info[1])
 
-        # Si le message est déjà du JSON, le parser
-        try:
-            if isinstance(record.msg, str):
-                message_data = json.loads(record.msg)
-                if isinstance(message_data, dict):
-                    log_data.update(message_data)
-        except (json.JSONDecodeError, TypeError):
-            pass
+        # Ajouter le contexte de requête si disponible
+        if has_request_context():
+            try:
+                log_data['request'] = {
+                    'url': request.url,
+                    'method': request.method,
+                    'endpoint': request.endpoint,
+                    'ip': request.remote_addr,
+                    'user_agent': str(request.user_agent),
+                    'referrer': request.referrer,
+                }
+                if 'user_id' in g:
+                    log_data['request']['user_id'] = g.user_id
+                if 'request_id' in g:
+                    log_data['request']['request_id'] = g.request_id
+            except Exception as e:
+                log_data['request_context_error'] = str(e)
 
-        return json.dumps(log_data)
+        # Ajouter les attributs supplémentaires du record
+        if hasattr(record, 'extra_data'):
+            log_data.update(record.extra_data)
+
+        return json.dumps(log_data, default=str)
 
 def generate_error_id() -> str:
     """Génère un identifiant unique pour chaque erreur"""
