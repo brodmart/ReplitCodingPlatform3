@@ -36,7 +36,7 @@ def create_app():
             SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32)),
             TEMPLATES_AUTO_RELOAD=True,
             SEND_FILE_MAX_AGE_DEFAULT=0,
-            DEBUG=False,
+            DEBUG=True,  # Changed to True for debugging
             SESSION_COOKIE_SECURE=False,
             SESSION_COOKIE_HTTPONLY=True,
             SESSION_COOKIE_SAMESITE='Lax',
@@ -48,7 +48,14 @@ def create_app():
             RATELIMIT_HEADERS_ENABLED=True,
             JSON_AS_ASCII=False,
             JSONIFY_PRETTYPRINT_REGULAR=False,
-            JSONIFY_MIMETYPE='application/json'
+            JSONIFY_MIMETYPE='application/json',
+            # Add SQLAlchemy configuration
+            SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
+            SQLALCHEMY_TRACK_MODIFICATIONS=False,
+            SQLALCHEMY_ENGINE_OPTIONS={
+                "pool_pre_ping": True,
+                "pool_recycle": 300,
+            }
         )
 
         # Initialize database first
@@ -115,7 +122,6 @@ def create_app():
         def accessibility():
             return render_template('accessibility.html', lang=session.get('lang', 'fr'))
 
-
         @app.errorhandler(CSRFError)
         def handle_csrf_error(e):
             logger.error(f"CSRF error: {str(e)}")
@@ -151,4 +157,4 @@ app = create_app()
 
 if __name__ == '__main__':
     logger.info("Starting development server...")
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=5000)  # Changed port to 5000
