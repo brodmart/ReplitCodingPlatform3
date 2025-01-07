@@ -1,0 +1,29 @@
+2025-01-07 18:49:32,708 - database - INFO - Configuring database connection...
+2025-01-07 18:49:33,192 - database - INFO - Database connection successful
+2025-01-07 18:49:33,327 - app - INFO - Starting extension initialization...
+2025-01-07 18:49:33,332 - app - INFO - All extensions initialized successfully
+2025-01-07 18:49:34,282 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:49:34,285 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:49:34,531 - app - INFO - Database tables created
+2025-01-07 18:49:34,605 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 18:49:34,608 - werkzeug - INFO -  * Debugger PIN: 467-386-208
+2025-01-07 18:49:35,370 - database - INFO - Configuring database connection...
+2025-01-07 18:49:35,871 - database - INFO - Database connection successful
+2025-01-07 18:49:36,710 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:49:36,711 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:49:36,939 - app - INFO - Database tables created
+2025-01-07 18:49:37,002 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.140:5000
+2025-01-07 18:49:37,003 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-07 18:49:37,004 - werkzeug - INFO -  * Restarting with stat
+2025-01-07 18:49:37,377 - database - INFO - Configuring database connection...
+2025-01-07 18:49:37,858 - database - INFO - Database connection successful
+2025-01-07 18:49:38,575 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-07 18:49:38,576 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-07 18:49:38,822 - app - INFO - Database tables created
+2025-01-07 18:49:38,877 - werkzeug - WARNING -  * Debugger is active!
+2025-01-07 18:49:38,879 - werkzeug - INFO -  * Debugger PIN: 883-691-070
+2025-01-07 18:50:12,162 - werkzeug - INFO -  * Detected change in '/home/runner/codecrafthub/app.py', reloading
+2025-01-07 18:50:12,372 - werkzeug - INFO -  * Restarting with stat

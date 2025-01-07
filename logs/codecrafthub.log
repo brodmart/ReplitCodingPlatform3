@@ -1,0 +1,44 @@
+[2025-01-07 18:48:29,088] INFO in app [/home/runner/codecrafthub/app.py:52]:
+CodeCraftHub startup
+[2025-01-07 18:48:29,860] INFO in extensions [/home/runner/codecrafthub/extensions.py:33]:
+Starting extension initialization...
+[2025-01-07 18:48:29,861] DEBUG in extensions [/home/runner/codecrafthub/extensions.py:43]:
+Session configuration updated
+[2025-01-07 18:48:29,862] INFO in extensions [/home/runner/codecrafthub/extensions.py:53]:
+Cache initialization successful
+[2025-01-07 18:48:29,864] INFO in extensions [/home/runner/codecrafthub/extensions.py:64]:
+All other extensions initialized successfully
+[2025-01-07 18:48:29,864] INFO in extensions [/home/runner/codecrafthub/extensions.py:69]:
+All extensions initialized successfully
+[2025-01-07 18:48:30,746] INFO in app [/home/runner/codecrafthub/app.py:147]:
+Database tables created successfully
+[2025-01-07 18:48:30,928] INFO in app [/home/runner/codecrafthub/app.py:52]:
+CodeCraftHub startup
+[2025-01-07 18:48:31,676] INFO in extensions [/home/runner/codecrafthub/extensions.py:33]:
+Starting extension initialization...
+[2025-01-07 18:48:31,676] DEBUG in extensions [/home/runner/codecrafthub/extensions.py:43]:
+Session configuration updated
+[2025-01-07 18:48:31,678] INFO in extensions [/home/runner/codecrafthub/extensions.py:53]:
+Cache initialization successful
+[2025-01-07 18:48:31,679] INFO in extensions [/home/runner/codecrafthub/extensions.py:64]:
+All other extensions initialized successfully
+[2025-01-07 18:48:31,680] INFO in extensions [/home/runner/codecrafthub/extensions.py:69]:
+All extensions initialized successfully
+[2025-01-07 18:48:32,633] INFO in app [/home/runner/codecrafthub/app.py:147]:
+Database tables created successfully
+[2025-01-07 18:48:54,725] INFO in app [/home/runner/codecrafthub/app.py:52]:
+CodeCraftHub startup
+[2025-01-07 18:48:55,575] INFO in extensions [/home/runner/codecrafthub/extensions.py:29]:
+Starting extension initialization...
+[2025-01-07 18:48:55,581] INFO in extensions [/home/runner/codecrafthub/extensions.py:54]:
+All extensions initialized successfully
+[2025-01-07 18:48:56,773] INFO in app [/home/runner/codecrafthub/app.py:147]:
+Database tables created successfully
+[2025-01-07 18:48:57,032] INFO in app [/home/runner/codecrafthub/app.py:52]:
+CodeCraftHub startup
+[2025-01-07 18:48:58,026] INFO in extensions [/home/runner/codecrafthub/extensions.py:29]:
+Starting extension initialization...
+[2025-01-07 18:48:58,031] INFO in extensions [/home/runner/codecrafthub/extensions.py:54]:
+All extensions initialized successfully
+[2025-01-07 18:48:59,153] INFO in app [/home/runner/codecrafthub/app.py:147]:
+Database tables created successfully
