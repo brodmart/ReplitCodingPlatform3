@@ -22,13 +22,19 @@ def init_db(app):
     """Initialize database with application context"""
     try:
         # Configure database
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            raise ValueError("DATABASE_URL environment variable is not set")
+
+        # Configure SQLAlchemy
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_size': 5,
             'max_overflow': 10,
             'pool_timeout': 30,
-            'pool_recycle': 1800
+            'pool_recycle': 1800,
+            'pool_pre_ping': True
         }
 
         # Initialize the db with the Flask app
@@ -40,29 +46,21 @@ def init_db(app):
             def receive_connect(dbapi_connection, connection_record):
                 try:
                     cursor = dbapi_connection.cursor()
-                    cursor.execute("SET timezone='UTC'")
-                    cursor.close()
-                    logger.info("Database connection configured successfully")
-                except Exception as e:
-                    logger.error(f"Failed to configure database connection: {str(e)}")
-                    raise
-
-            @event.listens_for(db.engine, 'checkout')
-            def receive_checkout(dbapi_connection, connection_record, connection_proxy):
-                try:
-                    cursor = dbapi_connection.cursor()
                     cursor.execute("SELECT 1")
                     cursor.close()
-                    logger.debug("Connection health check passed")
+                    logger.info("Database connection established successfully")
                 except Exception as e:
-                    logger.error(f"Connection health check failed: {str(e)}")
-                    raise OperationalError(statement="Connection lost", 
-                                        params=None,
-                                        orig=e)
+                    logger.error(f"Failed to establish database connection: {str(e)}")
+                    raise
 
-            # Verify connection
-            db.engine.connect()
-            logger.info("Database connection successful")
+            # Create all tables
+            db.create_all()
+            logger.info("Database tables created successfully")
+
+            # Test connection
+            db.session.execute(text("SELECT 1"))
+            db.session.commit()
+            logger.info("Database connection test successful")
 
     except Exception as e:
         logger.error(f"Database initialization error: {str(e)}")
@@ -79,6 +77,16 @@ def transaction_context():
         db.session.rollback()
         logger.error(f"Transaction error: {str(e)}")
         raise
+
+def check_db_connection():
+    """Verify database connection is working"""
+    try:
+        db.session.execute(text("SELECT 1"))
+        db.session.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Database connection check failed: {str(e)}")
+        return False
 
 class DatabaseHealthCheck:
     """Database health monitoring"""

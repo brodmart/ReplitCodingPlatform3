@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import traceback
 from functools import wraps
 from typing import Optional, Dict, Any
@@ -17,44 +18,55 @@ def setup_logging(app):
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        # Basic formatter
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            '%Y-%m-%d %H:%M:%S'
-        )
+        # Set up basic configuration
+        logging.config.fileConfig('logging.conf')
 
-        # Console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
-        console_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
+        # Get root logger
+        logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG if app.debug else logging.INFO)
 
-        # File handlers
+        # Create logs directory if it doesn't exist
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        # File handler for detailed logging
         file_handler = RotatingFileHandler(
             os.path.join(log_dir, 'app.log'),
             maxBytes=10485760,  # 10MB
             backupCount=5
         )
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        ))
+        file_handler.setLevel(logging.DEBUG)
+
+        # Console handler for immediate feedback
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        ))
+        console_handler.setLevel(logging.DEBUG if app.debug else logging.INFO)
 
         # Clear any existing handlers
+        logger.handlers = []
+
+        # Add our handlers
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+
         app.logger.handlers = []
-
-        # Add handlers
-        app.logger.addHandler(console_handler)
         app.logger.addHandler(file_handler)
+        app.logger.addHandler(console_handler)
 
-        # Set level
-        app.logger.setLevel(logging.DEBUG if app.debug else logging.INFO)
-
+        # Test logging
+        app.logger.info("Logging configured successfully")
         return True
 
     except Exception as e:
         print(f"Error configuring logging: {str(e)}")
-        logging.basicConfig(level=logging.DEBUG if app.debug else logging.INFO)
         return False
 
-def get_logger(name: str):
+def get_logger(name: str) -> logging.Logger:
     """Get a logger instance"""
     return logging.getLogger(name)
 
@@ -66,7 +78,7 @@ def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool =
     """Log an error with context"""
     error_id = generate_error_id()
     error_data = {
-        'error_id': error_id,
+        'id': error_id,
         'timestamp': datetime.utcnow().isoformat(),
         'type': error_type,
         'message': str(error),
@@ -79,7 +91,16 @@ def log_error(error: Exception, error_type: str = "ERROR", include_trace: bool =
     if additional_data:
         error_data.update(additional_data)
 
-    logging.getLogger('app').error(
+    if has_request_context():
+        error_data.update({
+            'url': request.url,
+            'method': request.method,
+            'headers': dict(request.headers),
+            'remote_addr': request.remote_addr
+        })
+
+    logger = get_logger('app')
+    logger.error(
         f"Error occurred: {error_type}",
         extra={'error_data': error_data}
     )

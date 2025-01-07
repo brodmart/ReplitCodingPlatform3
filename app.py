@@ -1,15 +1,13 @@
 import os
 import logging
-import logging.config
-from datetime import datetime
-from flask import Flask, render_template, request, jsonify, session, g
-from flask_login import LoginManager, current_user
+from flask import Flask, render_template, request, session
+from flask_login import LoginManager
 from flask_cors import CORS
-from flask_wtf.csrf import CSRFProtect, CSRFError
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
 from utils.logger import setup_logging, get_logger, log_error
-from database import db, init_db
-from extensions import init_extensions, limiter
+from database import db, check_db_connection
+from extensions import init_extensions
 from models import Student
 
 def create_app():
@@ -26,20 +24,24 @@ def create_app():
         SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS={
-            "pool_recycle": 300,
-            "pool_pre_ping": True,
+            'pool_size': 5,
+            'max_overflow': 10,
+            'pool_timeout': 30,
+            'pool_recycle': 1800,
+            'pool_pre_ping': True
         }
     )
 
-    # Setup logging
+    # Setup logging first
     setup_logging(app)
     logger = get_logger('app')
 
     try:
         # Initialize database
-        init_db(app)
+        logger.info("Initializing database...")
+        db.init_app(app)
 
-        # Initialize extensions
+        # Initialize extensions before blueprints
         init_extensions(app, db)
 
         # Initialize login manager
@@ -93,7 +95,16 @@ def create_app():
             error_data = log_error(error, error_type="UNHANDLED_EXCEPTION")
             return render_template('errors/500.html', error=error_data), 500
 
-        # Register blueprints
+        # Create database tables within app context
+        with app.app_context():
+            db.create_all()
+            logger.info("Database tables created successfully")
+
+            # Verify database connection
+            if not check_db_connection():
+                raise Exception("Failed to verify database connection")
+
+        # Register blueprints after database and extensions are initialized
         from routes.auth_routes import auth
         app.register_blueprint(auth)
 
@@ -108,12 +119,7 @@ def create_app():
         def index():
             if 'lang' not in session:
                 session['lang'] = 'fr'
-            return render_template('index.html',
-                                lang=session.get('lang', 'fr'))
-
-        # Create database tables
-        with app.app_context():
-            db.create_all()
+            return render_template('index.html', lang=session.get('lang', 'fr'))
 
         return app
 

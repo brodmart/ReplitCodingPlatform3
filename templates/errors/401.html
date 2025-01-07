@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="alert alert-warning">
+        <h4>Non autorisé (401)</h4>
+        <p>Vous devez être connecté pour accéder à cette page.</p>
+        {% if error and error.id %}
+            <small class="text-muted">Référence d'erreur: {{ error.id }}</small>
+            {% if error.timestamp %}
+                <small class="text-muted d-block">Timestamp: {{ error.timestamp }}</small>
+            {% endif %}
+        {% endif %}
+        <div class="mt-3">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-primary">Se connecter</a>
+            {% if request.referrer %}
+                <a href="{{ request.referrer }}" class="btn btn-outline-secondary ms-2">
+                    Page précédente
+                </a>
+            {% endif %}
+        </div>
+        {% if config.DEBUG and error %}
+            <div class="mt-4">
+                <small class="text-muted">Détails techniques (visible en mode DEBUG uniquement):</small>
+                <pre class="mt-2 bg-light p-3 rounded"><code>{{ error.message }}</code></pre>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
