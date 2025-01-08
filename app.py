@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask
+from flask import Flask, render_template, redirect, url_for
 from flask_login import LoginManager
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
@@ -74,15 +74,20 @@ def create_app():
         # Handle proxy headers
         app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+        # Add main route
+        @app.route('/')
+        def index():
+            return redirect(url_for('activities.list_activities'))
+
         # Register blueprints
         from routes.auth_routes import auth
-        app.register_blueprint(auth)
+        app.register_blueprint(auth, url_prefix='/auth')
 
         from routes.activity_routes import activities
-        app.register_blueprint(activities, url_prefix='/activities')
+        app.register_blueprint(activities)
 
         from routes.tutorial import tutorial_bp
-        app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+        app.register_blueprint(tutorial_bp)
 
         # Create database tables
         with app.app_context():
