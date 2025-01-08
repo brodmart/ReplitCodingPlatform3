@@ -19,7 +19,7 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.maxRetries = 3;
-        this.baseDelay = 200; // Reduced from 500ms to 200ms
+        this.baseDelay = 200;
         this.isSessionValid = true;
         this.setupEventListeners();
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
@@ -138,7 +138,7 @@ class InteractiveConsole {
             if (response.ok && data.success) {
                 this.sessionId = data.session_id;
                 this.isSessionValid = true;
-                this.startPolling();
+                this.poll(); // Start with immediate poll
                 return true;
             } else {
                 this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`, 'error');
@@ -148,30 +148,6 @@ class InteractiveConsole {
             this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
             return false;
         }
-    }
-
-    calculateBackoffDelay() {
-        // More gradual backoff with lower maximum delay
-        return Math.min(this.baseDelay * (this.pollRetryCount + 1), 1000);
-    }
-
-    startPolling() {
-        if (this.outputPoller) {
-            clearInterval(this.outputPoller);
-        }
-
-        // Start immediate polling without initial delay
-        this.poll();
-
-        // Continue polling with fixed interval
-        this.outputPoller = setInterval(() => {
-            if (!this.isSessionValid || !this.sessionId) {
-                clearInterval(this.outputPoller);
-                this.outputPoller = null;
-                return;
-            }
-            this.poll();
-        }, this.baseDelay);
     }
 
     async poll() {
@@ -194,6 +170,11 @@ class InteractiveConsole {
                 }
 
                 this.setInputState(data.waiting_for_input);
+
+                // Schedule next poll if session is still valid
+                if (this.isSessionValid && this.sessionId) {
+                    setTimeout(() => this.poll(), this.baseDelay);
+                }
             } else {
                 if (data.error?.includes('Invalid session')) {
                     this.isSessionValid = false;
@@ -265,11 +246,6 @@ class InteractiveConsole {
                 })
             }).catch(console.error);
 
-            if (this.outputPoller) {
-                clearInterval(this.outputPoller);
-                this.outputPoller = null;
-            }
-
             this.sessionId = null;
             this.isSessionValid = false;
             this.setInputState(false);
@@ -286,10 +262,6 @@ class InteractiveConsole {
                 "Error: No code to execute\n", 'error');
             return;
         }
-
-        this.appendToConsole(this.lang === 'fr' ?
-            "Démarrage du programme...\n" :
-            "Starting program...\n", 'success');
 
         const success = await this.startSession(code, language);
         if (!success) {
