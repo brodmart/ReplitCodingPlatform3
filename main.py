@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 if __name__ == '__main__':
     try:
         # Use port 5000 for Flask development server
-        port = 5000
+        port = int(os.environ.get('PORT', 5000))
         logger.info(f"Starting Flask server on port {port}")
 
         app.config['PROPAGATE_EXCEPTIONS'] = True
