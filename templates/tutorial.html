@@ -162,6 +162,38 @@
         background: #0d6efd;
         transition: width 0.3s ease;
     }
+
+    .console-container {
+        display: flex;
+        flex-direction: column;
+        height: 150px; /* Adjust as needed */
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .console-output {
+        white-space: pre-wrap;
+        flex: 1;
+        margin-bottom: 5px;
+    }
+
+    .console-input-line {
+        display: flex;
+        align-items: center;
+    }
+
+    .console-prompt {
+        margin-right: 5px;
+    }
+
+    .console-input-field {
+        flex: 1;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -220,6 +252,15 @@
                 <div class="validation-message">
                     <i class="bi bi-check-circle me-2"></i>
                     <span class="message-text"></span>
+                </div>
+            </div>
+            <div class="console-container">
+                <div id="consoleOutput" class="console-output"></div>
+                <div class="console-input-line">
+                    <span class="console-prompt">&gt;</span>
+                    <input type="text" id="consoleInput" class="console-input-field" 
+                           placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
+                           autocomplete="off">
                 </div>
             </div>
 

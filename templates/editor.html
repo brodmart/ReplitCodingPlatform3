@@ -25,66 +25,67 @@
         height: 100% !important;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
     }
-    .console-output {
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 14px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
+    .console-container {
         background-color: #1e1e1e;
         color: #d4d4d4;
-        padding: 1rem;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        padding: 10px;
         border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+    .console-output {
         flex-grow: 1;
         overflow-y: auto;
-        margin-bottom: 10px; /* Add space for input area */
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin-bottom: 10px;
     }
-    .console-input {
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 14px;
-        background-color: #1e1e1e;
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        padding: 5px 0;
+    }
+    .console-prompt {
+        color: #569cd6;
+        margin-right: 8px;
+        user-select: none;
+    }
+    .console-input-field {
+        background: transparent;
+        border: none;
         color: #d4d4d4;
-        border: 1px solid #3d3d3d;
-        border-radius: 4px;
-        padding: 0.5rem;
-        width: 100%;
-        resize: vertical;
-        min-height: 60px;
+        font-family: inherit;
+        font-size: inherit;
+        flex-grow: 1;
+        outline: none;
+    }
+    .console-input-field:focus {
+        outline: none;
     }
     .card {
         height: 100%;
         margin: 0;
-        border: 1px solid #ced4da;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border: 1px solid #2d2d2d;
+        background-color: #1e1e1e;
     }
     .card-body {
-        height: calc(100% - 48px); /* Account for card header */
+        height: calc(100% - 48px);
         padding: 0;
         display: flex;
         flex-direction: column;
     }
     .card-header {
+        padding: 0.5rem 1rem;
+        background-color: #2d2d2d;
+        border-bottom: 1px solid #3d3d3d;
+        color: #d4d4d4;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0.5rem 1rem;
-        background-color: #1e1e1e;
-        border-bottom: 1px solid #2d2d2d;
-        color: #d4d4d4;
-    }
-    .header-title {
-        font-weight: 500;
-        margin: 0;
-        color: #d4d4d4;
-    }
-    .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .input-label {
-        color: #d4d4d4;
-        margin-bottom: 5px;
-        font-size: 0.9em;
     }
 </style>
 {% endblock %}
@@ -110,7 +111,7 @@
                 <div class="card-header">
                     <span class="header-title">{% if lang == 'fr' %}Code{% else %}Code{% endif %}</span>
                     <div class="header-actions">
-                        <button id="runButton" class="btn btn-primary">
+                        <button id="runButton" class="btn btn-primary btn-sm">
                             {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
                         </button>
                     </div>
@@ -123,21 +124,17 @@
         <div class="output-container">
             <div class="card">
                 <div class="card-header">
-                    <span class="header-title">{% if lang == 'fr' %}Sortie{% else %}Output{% endif %}</span>
+                    <span class="header-title">{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
                 </div>
                 <div class="card-body">
-                    <div id="output" class="console-output">
-                        {% if lang == 'fr' %}
-                        La sortie de l'exécution apparaîtra ici...
-                        {% else %}
-                        Execution output will appear here...
-                        {% endif %}
-                    </div>
-                    <div class="input-container">
-                        <div class="input-label">
-                            {% if lang == 'fr' %}Entrée du Programme{% else %}Program Input{% endif %}
+                    <div class="console-container">
+                        <div id="consoleOutput" class="console-output"></div>
+                        <div class="console-input-line">
+                            <span class="console-prompt">&gt;</span>
+                            <input type="text" id="consoleInput" class="console-input-field" 
+                                   placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
+                                   autocomplete="off">
                         </div>
-                        <textarea id="programInput" class="console-input" placeholder="{% if lang == 'fr' %}Entrez les données d'entrée ici (une valeur par ligne){% else %}Enter input data here (one value per line){% endif %}"></textarea>
                     </div>
                 </div>
             </div>
@@ -147,9 +144,11 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Load scripts in the right order -->
+<!-- CodeMirror Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+<!-- Custom Console Script -->
+<script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Get templates from Flask
@@ -178,6 +177,11 @@ document.addEventListener('DOMContentLoaded', function() {
     editor.setValue(templates[initialLanguage]);
     editor.refresh();
 
+    // Initialize Interactive Console
+    const console = new InteractiveConsole({
+        lang: '{{ lang }}'
+    });
+
     // Language change handler
     document.getElementById("languageSelect").addEventListener("change", function() {
         const language = this.value;
@@ -195,92 +199,13 @@ document.addEventListener('DOMContentLoaded', function() {
         editor.refresh();
     });
 
-    // Execute code handler with enhanced error display
+    // Execute code handler
     document.getElementById("runButton").addEventListener("click", async function() {
-        const output = document.getElementById("output");
-        output.textContent = "Exécution en cours...";
-
         const code = editor.getValue().trim();
-        if (!code) {
-            output.innerHTML = '<div class="alert alert-warning">Le code ne peut pas être vide</div>';
-            return;
-        }
+        if (!code) return;
 
-        // Get input data
-        const inputData = document.getElementById("programInput").value;
-
-        // Get CSRF token
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-        if (!csrfToken) {
-            output.innerHTML = '<div class="alert alert-danger">Token de sécurité manquant. Veuillez rafraîchir la page.</div>';
-            return;
-        }
-
-        // Update UI for execution
-        const runButton = document.getElementById("runButton");
-        runButton.disabled = true;
-        output.innerHTML = `
-            <div class="alert alert-info">
-                <div class="d-flex align-items-center">
-                    <div class="spinner-border spinner-border-sm me-2" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    Exécution du code...
-                </div>
-            </div>`;
-
-        try {
-            const language = document.getElementById('languageSelect')?.value || 'cpp';
-            console.log('Executing code:', { language, codeLength: code.length, inputLength: inputData.length });
-
-            const response = await fetch('/activities/execute', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify({
-                    code: code,
-                    language: language,
-                    input: inputData
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log('Execution response:', data);
-
-            if (data.success) {
-                output.innerHTML = `
-                    <div class="alert alert-success mb-3">
-                        <i class="bi bi-check-circle me-2"></i>
-                        Code exécuté avec succès
-                    </div>
-                    <pre class="p-3 bg-dark text-light rounded">${data.output || 'Pas de sortie'}</pre>
-                    ${data.error ? `
-                        <div class="alert alert-warning mt-3">
-                            <i class="bi bi-exclamation-triangle me-2"></i>
-                            ${data.error}
-                        </div>` : ''}`;
-            } else {
-                throw new Error(data.error || 'Une erreur inconnue s\'est produite');
-            }
-        } catch (error) {
-            console.error('Execution error:', error);
-            output.innerHTML = `
-                <div class="alert alert-danger">
-                    <div class="d-flex align-items-center mb-2">
-                        <i class="bi bi-exclamation-circle me-2"></i>
-                        <strong>Erreur:</strong>
-                    </div>
-                    <pre class="mb-0">${error.message}</pre>
-                </div>`;
-        } finally {
-            runButton.disabled = false;
-        }
+        const language = document.getElementById('languageSelect')?.value || 'cpp';
+        await console.executeCode(code, language);
     });
 });
 </script>

@@ -3587,3 +3587,55 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-08 18:17:40,236 - werkzeug - INFO - 10.83.4.115 - - [08/Jan/2025 18:17:40] "GET /css/style.css HTTP/1.1" 200 -
 2025-01-08 18:17:40,244 - werkzeug - INFO - 10.83.4.115 - - [08/Jan/2025 18:17:40] "GET /js/editor.js HTTP/1.1" 200 -
 2025-01-08 18:17:40,306 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 18:17:40] "GET /codingmountains.webp HTTP/1.1" 200 -
+2025-01-08 18:25:19,010 - app - INFO - Logging configured successfully
+2025-01-08 18:25:19,010 - app - INFO - Logging configured successfully
+2025-01-08 18:25:19,010 - app - INFO - Initializing database...
+2025-01-08 18:25:19,010 - app - INFO - Initializing database...
+2025-01-08 18:25:19,023 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:25:19,023 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:25:19,023 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:25:19,024 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:25:19,026 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:25:19,026 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:25:19,026 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:25:19,582 - app - INFO - Database tables created successfully
+2025-01-08 18:25:19,582 - app - INFO - Database tables created successfully
+2025-01-08 18:25:20,618 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:25:20,619 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:25:20,624 - app - INFO - All blueprints registered successfully
+2025-01-08 18:25:20,624 - app - INFO - All blueprints registered successfully
+2025-01-08 18:25:20,626 - app - INFO - Application initialized successfully
+2025-01-08 18:25:20,626 - app - INFO - Application initialized successfully
+2025-01-08 18:25:20,627 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:25:20,691 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.72:80
+2025-01-08 18:25:20,692 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 18:25:20,693 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:25:21,198 - app - INFO - Logging configured successfully
+2025-01-08 18:25:21,198 - app - INFO - Logging configured successfully
+2025-01-08 18:25:21,198 - app - INFO - Initializing database...
+2025-01-08 18:25:21,198 - app - INFO - Initializing database...
+2025-01-08 18:25:21,211 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:25:21,212 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:25:21,212 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:25:21,212 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:25:21,214 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:25:21,214 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:25:21,214 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:25:21,782 - app - INFO - Database tables created successfully
+2025-01-08 18:25:21,782 - app - INFO - Database tables created successfully
+2025-01-08 18:25:22,476 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:25:22,477 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:25:22,483 - app - INFO - All blueprints registered successfully
+2025-01-08 18:25:22,483 - app - INFO - All blueprints registered successfully
+2025-01-08 18:25:22,485 - app - INFO - Application initialized successfully
+2025-01-08 18:25:22,485 - app - INFO - Application initialized successfully
+2025-01-08 18:25:22,486 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:25:22,541 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:25:22,542 - werkzeug - INFO -  * Debugger PIN: 934-497-987
+2025-01-08 18:25:22,611 - werkzeug - INFO - 10.83.5.94 - - [08/Jan/2025 18:25:22] "GET / HTTP/1.1" 200 -
+2025-01-08 18:25:22,630 - werkzeug - INFO - 10.83.5.94 - - [08/Jan/2025 18:25:22] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 18:25:22,704 - werkzeug - INFO - 10.83.4.115 - - [08/Jan/2025 18:25:22] "GET /codingmountains.webp HTTP/1.1" 200 -
+2025-01-08 18:25:22,708 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 18:25:22] "GET /js/editor.js HTTP/1.1" 200 -
