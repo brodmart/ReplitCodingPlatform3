@@ -74,10 +74,34 @@ def create_app():
         # Handle proxy headers
         app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-        # Add main route
+        # Add main routes
         @app.route('/')
         def index():
             return render_template('index.html')
+
+        @app.route('/about')
+        def about():
+            return render_template('about.html')
+
+        @app.route('/contact')
+        def contact():
+            return render_template('contact.html')
+
+        @app.route('/faq')
+        def faq():
+            return render_template('faq.html')
+
+        @app.route('/terms')
+        def terms():
+            return render_template('terms.html')
+
+        @app.route('/privacy')
+        def privacy():
+            return render_template('privacy.html')
+
+        @app.route('/accessibility')
+        def accessibility():
+            return render_template('accessibility.html')
 
         # Register blueprints
         from routes.auth_routes import auth
