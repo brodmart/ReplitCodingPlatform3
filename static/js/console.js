@@ -207,6 +207,7 @@ class InteractiveConsole {
         this.outputPoller = setInterval(async () => {
             if (!this.sessionId) {
                 clearInterval(this.outputPoller);
+                this.outputPoller = null;
                 return;
             }
 
@@ -222,6 +223,11 @@ class InteractiveConsole {
                         this.appendToConsole(data.output);
                     }
 
+                    if (data.session_ended) {
+                        this.endSession();
+                        return;
+                    }
+
                     // Handle input state
                     const wasWaiting = this.isWaitingForInput;
                     this.isWaitingForInput = data.waiting_for_input;
@@ -232,7 +238,6 @@ class InteractiveConsole {
                     if (this.isWaitingForInput) {
                         inputLine?.classList.add('console-waiting');
                         if (!wasWaiting) {
-                            // Only focus and process queue when transitioning to waiting state
                             this.inputElement.focus();
                             this.processInputQueue();
                         }
@@ -240,22 +245,15 @@ class InteractiveConsole {
                         inputLine?.classList.remove('console-waiting');
                         this.inputElement.blur();
                     }
-
-                    if (data.session_ended) {
-                        this.endSession();
-                    }
                 } else {
-                    clearInterval(this.outputPoller);
-                    this.sessionId = null;
                     if (data.error) {
                         this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`, 'error');
                     }
+                    this.endSession();
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
-                clearInterval(this.outputPoller);
-                this.sessionId = null;
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
+                this.endSession();
             }
         }, 100); // Poll every 100ms
     }
@@ -296,6 +294,11 @@ class InteractiveConsole {
                 }).catch(console.error);
             }
 
+            if (this.outputPoller) {
+                clearInterval(this.outputPoller);
+                this.outputPoller = null;
+            }
+
             this.sessionId = null;
             this.isWaitingForInput = false;
             this.inputElement.disabled = true;
@@ -304,11 +307,6 @@ class InteractiveConsole {
 
             const inputLine = document.querySelector('.console-input-line');
             inputLine?.classList.remove('console-waiting');
-
-            if (this.outputPoller) {
-                clearInterval(this.outputPoller);
-                this.outputPoller = null;
-            }
         }
     }
 }
