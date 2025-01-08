@@ -15,10 +15,33 @@ def find_free_port(start_port=5000, max_port=5100):
     raise RuntimeError("Could not find a free port")
 
 if __name__ == '__main__':
+    # Configure logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
     try:
-        port = int(os.environ.get('PORT', find_free_port()))
-        logging.info(f"Starting Flask server on port {port}")
+        # Create temp directory if it doesn't exist
+        temp_dir = os.path.join(os.getcwd(), 'temp')
+        if not os.path.exists(temp_dir):
+            os.makedirs(temp_dir, exist_ok=True)
+            os.chmod(temp_dir, 0o755)
+
+        # Always try port 5000 first
+        port = 5000
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('0.0.0.0', port))
+        except OSError:
+            # If port 5000 is not available, find another one
+            port = find_free_port(5001)
+
+        logger.info(f"Starting Flask server on port {port}")
+
+        # Start the Flask application
         app.run(host='0.0.0.0', port=port, debug=True)
     except Exception as e:
-        logging.error(f"Failed to start Flask server: {e}", exc_info=True)
+        logger.error(f"Failed to start Flask server: {e}", exc_info=True)
         raise

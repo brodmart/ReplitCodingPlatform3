@@ -1,17 +1,16 @@
+import os
+import logging
+import time
+import subprocess
+import shutil
+import select
+from threading import Lock
+import atexit
 from flask import Blueprint, render_template, request, jsonify, session
 from werkzeug.exceptions import RequestTimeout
 from database import db
 from models import CodingActivity
 from extensions import limiter
-import logging
-import time
-import subprocess
-import os
-import shutil
-import select
-from threading import Lock
-import atexit
-from compiler_service import compile_and_run
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -20,12 +19,12 @@ logger = logging.getLogger(__name__)
 active_sessions = {}
 session_lock = Lock()
 
-# Ensure temp directory exists and is accessible
+# Create temp directory in the workspace
 TEMP_DIR = os.path.join(os.getcwd(), 'temp')
-os.makedirs(TEMP_DIR, exist_ok=True)
-os.chmod(TEMP_DIR, 0o755)
+if not os.path.exists(TEMP_DIR):
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    os.chmod(TEMP_DIR, 0o755)
 
-# Update the start_session route to use the new compiler service functionality
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
 def start_session():
@@ -49,22 +48,38 @@ def start_session():
         session_dir = os.path.join(TEMP_DIR, session_id)
         os.makedirs(session_dir, exist_ok=True)
 
-        # Compile code and place executable in session directory
-        result = compile_and_run(code, language, compile_only=True, dest_dir=session_dir)
-        if not result.get('success', False):
-            shutil.rmtree(session_dir, ignore_errors=True)
-            return jsonify({
-                'success': False,
-                'error': result.get('error', 'Compilation failed')
-            }), 400
-
         try:
-            # Determine executable path and command
+            # Write source code to file
+            file_extension = '.cpp' if language == 'cpp' else '.cs'
+            source_file = os.path.join(session_dir, f'program{file_extension}')
+            with open(source_file, 'w') as f:
+                f.write(code)
+
+            # Compile code
             executable_name = 'program' if language == 'cpp' else 'program.exe'
             executable_path = os.path.join(session_dir, executable_name)
 
-            if not os.path.exists(executable_path):
-                raise FileNotFoundError(f"Executable not found at {executable_path}")
+            if language == 'cpp':
+                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
+            else:
+                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
+
+            compile_process = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            if compile_process.returncode != 0:
+                logger.error(f"Compilation failed: {compile_process.stderr}")
+                return jsonify({
+                    'success': False,
+                    'error': compile_process.stderr
+                }), 400
+
+            # Make executable
+            os.chmod(executable_path, 0o755)
 
             # Start interactive process
             cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
@@ -89,11 +104,20 @@ def start_session():
                     'waiting_for_input': False
                 }
 
+            logger.info(f"Started session {session_id} successfully")
             return jsonify({
                 'success': True,
                 'session_id': session_id,
                 'message': 'Program started successfully'
             })
+
+        except subprocess.TimeoutExpired:
+            logger.error("Compilation timeout")
+            shutil.rmtree(session_dir, ignore_errors=True)
+            return jsonify({
+                'success': False,
+                'error': 'Compilation timeout'
+            }), 400
 
         except Exception as e:
             logger.error(f"Failed to start process: {str(e)}", exc_info=True)
@@ -152,6 +176,9 @@ def send_input():
             process.stdin.flush()
             session['waiting_for_input'] = False
             session['last_activity'] = time.time()
+
+            # Small delay to allow program to process input
+            time.sleep(0.1)
             return jsonify({'success': True})
 
         except Exception as e:
@@ -182,16 +209,11 @@ def get_output():
 
         # Check if process has terminated
         if process.poll() is not None:
-            try:
-                stdout, stderr = process.communicate(timeout=1)
-                if stdout:
-                    output.append(stdout)
-                if stderr:
-                    output.append(stderr)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                stdout, stderr = process.communicate()
-
+            stdout, stderr = process.communicate()
+            if stdout:
+                output.append(stdout)
+            if stderr:
+                output.append(stderr)
             cleanup_session(session_id)
             return jsonify({
                 'success': True,
@@ -199,9 +221,9 @@ def get_output():
                 'session_ended': True
             })
 
-        # Read available output
+        # Read available output with non-blocking
         try:
-            # Check for available output using select with a short timeout
+            # Use select with a short timeout to check for available output
             reads = [process.stdout, process.stderr]
             readable, _, _ = select.select(reads, [], [], 0.1)
 
@@ -209,27 +231,25 @@ def get_output():
                 line = pipe.readline()
                 if line:
                     output.append(line)
-                    logger.debug(f"Read line from process: {line.strip()}")
                     # Enhanced input prompt detection
                     lower_line = line.lower()
                     if any(prompt in lower_line for prompt in [
-                        'input', 'enter', 'cin', 'console.readline', 'getline', '?', ':'
-                    ]) or (
-                        # Additional checks for common input patterns
-                        ('>' in line and len(line.strip()) < 10) or  # Short prompt with >
-                        (line.strip().endswith(':')) or             # Line ending with :
-                        ('please' in lower_line and any(word in lower_line for word in ['type', 'enter']))
-                    ):
+                        'input', 'enter', 'type', '?', ':', '>',
+                        'cin', 'cin >>', 'console.readline', 'console.read',
+                        'please', 'getline', 'input:', 'enter:', 'name:'
+                    ]):
                         waiting_for_input = True
                         session['waiting_for_input'] = True
-                        logger.debug("Detected input prompt, setting waiting_for_input=True")
+
+            # If no output is available and process is still running,
+            # check if we're waiting for input
+            if not output and not readable and process.poll() is None:
+                # If the process is not terminated and we don't have output,
+                # it's likely waiting for input
+                waiting_for_input = True
+                session['waiting_for_input'] = True
 
             session['last_activity'] = time.time()
-
-            # If we're waiting for input but no new output, maintain the waiting state
-            if session.get('waiting_for_input') and not output:
-                waiting_for_input = True
-
             return jsonify({
                 'success': True,
                 'output': ''.join(output) if output else '',
