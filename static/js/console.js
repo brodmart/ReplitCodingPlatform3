@@ -19,7 +19,8 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.maxRetries = 3;
-        this.baseDelay = 100;
+        this.baseDelay = 500; // Increased base delay
+        this.isSessionValid = true;
         this.setupEventListeners();
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -30,7 +31,7 @@ class InteractiveConsole {
 
     setupEventListeners() {
         this.inputElement.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter' && this.isWaitingForInput) {
+            if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
                 const inputText = this.inputElement.value;
                 this.inputElement.value = '';
@@ -44,13 +45,13 @@ class InteractiveConsole {
         });
 
         this.inputElement.addEventListener('focus', () => {
-            if (!this.isWaitingForInput) {
+            if (!this.isWaitingForInput || !this.isSessionValid) {
                 this.inputElement.blur();
             }
         });
 
         this.inputElement.addEventListener('paste', (e) => {
-            if (this.isWaitingForInput) {
+            if (this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
                 const pastedText = e.clipboardData.getData('text');
                 const lines = pastedText.split('\n');
@@ -66,11 +67,11 @@ class InteractiveConsole {
     }
 
     setInputState(waiting) {
-        this.isWaitingForInput = waiting;
-        this.inputElement.disabled = !waiting;
+        this.isWaitingForInput = waiting && this.isSessionValid;
+        this.inputElement.disabled = !this.isWaitingForInput;
 
         if (this.inputLine) {
-            if (waiting) {
+            if (this.isWaitingForInput) {
                 this.inputLine.classList.add('console-waiting');
                 this.inputElement.focus();
             } else {
@@ -81,7 +82,7 @@ class InteractiveConsole {
     }
 
     async processInputQueue() {
-        if (this.inputQueue.length > 0 && this.isWaitingForInput) {
+        if (this.inputQueue.length > 0 && this.isWaitingForInput && this.isSessionValid) {
             const input = this.inputQueue.shift();
             this.inputElement.value = input;
             const event = new KeyboardEvent('keypress', { key: 'Enter' });
@@ -90,6 +91,13 @@ class InteractiveConsole {
     }
 
     appendToConsole(text, type = 'output') {
+        if (!text) return;
+
+        // Prevent duplicate error messages
+        if (type === 'error' && this.outputElement.lastChild?.textContent?.includes(text)) {
+            return;
+        }
+
         const line = document.createElement('div');
         line.className = `console-${type}`;
         line.textContent = type === 'input' ? `> ${text}` : text;
@@ -104,6 +112,7 @@ class InteractiveConsole {
         this.setInputState(false);
         this.endSession();
         this.pollRetryCount = 0;
+        this.isSessionValid = true;
     }
 
     async startSession(code, language) {
@@ -128,6 +137,7 @@ class InteractiveConsole {
             const data = await response.json();
             if (response.ok && data.success) {
                 this.sessionId = data.session_id;
+                this.isSessionValid = true;
                 this.startOutputPolling();
                 return true;
             } else {
@@ -141,16 +151,16 @@ class InteractiveConsole {
     }
 
     calculateBackoffDelay() {
-        return Math.min(this.baseDelay * Math.pow(2, this.pollRetryCount), 2000);
+        return Math.min(this.baseDelay * Math.pow(2, this.pollRetryCount), 3000);
     }
 
-    startOutputPolling() {
+    async startOutputPolling() {
         if (this.outputPoller) {
             clearInterval(this.outputPoller);
         }
 
         const poll = async () => {
-            if (!this.sessionId) {
+            if (!this.sessionId || !this.isSessionValid) {
                 clearInterval(this.outputPoller);
                 this.outputPoller = null;
                 return;
@@ -161,7 +171,7 @@ class InteractiveConsole {
                 const data = await response.json();
 
                 if (response.ok && data.success) {
-                    this.pollRetryCount = 0;  // Reset retry count on success
+                    this.pollRetryCount = 0;
 
                     if (data.output) {
                         this.appendToConsole(data.output);
@@ -173,10 +183,14 @@ class InteractiveConsole {
                     }
 
                     this.setInputState(data.waiting_for_input);
-                    if (data.waiting_for_input) {
-                        this.processInputQueue();
-                    }
                 } else {
+                    if (data.error?.includes('Invalid session')) {
+                        this.isSessionValid = false;
+                        this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
+                        this.endSession();
+                        return;
+                    }
+
                     this.pollRetryCount++;
                     if (this.pollRetryCount >= this.maxRetries) {
                         this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Session ended unexpectedly'}\n`, 'error');
@@ -195,10 +209,15 @@ class InteractiveConsole {
         };
 
         // Initial poll
-        poll();
+        await poll();
 
         // Start polling with dynamic interval
         this.outputPoller = setInterval(async () => {
+            if (!this.isSessionValid) {
+                clearInterval(this.outputPoller);
+                this.outputPoller = null;
+                return;
+            }
             const delay = this.calculateBackoffDelay();
             await new Promise(resolve => setTimeout(resolve, delay));
             await poll();
@@ -206,7 +225,7 @@ class InteractiveConsole {
     }
 
     async sendInput(input) {
-        if (!this.sessionId || !this.csrfToken) return;
+        if (!this.sessionId || !this.csrfToken || !this.isSessionValid) return;
 
         try {
             const response = await fetch('/activities/send_input', {
@@ -223,10 +242,13 @@ class InteractiveConsole {
 
             const data = await response.json();
             if (!response.ok || !data.success) {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to send input'}\n`, 'error');
-                if (response.status === 400) {
+                if (response.status === 400 || data.error?.includes('Invalid session')) {
+                    this.isSessionValid = false;
+                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
                     this.endSession();
+                    return;
                 }
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to send input'}\n`, 'error');
             }
 
             setTimeout(() => this.processInputQueue(), 100);
@@ -255,6 +277,7 @@ class InteractiveConsole {
             }
 
             this.sessionId = null;
+            this.isSessionValid = false;
             this.setInputState(false);
             this.inputQueue = [];
             this.pollRetryCount = 0;
