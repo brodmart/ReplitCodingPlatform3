@@ -14,25 +14,57 @@
         margin-bottom: 20px;
     }
     .console-container {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
         height: calc(100vh - 300px);
         min-height: 200px;
-        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
     .CodeMirror {
         height: 100% !important;
         border: 1px solid var(--bs-border-color);
         border-radius: 4px;
     }
-    #output {
-        height: 100%;
+    .console-output {
+        flex-grow: 1;
         overflow-y: auto;
-        font-family: monospace;
+        padding: 10px;
+        margin: 0;
         white-space: pre-wrap;
         word-wrap: break-word;
-        background: #1e1e1e;
+    }
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        border-top: 1px solid #2d2d2d;
+        background-color: #1e1e1e;
+    }
+    .console-prompt {
+        color: #569cd6;
+        margin-right: 8px;
+        user-select: none;
+        padding: 0 8px;
+    }
+    #consoleInput {
+        background: transparent;
+        border: none;
         color: #d4d4d4;
-        padding: 1rem;
-        border-radius: 4px;
+        font-family: inherit;
+        font-size: inherit;
+        width: 100%;
+        outline: none;
+        padding: 8px;
+    }
+    #consoleInput:focus {
+        background-color: #2d2d2d;
+    }
+    .console-waiting {
+        background-color: #2d2d2d;
     }
 </style>
 {% endblock %}
@@ -65,13 +97,16 @@
                 <div class="card-header">
                     {% if lang == 'fr' %}Console{% else %}Console{% endif %}
                 </div>
-                <div class="card-body">
-                    <div id="output" class="console-output">
-                        {% if lang == 'fr' %}
-                        La sortie de l'exécution apparaîtra ici...
-                        {% else %}
-                        Execution output will appear here...
-                        {% endif %}
+                <div class="card-body p-0">
+                    <div class="console-container">
+                        <div id="consoleOutput" class="console-output"></div>
+                        <div class="console-input-line">
+                            <span class="console-prompt">&gt;</span>
+                            <input type="text" id="consoleInput" 
+                                   placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
+                                   autocomplete="off"
+                                   spellcheck="false">
+                        </div>
                     </div>
                 </div>
             </div>
