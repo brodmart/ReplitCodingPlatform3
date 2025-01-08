@@ -5,20 +5,24 @@ import subprocess
 import tempfile
 import os
 import logging
+import shutil
 from typing import Dict, Any, Optional
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None, compile_only: bool = False) -> Dict[str, Any]:
     """
     Compile and run code with proper input/output handling.
+    If compile_only is True, it will only compile the code and copy the executable to the current directory.
     """
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
             if language == 'cpp':
-                source_file = Path(temp_dir) / "program.cpp"
-                executable = Path(temp_dir) / "program"
+                source_file = temp_path / "program.cpp"
+                executable = temp_path / "program"
 
                 # Write source code
                 with open(source_file, 'w') as f:
@@ -39,7 +43,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'error': compile_process.stderr
                     }
 
-                # Run with input
+                if compile_only:
+                    # Copy executable to current directory if compilation successful
+                    try:
+                        dest_executable = Path.cwd() / executable.name
+                        shutil.copy2(executable, dest_executable)
+                        os.chmod(dest_executable, 0o755)  # Make executable
+                        return {'success': True}
+                    except Exception as e:
+                        return {
+                            'success': False,
+                            'error': f"Failed to copy executable: {str(e)}"
+                        }
+
+                # Run with input if not compile_only
                 try:
                     run_process = subprocess.run(
                         [str(executable)],
@@ -64,8 +81,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
             elif language == 'csharp':
-                source_file = Path(temp_dir) / "program.cs"
-                executable = Path(temp_dir) / "program.exe"
+                source_file = temp_path / "program.cs"
+                executable = temp_path / "program.exe"
 
                 # Write source code
                 with open(source_file, 'w') as f:
@@ -86,7 +103,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'error': compile_process.stderr
                     }
 
-                # Run with input
+                if compile_only:
+                    # Copy executable to current directory if compilation successful
+                    try:
+                        dest_executable = Path.cwd() / executable.name
+                        shutil.copy2(executable, dest_executable)
+                        os.chmod(dest_executable, 0o755)  # Make executable
+                        return {'success': True}
+                    except Exception as e:
+                        return {
+                            'success': False,
+                            'error': f"Failed to copy executable: {str(e)}"
+                        }
+
+                # Run with input if not compile_only
                 try:
                     run_process = subprocess.run(
                         ['mono', str(executable)],
@@ -118,7 +148,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 }
 
     except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
+        logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
         return {
             'success': False,
             'output': '',

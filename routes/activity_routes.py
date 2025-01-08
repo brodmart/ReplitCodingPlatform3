@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 active_sessions = {}
 session_lock = Lock()
 
-# Ensure temp directory exists
+# Ensure temp directory exists and is accessible
 TEMP_DIR = os.path.join(os.getcwd(), 'temp')
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.chmod(TEMP_DIR, 0o755)
@@ -44,24 +44,32 @@ def start_session():
             return jsonify({'success': False, 'error': 'Unsupported language'}), 400
 
         # Create unique session directory
-        session_dir = os.path.join(TEMP_DIR, str(time.time()))
+        session_id = str(time.time())
+        session_dir = os.path.join(TEMP_DIR, session_id)
         os.makedirs(session_dir, exist_ok=True)
 
         # Write code to file
-        source_file = os.path.join(session_dir, f'program.{language}')
+        file_extension = 'cpp' if language == 'cpp' else 'cs'
+        source_file = os.path.join(session_dir, f'program.{file_extension}')
         with open(source_file, 'w') as f:
             f.write(code)
 
-        # Compile and run initial test
-        result = compile_and_run(code, language)
+        # Compile code
+        result = compile_and_run(code, language, compile_only=True)
         if not result.get('success', False):
             shutil.rmtree(session_dir, ignore_errors=True)
-            return jsonify(result), 400
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Compilation failed')
+            }), 400
 
-        # Start interactive process
+        # Copy compiled executable to session directory
+        executable_name = 'program' if language == 'cpp' else 'program.exe'
+        executable_path = os.path.join(session_dir, executable_name)
+
         try:
-            executable = os.path.join(session_dir, 'program' if language == 'cpp' else 'program.exe')
-            cmd = [executable] if language == 'cpp' else ['mono', executable]
+            # Start interactive process
+            cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
 
             process = subprocess.Popen(
                 cmd,
@@ -73,7 +81,6 @@ def start_session():
                 cwd=session_dir
             )
 
-            session_id = str(time.time())
             with session_lock:
                 active_sessions[session_id] = {
                     'process': process,
@@ -91,7 +98,7 @@ def start_session():
             })
 
         except Exception as e:
-            logger.error(f"Failed to start process: {e}")
+            logger.error(f"Failed to start process: {str(e)}", exc_info=True)
             shutil.rmtree(session_dir, ignore_errors=True)
             return jsonify({
                 'success': False,
@@ -99,7 +106,7 @@ def start_session():
             }), 500
 
     except Exception as e:
-        logger.error(f"Error in start_session: {e}", exc_info=True)
+        logger.error(f"Error in start_session: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
