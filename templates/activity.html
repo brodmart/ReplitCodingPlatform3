@@ -28,12 +28,13 @@
         color: #d4d4d4;
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 14px;
-        height: 400px;
+        height: 300px;
         display: flex;
         flex-direction: column;
         border-radius: 4px;
         border: 1px solid #2d2d2d;
         overflow: hidden;
+        margin-top: 20px;
     }
 
     #consoleOutput {
@@ -48,7 +49,7 @@
     .console-input-line {
         display: flex;
         align-items: center;
-        padding: 5px 0;
+        padding: 5px;
         border-top: 1px solid #2d2d2d;
         background-color: #1e1e1e;
     }
@@ -85,23 +86,13 @@
 
     .editor-console-row {
         display: flex;
+        flex-direction: column;
         gap: 20px;
         margin: 0;
     }
 
     .editor-column, .console-column {
-        flex: 1;
-        min-width: 0;
-    }
-
-    @media (max-width: 991px) {
-        .editor-console-row {
-            flex-direction: column;
-        }
-        .editor-column, .console-column {
-            width: 100%;
-            margin-bottom: 20px;
-        }
+        width: 100%;
     }
 
     .card {
@@ -123,6 +114,15 @@
     .btn-primary:hover {
         background-color: #1177bb;
         border-color: #1177bb;
+    }
+
+    .console-disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .console-waiting {
+        background-color: #2d2d2d;
     }
 </style>
 {% endblock %}
@@ -146,7 +146,7 @@
                             <div class="card">
                                 <div class="card-header">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">Code Editor</h5>
+                                        <h5 class="mb-0">{% if lang == 'fr' %}Éditeur de code{% else %}Code Editor{% endif %}</h5>
                                         <div class="d-flex gap-2">
                                             <input type="hidden" id="languageSelect" value="{{ activity.language }}">
                                             <button id="runButton" class="btn btn-primary">
@@ -166,16 +166,23 @@
                         <div class="console-column">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5 class="mb-0">{% if lang == 'fr' %}Console{% else %}Console{% endif %}</h5>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0">{% if lang == 'fr' %}Console interactive{% else %}Interactive Console{% endif %}</h5>
+                                        <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="console-container">
                                         <div id="consoleOutput"></div>
                                         <div class="console-input-line">
+                                            <span class="console-prompt">&gt;</span>
                                             <input type="text" id="consoleInput" 
                                                    placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
                                                    autocomplete="off"
-                                                   spellcheck="false">
+                                                   spellcheck="false"
+                                                   disabled>
                                         </div>
                                     </div>
                                 </div>
@@ -233,6 +240,11 @@ document.addEventListener('DOMContentLoaded', function() {
         lang: '{{ lang }}'
     });
 
+    // Clear console handler
+    document.getElementById("clearConsole").addEventListener("click", function() {
+        console.clear();
+    });
+
     // Execute code handler
     document.getElementById("runButton").addEventListener("click", async function() {
         const code = editor.getValue().trim();
@@ -240,6 +252,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const language = document.getElementById('languageSelect').value;
         await console.executeCode(code, language);
+    });
+
+    // Handle Ctrl+Enter/Cmd+Enter to run code
+    editor.setOption("extraKeys", {
+        ...editor.getOption("extraKeys"),
+        "Ctrl-Enter": function(cm) {
+            document.getElementById("runButton").click();
+        },
+        "Cmd-Enter": function(cm) {
+            document.getElementById("runButton").click();
+        }
     });
 });
 </script>

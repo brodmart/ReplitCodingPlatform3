@@ -1,16 +1,17 @@
 from flask import Blueprint, render_template, request, jsonify, session
+from werkzeug.exceptions import RequestTimeout
 from database import db
 from models import CodingActivity
 from extensions import limiter
-from werkzeug.exceptions import RequestTimeout
 import logging
 import time
 import subprocess
 import os
 import shutil
-from threading import Lock, Timer
+import select
+from threading import Lock
+import atexit
 from compiler_service import compile_and_run
-from utils.api_logger import log_api_request
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -19,33 +20,48 @@ logger = logging.getLogger(__name__)
 active_sessions = {}
 session_lock = Lock()
 
-# Ensure temp directory exists and has proper permissions
+# Ensure temp directory exists
 TEMP_DIR = os.path.join(os.getcwd(), 'temp')
 os.makedirs(TEMP_DIR, exist_ok=True)
-os.chmod(TEMP_DIR, 0o755)  # Set proper permissions
+os.chmod(TEMP_DIR, 0o755)
+
+def cleanup_old_sessions():
+    """Clean up inactive sessions older than 30 minutes"""
+    try:
+        current_time = time.time()
+        with session_lock:
+            for session_id in list(active_sessions.keys()):
+                session = active_sessions[session_id]
+                if current_time - session['last_activity'] > 1800:  # 30 minutes
+                    cleanup_session(session_id)
+    except Exception as e:
+        logger.error(f"Error in cleanup_old_sessions: {e}", exc_info=True)
+
+# Register cleanup on application shutdown
+atexit.register(cleanup_old_sessions)
 
 @activities.route('/start_session', methods=['POST'])
 def start_session():
     """Start a new interactive coding session"""
     try:
         if not request.is_json:
-            return jsonify({'success': False, 'error': 'Format de requête invalide'}), 400
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
         data = request.get_json()
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
 
         if not code:
-            return jsonify({'success': False, 'error': 'Le code ne peut pas être vide'}), 400
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
         if language not in ['cpp', 'csharp']:
-            return jsonify({'success': False, 'error': 'Langage non supporté'}), 400
+            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
 
-        # Create unique temp directory for this session
+        # Create unique session directory
         session_dir = os.path.join(TEMP_DIR, str(time.time()))
         os.makedirs(session_dir, exist_ok=True)
 
-        # Write source code to file
+        # Write code to file
         source_file = os.path.join(session_dir, f'program.{language}')
         with open(source_file, 'w') as f:
             f.write(code)
@@ -85,7 +101,7 @@ def start_session():
             return jsonify({
                 'success': True,
                 'session_id': session_id,
-                'message': 'Programme démarré'
+                'message': 'Program started successfully'
             })
 
         except Exception as e:
@@ -93,7 +109,7 @@ def start_session():
             shutil.rmtree(session_dir, ignore_errors=True)
             return jsonify({
                 'success': False,
-                'error': f'Échec du démarrage du programme: {str(e)}'
+                'error': f'Failed to start program: {str(e)}'
             }), 500
 
     except Exception as e:
@@ -108,26 +124,25 @@ def send_input():
     """Send input to a running program"""
     try:
         if not request.is_json:
-            return jsonify({'success': False, 'error': 'Format de requête invalide'}), 400
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
         data = request.get_json()
         session_id = data.get('session_id')
         input_text = data.get('input', '')
 
         if not session_id or session_id not in active_sessions:
-            return jsonify({'success': False, 'error': 'Session invalide'}), 400
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
 
         session = active_sessions[session_id]
         process = session['process']
 
-        # Check if process is still running
         if process.poll() is not None:
             cleanup_session(session_id)
-            return jsonify({'success': False, 'error': 'Le programme est terminé'}), 400
+            return jsonify({'success': False, 'error': 'Program has ended'}), 400
 
         try:
-            # Send input to process
-            process.stdin.write(input_text)
+            # Send input to process with newline
+            process.stdin.write(f"{input_text}\n")
             process.stdin.flush()
             session['waiting_for_input'] = False
             session['last_activity'] = time.time()
@@ -147,7 +162,7 @@ def get_output():
     try:
         session_id = request.args.get('session_id')
         if not session_id or session_id not in active_sessions:
-            return jsonify({'success': False, 'error': 'Session invalide'}), 400
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
 
         session = active_sessions[session_id]
         process = session['process']
@@ -161,7 +176,6 @@ def get_output():
 
         # Check if process has terminated
         if process.poll() is not None:
-            # Get any remaining output
             try:
                 stdout, stderr = process.communicate(timeout=1)
                 if stdout:
@@ -179,27 +193,23 @@ def get_output():
                 'session_ended': True
             })
 
-        # Read any available output
+        # Read available output
         try:
-            # Read stdout without blocking
-            while True:
-                # Use select to check if there's data to read
-                import select
-                rlist, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
+            # Check for available output using select
+            reads = [process.stdout, process.stderr]
+            readable, _, _ = select.select(reads, [], [], 0.1)
 
-                if not rlist:
-                    # No more data to read right now
-                    break
-
-                for pipe in rlist:
-                    line = pipe.readline()
-                    if line:
-                        output.append(line)
-                        # Check if program is waiting for input
-                        if ('cin' in line.lower() or 'console.read' in line.lower() or 
-                            'enter' in line.lower() or 'input' in line.lower()):
-                            waiting_for_input = True
-                            session['waiting_for_input'] = True
+            for pipe in readable:
+                line = pipe.readline()
+                if line:
+                    output.append(line)
+                    # Check for input prompts
+                    lower_line = line.lower()
+                    if any(prompt in lower_line for prompt in [
+                        'cin', 'console.read', 'enter', 'input', '?', ':'
+                    ]):
+                        waiting_for_input = True
+                        session['waiting_for_input'] = True
 
             session['last_activity'] = time.time()
             return jsonify({
@@ -217,32 +227,12 @@ def get_output():
         logger.error(f"Error in get_output: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@activities.route('/end_session', methods=['POST'])
-def end_session():
-    """End a coding session and clean up resources"""
-    try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Format de requête invalide'}), 400
-
-        data = request.get_json()
-        session_id = data.get('session_id')
-
-        if not session_id or session_id not in active_sessions:
-            return jsonify({'success': False, 'error': 'Session invalide'}), 400
-
-        cleanup_session(session_id)
-        return jsonify({'success': True, 'message': 'Session terminée'})
-
-    except Exception as e:
-        logger.error(f"Error ending session: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 def cleanup_session(session_id):
     """Clean up session resources"""
     if session_id in active_sessions:
         session = active_sessions[session_id]
         try:
-            # Terminate the process if it's still running
+            # Terminate process if still running
             process = session['process']
             if process.poll() is None:
                 process.terminate()
@@ -252,34 +242,35 @@ def cleanup_session(session_id):
                     process.kill()
                     process.wait()
 
-        except Exception as e:
-            logger.error(f"Error terminating process: {e}", exc_info=True)
-
-        # Clean up temporary directory
-        try:
+            # Clean up temp directory
             shutil.rmtree(session['temp_dir'], ignore_errors=True)
         except Exception as e:
-            logger.error(f"Error cleaning up temp directory: {e}", exc_info=True)
+            logger.error(f"Error cleaning up session: {e}", exc_info=True)
 
         # Remove session from active sessions
         with session_lock:
             del active_sessions[session_id]
 
-# Session cleanup background task
-def cleanup_old_sessions():
-    """Clean up inactive sessions older than 30 minutes"""
-    current_time = time.time()
-    with session_lock:
-        for session_id in list(active_sessions.keys()):
-            session = active_sessions[session_id]
-            if current_time - session['last_activity'] > 1800:  # 30 minutes
-                cleanup_session(session_id)
-    Timer(1800, cleanup_old_sessions).start()
+@activities.route('/end_session', methods=['POST'])
+def end_session():
+    """End a coding session and clean up resources"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
-# Start the cleanup task
-cleanup_old_sessions()
+        data = request.get_json()
+        session_id = data.get('session_id')
 
-# Route handlers
+        if not session_id or session_id not in active_sessions:
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+
+        cleanup_session(session_id)
+        return jsonify({'success': True, 'message': 'Session ended'})
+
+    except Exception as e:
+        logger.error(f"Error ending session: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @activities.route('/execute', methods=['POST'])
 @limiter.limit("10 per minute")
 def execute_code():
@@ -291,14 +282,14 @@ def execute_code():
         if not request.is_json:
             return jsonify({
                 'success': False,
-                'error': 'Format de requête invalide. Veuillez rafraîchir la page et réessayer.'
+                'error': 'Invalid request format. Please refresh the page and try again.'
             }), 400
 
         data = request.get_json()
         if not data:
             return jsonify({
                 'success': False,
-                'error': 'Données manquantes. Veuillez réessayer.'
+                'error': 'Missing data. Please try again.'
             }), 400
 
         code = data.get('code', '').strip()
@@ -308,24 +299,24 @@ def execute_code():
         if not code:
             return jsonify({
                 'success': False,
-                'error': 'Le code ne peut pas être vide'
+                'error': 'Code cannot be empty'
             }), 400
 
         if language not in ['cpp', 'csharp']:
             return jsonify({
                 'success': False,
-                'error': 'Langage non supporté'
+                'error': 'Unsupported language'
             }), 400
 
         # Pass input data to compiler service
         result = compile_and_run(code, language, input_data)
 
         if not result.get('success', False):
-            error_msg = result.get('error', 'Une erreur s\'est produite')
+            error_msg = result.get('error', 'An error occurred')
             if 'memory' in error_msg.lower():
-                error_msg += ". Essayez de réduire la taille des variables ou des tableaux."
+                error_msg += ". Try reducing the size of variables or arrays."
             elif 'timeout' in error_msg.lower():
-                error_msg += ". Vérifiez s'il y a des boucles infinies."
+                error_msg += ". Check for infinite loops."
             result['error'] = error_msg
 
         return jsonify(result)
@@ -335,7 +326,7 @@ def execute_code():
         logger.error(f"Error in execute_code for {client_ip}: {error_msg}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "Une erreur réseau s'est produite. Veuillez réessayer dans quelques instants."
+            'error': "A network error occurred. Please try again in a few moments."
         }), 500
 
 # Request logging and error handling
@@ -367,12 +358,12 @@ def handle_error(error):
     if isinstance(error, RequestTimeout):
         return jsonify({
             'success': False,
-            'error': "La requête a pris trop de temps. Veuillez réessayer."
+            'error': "The request took too long. Please try again."
         }), 408
 
     return jsonify({
         'success': False,
-        'error': "Une erreur inattendue s'est produite. Veuillez réessayer."
+        'error': "An unexpected error occurred. Please try again."
     }), 500
 
 # Activity list and view routes
@@ -405,7 +396,6 @@ def list_activities(grade=None):
         except Exception as db_error:
             logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
             raise
-
         try:
             return render_template(
                 'activities/list.html',
@@ -422,7 +412,7 @@ def list_activities(grade=None):
         logger.error(f"Error listing activities: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "Une erreur inattendue s'est produite lors du chargement des activités"
+            'error': "An unexpected error occurred while loading activities"
         }), 500
 
 @activities.route('/activity/<int:activity_id>')
@@ -453,5 +443,10 @@ def view_activity(activity_id):
         logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "Une erreur inattendue s'est produite lors du chargement de l'activité"
+            'error': "An unexpected error occurred while loading the activity"
         }), 500
+
+def log_api_request(start_time, client_ip, endpoint, status_code):
+    """Log API request details"""
+    duration = time.time() - start_time
+    logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")

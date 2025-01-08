@@ -17,6 +17,7 @@ class InteractiveConsole {
     }
 
     setupEventListeners() {
+        // Handle input submission
         this.inputElement.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput) {
                 e.preventDefault();
@@ -28,7 +29,7 @@ class InteractiveConsole {
                 this.appendToConsole(`> ${inputText}\n`, true);
 
                 if (this.sessionId) {
-                    await this.sendInput(inputText + '\n');
+                    await this.sendInput(inputText);
                 }
             }
         });
@@ -37,6 +38,13 @@ class InteractiveConsole {
         this.inputElement.addEventListener('focus', () => {
             if (!this.isWaitingForInput) {
                 this.inputElement.blur();
+            }
+        });
+
+        // Enable input when waiting
+        this.inputElement.addEventListener('click', () => {
+            if (this.isWaitingForInput) {
+                this.inputElement.focus();
             }
         });
     }
@@ -59,12 +67,16 @@ class InteractiveConsole {
             this.outputPoller = null;
         }
         this.sessionId = null;
+        this.inputElement.value = '';
+        this.inputElement.blur();
     }
 
     async startSession(code, language) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
-            this.appendToConsole('Error: CSRF token not found\n');
+            this.appendToConsole(this.lang === 'fr' ? 
+                'Erreur: Token CSRF non trouvé\n' : 
+                'Error: CSRF token not found\n');
             return false;
         }
 
@@ -88,11 +100,11 @@ class InteractiveConsole {
                 this.startOutputPolling();
                 return true;
             } else {
-                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`);
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`);
                 return false;
             }
         } catch (error) {
-            this.appendToConsole(`Error: ${error.message}\n`);
+            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`);
             return false;
         }
     }
@@ -102,7 +114,9 @@ class InteractiveConsole {
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
-            this.appendToConsole('Error: CSRF token not found\n');
+            this.appendToConsole(this.lang === 'fr' ? 
+                'Erreur: Token CSRF non trouvé\n' : 
+                'Error: CSRF token not found\n');
             return;
         }
 
@@ -125,10 +139,10 @@ class InteractiveConsole {
 
             const data = await response.json();
             if (!data.success) {
-                this.appendToConsole(`Error: ${data.error}\n`);
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`);
             }
         } catch (error) {
-            this.appendToConsole(`Error: ${error.message}\n`);
+            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`);
         }
     }
 
@@ -154,26 +168,33 @@ class InteractiveConsole {
                     if (data.output) {
                         this.appendToConsole(data.output);
                     }
-                    if (data.waiting_for_input) {
+
+                    // Handle input state
+                    if (data.waiting_for_input && !this.isWaitingForInput) {
                         this.isWaitingForInput = true;
+                        this.inputElement.disabled = false;
                         this.inputElement.focus();
+                    } else if (!data.waiting_for_input && this.isWaitingForInput) {
+                        this.isWaitingForInput = false;
+                        this.inputElement.disabled = true;
+                        this.inputElement.blur();
                     }
+
                     if (data.session_ended) {
-                        clearInterval(this.outputPoller);
-                        this.sessionId = null;
+                        this.endSession();
                     }
                 } else {
                     clearInterval(this.outputPoller);
                     this.sessionId = null;
                     if (data.error) {
-                        this.appendToConsole(`Error: ${data.error}\n`);
+                        this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`);
                     }
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
                 clearInterval(this.outputPoller);
                 this.sessionId = null;
-                this.appendToConsole(`Error: ${error.message}\n`);
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`);
             }
         }, 100); // Poll every 100ms
     }
@@ -181,14 +202,20 @@ class InteractiveConsole {
     async executeCode(code, language) {
         this.clear();
         if (!code?.trim()) {
-            this.appendToConsole(this.lang === 'fr' ? "Erreur: Aucun code à exécuter\n" : "Error: No code to execute\n");
+            this.appendToConsole(this.lang === 'fr' ? 
+                "Erreur: Aucun code à exécuter\n" : 
+                "Error: No code to execute\n");
             return;
         }
 
-        this.appendToConsole(this.lang === 'fr' ? "Démarrage du programme...\n" : "Starting program...\n");
+        this.appendToConsole(this.lang === 'fr' ? 
+            "Démarrage du programme...\n" : 
+            "Starting program...\n");
         const success = await this.startSession(code, language);
         if (!success) {
-            this.appendToConsole(this.lang === 'fr' ? "Échec du démarrage de la session\n" : "Failed to start session\n");
+            this.appendToConsole(this.lang === 'fr' ? 
+                "Échec du démarrage de la session\n" : 
+                "Failed to start session\n");
         }
     }
 
@@ -209,6 +236,10 @@ class InteractiveConsole {
             }
 
             this.sessionId = null;
+            this.isWaitingForInput = false;
+            this.inputElement.disabled = true;
+            this.inputElement.blur();
+
             if (this.outputPoller) {
                 clearInterval(this.outputPoller);
                 this.outputPoller = null;
