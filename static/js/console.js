@@ -138,18 +138,18 @@ class InteractiveConsole {
                 body: JSON.stringify({ code, language })
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
-            if (data.success) {
-                this.sessionId = data.session_id;
-                this.startOutputPolling();
-                return true;
+            if (response.ok) {
+                if (data.success) {
+                    this.sessionId = data.session_id;
+                    this.startOutputPolling();
+                    return true;
+                } else {
+                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`, 'error');
+                    return false;
+                }
             } else {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`, 'error');
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || `HTTP error! status: ${response.status}`}\n`, 'error');
                 return false;
             }
         } catch (error) {
