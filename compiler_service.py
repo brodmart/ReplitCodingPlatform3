@@ -1,30 +1,280 @@
 """
 Compiler service for code execution and testing.
-Advanced memory management and resource monitoring.
 """
 import subprocess
 import tempfile
 import os
 import logging
-import signal
-import resource
-import errno
-from pathlib import Path
-import re
-from typing import Dict, Any, Optional, List, Tuple
-from contextlib import contextmanager
+import time
 import queue
 import threading
-import time
+import resource
+import signal
+import re
+from pathlib import Path
+from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from collections import defaultdict
+from contextlib import contextmanager
 import psutil
 import numpy as np
 from sklearn.linear_model import LinearRegression
 from optimization_analyzer import PerformanceOptimizer
 
 logger = logging.getLogger(__name__)
+
+class CompilerError(Exception):
+    """Custom exception for compiler-related errors"""
+    pass
+
+class ExecutionError(Exception):
+    """Custom exception for execution-related errors"""
+    pass
+
+class MemoryLimitExceeded(ExecutionError):
+    """Custom exception for memory limit violations"""
+    pass
+
+class TimeoutError(ExecutionError):
+    """Custom exception for execution timeout"""
+    pass
+
+def set_resource_limits():
+    """Set process resource limits"""
+    try:
+        # Set memory limit (100MB)
+        resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, -1))
+        # Set CPU time limit (5 seconds)
+        resource.setrlimit(resource.RLIMIT_CPU, (5, -1))
+        # Set process priority
+        os.nice(10)
+    except Exception as e:
+        logger.warning(f"Failed to set resource limits: {e}")
+
+def _compile_and_run_cpp(code: str, input_data: Optional[str], temp_dir: str) -> Dict[str, Any]:
+    """Compile and run C++ code"""
+    source_file = Path(temp_dir) / "program.cpp"
+    executable = Path(temp_dir) / "program"
+
+    try:
+        # Write source code
+        with open(source_file, 'w') as f:
+            f.write(code)
+
+        # Compile
+        compile_process = subprocess.run(
+            ['g++', str(source_file), '-o', str(executable)],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if compile_process.returncode != 0:
+            return {
+                'success': False,
+                'output': '',
+                'error': compile_process.stderr
+            }
+
+        # Run with input
+        input_bytes = input_data.encode() if input_data else None
+        run_process = subprocess.run(
+            [str(executable)],
+            input=input_bytes,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        return {
+            'success': True,
+            'output': run_process.stdout,
+            'error': run_process.stderr if run_process.stderr else None
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            'success': False,
+            'output': '',
+            'error': "Le délai d'exécution a été dépassé"
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Erreur: {str(e)}"
+        }
+
+def _compile_and_run_csharp(code: str, input_data: Optional[str], temp_dir: str) -> Dict[str, Any]:
+    """Compile and run C# code"""
+    source_file = Path(temp_dir) / "program.cs"
+    executable = Path(temp_dir) / "program.exe"
+
+    try:
+        # Write source code
+        with open(source_file, 'w') as f:
+            f.write(code)
+
+        # Compile
+        compile_process = subprocess.run(
+            ['mcs', str(source_file), '-out:' + str(executable)],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        if compile_process.returncode != 0:
+            return {
+                'success': False,
+                'output': '',
+                'error': compile_process.stderr
+            }
+
+        # Run with input
+        input_bytes = input_data.encode() if input_data else None
+        run_process = subprocess.run(
+            ['mono', str(executable)],
+            input=input_bytes,
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+
+        return {
+            'success': True,
+            'output': run_process.stdout,
+            'error': run_process.stderr if run_process.stderr else None
+        }
+
+    except subprocess.TimeoutExpired:
+        return {
+            'success': False,
+            'output': '',
+            'error': "Le délai d'exécution a été dépassé"
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Erreur: {str(e)}"
+        }
+
+class CompilerQueue:
+    """Simple queue for managing compilation requests"""
+    def __init__(self, max_workers: int = 2):
+        self.queue = queue.Queue()
+        self.max_workers = max_workers
+        self._shutdown = threading.Event()
+        self.workers = []
+        self.start_workers()
+
+    def start_workers(self):
+        """Start worker threads"""
+        for i in range(self.max_workers):
+            worker = threading.Thread(
+                target=self._worker_loop,
+                name=f"CompilerWorker-{i}",
+                daemon=True
+            )
+            worker.start()
+            self.workers.append(worker)
+
+    def _worker_loop(self):
+        """Worker thread main loop"""
+        while not self._shutdown.is_set():
+            try:
+                code, language, input_data, result_queue = self.queue.get(timeout=1)
+            except queue.Empty:
+                continue
+
+            try:
+                result = compile_and_run(code, language, input_data)
+                result_queue.put(result)
+            except Exception as e:
+                logger.error(f"Worker error: {e}")
+                result_queue.put({
+                    'success': False,
+                    'output': '',
+                    'error': f"Erreur d'exécution: {str(e)}"
+                })
+            finally:
+                self.queue.task_done()
+
+    def submit(self, code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+        """Submit code for execution"""
+        if self._shutdown.is_set():
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le service est en cours d'arrêt"
+            }
+
+        result_queue = queue.Queue()
+        try:
+            self.queue.put((code, language, input_data, result_queue), timeout=5)
+        except queue.Full:
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le serveur est occupé"
+            }
+
+        try:
+            result = result_queue.get(timeout=10)
+            return result
+        except queue.Empty:
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le délai d'exécution a été dépassé"
+            }
+
+    def shutdown(self):
+        """Graceful shutdown"""
+        self._shutdown.set()
+        for worker in self.workers:
+            worker.join(timeout=2)
+
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Compile and run code with proper input/output handling.
+    """
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            if language == 'cpp':
+                return _compile_and_run_cpp(code, input_data, temp_dir)
+            elif language == 'csharp':
+                return _compile_and_run_csharp(code, input_data, temp_dir)
+            else:
+                return {
+                    'success': False,
+                    'output': '',
+                    'error': f"Langage non supporté: {language}"
+                }
+    except Exception as e:
+        logger.error(f"Error in compile_and_run: {str(e)}")
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Une erreur s'est produite lors de l'exécution: {str(e)}"
+        }
+
+# Initialize global queue
+compiler_queue = CompilerQueue(max_workers=2)
+optimizer = PerformanceOptimizer()
+
+def log_api_request(start_time: float, client_ip: str, endpoint: str, status_code: int, error: Optional[str] = None):
+    """Log API request details"""
+    duration = round((time.time() - start_time) * 1000, 2)  # Duration in milliseconds
+    logger.info(f"""
+    API Request Details:
+    - Client IP: {client_ip}
+    - Endpoint: {endpoint}
+    - Duration: {duration}ms
+    - Status: {status_code}
+    {f'- Error: {error}' if error else ''}
+    """)
 
 class ResourceAnalyzer:
     """Analyzes and predicts resource usage patterns"""
@@ -179,7 +429,7 @@ class ResourceAnalyzer:
                 'memory_used': memory_info.rss / (1024 * 1024),  # MB
                 'memory_limit': resource.getrlimit(resource.RLIMIT_AS)[0] / (1024 * 1024),  # MB
                 'cpu_percent': process.cpu_percent(),
-                'worker_count': threading.active_count() - 1,  # Exclude main thread
+                'worker_count': len([t for t in threading.enumerate() if t.name.startswith('CompilerWorker')]),  # Exclude main thread
                 'concurrent_requests': len([t for t in threading.enumerate() 
                                             if t.name.startswith('CompilerWorker')])
             }
@@ -222,330 +472,13 @@ class MonitoringSystem:
                 'cpu_percent': psutil.cpu_percent(), #Add CPU usage
             })
 
-
-class CompilerError(Exception):
-    """Custom exception for compiler-related errors"""
-    pass
-
-class ExecutionError(Exception):
-    """Custom exception for execution-related errors"""
-    pass
-
-class MemoryLimitExceeded(ExecutionError):
-    """Custom exception for memory limit violations"""
-    pass
-
-class TimeoutError(ExecutionError):
-    """Custom exception for execution timeout"""
-    pass
-
-def set_resource_limits():
-    """Set process resource limits"""
-    try:
-        # Set memory limit (100MB)
-        resource.setrlimit(resource.RLIMIT_AS, (100 * 1024 * 1024, -1))
-        # Set CPU time limit (5 seconds)
-        resource.setrlimit(resource.RLIMIT_CPU, (5, -1))
-        # Set process priority
-        os.nice(10)
-    except Exception as e:
-        logger.warning(f"Failed to set resource limits: {e}")
-
-class RequestQueue:
-    """Manages code execution requests with enhanced memory management"""
-    def __init__(self, max_workers: int = 2):
-        self.queue = queue.Queue()
-        self.max_workers = max_workers
-        self._shutdown = threading.Event()
-        self.monitor = MonitoringSystem()
-        self.resource_analyzer = ResourceAnalyzer()
-        self.workers = []
-        self.start_workers()
-
-    def execute_code(self, code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-        """Execute code with strict resource limits"""
-        start_time = time.time()
-        try:
-            # Get initial resource state
-            process = psutil.Process()
-            initial_cpu = process.cpu_percent()
-            initial_memory = process.memory_info().rss / (1024 * 1024)
-
-            if language == 'cpp':
-                result = self._compile_and_run_cpp(code, input_data)
-            else:
-                result = self._compile_and_run_csharp(code, input_data)
-
-            # Get final resource state
-            final_cpu = process.cpu_percent()
-            final_memory = process.memory_info().rss / (1024 * 1024)
-
-            # Add resource usage data
-            self.resource_analyzer.add_usage_data({
-                'memory_used': final_memory,
-                'memory_delta': final_memory - initial_memory,
-                'cpu_percent': final_cpu,
-                'cpu_delta': final_cpu - initial_cpu,
-                'execution_time': time.time() - start_time,
-                'language': language,
-                'success': result.get('success', False)
-            })
-
-            # Add resource metrics to result
-            result.update({
-                'memory_usage': final_memory,
-                'peak_memory': process.memory_info().vms / (1024 * 1024)
-            })
-
-            # Check if scaling is needed
-            recommendations = self.resource_analyzer.get_scaling_recommendations()
-            if recommendations.get('recommendations'):
-                for rec in recommendations['recommendations']:
-                    if rec['urgency'] == 'high':
-                        logger.warning(f"Resource scaling recommended: {rec}")
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Error executing {language} code: {e}", exc_info=True)
-            return {
-                'success': False,
-                'output': '',
-                'error': f"Erreur d'exécution: {str(e)}",
-                'memory_usage': 0.0,
-                'peak_memory': 0.0
-            }
-        finally:
-            logger.info(f"Code execution took {time.time() - start_time:.2f} seconds")
-
-    def _worker_loop(self):
-        """Worker thread main loop"""
-        while not self._shutdown.is_set():
-            try:
-                # Get request with timeout
-                try:
-                    code, language, input_data, result_queue, client_info = self.queue.get(timeout=1)
-                except queue.Empty:
-                    continue
-
-                start_time = time.time()
-                try:
-                    # Execute code with timeout
-                    result = self.execute_code(code, language, input_data)
-
-                    # Update metrics
-                    self.monitor.add_metric(CompilerMetrics(
-                        language=language,
-                        compilation_time=time.time() - start_time,
-                        execution_time=0.0,  # Placeholder
-                        memory_used=result.get('memory_usage', 0.0),
-                        peak_memory=result.get('peak_memory', 0.0),
-                        client_info=client_info
-                    ))
-
-                    # Send result back
-                    try:
-                        result_queue.put(result, timeout=2)
-                    except queue.Full:
-                        logger.error("Result queue is full")
-                        result_queue.put({
-                            'success': False,
-                            'output': '',
-                            'error': "Erreur système: délai d'attente dépassé"
-                        }, block=False)
-
-                except Exception as e:
-                    logger.error(f"Worker error: {e}", exc_info=True)
-                    result_queue.put({
-                        'success': False,
-                        'output': '',
-                        'error': f"Erreur d'exécution: {str(e)}"
-                    }, block=False)
-
-                finally:
-                    self.queue.task_done()
-
-            except Exception as e:
-                logger.error(f"Critical worker error: {e}", exc_info=True)
-                time.sleep(1)
-
-    def start_workers(self):
-        """Start worker threads"""
-        for i in range(self.max_workers):
-            worker = threading.Thread(
-                target=self._worker_loop,
-                name=f"CompilerWorker-{i}",
-                daemon=True
-            )
-            worker.start()
-            self.workers.append(worker)
-            logger.info(f"Started worker thread {worker.name}")
-
-    def submit(self, code: str, language: str, input_data: Optional[str] = None, 
-              client_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Submit code for execution"""
-        if self._shutdown.is_set():
-            return {
-                'success': False,
-                'output': '',
-                'error': "Le service est en cours d'arrêt"
-            }
-
-        result_queue = queue.Queue()
-        try:
-            # Try to submit with timeout
-            try:
-                self.queue.put((code, language, input_data, result_queue, client_info), timeout=5)
-            except queue.Full:
-                return {
-                    'success': False,
-                    'output': '',
-                    'error': "Le serveur est occupé"
-                }
-
-            # Wait for result with timeout
-            try:
-                result = result_queue.get(timeout=10)
-                result['client_info'] = client_info
-                return result
-            except queue.Empty:
-                return {
-                    'success': False,
-                    'output': '',
-                    'error': "Le délai d'exécution a été dépassé"
-                }
-
-        except Exception as e:
-            logger.error(f"Submit error: {e}", exc_info=True)
-            return {
-                'success': False,
-                'output': '',
-                'error': f"Erreur système: {str(e)}"
-            }
-
-    def shutdown(self):
-        """Graceful shutdown"""
-        self._shutdown.set()
-        for worker in self.workers:
-            worker.join(timeout=2)
-
-    def _compile_and_run_cpp(self, code: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-        """Compile and run C++ code"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            source_file = Path(temp_dir) / "program.cpp"
-            executable = Path(temp_dir) / "program"
-
-            try:
-                # Write source code
-                with open(source_file, 'w') as f:
-                    f.write(code)
-
-                # Compile
-                compile_process = subprocess.run(
-                    ['g++', str(source_file), '-o', str(executable)],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'output': '',
-                        'error': compile_process.stderr
-                    }
-
-                # Run with input
-                input_bytes = input_data.encode() if input_data else None
-                run_process = subprocess.run(
-                    [str(executable)],
-                    input=input_bytes,
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    preexec_fn=set_resource_limits
-                )
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'error': run_process.stderr if run_process.stderr else None
-                }
-
-            except subprocess.TimeoutExpired:
-                return {
-                    'success': False,
-                    'output': '',
-                    'error': "Le délai d'exécution a été dépassé"
-                }
-            except Exception as e:
-                return {
-                    'success': False,
-                    'output': '',
-                    'error': f"Erreur: {str(e)}"
-                }
-
-    def _compile_and_run_csharp(self, code: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-        """Compile and run C# code"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            source_file = Path(temp_dir) / "program.cs"
-            executable = Path(temp_dir) / "program.exe"
-
-            try:
-                # Write source code
-                with open(source_file, 'w') as f:
-                    f.write(code)
-
-                # Compile
-                compile_process = subprocess.run(
-                    ['mcs', str(source_file), '-out:' + str(executable)],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
-                )
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'output': '',
-                        'error': compile_process.stderr
-                    }
-
-                # Run with input
-                input_bytes = input_data.encode() if input_data else None
-                run_process = subprocess.run(
-                    ['mono', str(executable)],
-                    input=input_bytes,
-                    capture_output=True,
-                    text=True,
-                    timeout=5,
-                    preexec_fn=set_resource_limits
-                )
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'error': run_process.stderr if run_process.stderr else None
-                }
-
-            except subprocess.TimeoutExpired:
-                return {
-                    'success': False,
-                    'output': '',
-                    'error': "Le délai d'exécution a été dépassé"
-                }
-            except Exception as e:
-                return {
-                    'success': False,
-                    'output': '',
-                    'error': f"Erreur: {str(e)}"
-                }
-
-# Initialize global queue with resource analysis
-request_queue = RequestQueue(max_workers=2)
+from typing import List
+import queue
+import threading
 optimizer = PerformanceOptimizer()
+request_queue = compiler_queue #Rename to avoid conflict
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None,
+def compile_and_run_wrapper(code: str, language: str, input_data: Optional[str] = None,
                    client_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Submit code to the request queue with optimization tracking"""
     if language not in ['cpp', 'csharp']:
@@ -556,7 +489,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None,
         }
 
     # Execute code
-    result = request_queue.submit(code, language, input_data, client_info)
+    result = compiler_queue.submit(code, language, input_data)
 
     # Generate optimization suggestions
     try:
@@ -681,3 +614,8 @@ def format_compiler_error(error_text: str, lang: str = 'cpp') -> Dict[str, Any]:
         'full_error': error_text,
         'formatted_message': error_text.split('\n')[0] if error_text else "Erreur de compilation"
     }
+
+compile_and_run = compile_and_run_wrapper #Rename to avoid conflict
+
+import signal
+import re

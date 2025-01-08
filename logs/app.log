@@ -4087,3 +4087,392 @@ Traceback (most recent call last):
   File "/home/runner/workspace/routes/activity_routes.py", line 527, in <module>
     from compiler_service import log_api_request
 ImportError: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+2025-01-08 19:02:15,755 - app - INFO - Logging configured successfully
+2025-01-08 19:02:15,755 - app - INFO - Logging configured successfully
+2025-01-08 19:02:15,757 - app - INFO - Initializing database...
+2025-01-08 19:02:15,757 - app - INFO - Initializing database...
+2025-01-08 19:02:15,849 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:02:15,850 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:02:15,850 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:02:15,851 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:02:15,853 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:02:15,854 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:02:15,854 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:02:16,371 - app - INFO - Database tables created successfully
+2025-01-08 19:02:16,371 - app - INFO - Database tables created successfully
+2025-01-08 19:02:16,581 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 19:02:16,582 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 19:04:19,759 - app - INFO - Logging configured successfully
+2025-01-08 19:04:19,759 - app - INFO - Logging configured successfully
+2025-01-08 19:04:19,762 - app - INFO - Initializing database...
+2025-01-08 19:04:19,762 - app - INFO - Initializing database...
+2025-01-08 19:04:19,811 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:04:19,811 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:04:19,811 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:04:19,812 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:04:19,814 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:04:19,815 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:04:19,815 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:04:20,317 - app - INFO - Database tables created successfully
+2025-01-08 19:04:20,317 - app - INFO - Database tables created successfully
+2025-01-08 19:04:21,764 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 19:04:21,764 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 19:04:21,815 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 19:04:21,815 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 19:04:21,823 - app - INFO - All blueprints registered successfully
+2025-01-08 19:04:21,823 - app - INFO - All blueprints registered successfully
+2025-01-08 19:04:21,878 - app - INFO - Application initialized successfully
+2025-01-08 19:04:21,878 - app - INFO - Application initialized successfully
+2025-01-08 19:04:21,878 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:04:21,909 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:04:21,910 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:04:21,911 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:04:22,403 - app - INFO - Logging configured successfully
+2025-01-08 19:04:22,403 - app - INFO - Logging configured successfully
+2025-01-08 19:04:22,403 - app - INFO - Initializing database...
+2025-01-08 19:04:22,403 - app - INFO - Initializing database...
+2025-01-08 19:04:22,416 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:04:22,416 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:04:22,416 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:04:22,417 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:04:22,418 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:04:22,419 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:04:22,419 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:04:22,944 - app - INFO - Database tables created successfully
+2025-01-08 19:04:22,944 - app - INFO - Database tables created successfully
+2025-01-08 19:04:23,743 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 19:04:23,744 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 19:04:23,767 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 19:04:23,767 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 19:04:23,774 - app - INFO - All blueprints registered successfully
+2025-01-08 19:04:23,774 - app - INFO - All blueprints registered successfully
+2025-01-08 19:04:23,832 - app - INFO - Application initialized successfully
+2025-01-08 19:04:23,832 - app - INFO - Application initialized successfully
+2025-01-08 19:04:23,833 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:04:23,836 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:04:23,837 - werkzeug - INFO -  * Debugger PIN: 123-967-053
+2025-01-08 19:05:40,222 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/activity_routes.py', reloading
+2025-01-08 19:05:41,072 - app - INFO - Logging configured successfully
+2025-01-08 19:05:41,072 - app - INFO - Logging configured successfully
+2025-01-08 19:05:41,073 - app - INFO - Initializing database...
+2025-01-08 19:05:41,073 - app - INFO - Initializing database...
+2025-01-08 19:05:41,087 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:05:41,087 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:05:41,088 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:05:41,088 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:05:41,090 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:05:41,090 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:05:41,090 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:05:41,626 - app - INFO - Database tables created successfully
+2025-01-08 19:05:41,626 - app - INFO - Database tables created successfully
+2025-01-08 19:05:42,407 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 19:05:42,408 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 19:05:42,414 - app - INFO - All blueprints registered successfully
+2025-01-08 19:05:42,414 - app - INFO - All blueprints registered successfully
+2025-01-08 19:05:42,464 - app - INFO - Application initialized successfully
+2025-01-08 19:05:42,464 - app - INFO - Application initialized successfully
+2025-01-08 19:05:42,465 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:05:42,475 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:05:42,475 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:05:42,476 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:05:43,061 - app - INFO - Logging configured successfully
+2025-01-08 19:05:43,061 - app - INFO - Logging configured successfully
+2025-01-08 19:05:43,061 - app - INFO - Initializing database...
+2025-01-08 19:05:43,061 - app - INFO - Initializing database...
+2025-01-08 19:05:43,080 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:05:43,080 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:05:43,080 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:05:43,081 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:05:43,083 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:05:43,083 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:05:43,083 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:05:43,591 - app - INFO - Database tables created successfully
+2025-01-08 19:05:43,591 - app - INFO - Database tables created successfully
+2025-01-08 19:05:44,625 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 19:05:44,626 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 19:05:44,632 - app - INFO - All blueprints registered successfully
+2025-01-08 19:05:44,632 - app - INFO - All blueprints registered successfully
+2025-01-08 19:05:44,697 - app - INFO - Application initialized successfully
+2025-01-08 19:05:44,697 - app - INFO - Application initialized successfully
+2025-01-08 19:05:44,697 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:05:44,701 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:05:44,702 - werkzeug - INFO -  * Debugger PIN: 765-545-298
+2025-01-08 19:06:25,298 - app - INFO - Logging configured successfully
+2025-01-08 19:06:25,298 - app - INFO - Logging configured successfully
+2025-01-08 19:06:25,299 - app - INFO - Initializing database...
+2025-01-08 19:06:25,299 - app - INFO - Initializing database...
+2025-01-08 19:06:25,312 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:06:25,313 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:06:25,313 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:06:25,314 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:06:25,315 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:06:25,315 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:06:25,316 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:06:26,056 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 19:06:26,057 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 19:06:26,062 - app - INFO - All blueprints registered successfully
+2025-01-08 19:06:26,062 - app - INFO - All blueprints registered successfully
+2025-01-08 19:06:26,574 - app - INFO - Database tables created successfully
+2025-01-08 19:06:26,574 - app - INFO - Database tables created successfully
+2025-01-08 19:06:26,723 - app - INFO - Application initialized successfully
+2025-01-08 19:06:26,723 - app - INFO - Application initialized successfully
+2025-01-08 19:06:26,724 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:06:26,739 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:06:26,739 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:06:26,740 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:06:27,341 - app - INFO - Logging configured successfully
+2025-01-08 19:06:27,341 - app - INFO - Logging configured successfully
+2025-01-08 19:06:27,342 - app - INFO - Initializing database...
+2025-01-08 19:06:27,342 - app - INFO - Initializing database...
+2025-01-08 19:06:27,356 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:06:27,356 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:06:27,357 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:06:27,358 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:06:27,359 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:06:27,360 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:06:27,360 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:06:28,091 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 19:06:28,092 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 19:06:28,096 - app - INFO - All blueprints registered successfully
+2025-01-08 19:06:28,096 - app - INFO - All blueprints registered successfully
+2025-01-08 19:06:28,592 - app - INFO - Database tables created successfully
+2025-01-08 19:06:28,592 - app - INFO - Database tables created successfully
+2025-01-08 19:06:28,751 - app - INFO - Application initialized successfully
+2025-01-08 19:06:28,751 - app - INFO - Application initialized successfully
+2025-01-08 19:06:28,751 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:06:28,754 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:06:28,756 - werkzeug - INFO -  * Debugger PIN: 228-218-109
+2025-01-08 19:07:35,687 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading
+2025-01-08 19:07:37,085 - app - INFO - Logging configured successfully
+2025-01-08 19:07:37,085 - app - INFO - Logging configured successfully
+2025-01-08 19:07:37,085 - app - INFO - Initializing database...
+2025-01-08 19:07:37,085 - app - INFO - Initializing database...
+2025-01-08 19:07:37,099 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:07:37,099 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:07:37,099 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:07:37,100 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:07:37,102 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:07:37,102 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:07:37,102 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:07:37,114 - app - ERROR - Failed to register blueprints: name 'queue' is not defined
+2025-01-08 19:07:37,114 - app - ERROR - Failed to register blueprints: name 'queue' is not defined
+2025-01-08 19:07:37,115 - app - CRITICAL - Failed to initialize application: name 'queue' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 313, in <module>
+    from compiler_service import compile_and_run, CompilerError, ExecutionError
+  File "/home/runner/workspace/compiler_service.py", line 462, in <module>
+    request_queue = RequestQueue(max_workers=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/compiler_service.py", line 176, in __init__
+    self.queue = queue.Queue()
+                 ^^^^^
+NameError: name 'queue' is not defined
+2025-01-08 19:07:37,115 - app - CRITICAL - Failed to initialize application: name 'queue' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 313, in <module>
+    from compiler_service import compile_and_run, CompilerError, ExecutionError
+  File "/home/runner/workspace/compiler_service.py", line 462, in <module>
+    request_queue = RequestQueue(max_workers=2)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/compiler_service.py", line 176, in __init__
+    self.queue = queue.Queue()
+                 ^^^^^
+NameError: name 'queue' is not defined
+2025-01-08 19:09:22,174 - app - INFO - Logging configured successfully
+2025-01-08 19:09:22,174 - app - INFO - Logging configured successfully
+2025-01-08 19:09:22,174 - app - INFO - Initializing database...
+2025-01-08 19:09:22,174 - app - INFO - Initializing database...
+2025-01-08 19:09:22,187 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:09:22,188 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:09:22,188 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:09:22,188 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:09:22,190 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:09:22,190 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:09:22,190 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:09:22,905 - app - INFO - All blueprints registered successfully
+2025-01-08 19:09:22,905 - app - INFO - All blueprints registered successfully
+2025-01-08 19:09:23,422 - app - INFO - Database tables created successfully
+2025-01-08 19:09:23,422 - app - INFO - Database tables created successfully
+2025-01-08 19:09:23,567 - app - INFO - Application initialized successfully
+2025-01-08 19:09:23,567 - app - INFO - Application initialized successfully
+2025-01-08 19:09:23,568 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:09:23,580 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:09:23,580 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:09:23,581 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:09:24,480 - app - INFO - Logging configured successfully
+2025-01-08 19:09:24,480 - app - INFO - Logging configured successfully
+2025-01-08 19:09:24,480 - app - INFO - Initializing database...
+2025-01-08 19:09:24,480 - app - INFO - Initializing database...
+2025-01-08 19:09:24,494 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:09:24,494 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:09:24,494 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:09:24,495 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:09:24,496 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:09:24,497 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:09:24,497 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:09:25,210 - app - INFO - All blueprints registered successfully
+2025-01-08 19:09:25,210 - app - INFO - All blueprints registered successfully
+2025-01-08 19:09:25,713 - app - INFO - Database tables created successfully
+2025-01-08 19:09:25,713 - app - INFO - Database tables created successfully
+2025-01-08 19:09:25,859 - app - INFO - Application initialized successfully
+2025-01-08 19:09:25,859 - app - INFO - Application initialized successfully
+2025-01-08 19:09:25,860 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:09:25,873 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:09:25,873 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:09:25,874 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:09:26,464 - app - INFO - Logging configured successfully
+2025-01-08 19:09:26,464 - app - INFO - Logging configured successfully
+2025-01-08 19:09:26,464 - app - INFO - Initializing database...
+2025-01-08 19:09:26,464 - app - INFO - Initializing database...
+2025-01-08 19:09:26,479 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:09:26,479 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:09:26,479 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:09:26,480 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:09:26,481 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:09:26,482 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:09:26,482 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:09:27,219 - app - INFO - All blueprints registered successfully
+2025-01-08 19:09:27,219 - app - INFO - All blueprints registered successfully
+2025-01-08 19:09:27,737 - app - INFO - Database tables created successfully
+2025-01-08 19:09:27,737 - app - INFO - Database tables created successfully
+2025-01-08 19:09:27,881 - app - INFO - Application initialized successfully
+2025-01-08 19:09:27,881 - app - INFO - Application initialized successfully
+2025-01-08 19:09:27,881 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:09:27,885 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:09:27,886 - werkzeug - INFO -  * Debugger PIN: 190-736-229
+2025-01-08 19:10:52,664 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/activity_routes.py', reloading
+2025-01-08 19:11:30,547 - app - INFO - Logging configured successfully
+2025-01-08 19:11:30,547 - app - INFO - Logging configured successfully
+2025-01-08 19:11:30,547 - app - INFO - Initializing database...
+2025-01-08 19:11:30,547 - app - INFO - Initializing database...
+2025-01-08 19:11:30,578 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:11:30,579 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:11:30,579 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:11:30,581 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:11:30,584 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:11:30,585 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:11:30,585 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:11:30,606 - app - ERROR - Failed to register blueprints: name 'queue' is not defined
+2025-01-08 19:11:30,606 - app - ERROR - Failed to register blueprints: name 'queue' is not defined
+2025-01-08 19:11:30,607 - app - CRITICAL - Failed to initialize application: name 'queue' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 13, in <module>
+    from compiler_service import compile_and_run
+  File "/home/runner/workspace/compiler_service.py", line 231, in <module>
+    compiler_queue = CompilerQueue(max_workers=2)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/compiler_service.py", line 157, in __init__
+    self.queue = queue.Queue()
+                 ^^^^^
+NameError: name 'queue' is not defined
+2025-01-08 19:11:30,607 - app - CRITICAL - Failed to initialize application: name 'queue' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 13, in <module>
+    from compiler_service import compile_and_run
+  File "/home/runner/workspace/compiler_service.py", line 231, in <module>
+    compiler_queue = CompilerQueue(max_workers=2)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/compiler_service.py", line 157, in __init__
+    self.queue = queue.Queue()
+                 ^^^^^
+NameError: name 'queue' is not defined
+2025-01-08 19:13:16,603 - app - INFO - Logging configured successfully
+2025-01-08 19:13:16,603 - app - INFO - Logging configured successfully
+2025-01-08 19:13:16,604 - app - INFO - Initializing database...
+2025-01-08 19:13:16,604 - app - INFO - Initializing database...
+2025-01-08 19:13:16,617 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:13:16,617 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:13:16,617 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:13:16,617 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:13:16,620 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:13:16,620 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:13:16,620 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:13:17,439 - app - ERROR - Failed to register blueprints: name 'contextmanager' is not defined
+2025-01-08 19:13:17,439 - app - ERROR - Failed to register blueprints: name 'contextmanager' is not defined
+2025-01-08 19:13:17,439 - app - CRITICAL - Failed to initialize application: name 'contextmanager' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 12, in <module>
+    from compiler_service import compile_and_run
+  File "/home/runner/workspace/compiler_service.py", line 545, in <module>
+    @contextmanager
+     ^^^^^^^^^^^^^^
+NameError: name 'contextmanager' is not defined
+2025-01-08 19:13:17,439 - app - CRITICAL - Failed to initialize application: name 'contextmanager' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 12, in <module>
+    from compiler_service import compile_and_run
+  File "/home/runner/workspace/compiler_service.py", line 545, in <module>
+    @contextmanager
+     ^^^^^^^^^^^^^^
+NameError: name 'contextmanager' is not defined
+2025-01-08 19:14:06,696 - app - INFO - Logging configured successfully
+2025-01-08 19:14:06,696 - app - INFO - Logging configured successfully
+2025-01-08 19:14:06,696 - app - INFO - Initializing database...
+2025-01-08 19:14:06,696 - app - INFO - Initializing database...
+2025-01-08 19:14:06,729 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:14:06,729 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:14:06,729 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:14:06,730 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:14:06,732 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:14:06,732 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:14:06,732 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:14:08,079 - app - INFO - All blueprints registered successfully
+2025-01-08 19:14:08,079 - app - INFO - All blueprints registered successfully
+2025-01-08 19:14:08,591 - app - INFO - Database tables created successfully
+2025-01-08 19:14:08,591 - app - INFO - Database tables created successfully
+2025-01-08 19:14:08,746 - app - INFO - Application initialized successfully
+2025-01-08 19:14:08,746 - app - INFO - Application initialized successfully
+2025-01-08 19:14:08,747 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:14:08,772 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:14:08,773 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:14:08,774 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:14:09,641 - app - INFO - Logging configured successfully
+2025-01-08 19:14:09,641 - app - INFO - Logging configured successfully
+2025-01-08 19:14:09,642 - app - INFO - Initializing database...
+2025-01-08 19:14:09,642 - app - INFO - Initializing database...
+2025-01-08 19:14:09,664 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:14:09,665 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:14:09,665 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:14:09,666 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:14:09,668 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:14:09,669 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:14:09,669 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:14:10,568 - app - INFO - All blueprints registered successfully
+2025-01-08 19:14:10,568 - app - INFO - All blueprints registered successfully
+2025-01-08 19:14:11,079 - app - INFO - Database tables created successfully
+2025-01-08 19:14:11,079 - app - INFO - Database tables created successfully
+2025-01-08 19:14:11,225 - app - INFO - Application initialized successfully
+2025-01-08 19:14:11,225 - app - INFO - Application initialized successfully
+2025-01-08 19:14:11,226 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:14:11,229 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:14:11,230 - werkzeug - INFO -  * Debugger PIN: 124-403-482

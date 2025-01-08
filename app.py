@@ -65,6 +65,35 @@ def create_app():
         # Handle proxy headers
         app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
+        # Register blueprints
+        try:
+            from routes.auth_routes import auth
+            app.register_blueprint(auth)
+
+            from routes.activity_routes import activities
+            app.register_blueprint(activities, url_prefix='/activities')
+
+            from routes.tutorial import tutorial_bp
+            app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+
+            logger.info("All blueprints registered successfully")
+        except Exception as e:
+            logger.error(f"Failed to register blueprints: {str(e)}")
+            raise
+
+        # Create database tables within app context
+        with app.app_context():
+            try:
+                db.create_all()
+                logger.info("Database tables created successfully")
+            except Exception as e:
+                logger.error(f"Failed to create database tables: {str(e)}")
+                raise
+
+            # Verify database connection
+            if not check_db_connection():
+                raise Exception("Failed to verify database connection")
+
         # Register error handlers
         @app.errorhandler(400)
         def bad_request_error(error):
@@ -97,35 +126,6 @@ def create_app():
             logger.error(f"Unhandled Exception: {error}", exc_info=True)
             db.session.rollback()
             return jsonify({"error": "Internal Server Error", "message": "Une erreur inattendue est survenue"}), 500
-
-        # Create database tables within app context
-        with app.app_context():
-            try:
-                db.create_all()
-                logger.info("Database tables created successfully")
-            except Exception as e:
-                logger.error(f"Failed to create database tables: {str(e)}")
-                raise
-
-            # Verify database connection
-            if not check_db_connection():
-                raise Exception("Failed to verify database connection")
-
-        # Register blueprints
-        try:
-            from routes.auth_routes import auth
-            app.register_blueprint(auth)
-
-            from routes.activity_routes import activities
-            app.register_blueprint(activities, url_prefix='/activities')
-
-            from routes.tutorial import tutorial_bp
-            app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
-
-            logger.info("All blueprints registered successfully")
-        except Exception as e:
-            logger.error(f"Failed to register blueprints: {str(e)}")
-            raise
 
         # Add static pages routes
         @app.route('/')
@@ -169,4 +169,4 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
