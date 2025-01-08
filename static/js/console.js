@@ -20,27 +20,27 @@ class InteractiveConsole {
                 this.consoleInput.value = '';
 
                 if (this.sessionId) {
-                    await this.sendInput(inputText);
+                    await this.sendInput(inputText + '\n');
                 }
             }
         });
     }
 
     appendToConsole(text, isInput = false) {
-        const line = document.createElement('div');
-        line.className = isInput ? 'console-input-line' : '';
+        // Create a text node to preserve whitespace and handle special characters
+        const preElement = document.createElement('pre');
+        preElement.style.margin = '0';
+        preElement.style.fontFamily = 'inherit';
 
         if (isInput) {
-            line.innerHTML = `<span class="console-prompt">&gt;</span> ${text}`;
+            preElement.innerHTML = text;
+            preElement.style.color = '#569cd6'; // Input text in blue
         } else {
-            // Preserve whitespace and handle newlines
-            const formattedText = text
-                .replace(/\n/g, '<br>')
-                .replace(/ /g, '&nbsp;');
-            line.innerHTML = formattedText;
+            preElement.textContent = text;
+            preElement.style.color = '#d4d4d4'; // Output text in default color
         }
 
-        this.consoleOutput.appendChild(line);
+        this.consoleOutput.appendChild(preElement);
         this.consoleOutput.scrollTop = this.consoleOutput.scrollHeight;
     }
 

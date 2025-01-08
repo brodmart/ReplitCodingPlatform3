@@ -36,7 +36,10 @@ document.addEventListener('DOMContentLoaded', function() {
 using namespace std;
 
 int main() {
-    // Your code here
+    string name;
+    cout << "Enter your name: ";
+    getline(cin, name);
+    cout << "Hello, " << name << "!" << endl;
     return 0;
 }`;
         } else {
@@ -48,7 +51,9 @@ namespace ProgrammingActivity
     {
         static void Main(string[] args)
         {
-            // Your code here
+            Console.Write("Enter your name: ");
+            string name = Console.ReadLine();
+            Console.WriteLine($"Hello, {name}!");
         }
     }
 }`;
@@ -59,6 +64,11 @@ namespace ProgrammingActivity
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(getTemplateForLanguage(initialLanguage));
     editor.refresh();
+
+    // Initialize Interactive Console
+    const console = new InteractiveConsole({
+        lang: document.documentElement.lang || 'fr'
+    });
 
     // Language change handler
     if (languageSelect) {
@@ -75,40 +85,10 @@ namespace ProgrammingActivity
     if (runButton) {
         runButton.addEventListener('click', async function() {
             const code = editor.getValue().trim();
-            const outputDiv = document.getElementById('output');
-            if (!code || !outputDiv) return;
+            if (!code) return;
 
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').content; //Using meta tag for CSRF token
-            if (!csrfToken) {
-                outputDiv.textContent = 'CSRF token not found. Please refresh the page.';
-                return;
-            }
-
-            try {
-                const response = await fetch('/activities/execute', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        code: code,
-                        language: languageSelect ? languageSelect.value : 'cpp'
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    outputDiv.textContent = `Error: ${errorData.error || response.statusText}`;
-                    return;
-                }
-
-                const data = await response.json();
-                outputDiv.textContent = data.output || 'No output';
-            } catch (error) {
-                console.error('Execution error:', error);
-                outputDiv.textContent = `Error: ${error.message}`;
-            }
+            const language = languageSelect ? languageSelect.value : 'cpp';
+            await console.executeCode(code, language);
         });
     }
 });

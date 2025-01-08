@@ -28,6 +28,7 @@
         font-size: 14px;
     }
 
+    /* Unified Console Style */
     .console-container {
         background-color: #1e1e1e;
         color: #d4d4d4;
@@ -37,41 +38,34 @@
         display: flex;
         flex-direction: column;
         border-radius: 4px;
+        border: 1px solid #2d2d2d;
     }
 
-    .console-output {
+    #consoleOutput {
         flex-grow: 1;
         overflow-y: auto;
+        padding: 10px;
+        margin: 0;
         white-space: pre-wrap;
         word-wrap: break-word;
-        padding: 10px;
+        background-color: #1e1e1e;
     }
 
-    .console-input-line {
-        display: flex;
-        align-items: center;
-        padding: 8px 10px;
-        border-top: 1px solid #2d2d2d;
-    }
-
-    .console-prompt {
-        color: #569cd6;
-        margin-right: 8px;
-        user-select: none;
-    }
-
-    .console-input-field {
-        background: transparent;
+    #consoleInput {
+        background-color: #1e1e1e;
         border: none;
+        border-top: 1px solid #2d2d2d;
         color: #d4d4d4;
         font-family: inherit;
         font-size: inherit;
+        padding: 8px 10px;
         width: 100%;
         outline: none;
     }
 
-    .console-input-field:focus {
+    #consoleInput:focus {
         outline: none;
+        background-color: #252525;
     }
 
     .editor-console-row {
@@ -93,6 +87,27 @@
             width: 100%;
             margin-bottom: 20px;
         }
+    }
+
+    .card {
+        background-color: #1e1e1e;
+        border: 1px solid #2d2d2d;
+    }
+
+    .card-header {
+        background-color: #252525;
+        border-bottom: 1px solid #2d2d2d;
+        color: #d4d4d4;
+    }
+
+    .btn-primary {
+        background-color: #0e639c;
+        border-color: #0e639c;
+    }
+
+    .btn-primary:hover {
+        background-color: #1177bb;
+        border-color: #1177bb;
     }
 </style>
 {% endblock %}
@@ -140,13 +155,10 @@
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="console-container">
-                                        <div id="consoleOutput" class="console-output"></div>
-                                        <div class="console-input-line">
-                                            <span class="console-prompt">&gt;</span>
-                                            <input type="text" id="consoleInput" class="console-input-field" 
-                                                   placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
-                                                   autocomplete="off">
-                                        </div>
+                                        <div id="consoleOutput"></div>
+                                        <input type="text" id="consoleInput" 
+                                               autocomplete="off"
+                                               spellcheck="false">
                                     </div>
                                 </div>
                             </div>
@@ -163,52 +175,11 @@
                             </h2>
                             <div id="hintsCollapse" class="accordion-collapse collapse" aria-labelledby="hintsHeader" data-bs-parent="#activityAccordion">
                                 <div class="accordion-body">
-                                    <div class="hints-section">
-                                        <ul class="list-unstyled mb-0">
-                                        {% if activity.hints %}
-                                            {% for hint in activity.hints %}
-                                            <li class="mb-2">
-                                                <i class="bi bi-arrow-right-short"></i> {{ hint }}
-                                            </li>
-                                            {% endfor %}
-                                        {% else %}
-                                            <li class="mb-2 text-muted">
-                                                <i class="bi bi-info-circle me-2"></i> Pas d'indices disponibles pour cette activité.
-                                            </li>
-                                        {% endif %}
-                                        </ul>
-                                    </div>
+                                    {{ activity.hints|safe }}
                                 </div>
                             </div>
                         </div>
                         {% endif %}
-
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="errorsHeader">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#errorsCollapse" aria-expanded="false" aria-controls="errorsCollapse">
-                                    <i class="bi bi-exclamation-triangle me-2"></i> Erreurs Communes
-                                </button>
-                            </h2>
-                            <div id="errorsCollapse" class="accordion-collapse collapse" aria-labelledby="errorsHeader" data-bs-parent="#activityAccordion">
-                                <div class="accordion-body">
-                                    <div class="common-errors-section">
-                                        <ul class="list-unstyled mb-0">
-                                        {% if activity.common_errors %}
-                                            {% for error in activity.common_errors %}
-                                            <li class="mb-2">
-                                                <i class="bi bi-x-circle text-danger me-2"></i> {{ error }}
-                                            </li>
-                                            {% endfor %}
-                                        {% else %}
-                                            <li class="mb-2 text-muted">
-                                                <i class="bi bi-info-circle me-2"></i> Pas d'erreurs communes listées pour cette activité.
-                                            </li>
-                                        {% endif %}
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
