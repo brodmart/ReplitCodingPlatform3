@@ -79,6 +79,10 @@ def create_app():
         def index():
             return render_template('index.html')
 
+        @app.route('/about')
+        def about():
+            return render_template('about.html')
+
         @app.route('/activities')
         def activities():
             return redirect(url_for('activities.list_activities'))
