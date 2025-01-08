@@ -157,10 +157,12 @@
 <!-- CodeMirror Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-<!-- Custom Console Script -->
+<!-- Load console.js first -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
+<!-- Then initialize the editor -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Wait for InteractiveConsole to be available
+window.addEventListener('load', function() {
     const templates = {
         'cpp': `#include <iostream>
 #include <string>
@@ -175,11 +177,16 @@ int main() {
 }`,
         'csharp': `using System;
 
-class Program {
-    static void Main() {
-        Console.Write("Enter your name: ");
-        string name = Console.ReadLine();
-        Console.WriteLine($"Hello, {name}!");
+namespace ProgrammingActivity
+{
+    class Program 
+    {
+        static void Main(string[] args)
+        {
+            Console.Write("Enter your name: ");
+            string name = Console.ReadLine();
+            Console.WriteLine($"Hello, {name}!");
+        }
     }
 }`
     };
@@ -198,7 +205,7 @@ class Program {
         viewportMargin: Infinity
     });
 
-    // Initialize Interactive Console
+    // Initialize Interactive Console after making sure it's available
     const console = new InteractiveConsole({
         lang: '{{ lang }}'
     });

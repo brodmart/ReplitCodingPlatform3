@@ -84,6 +84,8 @@
 <!-- Load CodeMirror first -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+<!-- Load console.js before editor.js -->
+<script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <!-- Then load editor.js -->
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 {% endblock %}
