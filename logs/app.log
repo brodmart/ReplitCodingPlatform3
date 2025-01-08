@@ -3639,3 +3639,103 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-08 18:25:22,630 - werkzeug - INFO - 10.83.5.94 - - [08/Jan/2025 18:25:22] "GET /css/style.css HTTP/1.1" 200 -
 2025-01-08 18:25:22,704 - werkzeug - INFO - 10.83.4.115 - - [08/Jan/2025 18:25:22] "GET /codingmountains.webp HTTP/1.1" 200 -
 2025-01-08 18:25:22,708 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 18:25:22] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 18:32:53,819 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading
+2025-01-08 18:32:54,027 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:32:55,082 - app - INFO - Logging configured successfully
+2025-01-08 18:32:55,082 - app - INFO - Logging configured successfully
+2025-01-08 18:32:55,082 - app - INFO - Initializing database...
+2025-01-08 18:32:55,082 - app - INFO - Initializing database...
+2025-01-08 18:32:55,100 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:32:55,100 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:32:55,100 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:32:55,101 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:32:55,103 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:32:55,103 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:32:55,103 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:32:55,599 - app - INFO - Database tables created successfully
+2025-01-08 18:32:55,599 - app - INFO - Database tables created successfully
+2025-01-08 18:32:56,610 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:32:56,611 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:32:56,616 - app - INFO - All blueprints registered successfully
+2025-01-08 18:32:56,616 - app - INFO - All blueprints registered successfully
+2025-01-08 18:32:56,619 - app - INFO - Application initialized successfully
+2025-01-08 18:32:56,619 - app - INFO - Application initialized successfully
+2025-01-08 18:32:56,619 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:32:56,674 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:32:56,675 - werkzeug - INFO -  * Debugger PIN: 117-591-295
+2025-01-08 18:34:08,622 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/activity_routes.py', reloading
+2025-01-08 18:34:08,894 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:34:09,423 - app - INFO - Logging configured successfully
+2025-01-08 18:34:09,423 - app - INFO - Logging configured successfully
+2025-01-08 18:34:09,423 - app - INFO - Initializing database...
+2025-01-08 18:34:09,423 - app - INFO - Initializing database...
+2025-01-08 18:34:09,436 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:34:09,436 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:34:09,436 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:34:09,437 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:34:09,438 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:34:09,439 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:34:09,439 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:34:09,938 - app - INFO - Database tables created successfully
+2025-01-08 18:34:09,938 - app - INFO - Database tables created successfully
+2025-01-08 18:34:10,672 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:34:10,673 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:34:10,678 - app - INFO - All blueprints registered successfully
+2025-01-08 18:34:10,678 - app - INFO - All blueprints registered successfully
+2025-01-08 18:34:10,680 - app - INFO - Application initialized successfully
+2025-01-08 18:34:10,680 - app - INFO - Application initialized successfully
+2025-01-08 18:34:10,680 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:34:10,734 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:34:10,736 - werkzeug - INFO -  * Debugger PIN: 126-327-662
+2025-01-08 18:34:25,279 - app - INFO - Logging configured successfully
+2025-01-08 18:34:25,279 - app - INFO - Logging configured successfully
+2025-01-08 18:34:25,280 - app - INFO - Initializing database...
+2025-01-08 18:34:25,280 - app - INFO - Initializing database...
+2025-01-08 18:34:25,296 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:34:25,297 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:34:25,297 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:34:25,299 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:34:25,302 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:34:25,302 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:34:25,302 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:34:25,812 - app - INFO - Database tables created successfully
+2025-01-08 18:34:25,812 - app - INFO - Database tables created successfully
+2025-01-08 18:34:26,546 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:34:26,546 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:34:26,551 - app - INFO - All blueprints registered successfully
+2025-01-08 18:34:26,551 - app - INFO - All blueprints registered successfully
+2025-01-08 18:34:26,554 - app - INFO - Application initialized successfully
+2025-01-08 18:34:26,554 - app - INFO - Application initialized successfully
+2025-01-08 18:34:26,554 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:34:26,631 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.72:80
+2025-01-08 18:34:26,631 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 18:34:26,632 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:34:27,202 - app - INFO - Logging configured successfully
+2025-01-08 18:34:27,202 - app - INFO - Logging configured successfully
+2025-01-08 18:34:27,202 - app - INFO - Initializing database...
+2025-01-08 18:34:27,202 - app - INFO - Initializing database...
+2025-01-08 18:34:27,227 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:34:27,227 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:34:27,227 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:34:27,228 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:34:27,231 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:34:27,232 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:34:27,232 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:34:27,743 - app - INFO - Database tables created successfully
+2025-01-08 18:34:27,743 - app - INFO - Database tables created successfully
+2025-01-08 18:34:28,470 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:34:28,472 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:34:28,477 - app - INFO - All blueprints registered successfully
+2025-01-08 18:34:28,477 - app - INFO - All blueprints registered successfully
+2025-01-08 18:34:28,480 - app - INFO - Application initialized successfully
+2025-01-08 18:34:28,480 - app - INFO - Application initialized successfully
+2025-01-08 18:34:28,480 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:34:28,538 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:34:28,540 - werkzeug - INFO -  * Debugger PIN: 127-448-903
+2025-01-08 18:34:28,609 - werkzeug - INFO - 10.83.0.51 - - [08/Jan/2025 18:34:28] "GET / HTTP/1.1" 200 -
+2025-01-08 18:34:28,630 - werkzeug - INFO - 10.83.0.51 - - [08/Jan/2025 18:34:28] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 18:34:28,644 - werkzeug - INFO - 10.83.0.51 - - [08/Jan/2025 18:34:28] "GET /codingmountains.webp HTTP/1.1" 200 -
+2025-01-08 18:34:28,718 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 18:34:28] "GET /js/editor.js HTTP/1.1" 200 -

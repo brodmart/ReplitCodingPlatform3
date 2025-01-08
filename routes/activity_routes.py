@@ -1,3 +1,226 @@
+from flask import Blueprint, render_template, request, jsonify, session
+from database import db
+from models import CodingActivity
+import logging
+import time
+import subprocess
+import os
+from threading import Lock
+from compiler_service import compile_and_run, CompilerError, ExecutionError
+from werkzeug.exceptions import RequestTimeout
+
+activities = Blueprint('activities', __name__, template_folder='../templates')
+logger = logging.getLogger(__name__)
+
+# Store active sessions
+active_sessions = {}
+session_lock = Lock()
+
+@activities.route('/start_session', methods=['POST'])
+def start_session():
+    """Start a new interactive coding session"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        code = data.get('code', '').strip()
+        language = data.get('language', 'cpp').lower()
+
+        if not code:
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+
+        if language not in ['cpp', 'csharp']:
+            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
+
+        # Create temp files for the session
+        temp_dir = os.path.join(os.getcwd(), 'temp', str(time.time()))
+        os.makedirs(temp_dir, exist_ok=True)
+
+        source_file = os.path.join(temp_dir, f'program.{language}')
+        with open(source_file, 'w') as f:
+            f.write(code)
+
+        # Compile the code
+        if language == 'cpp':
+            executable = os.path.join(temp_dir, 'program')
+            compile_cmd = ['g++', source_file, '-o', executable]
+        else:  # C#
+            executable = os.path.join(temp_dir, 'program.exe')
+            compile_cmd = ['mcs', source_file, '-out:' + executable]
+
+        compile_result = subprocess.run(compile_cmd, capture_output=True, text=True)
+        if compile_result.returncode != 0:
+            return jsonify({
+                'success': False,
+                'error': compile_result.stderr
+            }), 400
+
+        # Start the program
+        if language == 'cpp':
+            process = subprocess.Popen(
+                [executable],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
+            )
+        else:  # C#
+            process = subprocess.Popen(
+                ['mono', executable],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
+            )
+
+        session_id = str(time.time())
+        with session_lock:
+            active_sessions[session_id] = {
+                'process': process,
+                'temp_dir': temp_dir,
+                'output_buffer': [],
+                'last_activity': time.time()
+            }
+
+        return jsonify({
+            'success': True,
+            'session_id': session_id
+        })
+
+    except Exception as e:
+        logger.error(f"Error starting session: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@activities.route('/send_input', methods=['POST'])
+def send_input():
+    """Send input to a running program"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+        input_text = data.get('input', '')
+
+        if not session_id or session_id not in active_sessions:
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+
+        session = active_sessions[session_id]
+        process = session['process']
+
+        # Send input to process
+        try:
+            process.stdin.write(input_text + '\n')
+            process.stdin.flush()
+            return jsonify({'success': True})
+        except Exception as e:
+            logger.error(f"Error sending input: {e}", exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    except Exception as e:
+        logger.error(f"Error in send_input: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@activities.route('/get_output')
+def get_output():
+    """Get output from a running program"""
+    try:
+        session_id = request.args.get('session_id')
+        if not session_id or session_id not in active_sessions:
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+
+        session = active_sessions[session_id]
+        process = session['process']
+
+        output = []
+
+        # Check if process has terminated
+        if process.poll() is not None:
+            # Get any remaining output
+            stdout, stderr = process.communicate()
+            if stdout:
+                output.append(stdout)
+            if stderr:
+                output.append(stderr)
+
+            # Clean up session
+            cleanup_session(session_id)
+
+            return jsonify({
+                'success': True,
+                'output': ''.join(output),
+                'finished': True
+            })
+
+        # Read any available output
+        try:
+            while True:
+                line = process.stdout.readline()
+                if not line:
+                    break
+                output.append(line)
+        except Exception as e:
+            logger.error(f"Error reading output: {e}", exc_info=True)
+
+        return jsonify({
+            'success': True,
+            'output': ''.join(output) if output else '',
+            'finished': False
+        })
+
+    except Exception as e:
+        logger.error(f"Error in get_output: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@activities.route('/end_session', methods=['POST'])
+def end_session():
+    """End a coding session and clean up resources"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+
+        if not session_id or session_id not in active_sessions:
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+
+        cleanup_session(session_id)
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error ending session: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def cleanup_session(session_id):
+    """Clean up session resources"""
+    if session_id in active_sessions:
+        session = active_sessions[session_id]
+        try:
+            # Terminate the process if it's still running
+            if session['process'].poll() is None:
+                session['process'].terminate()
+                session['process'].wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            session['process'].kill()
+
+        # Clean up temporary directory
+        try:
+            import shutil
+            shutil.rmtree(session['temp_dir'], ignore_errors=True)
+        except Exception as e:
+            logger.error(f"Error cleaning up temp directory: {e}", exc_info=True)
+
+        # Remove session from active sessions
+        with session_lock:
+            del active_sessions[session_id]
+
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, Response
 from database import db
 from models import CodingActivity

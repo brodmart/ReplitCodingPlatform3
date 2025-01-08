@@ -1,27 +1,26 @@
 /**
- * Shared interactive console functionality for code execution
+ * Interactive Console class for handling real-time program I/O
  */
 class InteractiveConsole {
     constructor(options = {}) {
         this.consoleOutput = document.getElementById('consoleOutput');
         this.consoleInput = document.getElementById('consoleInput');
+        this.sessionId = null;
+        this.outputPoller = null;
         this.inputBuffer = [];
-        this.inputCallback = null;
+        this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
         this.setupEventListeners();
     }
 
     setupEventListeners() {
-        this.consoleInput.addEventListener('keypress', (e) => {
+        this.consoleInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
                 const inputText = this.consoleInput.value;
-                this.appendToConsole(inputText, true);
-                this.inputBuffer.push(inputText);
                 this.consoleInput.value = '';
 
-                if (this.inputCallback) {
-                    this.inputCallback(inputText);
-                    this.inputCallback = null;
+                if (this.sessionId) {
+                    await this.sendInput(inputText);
                 }
             }
         });
@@ -30,13 +29,17 @@ class InteractiveConsole {
     appendToConsole(text, isInput = false) {
         const line = document.createElement('div');
         line.className = isInput ? 'console-input-line' : '';
-        
+
         if (isInput) {
             line.innerHTML = `<span class="console-prompt">&gt;</span> ${text}`;
         } else {
-            line.textContent = text;
+            // Preserve whitespace and handle newlines
+            const formattedText = text
+                .replace(/\n/g, '<br>')
+                .replace(/ /g, '&nbsp;');
+            line.innerHTML = formattedText;
         }
-        
+
         this.consoleOutput.appendChild(line);
         this.consoleOutput.scrollTop = this.consoleOutput.scrollHeight;
     }
@@ -44,21 +47,17 @@ class InteractiveConsole {
     clear() {
         this.consoleOutput.innerHTML = '';
         this.inputBuffer = [];
+        if (this.outputPoller) {
+            clearInterval(this.outputPoller);
+            this.outputPoller = null;
+        }
+        this.sessionId = null;
     }
 
-    async executeCode(code, language) {
-        this.clear();
-        
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-        if (!code.trim()) {
-            this.appendToConsole(this.lang === 'fr' ? "Erreur: Aucun code à exécuter" : "Error: No code to execute");
-            return;
-        }
-
+    async startSession(code, language) {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         try {
-            this.appendToConsole(this.lang === 'fr' ? "Exécution du programme...\n" : "Running program...\n");
-
-            const response = await fetch('/activities/execute', {
+            const response = await fetch('/activities/start_session', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,8 +65,7 @@ class InteractiveConsole {
                 },
                 body: JSON.stringify({
                     code: code,
-                    language: language,
-                    input: this.inputBuffer.join('\n')
+                    language: language
                 })
             });
 
@@ -76,20 +74,118 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-
             if (data.success) {
-                if (data.output) {
-                    this.appendToConsole(data.output);
-                }
-                if (data.error) {
-                    this.appendToConsole(`\n${this.lang === 'fr' ? 'Avertissement' : 'Warning'}: ${data.error}`);
-                }
+                this.sessionId = data.session_id;
+                this.startOutputPolling();
+                return true;
             } else {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur' : 'Error'}: ${data.error || (this.lang === 'fr' ? 'Une erreur inconnue est survenue' : 'Unknown error occurred')}`);
+                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}`);
+                return false;
             }
         } catch (error) {
-            console.error('Execution error:', error);
-            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur' : 'Error'}: ${error.message}`);
+            this.appendToConsole(`Error: ${error.message}`);
+            return false;
+        }
+    }
+
+    async sendInput(input) {
+        if (!this.sessionId) return;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        try {
+            this.appendToConsole(input, true);
+
+            const response = await fetch('/activities/send_input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    input: input
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                this.appendToConsole(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            this.appendToConsole(`Error: ${error.message}`);
+        }
+    }
+
+    startOutputPolling() {
+        if (this.outputPoller) {
+            clearInterval(this.outputPoller);
+        }
+
+        this.outputPoller = setInterval(async () => {
+            if (!this.sessionId) {
+                clearInterval(this.outputPoller);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success && data.output) {
+                    this.appendToConsole(data.output);
+                } else if (!data.success) {
+                    clearInterval(this.outputPoller);
+                    this.sessionId = null;
+                }
+            } catch (error) {
+                console.error('Error polling output:', error);
+                clearInterval(this.outputPoller);
+                this.sessionId = null;
+            }
+        }, 100); // Poll every 100ms
+    }
+
+    async executeCode(code, language) {
+        this.clear();
+        if (!code.trim()) {
+            this.appendToConsole(this.lang === 'fr' ? "Erreur: Aucun code à exécuter" : "Error: No code to execute");
+            return;
+        }
+
+        this.appendToConsole(this.lang === 'fr' ? "Démarrage du programme...\n" : "Starting program...\n");
+
+        // Start new session
+        const success = await this.startSession(code, language);
+        if (!success) {
+            this.appendToConsole(this.lang === 'fr' ? "Échec du démarrage de la session" : "Failed to start session");
+        }
+    }
+
+    endSession() {
+        if (this.sessionId) {
+            fetch('/activities/end_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    session_id: this.sessionId
+                })
+            }).catch(console.error);
+
+            this.sessionId = null;
+            if (this.outputPoller) {
+                clearInterval(this.outputPoller);
+                this.outputPoller = null;
+            }
         }
     }
 }
