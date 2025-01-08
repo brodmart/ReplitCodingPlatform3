@@ -6011,3 +6011,47 @@ NameError: name 'Timer' is not defined
 2025-01-08 20:05:50,367 - __main__ - INFO - Starting Flask server on port 5000
 2025-01-08 20:05:50,371 - werkzeug - WARNING -  * Debugger is active!
 2025-01-08 20:05:50,374 - werkzeug - INFO -  * Debugger PIN: 459-025-831
+2025-01-08 20:08:28,977 - app - INFO - Logging configured successfully
+2025-01-08 20:08:28,977 - app - INFO - Logging configured successfully
+2025-01-08 20:08:28,977 - app - INFO - Initializing database...
+2025-01-08 20:08:28,977 - app - INFO - Initializing database...
+2025-01-08 20:08:29,235 - extensions - INFO - Cache initialized successfully
+2025-01-08 20:08:29,235 - extensions - INFO - Compression initialized successfully
+2025-01-08 20:08:29,236 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 20:08:29,237 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 20:08:29,242 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 20:08:29,242 - extensions - INFO - CORS initialized successfully
+2025-01-08 20:08:29,243 - extensions - INFO - All extensions initialized successfully
+2025-01-08 20:08:29,287 - app - INFO - All blueprints registered successfully
+2025-01-08 20:08:29,287 - app - INFO - All blueprints registered successfully
+2025-01-08 20:08:29,785 - app - INFO - Database tables created successfully
+2025-01-08 20:08:29,785 - app - INFO - Database tables created successfully
+2025-01-08 20:08:29,864 - app - INFO - Application initialized successfully
+2025-01-08 20:08:29,864 - app - INFO - Application initialized successfully
+2025-01-08 20:08:29,864 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 20:08:29,909 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 20:08:29,909 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 20:08:29,911 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 20:08:31,861 - app - INFO - Logging configured successfully
+2025-01-08 20:08:31,861 - app - INFO - Logging configured successfully
+2025-01-08 20:08:31,861 - app - INFO - Initializing database...
+2025-01-08 20:08:31,861 - app - INFO - Initializing database...
+2025-01-08 20:08:31,888 - extensions - INFO - Cache initialized successfully
+2025-01-08 20:08:31,888 - extensions - INFO - Compression initialized successfully
+2025-01-08 20:08:31,888 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 20:08:31,889 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 20:08:31,892 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 20:08:31,892 - extensions - INFO - CORS initialized successfully
+2025-01-08 20:08:31,893 - extensions - INFO - All extensions initialized successfully
+2025-01-08 20:08:31,903 - app - INFO - All blueprints registered successfully
+2025-01-08 20:08:31,903 - app - INFO - All blueprints registered successfully
+2025-01-08 20:08:32,442 - app - INFO - Database tables created successfully
+2025-01-08 20:08:32,442 - app - INFO - Database tables created successfully
+2025-01-08 20:08:32,522 - app - INFO - Application initialized successfully
+2025-01-08 20:08:32,522 - app - INFO - Application initialized successfully
+2025-01-08 20:08:32,523 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 20:08:32,537 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 20:08:32,568 - werkzeug - INFO -  * Debugger PIN: 132-861-787
