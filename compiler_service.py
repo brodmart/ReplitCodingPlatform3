@@ -455,10 +455,11 @@ class RequestQueue:
                         'error': compile_process.stderr
                     }
 
-                # Run
+                # Run with input
+                input_bytes = input_data.encode() if input_data else None
                 run_process = subprocess.run(
                     [str(executable)],
-                    input=input_data,
+                    input=input_bytes,
                     capture_output=True,
                     text=True,
                     timeout=5,
@@ -510,10 +511,11 @@ class RequestQueue:
                         'error': compile_process.stderr
                     }
 
-                # Run
+                # Run with input
+                input_bytes = input_data.encode() if input_data else None
                 run_process = subprocess.run(
                     ['mono', str(executable)],
-                    input=input_data,
+                    input=input_bytes,
                     capture_output=True,
                     text=True,
                     timeout=5,

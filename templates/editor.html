@@ -36,6 +36,19 @@
         border-radius: 4px;
         flex-grow: 1;
         overflow-y: auto;
+        margin-bottom: 10px; /* Add space for input area */
+    }
+    .console-input {
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+        padding: 0.5rem;
+        width: 100%;
+        resize: vertical;
+        min-height: 60px;
     }
     .card {
         height: 100%;
@@ -46,6 +59,8 @@
     .card-body {
         height: calc(100% - 48px); /* Account for card header */
         padding: 0;
+        display: flex;
+        flex-direction: column;
     }
     .card-header {
         display: flex;
@@ -66,6 +81,11 @@
         align-items: center;
         gap: 1rem;
     }
+    .input-label {
+        color: #d4d4d4;
+        margin-bottom: 5px;
+        font-size: 0.9em;
+    }
 </style>
 {% endblock %}
 
@@ -74,7 +94,6 @@
     <div class="row mb-3">
         <div class="col">
             <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
-            <!-- Add CSRF token -->
             <form id="code-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             </form>
@@ -113,6 +132,12 @@
                         {% else %}
                         Execution output will appear here...
                         {% endif %}
+                    </div>
+                    <div class="input-container">
+                        <div class="input-label">
+                            {% if lang == 'fr' %}Entrée du Programme{% else %}Program Input{% endif %}
+                        </div>
+                        <textarea id="programInput" class="console-input" placeholder="{% if lang == 'fr' %}Entrez les données d'entrée ici (une valeur par ligne){% else %}Enter input data here (one value per line){% endif %}"></textarea>
                     </div>
                 </div>
             </div>
@@ -181,6 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Get input data
+        const inputData = document.getElementById("programInput").value;
+
         // Get CSRF token
         const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         if (!csrfToken) {
@@ -203,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const language = document.getElementById('languageSelect')?.value || 'cpp';
-            console.log('Executing code:', { language, codeLength: code.length });
+            console.log('Executing code:', { language, codeLength: code.length, inputLength: inputData.length });
 
             const response = await fetch('/activities/execute', {
                 method: 'POST',
@@ -213,7 +241,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     code: code,
-                    language: language
+                    language: language,
+                    input: inputData
                 })
             });
 
