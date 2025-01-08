@@ -64,7 +64,7 @@ def _compile_and_run_cpp(code: str, input_data: Optional[str], temp_dir: str) ->
 
         # Compile
         compile_process = subprocess.run(
-            ['g++', str(source_file), '-o', str(executable)],
+            ['g++', str(source_file), '-o', str(executable), '-std=c++11'],
             capture_output=True,
             text=True,
             timeout=5
@@ -78,27 +78,29 @@ def _compile_and_run_cpp(code: str, input_data: Optional[str], temp_dir: str) ->
             }
 
         # Run with input
-        input_bytes = input_data.encode() if input_data else None
-        run_process = subprocess.run(
-            [str(executable)],
-            input=input_bytes,
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+        try:
+            run_process = subprocess.run(
+                [str(executable)],
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                encoding='utf-8'
+            )
 
-        return {
-            'success': True,
-            'output': run_process.stdout,
-            'error': run_process.stderr if run_process.stderr else None
-        }
+            return {
+                'success': True,
+                'output': run_process.stdout,
+                'error': run_process.stderr if run_process.stderr else None
+            }
 
-    except subprocess.TimeoutExpired:
-        return {
-            'success': False,
-            'output': '',
-            'error': "Le délai d'exécution a été dépassé"
-        }
+        except subprocess.TimeoutExpired:
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le délai d'exécution a été dépassé"
+            }
+
     except Exception as e:
         return {
             'success': False,
@@ -132,27 +134,29 @@ def _compile_and_run_csharp(code: str, input_data: Optional[str], temp_dir: str)
             }
 
         # Run with input
-        input_bytes = input_data.encode() if input_data else None
-        run_process = subprocess.run(
-            ['mono', str(executable)],
-            input=input_bytes,
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+        try:
+            run_process = subprocess.run(
+                ['mono', str(executable)],
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                encoding='utf-8'
+            )
 
-        return {
-            'success': True,
-            'output': run_process.stdout,
-            'error': run_process.stderr if run_process.stderr else None
-        }
+            return {
+                'success': True,
+                'output': run_process.stdout,
+                'error': run_process.stderr if run_process.stderr else None
+            }
 
-    except subprocess.TimeoutExpired:
-        return {
-            'success': False,
-            'output': '',
-            'error': "Le délai d'exécution a été dépassé"
-        }
+        except subprocess.TimeoutExpired:
+            return {
+                'success': False,
+                'output': '',
+                'error': "Le délai d'exécution a été dépassé"
+            }
+
     except Exception as e:
         return {
             'success': False,

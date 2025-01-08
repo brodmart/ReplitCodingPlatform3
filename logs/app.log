@@ -4611,3 +4611,180 @@ ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runne
 2025-01-08 19:19:17,265 - __main__ - INFO - Starting Flask server on port 5000
 2025-01-08 19:19:17,268 - werkzeug - WARNING -  * Debugger is active!
 2025-01-08 19:19:17,269 - werkzeug - INFO -  * Debugger PIN: 301-947-161
+2025-01-08 19:21:22,598 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading
+2025-01-08 19:21:23,646 - app - INFO - Logging configured successfully
+2025-01-08 19:21:23,646 - app - INFO - Logging configured successfully
+2025-01-08 19:21:23,646 - app - INFO - Initializing database...
+2025-01-08 19:21:23,646 - app - INFO - Initializing database...
+2025-01-08 19:21:23,660 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:21:23,661 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:21:23,661 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:21:23,661 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:21:23,663 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:21:23,663 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:21:23,663 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:21:24,419 - app - INFO - All blueprints registered successfully
+2025-01-08 19:21:24,419 - app - INFO - All blueprints registered successfully
+2025-01-08 19:21:24,998 - app - INFO - Database tables created successfully
+2025-01-08 19:21:24,998 - app - INFO - Database tables created successfully
+2025-01-08 19:21:25,143 - app - INFO - Application initialized successfully
+2025-01-08 19:21:25,143 - app - INFO - Application initialized successfully
+2025-01-08 19:21:25,143 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:21:25,151 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:21:25,151 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:21:25,152 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:21:25,791 - app - INFO - Logging configured successfully
+2025-01-08 19:21:25,791 - app - INFO - Logging configured successfully
+2025-01-08 19:21:25,791 - app - INFO - Initializing database...
+2025-01-08 19:21:25,791 - app - INFO - Initializing database...
+2025-01-08 19:21:25,809 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:21:25,809 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:21:25,809 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:21:25,810 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:21:25,812 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:21:25,813 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:21:25,813 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:21:26,679 - app - INFO - All blueprints registered successfully
+2025-01-08 19:21:26,679 - app - INFO - All blueprints registered successfully
+2025-01-08 19:21:27,192 - app - INFO - Database tables created successfully
+2025-01-08 19:21:27,192 - app - INFO - Database tables created successfully
+2025-01-08 19:21:27,352 - app - INFO - Application initialized successfully
+2025-01-08 19:21:27,352 - app - INFO - Application initialized successfully
+2025-01-08 19:21:27,353 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:21:27,357 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:21:27,359 - werkzeug - INFO -  * Debugger PIN: 760-140-239
+2025-01-08 19:22:22,344 - app - INFO - Logging configured successfully
+2025-01-08 19:22:22,344 - app - INFO - Logging configured successfully
+2025-01-08 19:22:22,345 - app - INFO - Initializing database...
+2025-01-08 19:22:22,345 - app - INFO - Initializing database...
+2025-01-08 19:22:22,361 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:22:22,362 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:22:22,362 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:22:22,362 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:22:22,364 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:22:22,364 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:22:22,364 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:22:23,143 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:23,143 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:23,655 - app - INFO - Database tables created successfully
+2025-01-08 19:22:23,655 - app - INFO - Database tables created successfully
+2025-01-08 19:22:23,805 - app - INFO - Application initialized successfully
+2025-01-08 19:22:23,805 - app - INFO - Application initialized successfully
+2025-01-08 19:22:23,805 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:22:23,817 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:22:23,818 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:22:23,819 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:22:24,446 - app - INFO - Logging configured successfully
+2025-01-08 19:22:24,446 - app - INFO - Logging configured successfully
+2025-01-08 19:22:24,447 - app - INFO - Initializing database...
+2025-01-08 19:22:24,447 - app - INFO - Initializing database...
+2025-01-08 19:22:24,464 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:22:24,465 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:22:24,465 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:22:24,466 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:22:24,467 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:22:24,468 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:22:24,468 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:22:25,196 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:25,196 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:25,696 - app - INFO - Database tables created successfully
+2025-01-08 19:22:25,696 - app - INFO - Database tables created successfully
+2025-01-08 19:22:25,847 - app - INFO - Application initialized successfully
+2025-01-08 19:22:25,847 - app - INFO - Application initialized successfully
+2025-01-08 19:22:25,848 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:22:25,852 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:22:25,853 - werkzeug - INFO -  * Debugger PIN: 660-348-291
+2025-01-08 19:22:38,748 - app - INFO - Logging configured successfully
+2025-01-08 19:22:38,748 - app - INFO - Logging configured successfully
+2025-01-08 19:22:38,750 - app - INFO - Initializing database...
+2025-01-08 19:22:38,750 - app - INFO - Initializing database...
+2025-01-08 19:22:38,765 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:22:38,767 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:22:38,767 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:22:38,769 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:22:38,771 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:22:38,771 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:22:38,771 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:22:39,523 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:39,523 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:40,040 - app - INFO - Database tables created successfully
+2025-01-08 19:22:40,040 - app - INFO - Database tables created successfully
+2025-01-08 19:22:40,188 - app - INFO - Application initialized successfully
+2025-01-08 19:22:40,188 - app - INFO - Application initialized successfully
+2025-01-08 19:22:40,189 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:22:40,208 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:22:40,208 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:22:40,209 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:22:40,919 - app - INFO - Logging configured successfully
+2025-01-08 19:22:40,919 - app - INFO - Logging configured successfully
+2025-01-08 19:22:40,920 - app - INFO - Initializing database...
+2025-01-08 19:22:40,920 - app - INFO - Initializing database...
+2025-01-08 19:22:40,936 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:22:40,937 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:22:40,937 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:22:40,937 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:22:40,939 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:22:40,939 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:22:40,940 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:22:41,787 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:41,787 - app - INFO - All blueprints registered successfully
+2025-01-08 19:22:42,302 - app - INFO - Database tables created successfully
+2025-01-08 19:22:42,302 - app - INFO - Database tables created successfully
+2025-01-08 19:22:42,436 - app - INFO - Application initialized successfully
+2025-01-08 19:22:42,436 - app - INFO - Application initialized successfully
+2025-01-08 19:22:42,436 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:22:42,439 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:22:42,440 - werkzeug - INFO -  * Debugger PIN: 116-224-286
+2025-01-08 19:29:04,784 - app - INFO - Logging configured successfully
+2025-01-08 19:29:04,784 - app - INFO - Logging configured successfully
+2025-01-08 19:29:04,784 - app - INFO - Initializing database...
+2025-01-08 19:29:04,784 - app - INFO - Initializing database...
+2025-01-08 19:29:04,798 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:29:04,799 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:29:04,799 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:29:04,800 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:29:04,802 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:29:04,802 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:29:04,803 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:29:05,493 - app - INFO - All blueprints registered successfully
+2025-01-08 19:29:05,493 - app - INFO - All blueprints registered successfully
+2025-01-08 19:29:06,603 - app - INFO - Database tables created successfully
+2025-01-08 19:29:06,603 - app - INFO - Database tables created successfully
+2025-01-08 19:29:06,749 - app - INFO - Application initialized successfully
+2025-01-08 19:29:06,749 - app - INFO - Application initialized successfully
+2025-01-08 19:29:06,749 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:29:06,763 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:29:06,764 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:29:06,765 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:29:07,315 - app - INFO - Logging configured successfully
+2025-01-08 19:29:07,315 - app - INFO - Logging configured successfully
+2025-01-08 19:29:07,316 - app - INFO - Initializing database...
+2025-01-08 19:29:07,316 - app - INFO - Initializing database...
+2025-01-08 19:29:07,331 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:29:07,331 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:29:07,332 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:29:07,333 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:29:07,334 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:29:07,335 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:29:07,335 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:29:08,028 - app - INFO - All blueprints registered successfully
+2025-01-08 19:29:08,028 - app - INFO - All blueprints registered successfully
+2025-01-08 19:29:08,549 - app - INFO - Database tables created successfully
+2025-01-08 19:29:08,549 - app - INFO - Database tables created successfully
+2025-01-08 19:29:08,692 - app - INFO - Application initialized successfully
+2025-01-08 19:29:08,692 - app - INFO - Application initialized successfully
+2025-01-08 19:29:08,692 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:29:08,695 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:29:08,697 - werkzeug - INFO -  * Debugger PIN: 124-606-063
