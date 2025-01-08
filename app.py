@@ -77,6 +77,10 @@ def create_app():
         # Add main route
         @app.route('/')
         def index():
+            return render_template('index.html')
+
+        @app.route('/activities')
+        def activities():
             return redirect(url_for('activities.list_activities'))
 
         # Register blueprints

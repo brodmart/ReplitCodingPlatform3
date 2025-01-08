@@ -5,8 +5,12 @@ modules = ["python-3.11", "nix", "postgresql-16"]
 channel = "stable-24_05"
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["sh", "-c", "python main.py"]
+run = "python main.py"
+deploymentTarget = "cloudrun"
+
+[deployment.cloudrun]
+memory = "512Mi"
+region = "us-central1"
 
 [workflows]
 runButton = "Project"
