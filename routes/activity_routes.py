@@ -25,22 +25,8 @@ TEMP_DIR = os.path.join(os.getcwd(), 'temp')
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.chmod(TEMP_DIR, 0o755)
 
-def cleanup_old_sessions():
-    """Clean up inactive sessions older than 30 minutes"""
-    try:
-        current_time = time.time()
-        with session_lock:
-            for session_id in list(active_sessions.keys()):
-                session = active_sessions[session_id]
-                if current_time - session['last_activity'] > 1800:  # 30 minutes
-                    cleanup_session(session_id)
-    except Exception as e:
-        logger.error(f"Error in cleanup_old_sessions: {e}", exc_info=True)
-
-# Register cleanup on application shutdown
-atexit.register(cleanup_old_sessions)
-
-@activities.route('/start_session', methods=['GET', 'POST'])
+@activities.route('/start_session', methods=['POST'])
+@limiter.limit("30 per minute")
 def start_session():
     """Start a new interactive coding session"""
     try:
@@ -118,6 +104,21 @@ def start_session():
             'success': False,
             'error': str(e)
         }), 500
+
+def cleanup_old_sessions():
+    """Clean up inactive sessions older than 30 minutes"""
+    try:
+        current_time = time.time()
+        with session_lock:
+            for session_id in list(active_sessions.keys()):
+                session = active_sessions[session_id]
+                if current_time - session['last_activity'] > 1800:  # 30 minutes
+                    cleanup_session(session_id)
+    except Exception as e:
+        logger.error(f"Error in cleanup_old_sessions: {e}", exc_info=True)
+
+# Register cleanup on application shutdown
+atexit.register(cleanup_old_sessions)
 
 @activities.route('/send_input', methods=['POST'])
 def send_input():

@@ -79,43 +79,15 @@ def create_app():
         def index():
             return render_template('index.html')
 
-        @app.route('/about')
-        def about():
-            return render_template('about.html')
-
-        @app.route('/activities')
-        def activities():
-            return redirect(url_for('activities.list_activities'))
-
-        @app.route('/contact')
-        def contact():
-            return render_template('contact.html')
-
-        @app.route('/faq')
-        def faq():
-            return render_template('faq.html')
-
-        @app.route('/terms')
-        def terms():
-            return render_template('terms.html')
-
-        @app.route('/privacy')
-        def privacy():
-            return render_template('privacy.html')
-
-        @app.route('/accessibility')
-        def accessibility():
-            return render_template('accessibility.html')
-
         # Register blueprints
         from routes.auth_routes import auth
         app.register_blueprint(auth, url_prefix='/auth')
 
         from routes.activity_routes import activities
-        app.register_blueprint(activities)
+        app.register_blueprint(activities, url_prefix='/activities')
 
         from routes.tutorial import tutorial_bp
-        app.register_blueprint(tutorial_bp)
+        app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
 
         # Create database tables
         with app.app_context():

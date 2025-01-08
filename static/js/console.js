@@ -15,6 +15,10 @@ class InteractiveConsole {
         this.lang = options.lang || 'en';
         this.inputQueue = [];
         this.setupEventListeners();
+        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!this.csrfToken) {
+            console.error('CSRF token not found');
+        }
     }
 
     setupEventListeners() {
@@ -117,8 +121,7 @@ class InteractiveConsole {
     }
 
     async startSession(code, language) {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        if (!csrfToken) {
+        if (!this.csrfToken) {
             this.appendToConsole(this.lang === 'fr' ? 
                 'Erreur: Token CSRF non trouvé\n' : 
                 'Error: CSRF token not found\n', 'error');
@@ -130,13 +133,14 @@ class InteractiveConsole {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
+                    'X-CSRF-Token': this.csrfToken
                 },
                 body: JSON.stringify({ code, language })
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
