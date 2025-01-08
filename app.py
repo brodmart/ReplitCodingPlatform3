@@ -1,15 +1,20 @@
 import os
 import logging
-from flask import Flask, render_template, request, session, jsonify
+from flask import Flask
 from flask_login import LoginManager
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
-from utils.logger import setup_logging
 from database import db, check_db_connection
-from extensions import init_extensions
 from models import Student
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 def create_app():
     """Create and configure the Flask application"""
@@ -21,10 +26,10 @@ def create_app():
     # Basic configuration
     app.config.update(
         SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
-        DEBUG=True,
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',
-        WTF_CSRF_ENABLED=True,
+        SESSION_TYPE='filesystem',
+        SESSION_FILE_DIR=os.path.join(os.getcwd(), 'flask_session'),
+        SESSION_FILE_THRESHOLD=500,
+        PERMANENT_SESSION_LIFETIME=1800,
         SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS={
@@ -34,37 +39,29 @@ def create_app():
             'pool_recycle': 1800,
             'pool_pre_ping': True
         },
-        # Session configuration for interactive console
-        SESSION_TYPE='filesystem',
-        SESSION_FILE_DIR=os.path.join(os.getcwd(), 'flask_session'),
-        SESSION_FILE_THRESHOLD=500,
-        PERMANENT_SESSION_LIFETIME=1800  # 30 minutes
+        # Enable CSRF protection
+        WTF_CSRF_ENABLED=True,
+        WTF_CSRF_SECRET_KEY=os.environ.get("CSRF_SECRET_KEY", "csrf_key_for_development"),
+        # Session security
+        SESSION_COOKIE_SECURE=False,  # Set to True in production
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax'
     )
 
-    # Setup logging first
-    setup_logging(app)
-    logger = logging.getLogger('app')
-
     try:
-        # Initialize database
-        logger.info("Initializing database...")
-        db.init_app(app)
-
-        # Create session directory
+        # Create session directory if not exists
         os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
 
-        # Initialize Flask-Session
+        # Initialize extensions in order
+        db.init_app(app)
+        csrf = CSRFProtect(app)
         Session(app)
-
-        # Initialize extensions before blueprints
-        init_extensions(app, db)
+        CORS(app)
 
         # Initialize login manager
         login_manager = LoginManager()
         login_manager.init_app(app)
         login_manager.login_view = 'auth.login'
-        login_manager.login_message = 'Veuillez vous connecter pour accéder à cette page.'
-        login_manager.login_message_category = 'info'
 
         @login_manager.user_loader
         def load_user(user_id):
@@ -78,31 +75,18 @@ def create_app():
         app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
         # Register blueprints
-        try:
-            from routes.auth_routes import auth
-            app.register_blueprint(auth)
+        from routes.auth_routes import auth
+        app.register_blueprint(auth)
 
-            from routes.activity_routes import activities
-            app.register_blueprint(activities, url_prefix='/activities')
+        from routes.activity_routes import activities
+        app.register_blueprint(activities, url_prefix='/activities')
 
-            from routes.tutorial import tutorial_bp
-            app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+        from routes.tutorial import tutorial_bp
+        app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
 
-            logger.info("All blueprints registered successfully")
-        except Exception as e:
-            logger.error(f"Failed to register blueprints: {str(e)}")
-            raise
-
-        # Create database tables within app context
+        # Create database tables
         with app.app_context():
-            try:
-                db.create_all()
-                logger.info("Database tables created successfully")
-            except Exception as e:
-                logger.error(f"Failed to create database tables: {str(e)}")
-                raise
-
-            # Verify database connection
+            db.create_all()
             if not check_db_connection():
                 raise Exception("Failed to verify database connection")
 
