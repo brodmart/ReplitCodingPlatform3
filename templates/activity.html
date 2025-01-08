@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 
-<!-- Add CSRF token meta tag for fetch requests -->
+<!-- Add CSRF token meta tag -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
@@ -17,18 +17,12 @@
         position: relative;
     }
 
-    #editor {
-        width: 100%;
-        height: 100%;
-    }
-
     .CodeMirror {
         height: 100%;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
         font-size: 14px;
     }
 
-    /* Unified Console Style */
     .console-container {
         background-color: #1e1e1e;
         color: #d4d4d4;
@@ -39,6 +33,7 @@
         flex-direction: column;
         border-radius: 4px;
         border: 1px solid #2d2d2d;
+        overflow: hidden;
     }
 
     #consoleOutput {
@@ -48,24 +43,44 @@
         margin: 0;
         white-space: pre-wrap;
         word-wrap: break-word;
+    }
+
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        padding: 5px 0;
+        border-top: 1px solid #2d2d2d;
         background-color: #1e1e1e;
+    }
+
+    .console-prompt {
+        color: #569cd6;
+        margin-right: 8px;
+        user-select: none;
+        padding: 0 8px;
     }
 
     #consoleInput {
-        background-color: #1e1e1e;
+        background: transparent;
         border: none;
-        border-top: 1px solid #2d2d2d;
         color: #d4d4d4;
         font-family: inherit;
         font-size: inherit;
-        padding: 8px 10px;
         width: 100%;
         outline: none;
+        padding: 8px;
     }
 
     #consoleInput:focus {
-        outline: none;
-        background-color: #252525;
+        background-color: #2d2d2d;
+    }
+
+    .console-input {
+        color: #569cd6;
+    }
+
+    .console-output {
+        color: #d4d4d4;
     }
 
     .editor-console-row {
@@ -135,7 +150,7 @@
                                         <div class="d-flex gap-2">
                                             <input type="hidden" id="languageSelect" value="{{ activity.language }}">
                                             <button id="runButton" class="btn btn-primary">
-                                                <i class="bi bi-play-fill"></i> Exécuter
+                                                <i class="bi bi-play-fill"></i> {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
                                             </button>
                                         </div>
                                     </div>
@@ -151,26 +166,29 @@
                         <div class="console-column">
                             <div class="card">
                                 <div class="card-header">
-                                    <h5 class="mb-0">Console</h5>
+                                    <h5 class="mb-0">{% if lang == 'fr' %}Console{% else %}Console{% endif %}</h5>
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="console-container">
                                         <div id="consoleOutput"></div>
-                                        <input type="text" id="consoleInput" 
-                                               autocomplete="off"
-                                               spellcheck="false">
+                                        <div class="console-input-line">
+                                            <input type="text" id="consoleInput" 
+                                                   placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
+                                                   autocomplete="off"
+                                                   spellcheck="false">
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+                    {% if activity.hints %}
                     <div class="accordion mt-4" id="activityAccordion">
-                        {% if activity.hints %}
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="hintsHeader">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hintsCollapse" aria-expanded="false" aria-controls="hintsCollapse">
-                                    <i class="bi bi-lightbulb me-2"></i> Indices
+                                    <i class="bi bi-lightbulb me-2"></i> {% if lang == 'fr' %}Indices{% else %}Hints{% endif %}
                                 </button>
                             </h2>
                             <div id="hintsCollapse" class="accordion-collapse collapse" aria-labelledby="hintsHeader" data-bs-parent="#activityAccordion">
@@ -179,8 +197,8 @@
                                 </div>
                             </div>
                         </div>
-                        {% endif %}
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -194,5 +212,35 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize CodeMirror
+    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+        mode: document.getElementById("languageSelect").value === "cpp" ? "text/x-c++src" : "text/x-csharp",
+        theme: "dracula",
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 4,
+        tabSize: 4,
+        indentWithTabs: true,
+        extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"},
+        viewportMargin: Infinity
+    });
+
+    // Initialize Interactive Console
+    const console = new InteractiveConsole({
+        lang: '{{ lang }}'
+    });
+
+    // Execute code handler
+    document.getElementById("runButton").addEventListener("click", async function() {
+        const code = editor.getValue().trim();
+        if (!code) return;
+
+        const language = document.getElementById('languageSelect').value;
+        await console.executeCode(code, language);
+    });
+});
+</script>
 {% endblock %}

@@ -78,7 +78,8 @@ def start_session():
                     'temp_dir': session_dir,
                     'last_activity': time.time(),
                     'output_buffer': [],
-                    'language': language
+                    'language': language,
+                    'waiting_for_input': False
                 }
 
             return jsonify({
@@ -126,12 +127,9 @@ def send_input():
 
         try:
             # Send input to process
-            process.stdin.write(input_text + '\n')
+            process.stdin.write(input_text)
             process.stdin.flush()
-
-            # Store the input in output buffer to show in console
-            session['output_buffer'].append(f"> {input_text}\n")
-
+            session['waiting_for_input'] = False
             session['last_activity'] = time.time()
             return jsonify({'success': True})
 
@@ -154,6 +152,7 @@ def get_output():
         session = active_sessions[session_id]
         process = session['process']
         output = []
+        waiting_for_input = False
 
         # Add any buffered output
         if session['output_buffer']:
@@ -177,34 +176,37 @@ def get_output():
             return jsonify({
                 'success': True,
                 'output': ''.join(output),
-                'finished': True
+                'session_ended': True
             })
 
         # Read any available output
         try:
-            # Read stdout
+            # Read stdout without blocking
             while True:
-                line = process.stdout.readline()
-                if not line:
-                    break
-                output.append(line)
+                # Use select to check if there's data to read
+                import select
+                rlist, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
-            # Check stderr
-            stderr_output = []
-            while True:
-                line = process.stderr.readline()
-                if not line:
+                if not rlist:
+                    # No more data to read right now
                     break
-                stderr_output.append(line)
 
-            if stderr_output:
-                output.extend(stderr_output)
+                for pipe in rlist:
+                    line = pipe.readline()
+                    if line:
+                        output.append(line)
+                        # Check if program is waiting for input
+                        if ('cin' in line.lower() or 'console.read' in line.lower() or 
+                            'enter' in line.lower() or 'input' in line.lower()):
+                            waiting_for_input = True
+                            session['waiting_for_input'] = True
 
             session['last_activity'] = time.time()
             return jsonify({
                 'success': True,
                 'output': ''.join(output) if output else '',
-                'finished': False
+                'waiting_for_input': waiting_for_input,
+                'session_ended': False
             })
 
         except Exception as e:

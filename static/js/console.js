@@ -3,50 +3,57 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        this.consoleOutput = document.getElementById('consoleOutput');
-        this.consoleInput = document.getElementById('consoleInput');
+        this.outputElement = document.getElementById('consoleOutput');
+        this.inputElement = document.getElementById('consoleInput');
+        if (!this.outputElement || !this.inputElement) {
+            console.error('Console elements not found');
+            return;
+        }
         this.sessionId = null;
         this.outputPoller = null;
-        this.inputBuffer = [];
         this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
         this.setupEventListeners();
     }
 
     setupEventListeners() {
-        this.consoleInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                const inputText = this.consoleInput.value;
-                this.consoleInput.value = '';
+        this.inputElement.addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter' && this.isWaitingForInput) {
+                e.preventDefault();
+                const inputText = this.inputElement.value;
+                this.inputElement.value = '';
+                this.isWaitingForInput = false;
+
+                // Display the input in the console with prompt
+                this.appendToConsole(`> ${inputText}\n`, true);
 
                 if (this.sessionId) {
                     await this.sendInput(inputText + '\n');
                 }
             }
         });
+
+        // Disable input when not waiting for it
+        this.inputElement.addEventListener('focus', () => {
+            if (!this.isWaitingForInput) {
+                this.inputElement.blur();
+            }
+        });
     }
 
     appendToConsole(text, isInput = false) {
-        // Create a text node to preserve whitespace and handle special characters
-        const preElement = document.createElement('pre');
-        preElement.style.margin = '0';
-        preElement.style.fontFamily = 'inherit';
-
-        if (isInput) {
-            preElement.innerHTML = text;
-            preElement.style.color = '#569cd6'; // Input text in blue
-        } else {
-            preElement.textContent = text;
-            preElement.style.color = '#d4d4d4'; // Output text in default color
-        }
-
-        this.consoleOutput.appendChild(preElement);
-        this.consoleOutput.scrollTop = this.consoleOutput.scrollHeight;
+        const line = document.createElement('div');
+        line.className = isInput ? 'console-input' : 'console-output';
+        line.textContent = text;
+        this.outputElement.appendChild(line);
+        this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
     clear() {
-        this.consoleOutput.innerHTML = '';
-        this.inputBuffer = [];
+        if (this.outputElement) {
+            this.outputElement.innerHTML = '';
+        }
+        this.isWaitingForInput = false;
         if (this.outputPoller) {
             clearInterval(this.outputPoller);
             this.outputPoller = null;
@@ -55,7 +62,12 @@ class InteractiveConsole {
     }
 
     async startSession(code, language) {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            this.appendToConsole('Error: CSRF token not found\n');
+            return false;
+        }
+
         try {
             const response = await fetch('/activities/start_session', {
                 method: 'POST',
@@ -63,10 +75,7 @@ class InteractiveConsole {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': csrfToken
                 },
-                body: JSON.stringify({
-                    code: code,
-                    language: language
-                })
+                body: JSON.stringify({ code, language })
             });
 
             if (!response.ok) {
@@ -79,11 +88,11 @@ class InteractiveConsole {
                 this.startOutputPolling();
                 return true;
             } else {
-                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}`);
+                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`);
                 return false;
             }
         } catch (error) {
-            this.appendToConsole(`Error: ${error.message}`);
+            this.appendToConsole(`Error: ${error.message}\n`);
             return false;
         }
     }
@@ -91,10 +100,13 @@ class InteractiveConsole {
     async sendInput(input) {
         if (!this.sessionId) return;
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-        try {
-            this.appendToConsole(input, true);
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            this.appendToConsole('Error: CSRF token not found\n');
+            return;
+        }
 
+        try {
             const response = await fetch('/activities/send_input', {
                 method: 'POST',
                 headers: {
@@ -113,10 +125,10 @@ class InteractiveConsole {
 
             const data = await response.json();
             if (!data.success) {
-                this.appendToConsole(`Error: ${data.error}`);
+                this.appendToConsole(`Error: ${data.error}\n`);
             }
         } catch (error) {
-            this.appendToConsole(`Error: ${error.message}`);
+            this.appendToConsole(`Error: ${error.message}\n`);
         }
     }
 
@@ -138,48 +150,63 @@ class InteractiveConsole {
                 }
 
                 const data = await response.json();
-                if (data.success && data.output) {
-                    this.appendToConsole(data.output);
-                } else if (!data.success) {
+                if (data.success) {
+                    if (data.output) {
+                        this.appendToConsole(data.output);
+                    }
+                    if (data.waiting_for_input) {
+                        this.isWaitingForInput = true;
+                        this.inputElement.focus();
+                    }
+                    if (data.session_ended) {
+                        clearInterval(this.outputPoller);
+                        this.sessionId = null;
+                    }
+                } else {
                     clearInterval(this.outputPoller);
                     this.sessionId = null;
+                    if (data.error) {
+                        this.appendToConsole(`Error: ${data.error}\n`);
+                    }
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
                 clearInterval(this.outputPoller);
                 this.sessionId = null;
+                this.appendToConsole(`Error: ${error.message}\n`);
             }
         }, 100); // Poll every 100ms
     }
 
     async executeCode(code, language) {
         this.clear();
-        if (!code.trim()) {
-            this.appendToConsole(this.lang === 'fr' ? "Erreur: Aucun code à exécuter" : "Error: No code to execute");
+        if (!code?.trim()) {
+            this.appendToConsole(this.lang === 'fr' ? "Erreur: Aucun code à exécuter\n" : "Error: No code to execute\n");
             return;
         }
 
         this.appendToConsole(this.lang === 'fr' ? "Démarrage du programme...\n" : "Starting program...\n");
-
-        // Start new session
         const success = await this.startSession(code, language);
         if (!success) {
-            this.appendToConsole(this.lang === 'fr' ? "Échec du démarrage de la session" : "Failed to start session");
+            this.appendToConsole(this.lang === 'fr' ? "Échec du démarrage de la session\n" : "Failed to start session\n");
         }
     }
 
     endSession() {
         if (this.sessionId) {
-            fetch('/activities/end_session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    session_id: this.sessionId
-                })
-            }).catch(console.error);
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (csrfToken) {
+                fetch('/activities/end_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({
+                        session_id: this.sessionId
+                    })
+                }).catch(console.error);
+            }
 
             this.sessionId = null;
             if (this.outputPoller) {
