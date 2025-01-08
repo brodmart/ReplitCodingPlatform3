@@ -4476,3 +4476,138 @@ NameError: name 'contextmanager' is not defined
 2025-01-08 19:14:11,226 - __main__ - INFO - Starting Flask server on port 5000
 2025-01-08 19:14:11,229 - werkzeug - WARNING -  * Debugger is active!
 2025-01-08 19:14:11,230 - werkzeug - INFO -  * Debugger PIN: 124-403-482
+2025-01-08 19:14:45,558 - flask_wtf.csrf - INFO - The CSRF token is missing.
+2025-01-08 19:14:45,558 - app - ERROR - Bad Request Error: 400 Bad Request: The CSRF token is missing.
+2025-01-08 19:14:45,558 - app - ERROR - Bad Request Error: 400 Bad Request: The CSRF token is missing.
+2025-01-08 19:14:45,559 - werkzeug - INFO - 127.0.0.1 - - [08/Jan/2025 19:14:45] "[31m[1mPOST /activities/start_session HTTP/1.1[0m" 400 -
+2025-01-08 19:15:54,083 - app - INFO - Logging configured successfully
+2025-01-08 19:15:54,083 - app - INFO - Logging configured successfully
+2025-01-08 19:15:54,084 - app - INFO - Initializing database...
+2025-01-08 19:15:54,084 - app - INFO - Initializing database...
+2025-01-08 19:15:54,099 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:15:54,100 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:15:54,100 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:15:54,101 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:15:54,104 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:15:54,104 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:15:54,104 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:15:54,112 - app - ERROR - Failed to register blueprints: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:15:54,112 - app - ERROR - Failed to register blueprints: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:15:54,112 - app - CRITICAL - Failed to initialize application: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 6, in <module>
+    from flask_wtf.csrf import csrf_exempt # Added import
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:15:54,112 - app - CRITICAL - Failed to initialize application: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 6, in <module>
+    from flask_wtf.csrf import csrf_exempt # Added import
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:16:53,604 - app - INFO - Logging configured successfully
+2025-01-08 19:16:53,604 - app - INFO - Logging configured successfully
+2025-01-08 19:16:53,605 - app - INFO - Initializing database...
+2025-01-08 19:16:53,605 - app - INFO - Initializing database...
+2025-01-08 19:16:53,636 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:16:53,650 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:16:53,651 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:16:53,652 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:16:53,654 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:16:53,654 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:16:53,654 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:16:53,666 - app - ERROR - Failed to register blueprints: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:16:53,666 - app - ERROR - Failed to register blueprints: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:16:53,669 - app - CRITICAL - Failed to initialize application: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 6, in <module>
+    from flask_wtf.csrf import csrf_exempt # Added import
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:16:53,669 - app - CRITICAL - Failed to initialize application: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 6, in <module>
+    from flask_wtf.csrf import csrf_exempt # Added import
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:17:41,803 - app - INFO - Logging configured successfully
+2025-01-08 19:17:41,803 - app - INFO - Logging configured successfully
+2025-01-08 19:17:41,803 - app - INFO - Initializing database...
+2025-01-08 19:17:41,803 - app - INFO - Initializing database...
+2025-01-08 19:17:41,819 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:17:41,820 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:17:41,820 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:17:41,821 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:17:41,822 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:17:41,823 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:17:41,823 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:17:41,826 - app - ERROR - Failed to register blueprints: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:17:41,826 - app - ERROR - Failed to register blueprints: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:17:41,826 - app - CRITICAL - Failed to initialize application: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 6, in <module>
+    from flask_wtf.csrf import csrf_exempt # Added import
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:17:41,826 - app - CRITICAL - Failed to initialize application: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 73, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 6, in <module>
+    from flask_wtf.csrf import csrf_exempt # Added import
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ImportError: cannot import name 'csrf_exempt' from 'flask_wtf.csrf' (/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_wtf/csrf.py)
+2025-01-08 19:19:14,212 - app - INFO - Logging configured successfully
+2025-01-08 19:19:14,212 - app - INFO - Logging configured successfully
+2025-01-08 19:19:14,212 - app - INFO - Initializing database...
+2025-01-08 19:19:14,212 - app - INFO - Initializing database...
+2025-01-08 19:19:14,224 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:19:14,225 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:19:14,225 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:19:14,225 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:19:14,227 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:19:14,227 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:19:14,227 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:19:14,811 - app - INFO - All blueprints registered successfully
+2025-01-08 19:19:14,811 - app - INFO - All blueprints registered successfully
+2025-01-08 19:19:15,331 - app - INFO - Database tables created successfully
+2025-01-08 19:19:15,331 - app - INFO - Database tables created successfully
+2025-01-08 19:19:15,463 - app - INFO - Application initialized successfully
+2025-01-08 19:19:15,463 - app - INFO - Application initialized successfully
+2025-01-08 19:19:15,463 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:19:15,474 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 19:19:15,475 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 19:19:15,476 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 19:19:15,970 - app - INFO - Logging configured successfully
+2025-01-08 19:19:15,970 - app - INFO - Logging configured successfully
+2025-01-08 19:19:15,970 - app - INFO - Initializing database...
+2025-01-08 19:19:15,970 - app - INFO - Initializing database...
+2025-01-08 19:19:15,983 - extensions - INFO - Cache initialized successfully
+2025-01-08 19:19:15,983 - extensions - INFO - Compression initialized successfully
+2025-01-08 19:19:15,983 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 19:19:15,984 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 19:19:15,985 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 19:19:15,986 - extensions - INFO - CORS initialized successfully
+2025-01-08 19:19:15,986 - extensions - INFO - All extensions initialized successfully
+2025-01-08 19:19:16,628 - app - INFO - All blueprints registered successfully
+2025-01-08 19:19:16,628 - app - INFO - All blueprints registered successfully
+2025-01-08 19:19:17,129 - app - INFO - Database tables created successfully
+2025-01-08 19:19:17,129 - app - INFO - Database tables created successfully
+2025-01-08 19:19:17,264 - app - INFO - Application initialized successfully
+2025-01-08 19:19:17,264 - app - INFO - Application initialized successfully
+2025-01-08 19:19:17,265 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 19:19:17,268 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 19:19:17,269 - werkzeug - INFO -  * Debugger PIN: 301-947-161

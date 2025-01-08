@@ -281,7 +281,7 @@ cleanup_old_sessions()
 @activities.route('/execute', methods=['POST'])
 @limiter.limit("10 per minute")
 def execute_code():
-    """Execute submitted code"""
+    """Execute submitted code with input support"""
     start_time = time.time()
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
 
@@ -301,6 +301,7 @@ def execute_code():
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
+        input_data = data.get('input', '')  # Get optional input data
 
         if not code:
             return jsonify({
@@ -314,7 +315,8 @@ def execute_code():
                 'error': 'Langage non supporté'
             }), 400
 
-        result = compile_and_run(code, language)
+        # Pass input data to compiler service
+        result = compile_and_run(code, language, input_data)
 
         if not result.get('success', False):
             error_msg = result.get('error', 'Une erreur s\'est produite')
