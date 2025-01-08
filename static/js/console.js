@@ -19,7 +19,7 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.maxRetries = 3;
-        this.baseDelay = 500; // Increased base delay
+        this.baseDelay = 200; // Reduced from 500ms to 200ms
         this.isSessionValid = true;
         this.setupEventListeners();
         this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
@@ -138,7 +138,7 @@ class InteractiveConsole {
             if (response.ok && data.success) {
                 this.sessionId = data.session_id;
                 this.isSessionValid = true;
-                this.startOutputPolling();
+                this.startPolling();
                 return true;
             } else {
                 this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`, 'error');
@@ -151,77 +151,70 @@ class InteractiveConsole {
     }
 
     calculateBackoffDelay() {
-        return Math.min(this.baseDelay * Math.pow(2, this.pollRetryCount), 3000);
+        // More gradual backoff with lower maximum delay
+        return Math.min(this.baseDelay * (this.pollRetryCount + 1), 1000);
     }
 
-    async startOutputPolling() {
+    startPolling() {
         if (this.outputPoller) {
             clearInterval(this.outputPoller);
         }
 
-        const poll = async () => {
-            if (!this.sessionId || !this.isSessionValid) {
+        // Start immediate polling without initial delay
+        this.poll();
+
+        // Continue polling with fixed interval
+        this.outputPoller = setInterval(() => {
+            if (!this.isSessionValid || !this.sessionId) {
                 clearInterval(this.outputPoller);
                 this.outputPoller = null;
                 return;
             }
+            this.poll();
+        }, this.baseDelay);
+    }
 
-            try {
-                const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`);
-                const data = await response.json();
+    async poll() {
+        if (!this.sessionId || !this.isSessionValid) return;
 
-                if (response.ok && data.success) {
-                    this.pollRetryCount = 0;
+        try {
+            const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`);
+            const data = await response.json();
 
-                    if (data.output) {
-                        this.appendToConsole(data.output);
-                    }
+            if (response.ok && data.success) {
+                this.pollRetryCount = 0;
 
-                    if (data.session_ended) {
-                        this.endSession();
-                        return;
-                    }
-
-                    this.setInputState(data.waiting_for_input);
-                } else {
-                    if (data.error?.includes('Invalid session')) {
-                        this.isSessionValid = false;
-                        this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
-                        this.endSession();
-                        return;
-                    }
-
-                    this.pollRetryCount++;
-                    if (this.pollRetryCount >= this.maxRetries) {
-                        this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Session ended unexpectedly'}\n`, 'error');
-                        this.endSession();
-                        return;
-                    }
+                if (data.output) {
+                    this.appendToConsole(data.output);
                 }
-            } catch (error) {
-                this.pollRetryCount++;
-                if (this.pollRetryCount >= this.maxRetries) {
-                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Connection lost\n`, 'error');
+
+                if (data.session_ended) {
                     this.endSession();
                     return;
                 }
-            }
-        };
 
-        // Initial poll
-        await poll();
+                this.setInputState(data.waiting_for_input);
+            } else {
+                if (data.error?.includes('Invalid session')) {
+                    this.isSessionValid = false;
+                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
+                    this.endSession();
+                    return;
+                }
 
-        // Start polling with dynamic interval
-        this.outputPoller = setInterval(async () => {
-            if (!this.isSessionValid) {
-                clearInterval(this.outputPoller);
-                this.outputPoller = null;
-                return;
+                this.pollRetryCount++;
+                if (this.pollRetryCount >= this.maxRetries) {
+                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Session ended unexpectedly'}\n`, 'error');
+                    this.endSession();
+                }
             }
-            const delay = this.calculateBackoffDelay();
-            await new Promise(resolve => setTimeout(resolve, delay));
-            await poll();
-        }, this.baseDelay);
+        } catch (error) {
+            this.pollRetryCount++;
+            if (this.pollRetryCount >= this.maxRetries) {
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Connection lost\n`, 'error');
+                this.endSession();
+            }
+        }
     }
 
     async sendInput(input) {
@@ -242,7 +235,7 @@ class InteractiveConsole {
 
             const data = await response.json();
             if (!response.ok || !data.success) {
-                if (response.status === 400 || data.error?.includes('Invalid session')) {
+                if (data.error?.includes('Invalid session')) {
                     this.isSessionValid = false;
                     this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
                     this.endSession();
@@ -251,7 +244,8 @@ class InteractiveConsole {
                 this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to send input'}\n`, 'error');
             }
 
-            setTimeout(() => this.processInputQueue(), 100);
+            // Process next input immediately
+            this.processInputQueue();
         } catch (error) {
             this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
             this.endSession();
