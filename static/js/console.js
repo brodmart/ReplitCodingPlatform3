@@ -122,8 +122,8 @@ class InteractiveConsole {
 
     async startSession(code, language) {
         if (!this.csrfToken) {
-            this.appendToConsole(this.lang === 'fr' ? 
-                'Erreur: Token CSRF non trouvé\n' : 
+            this.appendToConsole(this.lang === 'fr' ?
+                'Erreur: Token CSRF non trouvé\n' :
                 'Error: CSRF token not found\n', 'error');
             return false;
         }
@@ -163,8 +163,8 @@ class InteractiveConsole {
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
-            this.appendToConsole(this.lang === 'fr' ? 
-                'Erreur: Token CSRF non trouvé\n' : 
+            this.appendToConsole(this.lang === 'fr' ?
+                'Erreur: Token CSRF non trouvé\n' :
                 'Error: CSRF token not found\n', 'error');
             return;
         }
@@ -232,11 +232,13 @@ class InteractiveConsole {
                     if (this.isWaitingForInput) {
                         inputLine?.classList.add('console-waiting');
                         if (!wasWaiting) {
+                            // Only focus and process queue when transitioning to waiting state
                             this.inputElement.focus();
                             this.processInputQueue();
                         }
                     } else {
                         inputLine?.classList.remove('console-waiting');
+                        this.inputElement.blur();
                     }
 
                     if (data.session_ended) {
@@ -261,19 +263,19 @@ class InteractiveConsole {
     async executeCode(code, language) {
         this.clear();
         if (!code?.trim()) {
-            this.appendToConsole(this.lang === 'fr' ? 
-                "Erreur: Aucun code à exécuter\n" : 
+            this.appendToConsole(this.lang === 'fr' ?
+                "Erreur: Aucun code à exécuter\n" :
                 "Error: No code to execute\n", 'error');
             return;
         }
 
-        this.appendToConsole(this.lang === 'fr' ? 
-            "Démarrage du programme...\n" : 
+        this.appendToConsole(this.lang === 'fr' ?
+            "Démarrage du programme...\n" :
             "Starting program...\n", 'success');
         const success = await this.startSession(code, language);
         if (!success) {
-            this.appendToConsole(this.lang === 'fr' ? 
-                "Échec du démarrage de la session\n" : 
+            this.appendToConsole(this.lang === 'fr' ?
+                "Échec du démarrage de la session\n" :
                 "Failed to start session\n", 'error');
         }
     }

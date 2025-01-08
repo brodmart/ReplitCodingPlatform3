@@ -201,7 +201,7 @@ def get_output():
 
         # Read available output
         try:
-            # Check for available output using select
+            # Check for available output using select with a short timeout
             reads = [process.stdout, process.stderr]
             readable, _, _ = select.select(reads, [], [], 0.1)
 
@@ -209,15 +209,27 @@ def get_output():
                 line = pipe.readline()
                 if line:
                     output.append(line)
-                    # Check for input prompts
+                    logger.debug(f"Read line from process: {line.strip()}")
+                    # Enhanced input prompt detection
                     lower_line = line.lower()
                     if any(prompt in lower_line for prompt in [
-                        'cin', 'console.read', 'enter', 'input', '?', ':'
-                    ]):
+                        'input', 'enter', 'cin', 'console.readline', 'getline', '?', ':'
+                    ]) or (
+                        # Additional checks for common input patterns
+                        ('>' in line and len(line.strip()) < 10) or  # Short prompt with >
+                        (line.strip().endswith(':')) or             # Line ending with :
+                        ('please' in lower_line and any(word in lower_line for word in ['type', 'enter']))
+                    ):
                         waiting_for_input = True
                         session['waiting_for_input'] = True
+                        logger.debug("Detected input prompt, setting waiting_for_input=True")
 
             session['last_activity'] = time.time()
+
+            # If we're waiting for input but no new output, maintain the waiting state
+            if session.get('waiting_for_input') and not output:
+                waiting_for_input = True
+
             return jsonify({
                 'success': True,
                 'output': ''.join(output) if output else '',
