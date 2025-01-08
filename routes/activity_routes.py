@@ -1,20 +1,48 @@
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, flash, redirect, url_for, Response
 from database import db
 from models import CodingActivity
+from extensions import limiter, cache
 import logging
 import time
 import subprocess
 import os
-from threading import Lock
-from compiler_service import compile_and_run, CompilerError, ExecutionError
+import shutil
+from threading import Lock, Timer
 from werkzeug.exceptions import RequestTimeout
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
 
+# Configure logging for API monitoring
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - [%(levelname)s] - %(message)s'
+)
+
 # Store active sessions
 active_sessions = {}
 session_lock = Lock()
+
+# Ensure temp directory exists and has proper permissions
+TEMP_DIR = os.path.join(os.getcwd(), 'temp')
+os.makedirs(TEMP_DIR, exist_ok=True)
+os.chmod(TEMP_DIR, 0o755)  # Set proper permissions
+
+def get_compiler_version():
+    """Check if required compilers are available"""
+    try:
+        cpp_version = subprocess.run(['g++', '--version'], capture_output=True, text=True)
+        mono_version = subprocess.run(['mono', '--version'], capture_output=True, text=True)
+        logger.info(f"G++ version: {cpp_version.stdout.splitlines()[0]}")
+        logger.info(f"Mono version: {mono_version.stdout.splitlines()[0]}")
+        return True
+    except Exception as e:
+        logger.error(f"Compiler check failed: {e}")
+        return False
+
+# Check compilers on startup
+if not get_compiler_version():
+    logger.error("Required compilers (g++ and/or mono) are not available")
 
 @activities.route('/start_session', methods=['POST'])
 def start_session():
@@ -33,65 +61,98 @@ def start_session():
         if language not in ['cpp', 'csharp']:
             return jsonify({'success': False, 'error': 'Unsupported language'}), 400
 
-        # Create temp files for the session
-        temp_dir = os.path.join(os.getcwd(), 'temp', str(time.time()))
-        os.makedirs(temp_dir, exist_ok=True)
+        # Create unique temp directory for this session
+        session_dir = os.path.join(TEMP_DIR, str(time.time()))
+        try:
+            os.makedirs(session_dir, exist_ok=True)
+        except Exception as e:
+            logger.error(f"Failed to create temp directory: {e}")
+            return jsonify({'success': False, 'error': 'Failed to create temporary directory'}), 500
 
-        source_file = os.path.join(temp_dir, f'program.{language}')
-        with open(source_file, 'w') as f:
-            f.write(code)
+        # Write source code to file
+        source_file = os.path.join(session_dir, f'program.{language}')
+        try:
+            with open(source_file, 'w') as f:
+                f.write(code)
+        except Exception as e:
+            logger.error(f"Failed to write source file: {e}")
+            shutil.rmtree(session_dir, ignore_errors=True)
+            return jsonify({'success': False, 'error': 'Failed to save source code'}), 500
 
         # Compile the code
-        if language == 'cpp':
-            executable = os.path.join(temp_dir, 'program')
-            compile_cmd = ['g++', source_file, '-o', executable]
-        else:  # C#
-            executable = os.path.join(temp_dir, 'program.exe')
-            compile_cmd = ['mcs', source_file, '-out:' + executable]
+        try:
+            if language == 'cpp':
+                executable = os.path.join(session_dir, 'program')
+                compile_cmd = ['g++', '-o', executable, source_file]
+            else:  # C#
+                executable = os.path.join(session_dir, 'program.exe')
+                compile_cmd = ['mcs', '-out:' + executable, source_file]
 
-        compile_result = subprocess.run(compile_cmd, capture_output=True, text=True)
-        if compile_result.returncode != 0:
+            compile_result = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if compile_result.returncode != 0:
+                logger.error(f"Compilation failed: {compile_result.stderr}")
+                shutil.rmtree(session_dir, ignore_errors=True)
+                return jsonify({
+                    'success': False,
+                    'error': f"Compilation error: {compile_result.stderr}"
+                }), 400
+
+        except subprocess.TimeoutExpired:
+            shutil.rmtree(session_dir, ignore_errors=True)
             return jsonify({
                 'success': False,
-                'error': compile_result.stderr
-            }), 400
+                'error': 'Compilation timed out'
+            }), 408
+        except Exception as e:
+            logger.error(f"Compilation error: {e}")
+            shutil.rmtree(session_dir, ignore_errors=True)
+            return jsonify({
+                'success': False,
+                'error': f'Compilation failed: {str(e)}'
+            }), 500
 
         # Start the program
-        if language == 'cpp':
+        try:
+            cmd = [executable] if language == 'cpp' else ['mono', executable]
             process = subprocess.Popen(
-                [executable],
+                cmd,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1
-            )
-        else:  # C#
-            process = subprocess.Popen(
-                ['mono', executable],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
+                bufsize=1,
+                cwd=session_dir
             )
 
-        session_id = str(time.time())
-        with session_lock:
-            active_sessions[session_id] = {
-                'process': process,
-                'temp_dir': temp_dir,
-                'output_buffer': [],
-                'last_activity': time.time()
-            }
+            session_id = str(time.time())
+            with session_lock:
+                active_sessions[session_id] = {
+                    'process': process,
+                    'temp_dir': session_dir,
+                    'last_activity': time.time()
+                }
 
-        return jsonify({
-            'success': True,
-            'session_id': session_id
-        })
+            return jsonify({
+                'success': True,
+                'session_id': session_id
+            })
+
+        except Exception as e:
+            logger.error(f"Failed to start process: {e}")
+            shutil.rmtree(session_dir, ignore_errors=True)
+            return jsonify({
+                'success': False,
+                'error': f'Failed to start program: {str(e)}'
+            }), 500
 
     except Exception as e:
-        logger.error(f"Error starting session: {e}", exc_info=True)
+        logger.error(f"Error in start_session: {e}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -114,10 +175,15 @@ def send_input():
         session = active_sessions[session_id]
         process = session['process']
 
-        # Send input to process
+        # Check if process is still running
+        if process.poll() is not None:
+            cleanup_session(session_id)
+            return jsonify({'success': False, 'error': 'Program has terminated'}), 400
+
         try:
             process.stdin.write(input_text + '\n')
             process.stdin.flush()
+            session['last_activity'] = time.time()
             return jsonify({'success': True})
         except Exception as e:
             logger.error(f"Error sending input: {e}", exc_info=True)
@@ -137,21 +203,22 @@ def get_output():
 
         session = active_sessions[session_id]
         process = session['process']
-
         output = []
 
         # Check if process has terminated
         if process.poll() is not None:
             # Get any remaining output
-            stdout, stderr = process.communicate()
-            if stdout:
-                output.append(stdout)
-            if stderr:
-                output.append(stderr)
+            try:
+                stdout, stderr = process.communicate(timeout=1)
+                if stdout:
+                    output.append(stdout)
+                if stderr:
+                    output.append(stderr)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout, stderr = process.communicate()
 
-            # Clean up session
             cleanup_session(session_id)
-
             return jsonify({
                 'success': True,
                 'output': ''.join(output),
@@ -160,19 +227,34 @@ def get_output():
 
         # Read any available output
         try:
+            # Read stdout
             while True:
                 line = process.stdout.readline()
                 if not line:
                     break
                 output.append(line)
+
+            # Check stderr
+            stderr_output = []
+            while True:
+                line = process.stderr.readline()
+                if not line:
+                    break
+                stderr_output.append(line)
+
+            if stderr_output:
+                output.extend(stderr_output)
+
+            session['last_activity'] = time.time()
+            return jsonify({
+                'success': True,
+                'output': ''.join(output) if output else '',
+                'finished': False
+            })
+
         except Exception as e:
             logger.error(f"Error reading output: {e}", exc_info=True)
-
-        return jsonify({
-            'success': True,
-            'output': ''.join(output) if output else '',
-            'finished': False
-        })
+            return jsonify({'success': False, 'error': str(e)}), 500
 
     except Exception as e:
         logger.error(f"Error in get_output: {e}", exc_info=True)
@@ -204,15 +286,20 @@ def cleanup_session(session_id):
         session = active_sessions[session_id]
         try:
             # Terminate the process if it's still running
-            if session['process'].poll() is None:
-                session['process'].terminate()
-                session['process'].wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            session['process'].kill()
+            process = session['process']
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+
+        except Exception as e:
+            logger.error(f"Error terminating process: {e}", exc_info=True)
 
         # Clean up temporary directory
         try:
-            import shutil
             shutil.rmtree(session['temp_dir'], ignore_errors=True)
         except Exception as e:
             logger.error(f"Error cleaning up temp directory: {e}", exc_info=True)
@@ -221,85 +308,19 @@ def cleanup_session(session_id):
         with session_lock:
             del active_sessions[session_id]
 
-from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session, Response
-from database import db
-from models import CodingActivity
-from extensions import limiter, cache
-import logging
-import time
-from compiler_service import compile_and_run, CompilerError, ExecutionError
-from werkzeug.exceptions import RequestTimeout
+# Session cleanup background task
+def cleanup_old_sessions():
+    """Clean up inactive sessions older than 30 minutes"""
+    current_time = time.time()
+    with session_lock:
+        for session_id in list(active_sessions.keys()):
+            session = active_sessions[session_id]
+            if current_time - session['last_activity'] > 1800:  # 30 minutes
+                cleanup_session(session_id)
+    Timer(1800, cleanup_old_sessions).start() # Run every 30 minutes
 
-activities = Blueprint('activities', __name__, template_folder='../templates')
-logger = logging.getLogger(__name__)
-
-# Configure logging for API monitoring
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - [%(levelname)s] - %(message)s'
-)
-
-def log_api_request(start_time, client_ip, endpoint, status_code, error=None):
-    """Log API request details"""
-    duration = round((time.time() - start_time) * 1000, 2)  # Duration in milliseconds
-    logger.info(f"""
-    API Request Details:
-    - Client IP: {client_ip}
-    - Endpoint: {endpoint}
-    - Duration: {duration}ms
-    - Status: {status_code}
-    {f'- Error: {error}' if error else ''}
-    """)
-
-@activities.before_request
-def before_request():
-    """Store request start time for duration calculation"""
-    request.start_time = time.time()
-
-@activities.after_request
-def after_request(response):
-    """Log request details after completion"""
-    if request.endpoint:
-        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        log_api_request(
-            request.start_time,
-            client_ip,
-            request.endpoint,
-            response.status_code
-        )
-    return response
-
-@activities.errorhandler(Exception)
-def handle_error(error):
-    """Global error handler for the blueprint with enhanced logging"""
-    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    error_details = f"{type(error).__name__}: {str(error)}"
-    logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
-
-    if isinstance(error, RequestTimeout):
-        log_api_request(
-            request.start_time,
-            client_ip,
-            request.endpoint,
-            408,
-            "Request timeout"
-        )
-        return jsonify({
-            'success': False,
-            'error': "La requête a pris trop de temps. Veuillez réessayer."
-        }), 408
-
-    log_api_request(
-        request.start_time,
-        client_ip,
-        request.endpoint,
-        500,
-        error_details
-    )
-    return jsonify({
-        'success': False,
-        'error': "Une erreur inattendue s'est produite. Veuillez réessayer."
-    }), 500
+#Start the cleanup task
+cleanup_old_sessions()
 
 @activities.route('/test')
 def test_template():
@@ -501,3 +522,56 @@ def execute_code():
             'success': False,
             'error': "Une erreur réseau s'est produite. Veuillez réessayer dans quelques instants."
         }), 500
+
+from compiler_service import compile_and_run, CompilerError, ExecutionError
+from compiler_service import log_api_request
+
+@activities.before_request
+def before_request():
+    """Store request start time for duration calculation"""
+    request.start_time = time.time()
+
+@activities.after_request
+def after_request(response):
+    """Log request details after completion"""
+    if request.endpoint:
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        log_api_request(
+            request.start_time,
+            client_ip,
+            request.endpoint,
+            response.status_code
+        )
+    return response
+
+@activities.errorhandler(Exception)
+def handle_error(error):
+    """Global error handler for the blueprint with enhanced logging"""
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    error_details = f"{type(error).__name__}: {str(error)}"
+    logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
+
+    if isinstance(error, RequestTimeout):
+        log_api_request(
+            request.start_time,
+            client_ip,
+            request.endpoint,
+            408,
+            "Request timeout"
+        )
+        return jsonify({
+            'success': False,
+            'error': "La requête a pris trop de temps. Veuillez réessayer."
+        }), 408
+
+    log_api_request(
+        request.start_time,
+        client_ip,
+        request.endpoint,
+        500,
+        error_details
+    )
+    return jsonify({
+        'success': False,
+        'error': "Une erreur inattendue s'est produite. Veuillez réessayer."
+    }), 500

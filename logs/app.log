@@ -3791,3 +3791,299 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-08 18:41:29,318 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 18:41:29] "GET /css/style.css HTTP/1.1" 200 -
 2025-01-08 18:41:29,328 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 18:41:29] "GET /js/editor.js HTTP/1.1" 200 -
 2025-01-08 18:41:29,403 - werkzeug - INFO - 10.83.5.94 - - [08/Jan/2025 18:41:29] "GET /codingmountains.webp HTTP/1.1" 200 -
+2025-01-08 18:55:44,972 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/activity_routes.py', reloading
+2025-01-08 18:55:46,615 - app - INFO - Logging configured successfully
+2025-01-08 18:55:46,615 - app - INFO - Logging configured successfully
+2025-01-08 18:55:46,615 - app - INFO - Initializing database...
+2025-01-08 18:55:46,615 - app - INFO - Initializing database...
+2025-01-08 18:55:46,646 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:55:46,647 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:55:46,647 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:55:46,648 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:55:46,651 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:55:46,651 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:55:46,651 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:55:47,189 - app - INFO - Database tables created successfully
+2025-01-08 18:55:47,189 - app - INFO - Database tables created successfully
+2025-01-08 18:55:48,753 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:55:48,755 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:55:49,002 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:55:49,003 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:55:49,004 - app - ERROR - Failed to register blueprints: name 'limiter' is not defined
+2025-01-08 18:55:49,004 - app - ERROR - Failed to register blueprints: name 'limiter' is not defined
+2025-01-08 18:55:49,004 - app - CRITICAL - Failed to initialize application: name 'limiter' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 119, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 341, in <module>
+    @limiter.limit("30 per minute")
+     ^^^^^^^
+NameError: name 'limiter' is not defined
+2025-01-08 18:55:49,004 - app - CRITICAL - Failed to initialize application: name 'limiter' is not defined
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 119, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 341, in <module>
+    @limiter.limit("30 per minute")
+     ^^^^^^^
+NameError: name 'limiter' is not defined
+2025-01-08 18:56:38,561 - app - INFO - Logging configured successfully
+2025-01-08 18:56:38,561 - app - INFO - Logging configured successfully
+2025-01-08 18:56:38,561 - app - INFO - Initializing database...
+2025-01-08 18:56:38,561 - app - INFO - Initializing database...
+2025-01-08 18:56:38,575 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:56:38,575 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:56:38,575 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:56:38,576 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:56:38,578 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:56:38,578 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:56:38,578 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:56:39,090 - app - INFO - Database tables created successfully
+2025-01-08 18:56:39,090 - app - INFO - Database tables created successfully
+2025-01-08 18:56:39,948 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:56:39,950 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:56:39,970 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:56:39,971 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:56:39,976 - app - INFO - All blueprints registered successfully
+2025-01-08 18:56:39,976 - app - INFO - All blueprints registered successfully
+2025-01-08 18:56:39,978 - app - INFO - Application initialized successfully
+2025-01-08 18:56:39,978 - app - INFO - Application initialized successfully
+2025-01-08 18:56:39,978 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:56:40,068 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.72:80
+2025-01-08 18:56:40,068 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 18:56:40,070 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:56:40,646 - app - INFO - Logging configured successfully
+2025-01-08 18:56:40,646 - app - INFO - Logging configured successfully
+2025-01-08 18:56:40,646 - app - INFO - Initializing database...
+2025-01-08 18:56:40,646 - app - INFO - Initializing database...
+2025-01-08 18:56:40,660 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:56:40,660 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:56:40,660 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:56:40,661 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:56:40,662 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:56:40,662 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:56:40,662 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:56:41,211 - app - INFO - Database tables created successfully
+2025-01-08 18:56:41,211 - app - INFO - Database tables created successfully
+2025-01-08 18:56:42,023 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:56:42,023 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:56:42,041 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:56:42,042 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:56:42,045 - app - INFO - All blueprints registered successfully
+2025-01-08 18:56:42,045 - app - INFO - All blueprints registered successfully
+2025-01-08 18:56:42,047 - app - INFO - Application initialized successfully
+2025-01-08 18:56:42,047 - app - INFO - Application initialized successfully
+2025-01-08 18:56:42,048 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:56:42,100 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:56:42,102 - werkzeug - INFO -  * Debugger PIN: 382-888-180
+2025-01-08 18:57:44,068 - app - INFO - Logging configured successfully
+2025-01-08 18:57:44,068 - app - INFO - Logging configured successfully
+2025-01-08 18:57:44,069 - app - INFO - Initializing database...
+2025-01-08 18:57:44,069 - app - INFO - Initializing database...
+2025-01-08 18:57:44,082 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:57:44,082 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:57:44,082 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:57:44,083 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:57:44,085 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:57:44,085 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:57:44,085 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:57:44,600 - app - INFO - Database tables created successfully
+2025-01-08 18:57:44,600 - app - INFO - Database tables created successfully
+2025-01-08 18:57:44,712 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:57:44,713 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:57:45,486 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:57:45,487 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:57:45,489 - app - INFO - All blueprints registered successfully
+2025-01-08 18:57:45,489 - app - INFO - All blueprints registered successfully
+2025-01-08 18:57:45,493 - app - INFO - Application initialized successfully
+2025-01-08 18:57:45,493 - app - INFO - Application initialized successfully
+2025-01-08 18:57:45,493 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 18:57:45,573 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.72:5000
+2025-01-08 18:57:45,574 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 18:57:45,576 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:57:46,217 - app - INFO - Logging configured successfully
+2025-01-08 18:57:46,217 - app - INFO - Logging configured successfully
+2025-01-08 18:57:46,218 - app - INFO - Initializing database...
+2025-01-08 18:57:46,218 - app - INFO - Initializing database...
+2025-01-08 18:57:46,232 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:57:46,233 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:57:46,233 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:57:46,233 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:57:46,235 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:57:46,235 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:57:46,235 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:57:46,746 - app - INFO - Database tables created successfully
+2025-01-08 18:57:46,746 - app - INFO - Database tables created successfully
+2025-01-08 18:57:46,849 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:57:46,850 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:57:47,637 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:57:47,637 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:57:47,639 - app - INFO - All blueprints registered successfully
+2025-01-08 18:57:47,639 - app - INFO - All blueprints registered successfully
+2025-01-08 18:57:47,643 - app - INFO - Application initialized successfully
+2025-01-08 18:57:47,643 - app - INFO - Application initialized successfully
+2025-01-08 18:57:47,644 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-08 18:57:47,711 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:57:47,713 - werkzeug - INFO -  * Debugger PIN: 606-347-700
+2025-01-08 18:58:22,562 - app - INFO - Logging configured successfully
+2025-01-08 18:58:22,562 - app - INFO - Logging configured successfully
+2025-01-08 18:58:22,563 - app - INFO - Initializing database...
+2025-01-08 18:58:22,563 - app - INFO - Initializing database...
+2025-01-08 18:58:22,583 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:58:22,584 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:58:22,584 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:58:22,586 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:58:22,588 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:58:22,588 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:58:22,588 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:58:23,106 - app - INFO - Database tables created successfully
+2025-01-08 18:58:23,106 - app - INFO - Database tables created successfully
+2025-01-08 18:58:23,213 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:58:23,213 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:58:23,970 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:58:23,971 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:58:23,973 - app - INFO - All blueprints registered successfully
+2025-01-08 18:58:23,973 - app - INFO - All blueprints registered successfully
+2025-01-08 18:58:23,977 - app - INFO - Application initialized successfully
+2025-01-08 18:58:23,977 - app - INFO - Application initialized successfully
+2025-01-08 18:58:23,977 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:58:24,048 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.72:80
+2025-01-08 18:58:24,048 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 18:58:24,049 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 18:58:24,624 - app - INFO - Logging configured successfully
+2025-01-08 18:58:24,624 - app - INFO - Logging configured successfully
+2025-01-08 18:58:24,624 - app - INFO - Initializing database...
+2025-01-08 18:58:24,624 - app - INFO - Initializing database...
+2025-01-08 18:58:24,639 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:58:24,639 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:58:24,639 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:58:24,640 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:58:24,642 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:58:24,642 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:58:24,642 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:58:25,130 - app - INFO - Database tables created successfully
+2025-01-08 18:58:25,130 - app - INFO - Database tables created successfully
+2025-01-08 18:58:25,231 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:58:25,231 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:58:25,941 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:58:25,942 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:58:25,945 - app - INFO - All blueprints registered successfully
+2025-01-08 18:58:25,945 - app - INFO - All blueprints registered successfully
+2025-01-08 18:58:25,950 - app - INFO - Application initialized successfully
+2025-01-08 18:58:25,950 - app - INFO - Application initialized successfully
+2025-01-08 18:58:25,951 - __main__ - INFO - Starting Flask server on port 80
+2025-01-08 18:58:26,016 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 18:58:26,018 - werkzeug - INFO -  * Debugger PIN: 486-572-932
+2025-01-08 18:58:34,325 - app - ERROR - Unhandled Exception: Could not build url for endpoint 'activities.list_activities' with values ['grade']. Did you mean 'auth.register' instead?
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/app.py", line 135, in index
+    return render_template('index.html', lang=session.get('lang', 'fr'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/templating.py", line 152, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/templating.py", line 133, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/runner/workspace/templates/index.html", line 2, in top-level template code
+    {% extends "base.html" %}
+  File "/home/runner/workspace/templates/base.html", line 61, in top-level template code
+    <a class="nav-link" href="{{ url_for('activities.list_activities', grade='10') }}">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1071, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1060, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/werkzeug/routing/map.py", line 919, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'activities.list_activities' with values ['grade']. Did you mean 'auth.register' instead?
+2025-01-08 18:58:34,325 - app - ERROR - Unhandled Exception: Could not build url for endpoint 'activities.list_activities' with values ['grade']. Did you mean 'auth.register' instead?
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/app.py", line 135, in index
+    return render_template('index.html', lang=session.get('lang', 'fr'))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/templating.py", line 152, in render_template
+    return _render(app, template, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/templating.py", line 133, in _render
+    rv = template.render(context)
+         ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/jinja2/environment.py", line 1295, in render
+    self.environment.handle_exception()
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/jinja2/environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "/home/runner/workspace/templates/index.html", line 2, in top-level template code
+    {% extends "base.html" %}
+  File "/home/runner/workspace/templates/base.html", line 61, in top-level template code
+    <a class="nav-link" href="{{ url_for('activities.list_activities', grade='10') }}">
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1071, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask/app.py", line 1060, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/werkzeug/routing/map.py", line 919, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'activities.list_activities' with values ['grade']. Did you mean 'auth.register' instead?
+2025-01-08 18:58:34,342 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 18:58:34] "[35m[1mGET / HTTP/1.1[0m" 500 -
+2025-01-08 18:59:28,353 - app - INFO - Logging configured successfully
+2025-01-08 18:59:28,353 - app - INFO - Logging configured successfully
+2025-01-08 18:59:28,354 - app - INFO - Initializing database...
+2025-01-08 18:59:28,354 - app - INFO - Initializing database...
+2025-01-08 18:59:28,369 - extensions - INFO - Cache initialized successfully
+2025-01-08 18:59:28,369 - extensions - INFO - Compression initialized successfully
+2025-01-08 18:59:28,370 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 18:59:28,371 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 18:59:28,372 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 18:59:28,373 - extensions - INFO - CORS initialized successfully
+2025-01-08 18:59:28,373 - extensions - INFO - All extensions initialized successfully
+2025-01-08 18:59:28,899 - app - INFO - Database tables created successfully
+2025-01-08 18:59:28,899 - app - INFO - Database tables created successfully
+2025-01-08 18:59:29,009 - routes.activity_routes - INFO - G++ version: g++ (GCC) 13.2.0
+2025-01-08 18:59:29,009 - routes.activity_routes - INFO - Mono version: Mono JIT compiler version 6.12.0.182 (tarball Wed May 15 10:00:08 UTC 2024)
+2025-01-08 18:59:29,748 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 18:59:29,749 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 18:59:29,749 - app - ERROR - Failed to register blueprints: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+2025-01-08 18:59:29,749 - app - ERROR - Failed to register blueprints: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+2025-01-08 18:59:29,749 - app - CRITICAL - Failed to initialize application: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 119, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 527, in <module>
+    from compiler_service import log_api_request
+ImportError: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+2025-01-08 18:59:29,749 - app - CRITICAL - Failed to initialize application: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 119, in create_app
+    from routes.activity_routes import activities
+  File "/home/runner/workspace/routes/activity_routes.py", line 527, in <module>
+    from compiler_service import log_api_request
+ImportError: cannot import name 'log_api_request' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
