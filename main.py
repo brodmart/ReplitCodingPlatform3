@@ -11,10 +11,9 @@ logger = logging.getLogger(__name__)
 
 if __name__ == '__main__':
     try:
-        # Use port 80 for deployment, 5000 for development
-        is_deployment = os.environ.get('DEPLOYMENT_ENV') == 'production'
-        port = 80 if is_deployment else 5000
-        logger.info(f"Starting Flask server on port {port} ({'production' if is_deployment else 'development'} mode)")
+        # Use port 80 consistently for both development and production
+        port = 80
+        logger.info(f"Starting Flask server on port {port}")
 
         # Configure server for interactive I/O
         app.config['PROPAGATE_EXCEPTIONS'] = True

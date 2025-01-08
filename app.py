@@ -36,9 +36,9 @@ def create_app():
         },
         # Session configuration for interactive console
         SESSION_TYPE='filesystem',
-        SESSION_PERMANENT=False,
         SESSION_FILE_DIR=os.path.join(os.getcwd(), 'flask_session'),
-        SESSION_FILE_THRESHOLD=500
+        SESSION_FILE_THRESHOLD=500,
+        PERMANENT_SESSION_LIFETIME=1800  # 30 minutes
     )
 
     # Setup logging first
@@ -49,6 +49,9 @@ def create_app():
         # Initialize database
         logger.info("Initializing database...")
         db.init_app(app)
+
+        # Create session directory
+        os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
 
         # Initialize Flask-Session
         Session(app)
@@ -102,9 +105,6 @@ def create_app():
             # Verify database connection
             if not check_db_connection():
                 raise Exception("Failed to verify database connection")
-
-        # Create session directory if it doesn't exist
-        os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
 
         logger.info("Application initialized successfully")
         return app
