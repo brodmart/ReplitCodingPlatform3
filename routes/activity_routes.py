@@ -40,7 +40,7 @@ def cleanup_old_sessions():
 # Register cleanup on application shutdown
 atexit.register(cleanup_old_sessions)
 
-@activities.route('/start_session', methods=['POST'])
+@activities.route('/start_session', methods=['GET', 'POST'])
 def start_session():
     """Start a new interactive coding session"""
     try:
