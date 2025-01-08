@@ -66,10 +66,18 @@ namespace ProgrammingActivity
     editor.setValue(getTemplateForLanguage(initialLanguage));
     editor.refresh();
 
-    // Initialize Interactive Console
-    const console = new InteractiveConsole({
-        lang: document.documentElement.lang || 'fr'
-    });
+    // Initialize Interactive Console only if elements exist
+    const consoleElements = {
+        output: document.getElementById('consoleOutput'),
+        input: document.getElementById('consoleInput')
+    };
+
+    let console;
+    if (consoleElements.output && consoleElements.input) {
+        console = new InteractiveConsole({
+            lang: document.documentElement.lang || 'en'
+        });
+    }
 
     // Language change handler
     if (languageSelect) {
@@ -83,7 +91,7 @@ namespace ProgrammingActivity
 
     // Run button handler
     const runButton = document.getElementById('runButton');
-    if (runButton) {
+    if (runButton && console) {
         runButton.addEventListener('click', async function() {
             const code = editor.getValue().trim();
             if (!code) return;
