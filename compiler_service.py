@@ -11,10 +11,10 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None, compile_only: bool = False) -> Dict[str, Any]:
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None, compile_only: bool = False, dest_dir: Optional[str] = None) -> Dict[str, Any]:
     """
     Compile and run code with proper input/output handling.
-    If compile_only is True, it will only compile the code and copy the executable to the current directory.
+    If compile_only is True, it will only compile the code and copy the executable to dest_dir or current directory.
     """
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -44,9 +44,10 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                     }
 
                 if compile_only:
-                    # Copy executable to current directory if compilation successful
+                    # Copy executable to destination directory if specified, otherwise to current directory
                     try:
-                        dest_executable = Path.cwd() / executable.name
+                        dest_path = Path(dest_dir) if dest_dir else Path.cwd()
+                        dest_executable = dest_path / executable.name
                         shutil.copy2(executable, dest_executable)
                         os.chmod(dest_executable, 0o755)  # Make executable
                         return {'success': True}
@@ -63,8 +64,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                         input=input_data,
                         capture_output=True,
                         text=True,
-                        timeout=5,
-                        encoding='utf-8'
+                        timeout=5
                     )
 
                     return {
@@ -104,9 +104,10 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                     }
 
                 if compile_only:
-                    # Copy executable to current directory if compilation successful
+                    # Copy executable to destination directory if specified, otherwise to current directory
                     try:
-                        dest_executable = Path.cwd() / executable.name
+                        dest_path = Path(dest_dir) if dest_dir else Path.cwd()
+                        dest_executable = dest_path / executable.name
                         shutil.copy2(executable, dest_executable)
                         os.chmod(dest_executable, 0o755)  # Make executable
                         return {'success': True}
@@ -123,8 +124,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                         input=input_data,
                         capture_output=True,
                         text=True,
-                        timeout=5,
-                        encoding='utf-8'
+                        timeout=5
                     )
 
                     return {

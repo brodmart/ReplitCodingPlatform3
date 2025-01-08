@@ -25,6 +25,7 @@ TEMP_DIR = os.path.join(os.getcwd(), 'temp')
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.chmod(TEMP_DIR, 0o755)
 
+# Update the start_session route to use the new compiler service functionality
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
 def start_session():
@@ -48,14 +49,8 @@ def start_session():
         session_dir = os.path.join(TEMP_DIR, session_id)
         os.makedirs(session_dir, exist_ok=True)
 
-        # Write code to file
-        file_extension = 'cpp' if language == 'cpp' else 'cs'
-        source_file = os.path.join(session_dir, f'program.{file_extension}')
-        with open(source_file, 'w') as f:
-            f.write(code)
-
-        # Compile code
-        result = compile_and_run(code, language, compile_only=True)
+        # Compile code and place executable in session directory
+        result = compile_and_run(code, language, compile_only=True, dest_dir=session_dir)
         if not result.get('success', False):
             shutil.rmtree(session_dir, ignore_errors=True)
             return jsonify({
@@ -63,11 +58,14 @@ def start_session():
                 'error': result.get('error', 'Compilation failed')
             }), 400
 
-        # Copy compiled executable to session directory
-        executable_name = 'program' if language == 'cpp' else 'program.exe'
-        executable_path = os.path.join(session_dir, executable_name)
-
         try:
+            # Determine executable path and command
+            executable_name = 'program' if language == 'cpp' else 'program.exe'
+            executable_path = os.path.join(session_dir, executable_name)
+
+            if not os.path.exists(executable_path):
+                raise FileNotFoundError(f"Executable not found at {executable_path}")
+
             # Start interactive process
             cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
 
