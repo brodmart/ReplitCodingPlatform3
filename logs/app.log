@@ -3050,3 +3050,57 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-07 21:13:21,962 - app - INFO - Application initialized successfully
 2025-01-07 21:13:22,048 - werkzeug - WARNING -  * Debugger is active!
 2025-01-07 21:13:22,050 - werkzeug - INFO -  * Debugger PIN: 162-847-627
+2025-01-08 00:07:30,409 - app - INFO - Logging configured successfully
+2025-01-08 00:07:30,409 - app - INFO - Logging configured successfully
+2025-01-08 00:07:30,409 - app - INFO - Initializing database...
+2025-01-08 00:07:30,409 - app - INFO - Initializing database...
+2025-01-08 00:07:30,423 - extensions - INFO - Cache initialized successfully
+2025-01-08 00:07:30,423 - extensions - INFO - Compression initialized successfully
+2025-01-08 00:07:30,423 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 00:07:30,423 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 00:07:30,425 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 00:07:30,425 - extensions - INFO - CORS initialized successfully
+2025-01-08 00:07:30,425 - extensions - INFO - All extensions initialized successfully
+2025-01-08 00:07:30,940 - app - INFO - Database tables created successfully
+2025-01-08 00:07:30,940 - app - INFO - Database tables created successfully
+2025-01-08 00:07:31,622 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 00:07:31,622 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 00:07:31,626 - app - INFO - All blueprints registered successfully
+2025-01-08 00:07:31,626 - app - INFO - All blueprints registered successfully
+2025-01-08 00:07:31,629 - app - INFO - Application initialized successfully
+2025-01-08 00:07:31,629 - app - INFO - Application initialized successfully
+2025-01-08 00:07:31,686 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.26:80
+2025-01-08 00:07:31,686 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-08 00:07:31,687 - werkzeug - INFO -  * Restarting with stat
+2025-01-08 00:07:32,172 - app - INFO - Logging configured successfully
+2025-01-08 00:07:32,172 - app - INFO - Logging configured successfully
+2025-01-08 00:07:32,172 - app - INFO - Initializing database...
+2025-01-08 00:07:32,172 - app - INFO - Initializing database...
+2025-01-08 00:07:32,184 - extensions - INFO - Cache initialized successfully
+2025-01-08 00:07:32,184 - extensions - INFO - Compression initialized successfully
+2025-01-08 00:07:32,184 - extensions - INFO - CSRF protection initialized successfully
+2025-01-08 00:07:32,185 - extensions - INFO - Rate limiter initialized successfully
+2025-01-08 00:07:32,186 - extensions - INFO - Database migrations initialized successfully
+2025-01-08 00:07:32,186 - extensions - INFO - CORS initialized successfully
+2025-01-08 00:07:32,186 - extensions - INFO - All extensions initialized successfully
+2025-01-08 00:07:32,700 - app - INFO - Database tables created successfully
+2025-01-08 00:07:32,700 - app - INFO - Database tables created successfully
+2025-01-08 00:07:33,326 - compiler_service - INFO - Started worker thread CompilerWorker-0
+2025-01-08 00:07:33,327 - compiler_service - INFO - Started worker thread CompilerWorker-1
+2025-01-08 00:07:33,330 - app - INFO - All blueprints registered successfully
+2025-01-08 00:07:33,330 - app - INFO - All blueprints registered successfully
+2025-01-08 00:07:33,333 - app - INFO - Application initialized successfully
+2025-01-08 00:07:33,333 - app - INFO - Application initialized successfully
+2025-01-08 00:07:33,381 - werkzeug - WARNING -  * Debugger is active!
+2025-01-08 00:07:33,383 - werkzeug - INFO -  * Debugger PIN: 126-706-610
+2025-01-08 00:07:33,441 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:07:33] "GET / HTTP/1.1" 200 -
+2025-01-08 00:07:33,491 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:07:33] "GET / HTTP/1.1" 200 -
+2025-01-08 00:07:33,491 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:07:33] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:07:33,531 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:07:33] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:07:33,532 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:07:33] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 00:07:33,535 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:07:33] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:07:33,572 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:07:33] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:07:33,591 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:07:33] "GET /js/editor.js HTTP/1.1" 200 -
