@@ -1,10 +1,5 @@
+// Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait for InteractiveConsole to be available
-    if (typeof InteractiveConsole === 'undefined') {
-        console.error('InteractiveConsole not loaded. Make sure console.js is loaded first.');
-        return;
-    }
-
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
 
