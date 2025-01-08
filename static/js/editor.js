@@ -29,9 +29,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Set initial code
-    const initialCode = editorElement.value;
-    editor.setValue(initialCode || '');
+    // Set initial code with template
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+    const initialTemplate = getTemplateForLanguage(initialLanguage);
+    editor.setValue(initialTemplate);
     editor.refresh();
 
     // Get CSRF token from meta tag
