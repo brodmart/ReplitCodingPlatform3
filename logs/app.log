@@ -3104,3 +3104,334 @@ WHERE pg_catalog.pg_class.relname = %(table_name)s AND pg_catalog.pg_class.relki
 2025-01-08 00:07:33,535 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:07:33] "GET /css/style.css HTTP/1.1" 200 -
 2025-01-08 00:07:33,572 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:07:33] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
 2025-01-08 00:07:33,591 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:07:33] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 00:08:26,376 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:08:26,376 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Language: cpp
+        - Code Length: 110
+        
+2025-01-08 00:08:26,818 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:08:26,818 - compiler_service - INFO - Code execution took 0.44 seconds
+2025-01-08 00:08:26,819 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:08:26,819 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:08:26,819 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:08:26,819 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:08:26,819 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Execution Time: 443.41ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:08:26,820 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.1.47
+    - Endpoint: activities.execute_code
+    - Duration: 444.57ms
+    - Status: 200
+    
+    
+2025-01-08 00:08:26,821 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:08:26] "POST /activities/execute HTTP/1.1" 200 -
+2025-01-08 00:08:30,659 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:08:30,660 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Language: csharp
+        - Code Length: 169
+        
+2025-01-08 00:08:31,458 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:08:31,458 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'cpu', 'action': 'increase', 'urgency': 'high', 'reason': 'High CPU utilization predicted'}
+2025-01-08 00:08:31,458 - compiler_service - INFO - Code execution took 0.80 seconds
+2025-01-08 00:08:31,459 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:08:31,459 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:08:31,459 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:08:31,459 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:08:31,459 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Execution Time: 799.49ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:08:31,460 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.1.47
+    - Endpoint: activities.execute_code
+    - Duration: 800.56ms
+    - Status: 200
+    
+    
+2025-01-08 00:08:31,460 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:08:31] "POST /activities/execute HTTP/1.1" 200 -
+2025-01-08 00:08:33,190 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:08:33] "GET / HTTP/1.1" 200 -
+2025-01-08 00:08:33,234 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:08:33] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 00:08:33,239 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:08:33] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:08:33,239 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:08:33] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:08:37,313 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:08:37,313 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Language: csharp
+        - Code Length: 169
+        
+2025-01-08 00:08:37,522 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:08:37,523 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'cpu', 'action': 'increase', 'urgency': 'high', 'reason': 'High CPU utilization predicted'}
+2025-01-08 00:08:37,523 - compiler_service - INFO - Code execution took 0.21 seconds
+2025-01-08 00:08:37,524 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:08:37,524 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:08:37,524 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:08:37,524 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:08:37,524 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Execution Time: 211.18ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:08:37,525 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.3.67
+    - Endpoint: activities.execute_code
+    - Duration: 212.23ms
+    - Status: 200
+    
+    
+2025-01-08 00:08:37,525 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:08:37] "POST /activities/execute HTTP/1.1" 200 -
+2025-01-08 00:08:50,237 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:08:50,238 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Language: csharp
+        - Code Length: 202
+        
+2025-01-08 00:08:50,415 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:08:50,415 - compiler_service - INFO - Code execution took 0.18 seconds
+2025-01-08 00:08:50,416 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:08:50,416 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:08:50,416 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:08:50,416 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:08:50,416 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Execution Time: 178.41ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:08:50,417 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.3.67
+    - Endpoint: activities.execute_code
+    - Duration: 179.62ms
+    - Status: 200
+    
+    
+2025-01-08 00:08:50,417 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:08:50] "POST /activities/execute HTTP/1.1" 200 -
+2025-01-08 00:09:11,810 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:11] "GET / HTTP/1.1" 200 -
+2025-01-08 00:09:11,852 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:11] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 00:09:11,859 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:11] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:09:11,860 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:11] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:09:15,625 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:09:15,625 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Language: cpp
+        - Code Length: 130
+        
+2025-01-08 00:09:16,027 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:09:16,027 - compiler_service - INFO - Code execution took 0.40 seconds
+2025-01-08 00:09:16,027 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:09:16,027 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:09:16,027 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:09:16,028 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:09:16,028 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.3.67
+        - Execution Time: 402.46ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:09:16,028 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.3.67
+    - Endpoint: activities.execute_code
+    - Duration: 403.59ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:16,029 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:16] "POST /activities/execute HTTP/1.1" 200 -
+2025-01-08 00:09:18,091 - routes.activity_routes - DEBUG - Listing activities for grade: 10
+2025-01-08 00:09:18,091 - routes.activity_routes - DEBUG - Using curriculum: TEJ2O, language: cpp
+2025-01-08 00:09:18,235 - routes.activity_routes - DEBUG - Found 13 activities
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2662 - Hello World en C++
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2663 - Hello World en C#
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2642 - Bonjour le monde!
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2670 - Introduction aux variables en C++
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2643 - Saisie Utilisateur
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2644 - Calculatrice Simple
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2645 - Conditions Si-Sinon
+2025-01-08 00:09:18,236 - routes.activity_routes - DEBUG - Activity: 2646 - Boucle Simple
+2025-01-08 00:09:18,237 - routes.activity_routes - DEBUG - Activity: 2647 - Table de Multiplication
+2025-01-08 00:09:18,237 - routes.activity_routes - DEBUG - Activity: 2648 - Calcul de Moyenne
+2025-01-08 00:09:18,237 - routes.activity_routes - DEBUG - Activity: 2649 - Plus Grand Nombre
+2025-01-08 00:09:18,237 - routes.activity_routes - DEBUG - Activity: 2650 - Calculatrice de Factorielle
+2025-01-08 00:09:18,237 - routes.activity_routes - DEBUG - Activity: 2651 - Générateur de Motifs
+2025-01-08 00:09:18,247 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.3.67
+    - Endpoint: activities.list_activities
+    - Duration: 156.34ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:18,267 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:18] "GET /activities/10 HTTP/1.1" 200 -
+2025-01-08 00:09:18,315 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:18] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:09:18,324 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:09:18] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:09:19,861 - routes.activity_routes - DEBUG - Viewing activity with ID: 2642
+2025-01-08 00:09:20,018 - routes.activity_routes - DEBUG - Found activity: Bonjour le monde!
+2025-01-08 00:09:20,025 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.1.47
+    - Endpoint: activities.view_activity
+    - Duration: 164.72ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:20,046 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:20] "GET /activities/activity/2642 HTTP/1.1" 200 -
+2025-01-08 00:09:20,092 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:20] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:09:20,093 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:20] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:09:20,114 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:20] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 00:09:21,456 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.2.11
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:09:21,456 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.2.11
+        - Language: cpp
+        - Code Length: 110
+        
+2025-01-08 00:09:21,847 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:09:21,847 - compiler_service - INFO - Code execution took 0.39 seconds
+2025-01-08 00:09:21,847 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:09:21,848 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:09:21,848 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:09:21,848 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:09:21,848 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.2.11
+        - Execution Time: 391.66ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:09:21,848 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.2.11
+    - Endpoint: activities.execute_code
+    - Duration: 392.7ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:21,849 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:09:21] "POST /activities/execute HTTP/1.1" 200 -
+2025-01-08 00:09:23,987 - routes.activity_routes - DEBUG - Listing activities for grade: 11
+2025-01-08 00:09:23,987 - routes.activity_routes - DEBUG - Using curriculum: ICS3U, language: csharp
+2025-01-08 00:09:24,109 - routes.activity_routes - DEBUG - Found 14 activities
+2025-01-08 00:09:24,109 - routes.activity_routes - DEBUG - Activity: 2669 - Introduction to C#
+2025-01-08 00:09:24,109 - routes.activity_routes - DEBUG - Activity: 2665 - Variables en C#
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2671 - Introduction aux variables en C#
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2666 - Structures de contrôle en C#
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2652 - Conditions If-Else
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2653 - Boucles For
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2654 - Table de Multiplication
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2655 - Calcul de Moyenne
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2656 - Plus Grand Nombre
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2657 - Calcul de Factorielle
+2025-01-08 00:09:24,110 - routes.activity_routes - DEBUG - Activity: 2658 - Générateur de Motifs
+2025-01-08 00:09:24,111 - routes.activity_routes - DEBUG - Activity: 2659 - Gestion des Étudiants
+2025-01-08 00:09:24,111 - routes.activity_routes - DEBUG - Activity: 2660 - Liste Chaînée Simple
+2025-01-08 00:09:24,111 - routes.activity_routes - DEBUG - Activity: 2661 - Gestionnaire de Tâches
+2025-01-08 00:09:24,112 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.2.11
+    - Endpoint: activities.list_activities
+    - Duration: 125.61ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:24,132 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:09:24] "GET /activities/11 HTTP/1.1" 200 -
+2025-01-08 00:09:24,186 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:24] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:09:24,187 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:24] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:09:26,966 - routes.activity_routes - DEBUG - Viewing activity with ID: 2653
+2025-01-08 00:09:27,067 - routes.activity_routes - DEBUG - Found activity: Boucles For
+2025-01-08 00:09:27,068 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.1.47
+    - Endpoint: activities.view_activity
+    - Duration: 102.54ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:27,089 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:27] "GET /activities/activity/2653 HTTP/1.1" 200 -
+2025-01-08 00:09:27,135 - werkzeug - INFO - 10.83.2.11 - - [08/Jan/2025 00:09:27] "[36mGET /codingmountains.webp HTTP/1.1[0m" 304 -
+2025-01-08 00:09:27,143 - werkzeug - INFO - 10.83.3.67 - - [08/Jan/2025 00:09:27] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-08 00:09:27,157 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:27] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-08 00:09:28,148 - routes.activity_routes - INFO - 
+        Code Execution Request:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Content-Type: application/json
+        - User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36
+        
+2025-01-08 00:09:28,148 - routes.activity_routes - INFO - 
+        Starting Code Execution:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Language: csharp
+        - Code Length: 169
+        
+2025-01-08 00:09:28,378 - compiler_service - WARNING - Resource scaling recommended: {'resource': 'memory', 'action': 'increase', 'urgency': 'high', 'reason': 'Predicted memory usage approaching limit'}
+2025-01-08 00:09:28,378 - compiler_service - INFO - Code execution took 0.23 seconds
+2025-01-08 00:09:28,379 - compiler_service - INFO - Performance optimization suggestions generated:
+2025-01-08 00:09:28,379 - compiler_service - INFO - - memory (5): High memory utilization detected
+2025-01-08 00:09:28,379 - compiler_service - INFO -   Impact: Risk of compilation failures and system instability
+2025-01-08 00:09:28,379 - compiler_service - INFO -   Recommendation: Consider increasing worker memory limits or implementing request queuing
+2025-01-08 00:09:28,379 - routes.activity_routes - INFO - 
+        Code Execution Complete:
+        - Client IP: 174.91.158.137, 10.83.1.47
+        - Execution Time: 231.11ms
+        - Success: True
+        - Error: None
+        
+2025-01-08 00:09:28,380 - routes.activity_routes - INFO - 
+    API Request Details:
+    - Client IP: 174.91.158.137, 10.83.1.47
+    - Endpoint: activities.execute_code
+    - Duration: 232.36ms
+    - Status: 200
+    
+    
+2025-01-08 00:09:28,381 - werkzeug - INFO - 10.83.1.47 - - [08/Jan/2025 00:09:28] "POST /activities/execute HTTP/1.1" 200 -
