@@ -76,12 +76,33 @@
         background-color: #2d2d2d;
     }
 
+    #consoleInput:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
     .console-input {
         color: #569cd6;
     }
 
     .console-output {
         color: #d4d4d4;
+    }
+
+    .console-error {
+        color: #f44747;
+    }
+
+    .console-warning {
+        color: #dcdcaa;
+    }
+
+    .console-success {
+        color: #6a9955;
+    }
+
+    .console-input-waiting {
+        background-color: #264f78;
     }
 
     .editor-console-row {
@@ -124,6 +145,32 @@
     .console-waiting {
         background-color: #2d2d2d;
     }
+
+    /* Interactive prompt styles */
+    .input-prompt {
+        color: #569cd6;
+        font-weight: bold;
+    }
+
+    .output-line {
+        padding: 2px 0;
+        min-height: 1.2em;
+    }
+
+    .input-line {
+        display: flex;
+        align-items: center;
+    }
+
+    .input-line.active {
+        background-color: #264f78;
+    }
+
+    /* Syntax highlighting for console output */
+    .console-keyword { color: #569cd6; }
+    .console-string { color: #ce9178; }
+    .console-number { color: #b5cea8; }
+    .console-comment { color: #6a9955; }
 </style>
 {% endblock %}
 
@@ -263,6 +310,27 @@ document.addEventListener('DOMContentLoaded', function() {
         "Cmd-Enter": function(cm) {
             document.getElementById("runButton").click();
         }
+    });
+
+    // Focus input when waiting for input
+    const consoleInput = document.getElementById('consoleInput');
+    const consoleInputLine = document.querySelector('.console-input-line');
+
+    // Monitor console state changes
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const isWaiting = consoleInputLine.classList.contains('console-waiting');
+                consoleInput.disabled = !isWaiting;
+                if (isWaiting) {
+                    consoleInput.focus();
+                }
+            }
+        });
+    });
+
+    observer.observe(consoleInputLine, {
+        attributes: true
     });
 });
 </script>

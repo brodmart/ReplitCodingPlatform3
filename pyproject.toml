@@ -27,4 +27,7 @@ dependencies = [
     "psutil>=6.1.1",
     "numpy>=2.2.1",
     "scikit-learn>=1.6.0",
+    "flask-session>=0.8.0",
+    "python-socketio>=5.12.1",
+    "eventlet>=0.38.2",
 ]

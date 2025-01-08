@@ -13,6 +13,7 @@ class InteractiveConsole {
         this.outputPoller = null;
         this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
+        this.inputQueue = [];
         this.setupEventListeners();
     }
 
@@ -24,9 +25,10 @@ class InteractiveConsole {
                 const inputText = this.inputElement.value;
                 this.inputElement.value = '';
                 this.isWaitingForInput = false;
+                this.inputElement.disabled = true;
 
-                // Display the input in the console with prompt
-                this.appendToConsole(`> ${inputText}\n`, true);
+                // Display the input in the console
+                this.appendToConsole(`> ${inputText}\n`, 'input');
 
                 if (this.sessionId) {
                     await this.sendInput(inputText);
@@ -47,14 +49,55 @@ class InteractiveConsole {
                 this.inputElement.focus();
             }
         });
+
+        // Handle paste events
+        this.inputElement.addEventListener('paste', (e) => {
+            if (this.isWaitingForInput) {
+                e.preventDefault();
+                const pastedText = e.clipboardData.getData('text');
+                const lines = pastedText.split('\n');
+
+                if (lines.length > 1) {
+                    // Queue multiple lines of input
+                    this.inputQueue.push(...lines.filter(line => line.trim()));
+                    this.processInputQueue();
+                } else {
+                    this.inputElement.value = pastedText;
+                }
+            }
+        });
     }
 
-    appendToConsole(text, isInput = false) {
+    async processInputQueue() {
+        if (this.inputQueue.length > 0 && this.isWaitingForInput) {
+            const input = this.inputQueue.shift();
+            this.inputElement.value = input;
+            const event = new KeyboardEvent('keypress', { key: 'Enter' });
+            this.inputElement.dispatchEvent(event);
+        }
+    }
+
+    appendToConsole(text, type = 'output') {
         const line = document.createElement('div');
-        line.className = isInput ? 'console-input' : 'console-output';
-        line.textContent = text;
+        line.className = `console-${type}`;
+
+        // Apply syntax highlighting for code-like content
+        if (type === 'output') {
+            text = this.highlightSyntax(text);
+        }
+
+        line.innerHTML = text;
         this.outputElement.appendChild(line);
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
+    }
+
+    highlightSyntax(text) {
+        // Basic syntax highlighting for common programming elements
+        return text
+            .replace(/\b(if|else|while|for|return|int|string|bool|void|class|public|private)\b/g, '<span class="console-keyword">$1</span>')
+            .replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, '<span class="console-string">$&</span>')
+            .replace(/\b(\d+)\b/g, '<span class="console-number">$1</span>')
+            .replace(/\/\/.*/g, '<span class="console-comment">$&</span>');
     }
 
     clear() {
@@ -68,6 +111,8 @@ class InteractiveConsole {
         }
         this.sessionId = null;
         this.inputElement.value = '';
+        this.inputElement.disabled = true;
+        this.inputQueue = [];
         this.inputElement.blur();
     }
 
@@ -76,7 +121,7 @@ class InteractiveConsole {
         if (!csrfToken) {
             this.appendToConsole(this.lang === 'fr' ? 
                 'Erreur: Token CSRF non trouvé\n' : 
-                'Error: CSRF token not found\n');
+                'Error: CSRF token not found\n', 'error');
             return false;
         }
 
@@ -100,11 +145,11 @@ class InteractiveConsole {
                 this.startOutputPolling();
                 return true;
             } else {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`);
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`, 'error');
                 return false;
             }
         } catch (error) {
-            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`);
+            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
             return false;
         }
     }
@@ -116,7 +161,7 @@ class InteractiveConsole {
         if (!csrfToken) {
             this.appendToConsole(this.lang === 'fr' ? 
                 'Erreur: Token CSRF non trouvé\n' : 
-                'Error: CSRF token not found\n');
+                'Error: CSRF token not found\n', 'error');
             return;
         }
 
@@ -139,10 +184,14 @@ class InteractiveConsole {
 
             const data = await response.json();
             if (!data.success) {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`);
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`, 'error');
             }
+
+            // Process next input in queue if any
+            setTimeout(() => this.processInputQueue(), 100);
+
         } catch (error) {
-            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`);
+            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
         }
     }
 
@@ -170,14 +219,20 @@ class InteractiveConsole {
                     }
 
                     // Handle input state
-                    if (data.waiting_for_input && !this.isWaitingForInput) {
-                        this.isWaitingForInput = true;
-                        this.inputElement.disabled = false;
-                        this.inputElement.focus();
-                    } else if (!data.waiting_for_input && this.isWaitingForInput) {
-                        this.isWaitingForInput = false;
-                        this.inputElement.disabled = true;
-                        this.inputElement.blur();
+                    const wasWaiting = this.isWaitingForInput;
+                    this.isWaitingForInput = data.waiting_for_input;
+
+                    // Update UI for input state
+                    this.inputElement.disabled = !this.isWaitingForInput;
+                    const inputLine = document.querySelector('.console-input-line');
+                    if (this.isWaitingForInput) {
+                        inputLine?.classList.add('console-waiting');
+                        if (!wasWaiting) {
+                            this.inputElement.focus();
+                            this.processInputQueue();
+                        }
+                    } else {
+                        inputLine?.classList.remove('console-waiting');
                     }
 
                     if (data.session_ended) {
@@ -187,14 +242,14 @@ class InteractiveConsole {
                     clearInterval(this.outputPoller);
                     this.sessionId = null;
                     if (data.error) {
-                        this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`);
+                        this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error}\n`, 'error');
                     }
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
                 clearInterval(this.outputPoller);
                 this.sessionId = null;
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`);
+                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
             }
         }, 100); // Poll every 100ms
     }
@@ -204,18 +259,18 @@ class InteractiveConsole {
         if (!code?.trim()) {
             this.appendToConsole(this.lang === 'fr' ? 
                 "Erreur: Aucun code à exécuter\n" : 
-                "Error: No code to execute\n");
+                "Error: No code to execute\n", 'error');
             return;
         }
 
         this.appendToConsole(this.lang === 'fr' ? 
             "Démarrage du programme...\n" : 
-            "Starting program...\n");
+            "Starting program...\n", 'success');
         const success = await this.startSession(code, language);
         if (!success) {
             this.appendToConsole(this.lang === 'fr' ? 
                 "Échec du démarrage de la session\n" : 
-                "Failed to start session\n");
+                "Failed to start session\n", 'error');
         }
     }
 
@@ -239,6 +294,10 @@ class InteractiveConsole {
             this.isWaitingForInput = false;
             this.inputElement.disabled = true;
             this.inputElement.blur();
+            this.inputQueue = [];
+
+            const inputLine = document.querySelector('.console-input-line');
+            inputLine?.classList.remove('console-waiting');
 
             if (this.outputPoller) {
                 clearInterval(this.outputPoller);
