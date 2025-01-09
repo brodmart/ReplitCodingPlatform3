@@ -262,10 +262,20 @@ class InteractiveConsole {
                 return;
             }
 
-            // Only update input state if it has changed
+            // Check if waiting_for_input state changed
             if (data.waiting_for_input !== this.isWaitingForInput) {
                 console.log('Input state changed:', data.waiting_for_input);
                 this.setInputState(data.waiting_for_input);
+
+                // Force re-render of input state
+                if (data.waiting_for_input) {
+                    // Small delay to ensure DOM is ready
+                    setTimeout(() => {
+                        this.inputElement.style.display = 'block';
+                        this.inputLine.style.display = 'flex';
+                        this.inputElement.focus();
+                    }, 50);
+                }
             }
 
             // When waiting for input, increase poll interval to reduce server load
@@ -405,13 +415,15 @@ class InteractiveConsole {
 
         // Only update if state actually changed
         if (this.isWaitingForInput !== enabled) {
+            this.isWaitingForInput = enabled; // Set state first
             this.inputElement.disabled = !enabled;
-            this.isWaitingForInput = enabled;
 
             if (enabled) {
                 this.inputElement.value = '';
                 this.inputElement.focus();
                 this.inputLine.classList.add('active');
+                // Ensure input line is visible
+                this.inputLine.style.display = 'flex';
             } else {
                 this.inputLine.classList.remove('active');
             }
@@ -425,6 +437,22 @@ class InteractiveConsole {
                     consoleContainer.classList.remove('console-waiting');
                 }
             }
+
+            // Persist input state in session storage
+            try {
+                sessionStorage.setItem('console_input_state', JSON.stringify({
+                    isWaiting: enabled,
+                    timestamp: Date.now()
+                }));
+            } catch (error) {
+                console.error('Failed to persist input state:', error);
+            }
+        }
+
+        // Always ensure input element is visible when enabled
+        if (enabled && this.inputLine) {
+            this.inputLine.style.display = 'flex';
+            this.inputElement.style.display = 'block';
         }
     }
 }
