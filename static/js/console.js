@@ -29,6 +29,14 @@ class InteractiveConsole {
             console.error('CSRF token not found');
             throw new Error('CSRF token not found');
         }
+
+        // Add debounce timer
+        this.stateUpdateTimer = null;
+        this.stateUpdateDelay = 100;
+
+        // Track consecutive empty polls
+        this.emptyPollCount = 0;
+        this.maxEmptyPolls = 3;
     }
 
     async init() {
@@ -104,6 +112,7 @@ class InteractiveConsole {
             this.isSessionValid = false;
             this.pollRetryCount = 0;
             this.polling = false;
+            this.emptyPollCount = 0; // Reset empty poll count
             return true;
         } catch (error) {
             console.error('Error in cleanupConsole:', error);
@@ -203,6 +212,7 @@ class InteractiveConsole {
         // Reset polling parameters
         this.currentPollInterval = this.baseDelay;
         this.pollRetryCount = 0;
+        this.emptyPollCount = 0; // Reset empty poll counter
 
         console.log('Starting polling for session:', this.sessionId);
         await this.poll();
@@ -253,6 +263,9 @@ class InteractiveConsole {
             if (data.output) {
                 console.log('Received output:', data.output);
                 this.appendToConsole(data.output);
+                this.emptyPollCount = 0;
+            } else {
+                this.emptyPollCount++;
             }
 
             if (data.session_ended) {
@@ -262,26 +275,36 @@ class InteractiveConsole {
                 return;
             }
 
-            // Check if waiting_for_input state changed
+            // Update input state with debouncing
             if (data.waiting_for_input !== this.isWaitingForInput) {
                 console.log('Input state changed:', data.waiting_for_input);
-                this.setInputState(data.waiting_for_input);
 
-                // Force re-render of input state
-                if (data.waiting_for_input) {
-                    // Small delay to ensure DOM is ready
-                    setTimeout(() => {
+                if (this.stateUpdateTimer) {
+                    clearTimeout(this.stateUpdateTimer);
+                }
+
+                this.stateUpdateTimer = setTimeout(() => {
+                    this.setInputState(data.waiting_for_input);
+
+                    if (data.waiting_for_input) {
                         this.inputElement.style.display = 'block';
                         this.inputLine.style.display = 'flex';
                         this.inputElement.focus();
-                    }, 50);
-                }
+
+                        // Force the input state to persist
+                        sessionStorage.setItem('console_input_state', JSON.stringify({
+                            isWaiting: true,
+                            timestamp: Date.now()
+                        }));
+                    }
+                }, this.stateUpdateDelay);
             }
 
-            // When waiting for input, increase poll interval to reduce server load
-            const nextPollDelay = this.isWaitingForInput ? 1000 : this.currentPollInterval;
+            // Adjust polling interval based on state
+            const nextPollDelay = this.isWaitingForInput ? 1000 :
+                this.emptyPollCount > this.maxEmptyPolls ? 1000 :
+                    this.currentPollInterval;
 
-            // Schedule next poll with appropriate interval
             if (this.isSessionValid) {
                 console.log(`Scheduling next poll with interval: ${nextPollDelay}ms`);
                 this.pollTimer = setTimeout(() => this.poll(), nextPollDelay);
@@ -413,46 +436,68 @@ class InteractiveConsole {
 
         console.log('Setting input state:', enabled);
 
-        // Only update if state actually changed
-        if (this.isWaitingForInput !== enabled) {
-            this.isWaitingForInput = enabled; // Set state first
-            this.inputElement.disabled = !enabled;
-
-            if (enabled) {
-                this.inputElement.value = '';
-                this.inputElement.focus();
-                this.inputLine.classList.add('active');
-                // Ensure input line is visible
-                this.inputLine.style.display = 'flex';
-            } else {
-                this.inputLine.classList.remove('active');
-            }
+        // Always update the visual state when enabled
+        if (enabled) {
+            this.isWaitingForInput = true;
+            this.inputElement.disabled = false;
+            this.inputElement.value = '';
+            this.inputElement.style.display = 'block';
+            this.inputLine.style.display = 'flex';
+            this.inputElement.focus();
+            this.inputLine.classList.add('active');
 
             // Update console container state
             const consoleContainer = document.querySelector('.console-container');
             if (consoleContainer) {
-                if (enabled) {
-                    consoleContainer.classList.add('console-waiting');
-                } else {
+                consoleContainer.classList.add('console-waiting');
+            }
+
+            // Force persist the state
+            sessionStorage.setItem('console_input_state', JSON.stringify({
+                isWaiting: true,
+                timestamp: Date.now()
+            }));
+        } else {
+            // Only disable if we're sure we're not waiting for input
+            if (this.isWaitingForInput) {
+                this.isWaitingForInput = false;
+                this.inputElement.disabled = true;
+                this.inputLine.classList.remove('active');
+
+                const consoleContainer = document.querySelector('.console-container');
+                if (consoleContainer) {
                     consoleContainer.classList.remove('console-waiting');
                 }
-            }
 
-            // Persist input state in session storage
-            try {
-                sessionStorage.setItem('console_input_state', JSON.stringify({
-                    isWaiting: enabled,
-                    timestamp: Date.now()
-                }));
-            } catch (error) {
-                console.error('Failed to persist input state:', error);
+                sessionStorage.removeItem('console_input_state');
             }
         }
+    }
 
-        // Always ensure input element is visible when enabled
-        if (enabled && this.inputLine) {
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
+    async endSession() {
+        if (!this.sessionId || !this.isSessionValid) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/activities/end_session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': this.csrfToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ session_id: this.sessionId })
+            });
+
+            if (!response.ok) {
+                console.warn('Failed to end session:', response.status);
+            }
+        } catch (error) {
+            console.error('Error ending session:', error);
+        } finally {
+            this.sessionId = null;
+            this.isSessionValid = false;
         }
     }
 }

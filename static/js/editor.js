@@ -44,6 +44,9 @@ async function executeCode() {
             throw new Error('Console is not fully initialized');
         }
 
+        // Clear any existing input state before execution
+        sessionStorage.removeItem('console_input_state');
+
         const result = await consoleInstance.executeCode(code, language);
         console.log('Execution result:', result);
 
