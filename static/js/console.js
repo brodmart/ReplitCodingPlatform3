@@ -262,13 +262,19 @@ class InteractiveConsole {
                 return;
             }
 
-            this.isWaitingForInput = data.waiting_for_input;
-            this.setInputState(data.waiting_for_input);
+            // Only update input state if it has changed
+            if (data.waiting_for_input !== this.isWaitingForInput) {
+                console.log('Input state changed:', data.waiting_for_input);
+                this.setInputState(data.waiting_for_input);
+            }
 
-            // Schedule next poll with current interval
+            // When waiting for input, increase poll interval to reduce server load
+            const nextPollDelay = this.isWaitingForInput ? 1000 : this.currentPollInterval;
+
+            // Schedule next poll with appropriate interval
             if (this.isSessionValid) {
-                console.log(`Scheduling next poll with interval: ${this.currentPollInterval}ms`);
-                this.pollTimer = setTimeout(() => this.poll(), this.currentPollInterval);
+                console.log(`Scheduling next poll with interval: ${nextPollDelay}ms`);
+                this.pollTimer = setTimeout(() => this.poll(), nextPollDelay);
             }
         } catch (error) {
             console.error('Poll error:', error);
@@ -396,24 +402,28 @@ class InteractiveConsole {
         }
 
         console.log('Setting input state:', enabled);
-        this.inputElement.disabled = !enabled;
-        this.isWaitingForInput = enabled;
 
-        if (enabled) {
-            this.inputElement.value = '';
-            this.inputElement.focus();
-            this.inputLine.classList.add('active');
-        } else {
-            this.inputLine.classList.remove('active');
-        }
+        // Only update if state actually changed
+        if (this.isWaitingForInput !== enabled) {
+            this.inputElement.disabled = !enabled;
+            this.isWaitingForInput = enabled;
 
-        // Update console container state
-        const consoleContainer = document.querySelector('.console-container');
-        if (consoleContainer) {
             if (enabled) {
-                consoleContainer.classList.add('console-waiting');
+                this.inputElement.value = '';
+                this.inputElement.focus();
+                this.inputLine.classList.add('active');
             } else {
-                consoleContainer.classList.remove('console-waiting');
+                this.inputLine.classList.remove('active');
+            }
+
+            // Update console container state
+            const consoleContainer = document.querySelector('.console-container');
+            if (consoleContainer) {
+                if (enabled) {
+                    consoleContainer.classList.add('console-waiting');
+                } else {
+                    consoleContainer.classList.remove('console-waiting');
+                }
             }
         }
     }
