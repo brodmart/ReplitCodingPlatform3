@@ -89,7 +89,8 @@ def start_session():
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1,
+                bufsize=1,  # Line buffering
+                universal_newlines=True,  # Ensure text mode with universal newlines
                 cwd=session_dir
             )
 
@@ -153,13 +154,17 @@ def get_output():
             logger.debug(f"Process terminated for session {session_id}")
             stdout, stderr = process.communicate()
             if stdout:
+                logger.debug(f"Final stdout: {stdout}")
                 output.append(stdout)
             if stderr:
+                logger.debug(f"Final stderr: {stderr}")
                 output.append(stderr)
             cleanup_session(session_id)
+            final_output = ''.join(output)
+            logger.debug(f"Sending final output: {final_output}")
             return jsonify({
                 'success': True,
-                'output': ''.join(output),
+                'output': final_output,
                 'session_ended': True
             })
 
@@ -173,33 +178,34 @@ def get_output():
 
             for pipe in readable:
                 logger.debug("Reading from pipe...")
-                while True:
-                    line = pipe.readline()
-                    if not line:
-                        break
-                    logger.debug(f"Read line from process: {line.strip()}")
-                    output.append(line)
+                chunk = pipe.read1(1024).decode('utf-8')
+                if chunk:
+                    logger.debug(f"Read chunk from process: {chunk}")
+                    output.append(chunk)
                     # Check for input prompts
-                    lower_line = line.lower()
-                    if any(prompt in lower_line for prompt in [
+                    lower_chunk = chunk.lower()
+                    if any(prompt in lower_chunk for prompt in [
                         'input', 'enter', 'type', '?', ':', '>',
                         'cin', 'cin >>', 'console.readline', 'console.read'
                     ]):
                         logger.debug("Input prompt detected")
                         waiting_for_input = True
                         session['waiting_for_input'] = True
+
         except select.error as e:
             logger.error(f"Select error: {e}")
             return jsonify({'success': False, 'error': 'Failed to read output'}), 500
 
         session['last_activity'] = time.time()
+        final_output = ''.join(output)
+        logger.debug(f"Sending response - Output: {final_output}, Waiting for input: {waiting_for_input}")
+
         response = jsonify({
             'success': True,
-            'output': ''.join(output) if output else '',
+            'output': final_output,
             'waiting_for_input': waiting_for_input,
             'session_ended': False
         })
-        logger.debug(f"Sending response: {response.get_json()}")
         response.headers['Content-Type'] = 'application/json'
         return response
 
