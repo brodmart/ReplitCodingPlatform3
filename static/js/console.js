@@ -11,6 +11,14 @@ class InteractiveConsole {
             throw new Error('Console elements not found');
         }
 
+        // Get CSRF token from meta tag
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        this.csrfToken = metaToken ? metaToken.content : null;
+
+        if (!this.csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
@@ -21,18 +29,10 @@ class InteractiveConsole {
         this.isSessionValid = true;
         this.isInitialized = false;
         this.isClearing = false;
-
-        // Get CSRF token from meta tag
-        const metaToken = document.querySelector('meta[name="csrf-token"]');
-        this.csrfToken = metaToken ? metaToken.content : null;
-
-        if (!this.csrfToken) {
-            throw new Error('CSRF token not found');
-        }
+        this.isBusy = false;
 
         this.setupEventListeners();
         this.isInitialized = true;
-        this.appendToConsole('Console initialized\n', 'system');
     }
 
     setupEventListeners() {
@@ -67,7 +67,7 @@ class InteractiveConsole {
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && !this.isClearing;
+        return this.isInitialized && this.csrfToken && !this.isBusy;
     }
 
     setInputState(waiting) {
@@ -94,37 +94,9 @@ class InteractiveConsole {
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
-    clear() {
-        if (!this.isReady() || this.isClearing) {
-            return false;
-        }
-
-        this.isClearing = true;
-        try {
-            if (this.outputElement) {
-                this.outputElement.innerHTML = '';
-            }
-
-            if (this.sessionId) {
-                this.endSession();
-            }
-
-            this.setInputState(false);
-            this.inputQueue = [];
-            this.pollRetryCount = 0;
-            this.sessionId = null;
-            this.isSessionValid = true;
-
-            this.appendToConsole('Console cleared\n', 'system');
-            return true;
-        } finally {
-            this.isClearing = false;
-        }
-    }
-
     async executeCode(code, language) {
         if (!this.isReady()) {
-            this.appendToConsole("Error: Console not ready. Please refresh the page.\n", 'error');
+            this.appendToConsole("Error: Console not ready. Please wait a moment.\n", 'error');
             return false;
         }
 
@@ -133,11 +105,12 @@ class InteractiveConsole {
             return false;
         }
 
+        this.isBusy = true;
         try {
             // Clear console first
-            if (!this.clear()) {
-                this.appendToConsole("Error: Failed to clear console\n", 'error');
-                return false;
+            this.outputElement.innerHTML = '';
+            if (this.sessionId) {
+                await this.endSession();
             }
 
             this.appendToConsole("Compiling and running code...\n", 'system');
@@ -145,6 +118,8 @@ class InteractiveConsole {
         } catch (error) {
             this.appendToConsole(`Error: ${error.message}\n`, 'error');
             return false;
+        } finally {
+            this.isBusy = false;
         }
     }
 
@@ -225,7 +200,7 @@ class InteractiveConsole {
         if (this.pollRetryCount >= this.maxRetries) {
             if (error?.includes('Invalid session')) {
                 this.isSessionValid = false;
-                this.appendToConsole(`Session ended\n`, 'error');
+                this.appendToConsole(`Session ended\n`, 'system');
             } else {
                 this.appendToConsole(`Error: ${error || 'Connection lost'}\n`, 'error');
             }
@@ -256,7 +231,7 @@ class InteractiveConsole {
             if (!response.ok || !data.success) {
                 if (data.error?.includes('Invalid session')) {
                     this.isSessionValid = false;
-                    this.appendToConsole(`Session ended\n`, 'error');
+                    this.appendToConsole(`Session ended\n`, 'system');
                     await this.endSession();
                     return;
                 }

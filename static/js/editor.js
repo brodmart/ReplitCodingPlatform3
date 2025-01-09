@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const consoleOutput = document.getElementById('consoleOutput');
 
     if (!editorElement || !consoleOutput) {
-        window.console.warn('Required elements not found');
+        console.error('Required elements not found');
         return;
     }
 
@@ -33,45 +33,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize Interactive Console with retry mechanism
+    // Initialize Interactive Console
     let console = null;
     let isRunning = false;
-    let consoleInitializationAttempts = 0;
-    const maxInitializationAttempts = 3;
 
     function initializeConsole() {
         if (!window.InteractiveConsole) {
-            if (consoleInitializationAttempts < maxInitializationAttempts) {
-                consoleInitializationAttempts++;
-                window.setTimeout(initializeConsole, 500);
-                return null;
-            }
-            consoleOutput.innerHTML += '<div class="console-error">Error: Console initialization failed</div>';
+            consoleOutput.innerHTML = '<div class="console-error">Error: Console initialization failed</div>';
             return null;
         }
 
         try {
-            const instance = new InteractiveConsole({
+            return new InteractiveConsole({
                 lang: document.documentElement.lang || 'en'
             });
-
-            if (!instance.isReady()) {
-                consoleOutput.innerHTML += '<div class="console-error">Error: Console failed to initialize properly</div>';
-                return null;
-            }
-
-            return instance;
         } catch (error) {
-            consoleOutput.innerHTML += `<div class="console-error">Error: ${error.message}</div>`;
+            consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
             return null;
         }
-    }
-
-    function getConsole() {
-        if (!console) {
-            console = initializeConsole();
-        }
-        return console;
     }
 
     function getTemplateForLanguage(language) {
@@ -110,6 +89,9 @@ namespace ProgrammingActivity
     editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
     editor.refresh();
 
+    // Initialize console
+    console = initializeConsole();
+
     // Language change handler
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
@@ -129,11 +111,17 @@ namespace ProgrammingActivity
                 return; // Prevent multiple executions
             }
 
-            consoleOutput.innerHTML = ''; // Clear previous output
             const code = editor.getValue().trim();
             if (!code) {
                 consoleOutput.innerHTML = '<div class="console-error">Error: No code to execute</div>';
                 return;
+            }
+
+            if (!console) {
+                console = initializeConsole();
+                if (!console) {
+                    return;
+                }
             }
 
             try {
@@ -141,23 +129,8 @@ namespace ProgrammingActivity
                 runButton.disabled = true;
                 runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
 
-                const interactiveConsole = getConsole();
-                if (!interactiveConsole) {
-                    consoleOutput.innerHTML = '<div class="console-error">Error: Console not available. Please refresh the page.</div>';
-                    return;
-                }
-
-                if (!interactiveConsole.isReady()) {
-                    consoleOutput.innerHTML = '<div class="console-error">Error: Console not ready. Please wait a moment.</div>';
-                    return;
-                }
-
                 const language = languageSelect ? languageSelect.value : 'cpp';
-                const result = await interactiveConsole.executeCode(code, language);
-
-                if (!result) {
-                    consoleOutput.innerHTML += '<div class="console-error">Error: Failed to execute code</div>';
-                }
+                await console.executeCode(code, language);
             } catch (error) {
                 console.error('Error executing code:', error);
                 consoleOutput.innerHTML += `<div class="console-error">Error: ${error.message}</div>`;
@@ -179,13 +152,11 @@ namespace ProgrammingActivity
 
     // Clear console handler
     if (clearConsoleButton) {
-        clearConsoleButton.addEventListener('click', async function() {
-            const interactiveConsole = getConsole();
-            if (interactiveConsole) {
-                await interactiveConsole.clear();
-            } else {
-                consoleOutput.innerHTML = '';
+        clearConsoleButton.addEventListener('click', function() {
+            if (console) {
+                console.endSession();
             }
+            consoleOutput.innerHTML = '';
         });
     }
 });
