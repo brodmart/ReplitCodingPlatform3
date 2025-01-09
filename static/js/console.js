@@ -38,25 +38,33 @@ class InteractiveConsole {
 
     init() {
         try {
-            // Ensure elements are visible first
-            if (this.outputElement) this.outputElement.style.display = 'block';
-            if (this.inputLine) this.inputLine.style.display = 'flex';
-            if (this.inputElement) this.inputElement.style.display = 'block';
+            // Ensure DOM is ready
+            if (!this.outputElement || !this.inputLine || !this.inputElement) {
+                throw new Error('Required elements not found');
+            }
 
-            // Reset state
+            // Reset state first
             this.cleanupConsole();
-
+            
+            // Force visibility state immediately
+            this.outputElement.style.display = 'block';
+            this.inputLine.style.display = 'flex';
+            this.inputElement.style.display = 'block';
+            this.inputElement.style.visibility = 'visible';
+            
             // Setup event listeners
             this.setupEventListeners();
 
-            // Set initial state but keep elements visible
+            // Set initial state
             this.setInputState(false);
-            
-            // Force elements to remain visible
-            requestAnimationFrame(() => {
-                if (this.inputLine) this.inputLine.style.display = 'flex';
-                if (this.inputElement) this.inputElement.style.display = 'block';
-            });
+
+            // Double-check visibility after state changes
+            setTimeout(() => {
+                this.outputElement.style.display = 'block';
+                this.inputLine.style.display = 'flex';
+                this.inputElement.style.display = 'block';
+                this.inputElement.style.visibility = 'visible';
+            }, 0);
 
             // Mark as initialized
             this.isInitialized = true;
