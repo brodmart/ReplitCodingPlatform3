@@ -18,8 +18,6 @@ if __name__ == '__main__':
             os.chmod(temp_dir, 0o755)
 
         logger.info("Starting Flask server on port 5000")
-
-        # Start the Flask application
         app.run(host='0.0.0.0', port=5000, debug=True)
     except Exception as e:
         logger.error(f"Failed to start Flask server: {e}", exc_info=True)
