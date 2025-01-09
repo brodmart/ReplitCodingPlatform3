@@ -72,11 +72,6 @@ class InteractiveConsole {
             clearTimeout(this.pollTimer);
             this.pollTimer = null;
         }
-
-        // Ensure input line is hidden initially
-        if (this.inputLine) {
-            this.inputLine.style.display = 'none';
-        }
     }
 
     setupEventListeners() {
@@ -93,11 +88,8 @@ class InteractiveConsole {
                 e.preventDefault();
                 const inputText = this.inputElement.value.trim();
                 if (inputText) {
-                    // Show input in console and clear input field
                     this.appendToConsole(`${inputText}\n`, 'input');
                     this.inputElement.value = '';
-
-                    // Send input to server
                     await this.sendInput(inputText);
                 }
             }
@@ -106,7 +98,7 @@ class InteractiveConsole {
         // Keep focus on input when needed
         this.inputElement.addEventListener('blur', () => {
             if (this.isWaitingForInput && this.isSessionValid) {
-                requestAnimationFrame(() => this.inputElement.focus());
+                this.inputElement.focus();
             }
         });
     }
@@ -123,26 +115,19 @@ class InteractiveConsole {
         // Update input element state
         this.inputElement.disabled = !this.isWaitingForInput;
 
-        // Update input line visibility
-        if (this.isWaitingForInput) {
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
-            this.inputElement.value = '';
+        // Update visibility
+        this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
 
-            // Ensure focus and scroll to bottom
-            requestAnimationFrame(() => {
-                this.inputElement.focus();
-                this.outputElement.scrollTop = this.outputElement.scrollHeight;
-            });
-        } else {
-            this.inputLine.style.display = 'none';
-            this.inputElement.style.display = 'none';
+        if (this.isWaitingForInput) {
+            this.inputElement.value = '';
+            this.inputElement.focus();
+            this.outputElement.scrollTop = this.outputElement.scrollHeight;
         }
 
         console.log('Input state updated:', {
             waiting: this.isWaitingForInput,
             sessionValid: this.isSessionValid,
-            inputVisible: this.inputElement.style.display
+            inputVisible: this.inputLine.style.display
         });
     }
 
@@ -169,22 +154,19 @@ class InteractiveConsole {
         this.isBusy = true;
 
         try {
-            // Clean up previous session
             await this.endSession();
             this.cleanupConsole();
 
-            // Start new session
             const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error("Failed to start program execution");
             }
 
-            // Start polling after a short delay
-            setTimeout(() => this.startPolling(), 100);
+            this.startPolling();
             return true;
 
         } catch (error) {
-            console.error("Error in executeCode:", error);
+            console.error("Error executing code:", error);
             throw error;
         } finally {
             this.isBusy = false;
@@ -261,11 +243,7 @@ class InteractiveConsole {
                 }
 
                 // Update input state based on server response
-                if (data.waiting_for_input) {
-                    this.setInputState(true);
-                } else {
-                    this.setInputState(false);
-                }
+                this.setInputState(data.waiting_for_input);
 
                 if (data.session_ended) {
                     console.log('Session ended, cleaning up');

@@ -30,11 +30,9 @@
         color: #d4d4d4;
         font-family: 'Consolas', 'Monaco', monospace;
         font-size: 14px;
-        padding: 10px;
-        border-radius: 4px;
+        height: 100%;
         display: flex;
         flex-direction: column;
-        height: 100%;
         position: relative;
     }
     .console-output {
@@ -42,20 +40,20 @@
         overflow-y: auto;
         white-space: pre-wrap;
         word-wrap: break-word;
-        margin-bottom: 10px;
+        margin-bottom: 40px; /* Space for input line */
         padding: 8px;
     }
     .console-input-line {
         display: flex;
         align-items: center;
-        padding: 5px 8px;
+        padding: 8px;
         background-color: #2d2d2d;
         border-top: 1px solid #3d3d3d;
-        position: sticky;
+        position: absolute;
         bottom: 0;
         left: 0;
         right: 0;
-        z-index: 10;
+        min-height: 40px;
     }
     .console-prompt {
         color: #569cd6;
@@ -70,7 +68,6 @@
         font-size: inherit;
         flex-grow: 1;
         outline: none;
-        width: 100%;
         padding: 4px 8px;
     }
     .console-input-field:focus {
@@ -87,15 +84,12 @@
         margin: 0;
         border: 1px solid #2d2d2d;
         background-color: #1e1e1e;
-        display: flex;
-        flex-direction: column;
     }
     .card-body {
-        flex: 1;
+        height: calc(100% - 48px);
         padding: 0;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
     }
     .card-header {
         padding: 0.5rem 1rem;
