@@ -293,15 +293,27 @@ class InteractiveConsole {
         }
     }
 
-    startPolling() {
+    async startPolling() {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
         }
-        this.poll();
+        
+        // Attendre que la session soit prête
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Vérifier l'état avant de démarrer
+        if (this.sessionId && this.isSessionValid) {
+            this.poll();
+        }
     }
 
     async poll() {
         if (!this.sessionId || !this.isSessionValid || this.polling) {
+            console.log('Poll skipped:', {
+                hasSessionId: !!this.sessionId,
+                isSessionValid: this.isSessionValid,
+                isPolling: this.polling
+            });
             return;
         }
 

@@ -106,12 +106,18 @@ namespace ProgrammingActivity
 
 // Global executeCode function
 window.executeCode = async function() {
+    console.log('Execute code triggered');
     if (!editor) {
         console.error('Editor not initialized');
         return;
     }
 
-    if (isExecuting || Date.now() - lastExecution < MIN_EXECUTION_INTERVAL) {
+    if (isExecuting) {
+        console.log('Execution already in progress');
+        return;
+    }
+
+    if (Date.now() - lastExecution < MIN_EXECUTION_INTERVAL) {
         return;
     }
 
