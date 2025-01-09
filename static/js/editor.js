@@ -7,6 +7,7 @@ let isConsoleReady = false;
 const MIN_EXECUTION_INTERVAL = 1000;
 
 async function executeCode() {
+    console.log('executeCode called');
     if (!editor || !isConsoleReady || isExecuting) {
         console.error('Execute prevented:', {
             hasEditor: !!editor,
@@ -30,15 +31,22 @@ async function executeCode() {
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
 
+        console.log('Starting execution with:', { language, codeLength: code.length });
+
         if (!consoleInstance) {
-            throw new Error('Console not initialized');
+            throw new Error('Console instance not available');
         }
 
         if (!consoleInstance.isInitialized) {
-            throw new Error('Console initialization incomplete');
+            throw new Error('Console is not fully initialized');
         }
 
-        await consoleInstance.executeCode(code, language);
+        const result = await consoleInstance.executeCode(code, language);
+        console.log('Execution result:', result);
+
+        if (!result) {
+            throw new Error('Failed to execute code');
+        }
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
@@ -85,6 +93,7 @@ namespace ProgrammingActivity
 }
 
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM Content Loaded');
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
     const consoleOutput = document.getElementById('consoleOutput');
@@ -109,6 +118,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Initialize console with proper error handling
     try {
+        console.log('Initializing console...');
         if (consoleInstance) {
             await consoleInstance.endSession();
             consoleInstance = null;
