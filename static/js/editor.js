@@ -239,7 +239,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Set initial template
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(getTemplateForLanguage(initialLanguage));
-
+    
     // Ensure template is visible
     setTimeout(() => {
         editor.refresh();
@@ -251,11 +251,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-
-            // Only change template if current content is empty or matches old template
             if (!editor.getValue().trim()) {
                 editor.setValue(getTemplateForLanguage(language));
-                editor.setCursor(editor.lineCount() - 1);
+                editor.refresh();
             }
         });
     }
