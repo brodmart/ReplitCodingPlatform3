@@ -71,12 +71,10 @@ def start_session():
 
             if compile_process.returncode != 0:
                 logger.error(f"Compilation failed: {compile_process.stderr}")
-                response = jsonify({
+                return jsonify({
                     'success': False,
                     'error': compile_process.stderr
-                })
-                response.headers['Content-Type'] = 'application/json'
-                return response, 400
+                }), 400
 
             logger.debug("Compilation successful")
             os.chmod(executable_path, 0o755)
@@ -117,21 +115,17 @@ def start_session():
         except Exception as e:
             logger.error(f"Failed to start process: {str(e)}", exc_info=True)
             shutil.rmtree(session_dir, ignore_errors=True)
-            response = jsonify({
+            return jsonify({
                 'success': False,
                 'error': f'Failed to start program: {str(e)}'
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response, 500
+            }), 500
 
     except Exception as e:
         logger.error(f"Error in start_session: {str(e)}", exc_info=True)
-        response = jsonify({
+        return jsonify({
             'success': False,
             'error': str(e)
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, 500
+        }), 500
 
 @activities.route('/get_output', methods=['GET'])
 def get_output():

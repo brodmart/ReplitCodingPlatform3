@@ -3,6 +3,7 @@
  */
 class InteractiveConsole {
     constructor() {
+        console.log('Initializing InteractiveConsole');
         this.outputElement = null;
         this.inputElement = null;
         this.inputLine = null;
@@ -22,6 +23,7 @@ class InteractiveConsole {
         this.csrfToken = metaToken ? metaToken.content : null;
 
         if (!this.csrfToken) {
+            console.error('CSRF token not found');
             throw new Error('CSRF token not found');
         }
     }
@@ -214,25 +216,31 @@ class InteractiveConsole {
         console.log('Polling for output...');
 
         try {
-            const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
+            const url = `/activities/get_output?session_id=${this.sessionId}`;
+            console.log('Making GET request to:', url);
+
+            const response = await fetch(url, {
                 credentials: 'same-origin',
                 headers: {
-                    'X-CSRF-Token': this.csrfToken
+                    'X-CSRF-Token': this.csrfToken,
+                    'Accept': 'application/json'
                 }
             });
 
             if (!response.ok) {
+                console.error('Poll response not OK:', response.status, response.statusText);
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
             const data = await response.json();
-            console.log('Poll response:', data);
+            console.log('Poll response data:', data);
 
             if (!data.success) {
                 throw new Error(data.error || 'Failed to get output');
             }
 
             if (data.output) {
+                console.log('Received output:', data.output);
                 this.appendToConsole(data.output);
             }
 
@@ -250,6 +258,7 @@ class InteractiveConsole {
 
             // Continue polling with immediate next request if session is valid
             if (this.isSessionValid) {
+                console.log('Scheduling next poll');
                 this.pollTimer = setTimeout(() => this.poll(), 100);
             }
         } catch (error) {
@@ -281,6 +290,10 @@ class InteractiveConsole {
 
     appendToConsole(text, type = 'output') {
         if (!text || !this.outputElement) {
+            console.log('Cannot append to console - missing text or element:', { 
+                hasText: !!text, 
+                hasElement: !!this.outputElement 
+            });
             return;
         }
 
@@ -293,11 +306,13 @@ class InteractiveConsole {
                 lineElement.className = `console-${type}`;
                 lineElement.textContent = type === 'input' ? `> ${line}` : line;
                 this.outputElement.appendChild(lineElement);
+                console.log('Added line to console:', line);
             }
         });
 
         // Scroll to bottom
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
+        console.log('Console scrolled to bottom');
     }
 
     setupEventListeners() {
