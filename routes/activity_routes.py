@@ -241,9 +241,9 @@ def get_output():
 
                     try:
                         # Read from stdout
-                        chunk = process.stdout.read()
-                        if chunk:
-                            text = chunk.decode('utf-8', errors='replace')
+                        data = process.stdout.buffer.read()
+                        if data is not None:
+                            text = data.decode('utf-8', errors='replace')
                             logger.debug(f"Read stdout: {text}")
                             output.append(text)
                             # Check for input prompts
@@ -271,9 +271,9 @@ def get_output():
 
                     try:
                         # Read from stderr
-                        chunk = process.stderr.read()
-                        if chunk:
-                            text = chunk.decode('utf-8', errors='replace')
+                        data = process.stderr.buffer.read()
+                        if data is not None:
+                            text = data.decode('utf-8', errors='replace')
                             logger.debug(f"Read stderr: {text}")
                             output.append(text)
                     except BlockingIOError:
