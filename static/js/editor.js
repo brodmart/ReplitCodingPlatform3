@@ -22,7 +22,7 @@ function setExecutionState(executing) {
 async function waitForConsoleReady(maxWait = 5000) {
     const startTime = Date.now();
     while (Date.now() - startTime < maxWait) {
-        if (consoleInstance && !consoleInstance.isBusy && consoleInstance.isInitialized) {
+        if (consoleInstance && consoleInstance.isInitialized && !consoleInstance.isBusy) {
             return true;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -41,12 +41,7 @@ async function ensureConsoleInitialized() {
             consoleInstance = new InteractiveConsole({
                 lang: document.documentElement.lang || 'en'
             });
-
-            const isReady = await waitForConsoleReady();
-            if (!isReady) {
-                throw new Error("Console initialization timed out");
-            }
-
+            await consoleInstance.init();
             return consoleInstance;
         } catch (error) {
             console.error("Console initialization error:", error);
@@ -111,10 +106,16 @@ window.executeCode = async function() {
         setExecutionState(true);
         lastExecution = Date.now();
 
-        // Initialize console if needed
+        // Ensure console is initialized and ready
         const console = await ensureConsoleInitialized();
         if (!console) {
             throw new Error("Failed to initialize console");
+        }
+
+        // Wait for console to be fully ready
+        const isReady = await waitForConsoleReady();
+        if (!isReady) {
+            throw new Error("Console not ready for execution");
         }
 
         const languageSelect = document.getElementById('languageSelect');
@@ -134,9 +135,9 @@ window.executeCode = async function() {
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize CodeMirror and other UI elements
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
-    const clearConsoleButton = document.getElementById('clearConsoleButton');
     const consoleOutput = document.getElementById('consoleOutput');
 
     if (!editorElement || !consoleOutput) {
@@ -166,24 +167,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // Set initial template
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
-    editor.refresh();
-
-    // Language change handler
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const language = this.value;
-            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            if (!editor.getValue().trim()) {
-                editor.setValue(getTemplateForLanguage(language));
-                editor.refresh();
-            }
-        });
+    // Initialize console first
+    try {
+        await ensureConsoleInitialized();
+        console.log('Console initialization complete');
+    } catch (error) {
+        console.error('Initial console initialization failed:', error);
     }
 
-    // Run button handler
+    // Set up event listeners after console is initialized
     const runButton = document.getElementById('runButton');
     if (runButton) {
         runButton.addEventListener('click', function(e) {
@@ -200,7 +192,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
+    // Set initial template
+    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
+    editor.setValue(getTemplateForLanguage(initialLanguage));
+    editor.refresh();
+
+    // Language change handler
+    if (languageSelect) {
+        languageSelect.addEventListener('change', function() {
+            const language = this.value;
+            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+            if (!editor.getValue().trim()) {
+                editor.setValue(getTemplateForLanguage(language));
+                editor.refresh();
+            }
+        });
+    }
+
     // Clear console handler
+    const clearConsoleButton = document.getElementById('clearConsoleButton');
     if (clearConsoleButton) {
         clearConsoleButton.addEventListener('click', async function() {
             if (consoleInstance) {
@@ -210,12 +220,5 @@ document.addEventListener('DOMContentLoaded', async function() {
                 consoleOutput.innerHTML = '';
             }
         });
-    }
-
-    // Initialize console
-    try {
-        await ensureConsoleInitialized();
-    } catch (error) {
-        console.error('Initial console initialization failed:', error);
     }
 });

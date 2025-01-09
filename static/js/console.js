@@ -32,11 +32,11 @@ class InteractiveConsole {
         this.isBusy = false;
         this.pollTimer = null;
 
-        // Initialize
+        // Initialize immediately
         this.init();
     }
 
-    async init() {
+    init() {
         try {
             // Reset state
             this.cleanupConsole();
@@ -87,13 +87,10 @@ class InteractiveConsole {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
                 const inputText = this.inputElement.value.trim();
-
                 if (inputText) {
-                    // Clear input immediately
-                    this.inputElement.value = '';
-
-                    // Show input in console
+                    // Show input in console and clear input field
                     this.appendToConsole(`${inputText}\n`, 'input');
+                    this.inputElement.value = '';
 
                     // Send input to server
                     await this.sendInput(inputText);
@@ -107,8 +104,6 @@ class InteractiveConsole {
                 requestAnimationFrame(() => this.inputElement.focus());
             }
         });
-
-        console.log('Event listeners setup complete');
     }
 
     setInputState(waiting) {
@@ -120,16 +115,17 @@ class InteractiveConsole {
             return;
         }
 
-        // Update DOM
+        // Update visibility and state
         this.inputElement.disabled = !this.isWaitingForInput;
-        this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
         this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
 
         if (this.isWaitingForInput) {
+            this.inputElement.style.display = 'block';
             this.inputElement.value = '';
             this.inputLine.classList.add('console-waiting');
             requestAnimationFrame(() => this.inputElement.focus());
         } else {
+            this.inputElement.style.display = 'none';
             this.inputLine.classList.remove('console-waiting');
         }
 
