@@ -191,12 +191,15 @@ window.addEventListener('consoleReady', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async function() {
-    let initAttempts = 0;
-    const maxAttempts = 5;
-    const initInterval = setInterval(async () => {
-        const editorElement = document.getElementById('editor');
-        const languageSelect = document.getElementById('languageSelect');
-        const consoleOutput = document.getElementById('consoleOutput');
+    const editorElement = document.getElementById('editor');
+    const languageSelect = document.getElementById('languageSelect');
+    const consoleOutput = document.getElementById('consoleOutput');
+    const runButton = document.getElementById('runButton');
+
+    if (!editorElement || !consoleOutput) {
+        console.error('Required elements not found');
+        return;
+    }
 
         if (editorElement && consoleOutput && (!editor || !consoleInstance)) {
             clearInterval(initInterval);
@@ -259,9 +262,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Set up event listeners after console is initialized
     const runButton = document.getElementById('runButton');
     if (runButton) {
-        runButton.addEventListener('click', function(e) {
+        runButton.addEventListener('click', async function(e) {
             e.preventDefault();
-            window.executeCode();
+            try {
+                await window.executeCode();
+            } catch (error) {
+                console.error('Error executing code:', error);
+            }
         });
     }
 
@@ -273,12 +280,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // Initialize with empty content first
-    editor.setValue('');
+    // Set initial template based on selected language
+    const language = languageSelect ? languageSelect.value : 'cpp';
+    editor.setValue(getTemplateForLanguage(language));
+    editor.refresh();
 
     // Language change handler with forced template update
     if (languageSelect) {
-        const updateTemplate = () => {
+        languageSelect.addEventListener('change', () => {
             const language = languageSelect.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
             editor.setValue(getTemplateForLanguage(language));
