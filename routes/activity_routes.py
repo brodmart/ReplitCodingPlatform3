@@ -22,15 +22,21 @@ session_lock = Lock()
 @limiter.limit("30 per minute")
 def start_session():
     """Start a new interactive coding session"""
+    logger.info("start_session endpoint called")
+
     if not request.is_json:
+        logger.error("Invalid request format - not JSON")
         return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
     try:
         data = request.get_json()
+        logger.info(f"Received request data: {data}")
+
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
 
         if not code:
+            logger.error("Empty code submitted")
             return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
         session_id = str(time.time())

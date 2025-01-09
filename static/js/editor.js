@@ -8,6 +8,42 @@ const MIN_EXECUTION_INTERVAL = 1000;
 const MAX_INIT_RETRIES = 5;
 let initRetries = 0;
 
+async function executeCode() {
+    console.log('executeCode called'); // Debug log
+    if (!editor || !isConsoleReady || isExecuting) {
+        console.log('Execute prevented:', { // Debug log
+            hasEditor: !!editor,
+            isConsoleReady,
+            isExecuting
+        });
+        return;
+    }
+
+    isExecuting = true;
+    const code = editor.getValue().trim();
+    const languageSelect = document.getElementById('languageSelect');
+    const language = languageSelect ? languageSelect.value : 'cpp';
+
+    console.log('Preparing to execute:', { language, codeLength: code.length }); // Debug log
+
+    try {
+        if (!consoleInstance) {
+            console.error('Console instance not initialized');
+            return;
+        }
+
+        await consoleInstance.executeCode(code, language);
+    } catch (error) {
+        console.error('Error executing code:', error);
+        const consoleOutput = document.getElementById('consoleOutput');
+        if (consoleOutput) {
+            consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
+        }
+    } finally {
+        isExecuting = false;
+    }
+}
+
 function getTemplateForLanguage(language) {
     if (language === 'cpp') {
         return `#include <iostream>
@@ -36,49 +72,6 @@ namespace ProgrammingActivity
         }
     }
 }`;
-    }
-}
-
-async function executeCode() {
-    if (!editor || !isConsoleReady || isExecuting) {
-        return;
-    }
-
-    isExecuting = true;
-    const code = editor.getValue().trim();
-    const languageSelect = document.getElementById('languageSelect');
-    const language = languageSelect ? languageSelect.value : 'cpp';
-
-    // Prepare the data to send to the backend
-    const requestBody = {
-        code: code,
-        language: language
-    };
-
-    try {
-        const response = await fetch('/start_session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': consoleInstance.csrfToken // Ensure CSRF token is sent
-            },
-            body: JSON.stringify(requestBody)
-        });
-
-        const result = await response.json();
-        if (result.success) {
-            console.log('Execution successful:', result);
-        } else {
-            console.error('Execution failed:', result.error);
-            const consoleOutput = document.getElementById('consoleOutput');
-            if (consoleOutput) {
-                consoleOutput.innerHTML = `<div class="console-error">Error: ${result.error}</div>`;
-            }
-        }
-    } catch (error) {
-        console.error('Error executing code:', error);
-    } finally {
-        isExecuting = false;
     }
 }
 
@@ -127,7 +120,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 // Show loading state
                 runButton.disabled = true;
                 runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-                
+
                 try {
                     await executeCode();
                 } catch (error) {
