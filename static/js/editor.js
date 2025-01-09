@@ -4,6 +4,8 @@ let editor = null;
 let isExecuting = false;
 let lastExecution = 0;
 const MIN_EXECUTION_INTERVAL = 1000;
+const MAX_INIT_RETRIES = 3;
+let initRetries = 0;
 
 // Function definitions outside DOMContentLoaded
 function setExecutionState(executing) {
@@ -17,14 +19,41 @@ function setExecutionState(executing) {
     }
 }
 
+async function waitForConsoleReady(maxWait = 2000) {
+    const startTime = Date.now();
+    while (Date.now() - startTime < maxWait) {
+        if (consoleInstance?.isReady()) {
+            return true;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return false;
+}
+
+async function ensureConsoleInitialized() {
+    if (!consoleInstance || !consoleInstance.isReady()) {
+        if (initRetries >= MAX_INIT_RETRIES) {
+            throw new Error("Failed to initialize console after multiple attempts");
+        }
+        initRetries++;
+        consoleInstance = initializeConsole();
+        const isReady = await waitForConsoleReady();
+        if (!isReady) {
+            throw new Error("Console initialization timed out");
+        }
+    }
+    return consoleInstance;
+}
+
 function initializeConsole() {
     try {
         if (!window.InteractiveConsole) {
             throw new Error('Console component not loaded');
         }
-        return new InteractiveConsole({
+        const instance = new InteractiveConsole({
             lang: document.documentElement.lang || 'en'
         });
+        return instance;
     } catch (error) {
         const consoleOutput = document.getElementById('consoleOutput');
         if (consoleOutput) {
@@ -67,8 +96,8 @@ namespace ProgrammingActivity
 
 // Global executeCode function
 window.executeCode = async function() {
-    if (!consoleInstance || !editor) {
-        console.error('Editor or console not initialized');
+    if (!editor) {
+        console.error('Editor not initialized');
         return;
     }
 
@@ -89,9 +118,15 @@ window.executeCode = async function() {
         setExecutionState(true);
         lastExecution = Date.now();
 
+        // Ensure console is ready
+        const console = await ensureConsoleInitialized();
+        if (!console) {
+            throw new Error("Failed to initialize console");
+        }
+
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
-        await consoleInstance.executeCode(code, language);
+        await console.executeCode(code, language);
 
     } catch (error) {
         console.error('Error executing code:', error);
@@ -105,10 +140,10 @@ window.executeCode = async function() {
 };
 
 // Initialize everything when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
-    const clearConsoleButton = document.getElementById('clearConsole');
+    const clearConsoleButton = document.getElementById('clearConsoleButton');
     const consoleOutput = document.getElementById('consoleOutput');
 
     if (!editorElement || !consoleOutput) {
@@ -138,8 +173,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initialize console
-    consoleInstance = initializeConsole();
+    // Initialize console with retry mechanism
+    try {
+        consoleInstance = await ensureConsoleInitialized();
+    } catch (error) {
+        console.error('Failed to initialize console:', error);
+    }
 
     // Set initial template
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
