@@ -49,9 +49,9 @@ def create_app():
                 from routes.activity_routes import activities
                 from routes.tutorial import tutorial_bp
 
-                app.register_blueprint(auth)
-                app.register_blueprint(activities)
-                app.register_blueprint(tutorial_bp)
+                app.register_blueprint(auth, url_prefix='/auth')
+                app.register_blueprint(activities, url_prefix='/activities')
+                app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
 
                 # Register error handlers
                 @app.errorhandler(404)
