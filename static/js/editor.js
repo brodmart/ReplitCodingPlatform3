@@ -141,12 +141,27 @@ window.executeCode = async function() {
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
+    let initAttempts = 0;
+    const maxAttempts = 5;
+    const initInterval = setInterval(async () => {
+        const editorElement = document.getElementById('editor');
+        const languageSelect = document.getElementById('languageSelect');
+        const consoleOutput = document.getElementById('consoleOutput');
+
+        if (editorElement && consoleOutput && (!editor || !consoleInstance)) {
+            clearInterval(initInterval);
+            await initializeElements(editorElement, languageSelect, consoleOutput);
+        } else if (initAttempts >= maxAttempts) {
+            clearInterval(initInterval);
+            console.error('Failed to initialize editor after maximum attempts');
+        }
+        initAttempts++;
+    }, 200);
+
+    async function initializeElements(editorElement, languageSelect, consoleOutput) {
     // Wait for all elements to be fully loaded
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    const editorElement = document.getElementById('editor');
-    const languageSelect = document.getElementById('languageSelect');
-    const consoleOutput = document.getElementById('consoleOutput');
 
     if (!editorElement || !consoleOutput) {
         console.error('Required elements not found');
@@ -239,4 +254,5 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Add your syntax highlighting logic here if needed.
     }
     highlightSyntax();
+    }
 });
