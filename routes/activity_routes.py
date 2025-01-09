@@ -180,7 +180,6 @@ def get_output():
             for pipe in readable:
                 logger.debug("Reading from pipe...")
                 try:
-                    # Read all available output
                     data = pipe.read()
                     if data:
                         logger.debug(f"Read data from process: {data}")
@@ -214,7 +213,6 @@ def get_output():
         except select.error as e:
             logger.error(f"Select error: {e}")
             return jsonify({'success': False, 'error': 'Failed to read output'}), 500
-
 
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
