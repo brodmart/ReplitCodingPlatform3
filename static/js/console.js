@@ -63,11 +63,14 @@ class InteractiveConsole {
         }
         if (this.inputElement) {
             this.inputElement.value = '';
+            // Always keep input visible but disabled initially
+            this.inputElement.disabled = true;
+            this.inputElement.style.display = 'block';
         }
-        // Always maintain visibility
-        this.inputLine.style.display = 'flex';
-        this.inputElement.style.display = 'block';
-        this.inputElement.disabled = true;
+        if (this.inputLine) {
+            // Always keep input line visible
+            this.inputLine.style.display = 'flex';
+        }
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.isSessionValid = false;
@@ -99,7 +102,7 @@ class InteractiveConsole {
 
         // Keep focus on input when needed
         const handleBlur = () => {
-            if (this.isWaitingForInput && this.isSessionValid) {
+            if (this.isWaitingForInput && this.isSessionValid && !this.inputElement.disabled) {
                 this.inputElement.focus();
             }
         };
@@ -115,16 +118,16 @@ class InteractiveConsole {
         }
 
         console.log('Setting input state to waiting:', waiting);
-        
-        // Always keep both elements visible
+
+        // Ensure elements are always visible
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
-        
-        // Only update input state
+
+        // Update state and enable/disable input
         this.isWaitingForInput = waiting;
         this.inputElement.disabled = !waiting;
-        
-        if (waiting) {
+
+        if (waiting && !this.inputElement.disabled) {
             this.inputElement.focus();
             this.outputElement.scrollTop = this.outputElement.scrollHeight;
         }
@@ -132,7 +135,9 @@ class InteractiveConsole {
         console.log('Input state updated:', {
             waiting: this.isWaitingForInput,
             sessionValid: this.isSessionValid,
-            inputEnabled: !this.inputElement.disabled
+            inputEnabled: !this.inputElement.disabled,
+            inputVisible: this.inputElement.style.display === 'block',
+            lineVisible: this.inputLine.style.display === 'flex'
         });
     }
 
@@ -163,15 +168,19 @@ class InteractiveConsole {
             if (this.sessionId) {
                 await this.endSession();
             }
-            
+
             // Keep input elements visible but disabled during transition
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
-            this.inputElement.disabled = true;
-            
+            if (this.inputLine) this.inputLine.style.display = 'flex';
+            if (this.inputElement) {
+                this.inputElement.style.display = 'block';
+                this.inputElement.disabled = true;
+            }
+
             // Clean output
-            this.outputElement.innerHTML = '';
-            
+            if (this.outputElement) {
+                this.outputElement.innerHTML = '';
+            }
+
             const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error("Failed to start program execution");
