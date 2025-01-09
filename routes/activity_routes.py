@@ -172,25 +172,38 @@ def get_output():
                 response.headers['Content-Type'] = 'application/json'
                 return response
 
-            # Read available output
+            # Read available output with longer timeout
             reads = [process.stdout, process.stderr]
-            readable, _, _ = select.select(reads, [], [], 0.1)
+            readable, _, _ = select.select(reads, [], [], 0.5)  # Increased timeout
 
             for pipe in readable:
-                line = pipe.readline()
-                if line:
+                while True:  # Read all available output
+                    line = pipe.readline()
+                    if not line:
+                        break
                     logger.debug(f"Read output from process: {line.strip()}")
                     output.append(line)
-                    # Check for input prompts
+                    # Check for input prompts with more patterns
                     lower_line = line.lower()
                     if any(prompt in lower_line for prompt in [
                         'input', 'enter', 'type', '?', ':', '>',
-                        'cin', 'cin >>', 'console.readline', 'console.read'
+                        'cin', 'cin >>', 'console.readline', 'console.read',
+                        'name', 'value', 'please'
                     ]):
                         waiting_for_input = True
                         session['waiting_for_input'] = True
 
             session['last_activity'] = time.time()
+
+            # If no new output but previous output exists, include it
+            if not output and session.get('output_buffer'):
+                output = session['output_buffer']
+                session['output_buffer'] = []
+
+            # Store output for next poll if waiting for input
+            if waiting_for_input and output:
+                session['output_buffer'] = output
+
             response = jsonify({
                 'success': True,
                 'output': ''.join(output) if output else '',
