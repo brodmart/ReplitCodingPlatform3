@@ -45,11 +45,9 @@ class InteractiveConsole {
                 e.preventDefault();
                 const inputText = this.inputElement.value;
                 this.inputElement.value = '';
-                this.setInputState(false);
                 this.appendToConsole(`${inputText}\n`, 'input');
-                if (this.sessionId) {
-                    await this.sendInput(inputText);
-                }
+                await this.sendInput(inputText);
+                this.setInputState(false);
             }
         });
     }
@@ -61,8 +59,10 @@ class InteractiveConsole {
     setInputState(waiting) {
         this.isWaitingForInput = waiting && this.isSessionValid;
         this.inputElement.disabled = !this.isWaitingForInput;
+        this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
 
         if (this.inputLine) {
+            this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
             this.inputLine.classList.toggle('console-waiting', this.isWaitingForInput);
             if (this.isWaitingForInput) {
                 this.inputElement.focus();
@@ -189,7 +189,9 @@ class InteractiveConsole {
                     return;
                 }
 
-                this.setInputState(data.waiting_for_input);
+                if (data.waiting_for_input) {
+                    this.setInputState(true);
+                }
 
                 if (this.isSessionValid && this.sessionId) {
                     this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
@@ -203,6 +205,7 @@ class InteractiveConsole {
     }
 
     handlePollError(error) {
+        console.error("Poll error:", error);
         this.pollRetryCount++;
         if (this.pollRetryCount >= this.maxRetries) {
             this.isSessionValid = false;
@@ -262,7 +265,7 @@ class InteractiveConsole {
                 credentials: 'same-origin',
                 body: JSON.stringify({
                     session_id: this.sessionId,
-                    input: input
+                    input: input + '\n'
                 })
             });
 
