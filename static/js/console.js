@@ -7,6 +7,7 @@ class InteractiveConsole {
         this.outputElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
         this.inputLine = document.querySelector('.console-input-line');
+        this.runButton = document.getElementById('runButton');
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console elements not found');
@@ -32,6 +33,7 @@ class InteractiveConsole {
         this.isBusy = false;
         this.pollTimer = null;
         this.contentCleared = false;
+        this.isExecuting = false;
 
         this.setupEventListeners();
         this.isInitialized = true;
@@ -49,21 +51,6 @@ class InteractiveConsole {
 
                 if (this.sessionId) {
                     await this.sendInput(inputText);
-                }
-            }
-        });
-
-        this.inputElement.addEventListener('paste', (e) => {
-            if (this.isWaitingForInput && this.isSessionValid) {
-                e.preventDefault();
-                const pastedText = e.clipboardData.getData('text');
-                const lines = pastedText.split('\n');
-
-                if (lines.length > 1) {
-                    this.inputQueue.push(...lines.filter(line => line.trim()));
-                    this.processInputQueue();
-                } else {
-                    this.inputElement.value = pastedText;
                 }
             }
         });
@@ -97,12 +84,22 @@ class InteractiveConsole {
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
+    setButtonState(isExecuting) {
+        if (!this.runButton) return;
+
+        this.isExecuting = isExecuting;
+        this.runButton.disabled = isExecuting;
+        this.runButton.innerHTML = isExecuting ? 
+            `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...` :
+            (document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run');
+    }
+
     async executeCode(code, language) {
         console.log("executeCode called:", { language, codeLength: code?.length });
 
-        if (!this.isReady()) {
-            console.error("Console not ready");
-            this.appendToConsole("Error: Console not ready. Please wait a moment.\n", 'error');
+        if (!this.isReady() || this.isExecuting) {
+            console.error("Console not ready or already executing");
+            this.appendToConsole("Error: Console busy. Please wait a moment.\n", 'error');
             return false;
         }
 
@@ -113,6 +110,7 @@ class InteractiveConsole {
         }
 
         this.isBusy = true;
+        this.setButtonState(true);
         this.contentCleared = false;
 
         try {
@@ -127,7 +125,12 @@ class InteractiveConsole {
                 await this.endSession();
             }
 
-            // Start new session first
+            // Clear console and show compiling status
+            this.outputElement.innerHTML = '';
+            this.contentCleared = true;
+            this.appendToConsole("Compiling code...\n", 'system');
+
+            // Start new session
             console.log("Starting new session");
             const success = await this.startSession(code, language);
 
@@ -137,13 +140,7 @@ class InteractiveConsole {
                 return false;
             }
 
-            // Only clear console after successful session start
-            if (!this.contentCleared) {
-                this.outputElement.innerHTML = '';
-                this.contentCleared = true;
-            }
-            this.appendToConsole("Compiling and running code...\n", 'system');
-
+            this.appendToConsole("Running program...\n", 'system');
             console.log("Session started successfully, beginning output polling");
             this.startPolling();
             return true;
@@ -154,6 +151,7 @@ class InteractiveConsole {
             return false;
         } finally {
             this.isBusy = false;
+            this.setButtonState(false);
         }
     }
 
@@ -206,6 +204,7 @@ class InteractiveConsole {
     async poll() {
         if (!this.sessionId || !this.isSessionValid) {
             console.log("Polling stopped: invalid session state");
+            this.setButtonState(false);
             return;
         }
 
@@ -294,6 +293,7 @@ class InteractiveConsole {
         this.sessionId = null;
         this.isSessionValid = false;
         this.setInputState(false);
+        this.setButtonState(false);
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.contentCleared = false;
