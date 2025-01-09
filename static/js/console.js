@@ -256,14 +256,16 @@ class InteractiveConsole {
                 throw new Error(data.error || 'Failed to get output');
             }
 
-            // Reset retry count and interval on successful poll
-            this.pollRetryCount = 0;
-            this.currentPollInterval = this.baseDelay;
-
+            // Handle output if present
             if (data.output) {
                 console.log('Received output:', data.output);
                 this.appendToConsole(data.output);
                 this.emptyPollCount = 0;
+
+                // If output contains input prompt, force input state
+                if (data.output.includes('Enter') || data.output.includes('Input')) {
+                    data.waiting_for_input = true;
+                }
             } else {
                 this.emptyPollCount++;
             }
@@ -275,33 +277,34 @@ class InteractiveConsole {
                 return;
             }
 
-            // Update input state with debouncing
+            // Prevent rapid state changes
             if (data.waiting_for_input !== this.isWaitingForInput) {
-                console.log('Input state changed:', data.waiting_for_input);
+                console.log('Input state change requested:', data.waiting_for_input);
 
+                // Clear any pending state updates
                 if (this.stateUpdateTimer) {
                     clearTimeout(this.stateUpdateTimer);
                 }
 
-                this.stateUpdateTimer = setTimeout(() => {
-                    this.setInputState(data.waiting_for_input);
-
-                    if (data.waiting_for_input) {
-                        this.inputElement.style.display = 'block';
-                        this.inputLine.style.display = 'flex';
-                        this.inputElement.focus();
-
-                        // Force the input state to persist
-                        sessionStorage.setItem('console_input_state', JSON.stringify({
-                            isWaiting: true,
-                            timestamp: Date.now()
-                        }));
-                    }
-                }, this.stateUpdateDelay);
+                // If enabling input, do it immediately
+                if (data.waiting_for_input) {
+                    this.setInputState(true);
+                    this.inputElement.style.display = 'block';
+                    this.inputLine.style.display = 'flex';
+                    this.inputElement.focus();
+                } else {
+                    // If disabling, wait to confirm it's not a false negative
+                    this.stateUpdateTimer = setTimeout(() => {
+                        // Only disable if we haven't received new input requests
+                        if (!this.isWaitingForInput) {
+                            this.setInputState(false);
+                        }
+                    }, 1000); // Wait 1 second before disabling
+                }
             }
 
             // Adjust polling interval based on state
-            const nextPollDelay = this.isWaitingForInput ? 1000 :
+            const nextPollDelay = this.isWaitingForInput ? 2000 : // Longer delay when waiting for input
                 this.emptyPollCount > this.maxEmptyPolls ? 1000 :
                     this.currentPollInterval;
 
@@ -309,6 +312,7 @@ class InteractiveConsole {
                 console.log(`Scheduling next poll with interval: ${nextPollDelay}ms`);
                 this.pollTimer = setTimeout(() => this.poll(), nextPollDelay);
             }
+
         } catch (error) {
             console.error('Poll error:', error);
             this.handlePollError(error);
@@ -452,14 +456,22 @@ class InteractiveConsole {
                 consoleContainer.classList.add('console-waiting');
             }
 
-            // Force persist the state
+            // Force persist input state
             sessionStorage.setItem('console_input_state', JSON.stringify({
                 isWaiting: true,
                 timestamp: Date.now()
             }));
+
+            // Set a minimum duration for input state
+            if (this.inputStateTimer) {
+                clearTimeout(this.inputStateTimer);
+            }
+            this.inputStateTimer = setTimeout(() => {
+                this.inputStateTimer = null;
+            }, 5000); // Keep input active for at least 5 seconds
         } else {
-            // Only disable if we're sure we're not waiting for input
-            if (this.isWaitingForInput) {
+            // Only disable if there's no pending input timer
+            if (!this.inputStateTimer && this.isWaitingForInput) {
                 this.isWaitingForInput = false;
                 this.inputElement.disabled = true;
                 this.inputLine.classList.remove('active');
