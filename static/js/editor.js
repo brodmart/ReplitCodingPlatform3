@@ -8,7 +8,7 @@ const MIN_EXECUTION_INTERVAL = 1000;
 
 async function executeCode() {
     if (!editor || !isConsoleReady || isExecuting) {
-        console.log('Execute prevented:', {
+        console.error('Execute prevented:', {
             hasEditor: !!editor,
             isConsoleReady,
             isExecuting
@@ -17,25 +17,30 @@ async function executeCode() {
     }
 
     const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.disabled = true;
-        runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-    }
+    const consoleOutput = document.getElementById('consoleOutput');
 
     try {
+        if (runButton) {
+            runButton.disabled = true;
+            runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+        }
+
         isExecuting = true;
         const code = editor.getValue().trim();
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
 
         if (!consoleInstance) {
-            throw new Error('Console instance not initialized');
+            throw new Error('Console not initialized');
+        }
+
+        if (!consoleInstance.isInitialized) {
+            throw new Error('Console initialization incomplete');
         }
 
         await consoleInstance.executeCode(code, language);
     } catch (error) {
         console.error('Error executing code:', error);
-        const consoleOutput = document.getElementById('consoleOutput');
         if (consoleOutput) {
             consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
         }
@@ -102,19 +107,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         lineWrapping: true
     });
 
-    // Initialize console
+    // Initialize console with proper error handling
     try {
+        if (consoleInstance) {
+            await consoleInstance.endSession();
+            consoleInstance = null;
+        }
+
         consoleInstance = new InteractiveConsole();
         const initSuccess = await consoleInstance.init();
-        if (initSuccess) {
-            isConsoleReady = true;
-            console.log('Console initialized successfully');
+
+        if (!initSuccess) {
+            throw new Error('Console initialization failed');
         }
+
+        isConsoleReady = true;
+        console.log('Console initialization complete');
     } catch (error) {
         console.error('Console initialization failed:', error);
         if (consoleOutput) {
             consoleOutput.innerHTML = `<div class="console-error">Failed to initialize console: ${error.message}</div>`;
         }
+        if (runButton) {
+            runButton.disabled = true;
+        }
+        return;
     }
 
     // Set initial template
