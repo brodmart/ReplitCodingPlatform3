@@ -14,7 +14,7 @@ logger = logging.getLogger('auth')
 @auth.route('/')
 def index():
     session['lang'] = session.get('lang', 'fr')
-    return render_template('index.html', lang=session.get('lang', 'fr'), logged_in=False)
+    return render_template('index.html', lang=session.get('lang', 'fr'))
 
 def is_safe_url(target: str) -> bool:
     """Vérifie si l'URL de redirection est sécurisée"""

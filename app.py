@@ -9,7 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_db
 from extensions import init_extensions
 from utils.logger import setup_logging
-from models import User  # Add direct import here
+from models import Student  # Changed from User to Student
 
 # Configure logging
 logging.basicConfig(
@@ -50,9 +50,7 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
         PERMANENT_SESSION_LIFETIME=1800,  # 30 minutes
         # Request settings
-        MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max-limit
-        # Allow anonymous access
-        LOGIN_DISABLED=True
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max-limit
     )
 
     try:
@@ -69,11 +67,11 @@ def create_app():
         login_manager = LoginManager()
         login_manager.init_app(app)
         login_manager.anonymous_user = Anonymous
-        login_manager.login_view = None  # Disable login view redirect
+        login_manager.login_view = 'auth.login'  # Set login view but don't force redirect
 
         @login_manager.user_loader
         def load_user(user_id):
-            return User.query.get(int(user_id)) if user_id else None
+            return Student.query.get(int(user_id)) if user_id else None
 
         # Register blueprints
         from routes.auth_routes import auth
