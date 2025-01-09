@@ -207,77 +207,85 @@ def get_output():
         if process.poll() is not None:
             logger.debug(f"Process terminated for session {session_id}")
             try:
+                # Try to get any remaining output
                 stdout, stderr = process.communicate(timeout=1)
                 if stdout:
-                    output.append(stdout)
+                    output.append(stdout.decode('utf-8', errors='replace'))
                 if stderr:
-                    output.append(stderr)
+                    output.append(stderr.decode('utf-8', errors='replace'))
             except subprocess.TimeoutExpired:
                 process.kill()
                 stdout, stderr = process.communicate()
                 if stdout:
-                    output.append(stdout)
+                    output.append(stdout.decode('utf-8', errors='replace'))
                 if stderr:
-                    output.append(stderr)
+                    output.append(stderr.decode('utf-8', errors='replace'))
 
             cleanup_session(session_id)
             final_output = ''.join(output) if output else ''
-            logger.debug(f"Final output: {final_output}")
+            logger.debug(f"Final output before termination: {final_output}")
             return jsonify({
                 'success': True,
                 'output': final_output,
                 'session_ended': True
             })
 
-        # Set stdout and stderr to non-blocking mode
-
+        # Set stdout and stderr to non-blocking mode if they exist
         try:
-            # Set non-blocking mode for stdout
-            if process.stdout:
-                fd = process.stdout.fileno()
-                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-
-            # Set non-blocking mode for stderr
-            if process.stderr:
-                fd = process.stderr.fileno()
-                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-
-            # Read from stdout (non-blocking)
-            if process.stdout:
+            # Handle stdout
+            if process.stdout and not process.stdout.closed:
                 try:
-                    chunk = process.stdout.read(1024)
-                    if chunk:
-                        text = chunk.decode('utf-8', errors='replace')
-                        logger.debug(f"Read stdout: {text}")
-                        output.append(text)
-                        # Check for input prompts
-                        lower_text = text.lower()
-                        if any(prompt in lower_text for prompt in [
-                            'input', 'enter', 'type', '?', ':', '>',
-                            'cin', 'cin >>', 'console.readline', 'console.read'
-                        ]):
-                            logger.debug("Input prompt detected")
-                            waiting_for_input = True
-                            session_data['waiting_for_input'] = True
-                except BlockingIOError:
-                    logger.debug("No data available from stdout")
-                except Exception as e:
-                    logger.error(f"Error reading stdout: {e}", exc_info=True)
+                    fd = process.stdout.fileno()
+                    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                    fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-            # Read from stderr (non-blocking)
-            if process.stderr:
-                try:
-                    chunk = process.stderr.read(1024)
-                    if chunk:
-                        text = chunk.decode('utf-8', errors='replace')
-                        logger.debug(f"Read stderr: {text}")
-                        output.append(text)
-                except BlockingIOError:
-                    logger.debug("No data available from stderr")
+                    # Read from stdout
+                    try:
+                        while True:  # Read until BlockingIOError
+                            chunk = process.stdout.read1(1024)
+                            if not chunk:  # EOF
+                                break
+                            text = chunk.decode('utf-8', errors='replace')
+                            logger.debug(f"Read stdout: {text}")
+                            output.append(text)
+                            # Check for input prompts
+                            lower_text = text.lower()
+                            if any(prompt in lower_text for prompt in [
+                                'input', 'enter', 'type', '?', ':', '>',
+                                'cin', 'cin >>', 'console.readline', 'console.read'
+                            ]):
+                                logger.debug("Input prompt detected")
+                                waiting_for_input = True
+                                session_data['waiting_for_input'] = True
+                    except BlockingIOError:
+                        logger.debug("No more data available from stdout")
+                    except Exception as e:
+                        logger.error(f"Error reading stdout: {e}", exc_info=True)
                 except Exception as e:
-                    logger.error(f"Error reading stderr: {e}", exc_info=True)
+                    logger.error(f"Error setting up non-blocking stdout: {e}", exc_info=True)
+
+            # Handle stderr
+            if process.stderr and not process.stderr.closed:
+                try:
+                    fd = process.stderr.fileno()
+                    flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+                    fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+                    # Read from stderr
+                    try:
+                        while True:  # Read until BlockingIOError
+                            chunk = process.stderr.read1(1024)
+                            if not chunk:  # EOF
+                                break
+                            text = chunk.decode('utf-8', errors='replace')
+                            logger.debug(f"Read stderr: {text}")
+                            output.append(text)
+                    except BlockingIOError:
+                        logger.debug("No more data available from stderr")
+                    except Exception as e:
+                        logger.error(f"Error reading stderr: {e}", exc_info=True)
+                except Exception as e:
+                    logger.error(f"Error setting up non-blocking stderr: {e}", exc_info=True)
 
             session_data['last_activity'] = time.time()
             final_output = ''.join(output) if output else ''
