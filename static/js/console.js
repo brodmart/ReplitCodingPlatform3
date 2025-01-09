@@ -7,7 +7,7 @@ class InteractiveConsole {
         this.inputElement = document.getElementById('consoleInput');
         this.inputLine = document.querySelector('.console-input-line');
 
-        if (!this.outputElement || !this.inputElement) {
+        if (!this.outputElement || !this.inputElement || !this.inputLine) {
             throw new Error('Console elements not found');
         }
 
@@ -32,17 +32,32 @@ class InteractiveConsole {
         this.cleanupInProgress = false;
         this.executionPromise = null;
 
+        // Setup event listeners immediately
         this.setupEventListeners();
 
-        // Initialize after a short delay to ensure DOM is ready
-        setTimeout(() => {
+        // Mark as initialized only after verifying all components
+        if (this.verifyComponents()) {
             this.isInitialized = true;
-            this.setInputState(false);
-        }, 100);
+        }
+    }
+
+    verifyComponents() {
+        return (
+            this.outputElement instanceof HTMLElement &&
+            this.inputElement instanceof HTMLElement &&
+            this.inputLine instanceof HTMLElement &&
+            this.csrfToken &&
+            typeof this.csrfToken === 'string'
+        );
     }
 
     setupEventListeners() {
         if (!this.inputElement) return;
+
+        // Remove any existing listeners first
+        const newInput = this.inputElement.cloneNode(true);
+        this.inputElement.parentNode.replaceChild(newInput, this.inputElement);
+        this.inputElement = newInput;
 
         this.inputElement.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
@@ -57,26 +72,33 @@ class InteractiveConsole {
             }
         });
 
-        // Ensure input is focused when waiting for input
         this.inputElement.addEventListener('blur', () => {
-            if (this.isWaitingForInput) {
-                setTimeout(() => this.inputElement.focus(), 0);
+            if (this.isWaitingForInput && this.isSessionValid) {
+                setTimeout(() => this.inputElement.focus(), 10);
             }
         });
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && !this.cleanupInProgress;
+        return (
+            this.isInitialized &&
+            this.verifyComponents() &&
+            !this.cleanupInProgress &&
+            !this.isBusy
+        );
     }
 
     setInputState(waiting) {
         this.isWaitingForInput = waiting && this.isSessionValid;
 
-        if (!this.inputElement || !this.inputLine) return;
+        if (!this.inputElement || !this.inputLine) {
+            console.error('Input elements not available');
+            return;
+        }
 
         this.inputElement.disabled = !this.isWaitingForInput;
-        this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
         this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
+        this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
 
         if (this.isWaitingForInput) {
             this.inputElement.value = '';
@@ -106,10 +128,6 @@ class InteractiveConsole {
             throw new Error("No code to execute");
         }
 
-        if (this.executionPromise) {
-            await this.executionPromise;
-        }
-
         this.isBusy = true;
         this.cleanupInProgress = true;
 
@@ -119,15 +137,12 @@ class InteractiveConsole {
                 this.outputElement.innerHTML = '';
             }
 
-            this.executionPromise = this.startSession(code, language);
-            const success = await this.executionPromise;
-
+            const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error("Failed to start program execution");
             }
 
-            // Wait for session to be properly established
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 300));
             this.startPolling();
             return true;
 
@@ -135,7 +150,6 @@ class InteractiveConsole {
             console.error("Error in executeCode:", error);
             throw error;
         } finally {
-            this.executionPromise = null;
             this.cleanupInProgress = false;
             this.isBusy = false;
         }
@@ -160,6 +174,8 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
+            console.log("Session start response:", data);
+
             if (!data.success) {
                 throw new Error(data.error || "Failed to start session");
             }
@@ -197,6 +213,7 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
+            console.log("Poll response:", data);
 
             if (data.success) {
                 this.pollRetryCount = 0;
