@@ -4,8 +4,14 @@ let editor = null;
 let isExecuting = false;
 let lastExecution = 0;
 const MIN_EXECUTION_INTERVAL = 1000;
-const MAX_INIT_RETRIES = 3;
+const MAX_INIT_RETRIES = 5;
 let initRetries = 0;
+const INIT_DELAY = 500;
+
+async function ensureElementsExist() {
+    const elements = ['editor', 'consoleOutput', 'consoleInput'];
+    return elements.every(id => document.getElementById(id));
+}
 
 // Function definitions outside DOMContentLoaded
 function setExecutionState(executing) {
@@ -33,9 +39,19 @@ async function waitForConsoleReady(maxWait = 5000) {
 async function ensureConsoleInitialized() {
     if (!consoleInstance || !consoleInstance.isInitialized) {
         if (initRetries >= MAX_INIT_RETRIES) {
-            throw new Error("Failed to initialize console after multiple attempts");
+            console.error("Max retries reached, resetting state");
+            initRetries = 0;
+            consoleInstance = null;
         }
-        initRetries++;
+        
+        // Wait for elements to exist
+        const elementsExist = await ensureElementsExist();
+        if (!elementsExist) {
+            await new Promise(resolve => setTimeout(resolve, INIT_DELAY));
+            return ensureConsoleInitialized();
+        }
+
+        initRetries++;;
 
         try {
             consoleInstance = new InteractiveConsole({
