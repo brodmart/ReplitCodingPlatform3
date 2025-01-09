@@ -21,71 +21,48 @@ class InteractiveConsole {
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
-        this.inputQueue = [];
         this.pollRetryCount = 0;
         this.maxRetries = 3;
         this.baseDelay = 100;
-        this.isSessionValid = true;
+        this.isSessionValid = false;
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
         this.cleanupInProgress = false;
-        this.executionPromise = null;
 
-        // Setup event listeners immediately
+        // Initialize input handling
         this.setupEventListeners();
-
-        // Mark as initialized only after verifying all components
-        if (this.verifyComponents()) {
-            this.isInitialized = true;
-        }
-    }
-
-    verifyComponents() {
-        return (
-            this.outputElement instanceof HTMLElement &&
-            this.inputElement instanceof HTMLElement &&
-            this.inputLine instanceof HTMLElement &&
-            this.csrfToken &&
-            typeof this.csrfToken === 'string'
-        );
+        this.setInputState(false);
+        this.isInitialized = true;
     }
 
     setupEventListeners() {
         if (!this.inputElement) return;
 
-        // Remove any existing listeners first
+        // Remove existing listeners
         const newInput = this.inputElement.cloneNode(true);
         this.inputElement.parentNode.replaceChild(newInput, this.inputElement);
         this.inputElement = newInput;
 
+        // Handle Enter key press
         this.inputElement.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
                 const inputText = this.inputElement.value.trim();
-                this.inputElement.value = '';
-
                 if (inputText) {
                     this.appendToConsole(`${inputText}\n`, 'input');
                     await this.sendInput(inputText);
+                    this.inputElement.value = '';
                 }
             }
         });
 
+        // Keep focus on input when needed
         this.inputElement.addEventListener('blur', () => {
             if (this.isWaitingForInput && this.isSessionValid) {
-                setTimeout(() => this.inputElement.focus(), 10);
+                setTimeout(() => this.inputElement.focus(), 0);
             }
         });
-    }
-
-    isReady() {
-        return (
-            this.isInitialized &&
-            this.verifyComponents() &&
-            !this.cleanupInProgress &&
-            !this.isBusy
-        );
     }
 
     setInputState(waiting) {
@@ -96,17 +73,29 @@ class InteractiveConsole {
             return;
         }
 
+        // Update input element state
         this.inputElement.disabled = !this.isWaitingForInput;
-        this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
         this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
+        this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
 
         if (this.isWaitingForInput) {
             this.inputElement.value = '';
-            this.inputElement.focus();
             this.inputLine.classList.add('console-waiting');
+            setTimeout(() => this.inputElement.focus(), 0);
         } else {
             this.inputLine.classList.remove('console-waiting');
         }
+
+        // Debug log
+        console.log('Input state updated:', {
+            waiting: this.isWaitingForInput,
+            sessionValid: this.isSessionValid,
+            inputVisible: this.inputElement.style.display
+        });
+    }
+
+    isReady() {
+        return this.isInitialized && !this.cleanupInProgress && !this.isBusy;
     }
 
     appendToConsole(text, type = 'output') {
@@ -142,6 +131,7 @@ class InteractiveConsole {
                 throw new Error("Failed to start program execution");
             }
 
+            // Wait for session to be established
             await new Promise(resolve => setTimeout(resolve, 300));
             this.startPolling();
             return true;
@@ -156,8 +146,6 @@ class InteractiveConsole {
     }
 
     async startSession(code, language) {
-        if (!code || !language) return false;
-
         try {
             const response = await fetch('/activities/start_session', {
                 method: 'POST',
@@ -222,13 +210,13 @@ class InteractiveConsole {
                     this.appendToConsole(data.output);
                 }
 
+                if (data.waiting_for_input && !this.isWaitingForInput) {
+                    this.setInputState(true);
+                }
+
                 if (data.session_ended) {
                     await this.endSession();
                     return;
-                }
-
-                if (data.waiting_for_input && !this.isWaitingForInput) {
-                    this.setInputState(true);
                 }
 
                 if (this.isSessionValid && this.sessionId) {
@@ -249,8 +237,8 @@ class InteractiveConsole {
             this.isSessionValid = false;
             this.endSession();
         } else {
-            this.pollTimer = setTimeout(() => this.poll(),
-                this.baseDelay * Math.pow(2, this.pollRetryCount));
+            const delay = this.baseDelay * Math.pow(2, this.pollRetryCount);
+            this.pollTimer = setTimeout(() => this.poll(), delay);
         }
     }
 
@@ -266,25 +254,22 @@ class InteractiveConsole {
             }
 
             if (this.sessionId) {
-                try {
-                    await fetch('/activities/end_session', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': this.csrfToken
-                        },
-                        credentials: 'same-origin',
-                        body: JSON.stringify({ session_id: this.sessionId })
-                    });
-                } catch (error) {
-                    console.error("Error ending session:", error);
-                }
+                await fetch('/activities/end_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': this.csrfToken
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ session_id: this.sessionId })
+                });
             }
+        } catch (error) {
+            console.error("Error ending session:", error);
         } finally {
             this.sessionId = null;
             this.isSessionValid = false;
             this.setInputState(false);
-            this.inputQueue = [];
             this.pollRetryCount = 0;
             this.isBusy = false;
         }
