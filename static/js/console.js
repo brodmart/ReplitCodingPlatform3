@@ -53,7 +53,7 @@ class InteractiveConsole {
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
-        this.polling = false; // Added to track polling status
+        this.polling = false;
 
         // Initialize immediately
         this.init();
@@ -88,22 +88,22 @@ class InteractiveConsole {
                     this.inputLine.offsetHeight;
                     this.inputElement.offsetHeight;
 
-            // Setup event listeners
-            this.setupEventListeners();
-            this.setInputState(false);
+                    // Setup event listeners
+                    this.setupEventListeners();
+                    this.setInputState(false);
 
-            // Ensure visibility persists
-            requestAnimationFrame(() => {
-                this.outputElement.style.display = 'block';
-                this.inputLine.style.display = 'flex';
-                this.inputElement.style.display = 'block';
-                this.inputElement.style.visibility = 'visible';
+                    // Ensure visibility persists
+                    requestAnimationFrame(() => {
+                        this.outputElement.style.display = 'block';
+                        this.inputLine.style.display = 'flex';
+                        this.inputElement.style.display = 'block';
+                        this.inputElement.style.visibility = 'visible';
 
-                // Mark as initialized
-                this.isInitialized = true;
-            });
+                        // Mark as initialized
+                        this.isInitialized = true;
+                    });
 
-            // Set up visibility check interval
+                    // Set up visibility check interval
                     setInterval(() => {
                         if (this.outputElement && this.inputLine && this.inputElement) {
                             this.outputElement.style.display = 'block';
@@ -331,15 +331,9 @@ class InteractiveConsole {
         }
 
         this.polling = true;
-        console.log(`Polling for session ${this.sessionId}`);
-            });
-            return;
-        }
-
-        this.polling = true;
         try {
             console.log(`[${new Date().toISOString()}] Polling backend for session ${this.sessionId}`);
-            
+
             const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
                 credentials: 'same-origin'
             });
