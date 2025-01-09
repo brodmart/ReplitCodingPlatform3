@@ -30,6 +30,7 @@ class InteractiveConsole {
         this.isSessionValid = true;
         this.isInitialized = false;
         this.isBusy = false;
+        this.pollTimer = null;
 
         this.setupEventListeners();
         this.isInitialized = true;
@@ -113,7 +114,12 @@ class InteractiveConsole {
         this.isBusy = true;
 
         try {
-            // Clean up any existing session
+            // Clean up any existing session and polling
+            if (this.pollTimer) {
+                clearTimeout(this.pollTimer);
+                this.pollTimer = null;
+            }
+
             if (this.sessionId) {
                 console.log("Cleaning up existing session");
                 await this.endSession();
@@ -135,7 +141,7 @@ class InteractiveConsole {
 
             console.log("Session started successfully, beginning output polling");
             // Start polling for output
-            this.poll();
+            this.startPolling();
             return true;
 
         } catch (error) {
@@ -145,6 +151,14 @@ class InteractiveConsole {
         } finally {
             this.isBusy = false;
         }
+    }
+
+    startPolling() {
+        console.log("Starting polling cycle");
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+        }
+        this.poll();
     }
 
     async startSession(code, language) {
@@ -221,7 +235,7 @@ class InteractiveConsole {
                 this.setInputState(data.waiting_for_input);
 
                 if (this.isSessionValid && this.sessionId) {
-                    setTimeout(() => this.poll(), this.baseDelay);
+                    this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
                 }
             } else {
                 console.error("Poll failed:", data.error);
@@ -244,7 +258,7 @@ class InteractiveConsole {
             }
             this.endSession();
         } else {
-            setTimeout(() => this.poll(), this.baseDelay * Math.pow(2, this.pollRetryCount));
+            this.pollTimer = setTimeout(() => this.poll(), this.baseDelay * Math.pow(2, this.pollRetryCount));
         }
     }
 
@@ -284,6 +298,11 @@ class InteractiveConsole {
     }
 
     async endSession() {
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+            this.pollTimer = null;
+        }
+
         if (this.sessionId && this.csrfToken) {
             try {
                 await fetch('/activities/end_session', {
@@ -298,6 +317,7 @@ class InteractiveConsole {
                     })
                 });
             } catch (error) {
+                console.error("Error ending session:", error);
                 this.appendToConsole(`Error ending session: ${error.message}\n`, 'error');
             }
         }
