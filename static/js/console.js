@@ -107,13 +107,13 @@ class InteractiveConsole {
     }
 
     setInputState(waiting) {
-        // Update state
-        this.isWaitingForInput = waiting && this.isSessionValid;
-
         if (!this.inputElement || !this.inputLine) {
             console.error('Input elements not available');
             return;
         }
+
+        // Update state
+        this.isWaitingForInput = waiting && this.isSessionValid;
 
         // Update visibility and state
         this.inputElement.disabled = !this.isWaitingForInput;
@@ -123,7 +123,12 @@ class InteractiveConsole {
             this.inputElement.style.display = 'block';
             this.inputElement.value = '';
             this.inputLine.classList.add('console-waiting');
-            requestAnimationFrame(() => this.inputElement.focus());
+            // Use requestAnimationFrame to ensure DOM updates before focusing
+            requestAnimationFrame(() => {
+                this.inputElement.focus();
+                // Scroll to bottom to ensure input is visible
+                this.outputElement.scrollTop = this.outputElement.scrollHeight;
+            });
         } else {
             this.inputElement.style.display = 'none';
             this.inputLine.classList.remove('console-waiting');
@@ -142,6 +147,8 @@ class InteractiveConsole {
         const line = document.createElement('div');
         line.className = `console-${type}`;
         line.textContent = type === 'input' ? `> ${text}` : text;
+
+        // Always append and scroll
         this.outputElement.appendChild(line);
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
@@ -247,13 +254,19 @@ class InteractiveConsole {
             if (data.success) {
                 this.pollRetryCount = 0;
 
+                // Always show output if present, regardless of input state
                 if (data.output) {
                     this.appendToConsole(data.output);
                 }
 
-                if (data.waiting_for_input && !this.isWaitingForInput) {
+                // Update input state after showing output
+                if (data.waiting_for_input) {
                     console.log('Setting input state to waiting');
+                    // Ensure output is visible before showing input
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     this.setInputState(true);
+                } else {
+                    this.setInputState(false);
                 }
 
                 if (data.session_ended) {
@@ -262,6 +275,7 @@ class InteractiveConsole {
                     return;
                 }
 
+                // Continue polling if session is still valid
                 if (this.isSessionValid && this.sessionId) {
                     this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
                 }
