@@ -238,17 +238,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Set initial template
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    const template = getTemplateForLanguage(initialLanguage);
-    if (!editor.getValue().trim()) {
-        editor.setValue(template);
-    }
-    editor.refresh();
+    editor.setValue(getTemplateForLanguage(initialLanguage));
     
-    // Force redraw after initialization
-    requestAnimationFrame(() => {
+    // Ensure template is visible
+    setTimeout(() => {
         editor.refresh();
         editor.focus();
-    });
+    }, 100);
 
     // Language change handler
     if (languageSelect) {
