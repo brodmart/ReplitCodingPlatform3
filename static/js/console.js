@@ -94,19 +94,19 @@ class InteractiveConsole {
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
-    async clear() {
-        if (this.isClearing) {
+    clear() {
+        if (!this.isReady() || this.isClearing) {
             return false;
         }
 
         this.isClearing = true;
         try {
-            if (this.sessionId) {
-                await this.endSession();
-            }
-
             if (this.outputElement) {
                 this.outputElement.innerHTML = '';
+            }
+
+            if (this.sessionId) {
+                this.endSession();
             }
 
             this.setInputState(false);
@@ -134,14 +134,14 @@ class InteractiveConsole {
         }
 
         try {
-            await this.clear();
-            this.appendToConsole("Compiling and running code...\n", 'system');
-            const success = await this.startSession(code, language);
-
-            if (!success) {
-                this.appendToConsole("Failed to start execution session\n", 'error');
+            // Clear console first
+            if (!this.clear()) {
+                this.appendToConsole("Error: Failed to clear console\n", 'error');
+                return false;
             }
-            return success;
+
+            this.appendToConsole("Compiling and running code...\n", 'system');
+            return await this.startSession(code, language);
         } catch (error) {
             this.appendToConsole(`Error: ${error.message}\n`, 'error');
             return false;
