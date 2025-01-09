@@ -6,7 +6,7 @@ import shutil
 import select
 from threading import Lock
 import atexit
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, Response
 from database import db
 from models import CodingActivity
 from extensions import limiter
@@ -24,36 +24,49 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.chmod(TEMP_DIR, 0o755)
 
+@activities.before_request
+def before_request():
+    """Ensure JSON responses for API endpoints"""
+    if request.path.startswith('/activities/') and not request.path.endswith(('.html', '/')):
+        request.wants_json = True
+
 @activities.errorhandler(Exception)
 def handle_error(error):
     """Global error handler for the blueprint"""
-    if request.is_json or request.headers.get('Accept') == 'application/json':
-        return jsonify({
+    if getattr(request, 'wants_json', False) or request.is_json or request.headers.get('Accept') == 'application/json':
+        response = jsonify({
             'success': False,
             'error': str(error)
-        }), getattr(error, 'code', 500)
-    return jsonify({
-        'success': False,
-        'error': "An unexpected error occurred. Please try again."
-    }), 500
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, getattr(error, 'code', 500)
+
+    # For regular web routes, return HTML response
+    return render_template('error.html', error=error), 500
 
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
 def start_session():
     """Start a new interactive coding session"""
-    try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+    if not request.is_json:
+        response = jsonify({'success': False, 'error': 'Invalid request format'})
+        response.headers['Content-Type'] = 'application/json'
+        return response, 400
 
+    try:
         data = request.get_json()
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
 
         if not code:
-            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+            response = jsonify({'success': False, 'error': 'Code cannot be empty'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         if language not in ['cpp', 'csharp']:
-            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
+            response = jsonify({'success': False, 'error': 'Unsupported language'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         # Create unique session directory
         session_id = str(time.time())
@@ -84,10 +97,12 @@ def start_session():
             )
 
             if compile_process.returncode != 0:
-                return jsonify({
+                response = jsonify({
                     'success': False,
                     'error': compile_process.stderr
-                }), 400
+                })
+                response.headers['Content-Type'] = 'application/json'
+                return response, 400
 
             os.chmod(executable_path, 0o755)
 
@@ -114,26 +129,32 @@ def start_session():
                 }
 
             logger.info(f"Started session {session_id} successfully")
-            return jsonify({
+            response = jsonify({
                 'success': True,
                 'session_id': session_id,
                 'message': 'Program started successfully'
             })
+            response.headers['Content-Type'] = 'application/json'
+            return response
 
         except Exception as e:
             logger.error(f"Failed to start process: {str(e)}", exc_info=True)
             shutil.rmtree(session_dir, ignore_errors=True)
-            return jsonify({
+            response = jsonify({
                 'success': False,
                 'error': f'Failed to start program: {str(e)}'
-            }), 500
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response, 500
 
     except Exception as e:
         logger.error(f"Error in start_session: {str(e)}", exc_info=True)
-        return jsonify({
+        response = jsonify({
             'success': False,
             'error': str(e)
-        }), 500
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 def cleanup_old_sessions():
     """Clean up inactive sessions older than 30 minutes"""
@@ -155,21 +176,27 @@ def send_input():
     """Send input to a running program"""
     try:
         if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+            response = jsonify({'success': False, 'error': 'Invalid request format'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         data = request.get_json()
         session_id = data.get('session_id')
         input_text = data.get('input', '')
 
         if not session_id or session_id not in active_sessions:
-            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+            response = jsonify({'success': False, 'error': 'Invalid session'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         session = active_sessions[session_id]
         process = session['process']
 
         if process.poll() is not None:
             cleanup_session(session_id)
-            return jsonify({'success': False, 'error': 'Program has ended'}), 400
+            response = jsonify({'success': False, 'error': 'Program has ended'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         try:
             # Send input to process with newline
@@ -180,15 +207,21 @@ def send_input():
 
             # Small delay to allow program to process input
             time.sleep(0.1)
-            return jsonify({'success': True})
+            response = jsonify({'success': True})
+            response.headers['Content-Type'] = 'application/json'
+            return response
 
         except Exception as e:
             logger.error(f"Error sending input: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': str(e)}), 500
+            response = jsonify({'success': False, 'error': str(e)})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 500
 
     except Exception as e:
         logger.error(f"Error in send_input: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 @activities.route('/get_output')
 def get_output():
@@ -196,7 +229,9 @@ def get_output():
     try:
         session_id = request.args.get('session_id')
         if not session_id or session_id not in active_sessions:
-            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+            response = jsonify({'success': False, 'error': 'Invalid session'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         session = active_sessions[session_id]
         process = session['process']
@@ -216,11 +251,13 @@ def get_output():
             if stderr:
                 output.append(stderr)
             cleanup_session(session_id)
-            return jsonify({
+            response = jsonify({
                 'success': True,
                 'output': ''.join(output),
                 'session_ended': True
             })
+            response.headers['Content-Type'] = 'application/json'
+            return response
 
         # Read available output with non-blocking
         try:
@@ -251,20 +288,26 @@ def get_output():
                 session['waiting_for_input'] = True
 
             session['last_activity'] = time.time()
-            return jsonify({
+            response = jsonify({
                 'success': True,
                 'output': ''.join(output) if output else '',
                 'waiting_for_input': waiting_for_input,
                 'session_ended': False
             })
+            response.headers['Content-Type'] = 'application/json'
+            return response
 
         except Exception as e:
             logger.error(f"Error reading output: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': str(e)}), 500
+            response = jsonify({'success': False, 'error': str(e)})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 500
 
     except Exception as e:
         logger.error(f"Error in get_output: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 def cleanup_session(session_id):
     """Clean up session resources"""
@@ -295,20 +338,28 @@ def end_session():
     """End a coding session and clean up resources"""
     try:
         if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+            response = jsonify({'success': False, 'error': 'Invalid request format'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         data = request.get_json()
         session_id = data.get('session_id')
 
         if not session_id or session_id not in active_sessions:
-            return jsonify({'success': False, 'error': 'Invalid session'}), 400
+            response = jsonify({'success': False, 'error': 'Invalid session'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         cleanup_session(session_id)
-        return jsonify({'success': True, 'message': 'Session ended'})
+        response = jsonify({'success': True, 'message': 'Session ended'})
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         logger.error(f"Error ending session: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 @activities.route('/execute', methods=['POST'])
 @limiter.limit("10 per minute")
@@ -319,33 +370,41 @@ def execute_code():
 
     try:
         if not request.is_json:
-            return jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Invalid request format. Please refresh the page and try again.'
-            }), 400
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         data = request.get_json()
         if not data:
-            return jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Missing data. Please try again.'
-            }), 400
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
         input_data = data.get('input', '')  # Get optional input data
 
         if not code:
-            return jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Code cannot be empty'
-            }), 400
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         if language not in ['cpp', 'csharp']:
-            return jsonify({
+            response = jsonify({
                 'success': False,
                 'error': 'Unsupported language'
-            }), 400
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
 
         # Pass input data to compiler service
         result = compile_and_run(code, language, input_data)
@@ -358,15 +417,19 @@ def execute_code():
                 error_msg += ". Check for infinite loops."
             result['error'] = error_msg
 
-        return jsonify(result)
+        response = jsonify(result)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Error in execute_code for {client_ip}: {error_msg}", exc_info=True)
-        return jsonify({
+        response = jsonify({
             'success': False,
             'error': "A network error occurred. Please try again in a few moments."
-        }), 500
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 # Request logging and error handling
 @activities.before_request
@@ -395,15 +458,19 @@ def handle_error(error):
     logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
 
     if isinstance(error, RequestTimeout):
-        return jsonify({
+        response = jsonify({
             'success': False,
             'error': "The request took too long. Please try again."
-        }), 408
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 408
 
-    return jsonify({
+    response = jsonify({
         'success': False,
         'error': "An unexpected error occurred. Please try again."
-    }), 500
+    })
+    response.headers['Content-Type'] = 'application/json'
+    return response, 500
 
 # Activity list and view routes
 @activities.route('/')
@@ -449,10 +516,12 @@ def list_activities(grade=None):
 
     except Exception as e:
         logger.error(f"Error listing activities: {str(e)}", exc_info=True)
-        return jsonify({
+        response = jsonify({
             'success': False,
             'error': "An unexpected error occurred while loading activities"
-        }), 500
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 @activities.route('/activity/<int:activity_id>')
 @limiter.limit("30 per minute")
@@ -480,10 +549,12 @@ def view_activity(activity_id):
 
     except Exception as e:
         logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
-        return jsonify({
+        response = jsonify({
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
-        }), 500
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
 
 def log_api_request(start_time, client_ip, endpoint, status_code):
     """Log API request details"""
