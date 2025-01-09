@@ -6,7 +6,7 @@ import shutil
 import select
 from threading import Lock
 import atexit
-from flask import Blueprint, render_template, request, jsonify, session, Response
+from flask import Blueprint, render_template, request, jsonify, session
 from database import db
 from models import CodingActivity
 from extensions import limiter
@@ -18,37 +18,14 @@ logger = logging.getLogger(__name__)
 active_sessions = {}
 session_lock = Lock()
 
-# Create temp directory in the workspace
-TEMP_DIR = os.path.join(os.getcwd(), 'temp')
-if not os.path.exists(TEMP_DIR):
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    os.chmod(TEMP_DIR, 0o755)
-
-@activities.before_request
-def before_request():
-    """Ensure JSON responses for API endpoints"""
-    if request.path.startswith('/activities/') and not request.path.endswith(('.html', '/')):
-        request.wants_json = True
-
-@activities.errorhandler(Exception)
-def handle_error(error):
-    """Global error handler for the blueprint"""
-    if getattr(request, 'wants_json', False) or request.is_json or request.headers.get('Accept') == 'application/json':
-        response = jsonify({
-            'success': False,
-            'error': str(error)
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, getattr(error, 'code', 500)
-
-    # For regular web routes, return HTML response
-    return render_template('error.html', error=error), 500
-
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
 def start_session():
     """Start a new interactive coding session"""
+    logger.debug("Received start_session request")
+
     if not request.is_json:
+        logger.error("Invalid request format - not JSON")
         response = jsonify({'success': False, 'error': 'Invalid request format'})
         response.headers['Content-Type'] = 'application/json'
         return response, 400
@@ -57,26 +34,25 @@ def start_session():
         data = request.get_json()
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
+        logger.debug(f"Processing start_session: language={language}, code length={len(code)}")
 
         if not code:
+            logger.error("Empty code submission")
             response = jsonify({'success': False, 'error': 'Code cannot be empty'})
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
-
-        if language not in ['cpp', 'csharp']:
-            response = jsonify({'success': False, 'error': 'Unsupported language'})
             response.headers['Content-Type'] = 'application/json'
             return response, 400
 
         # Create unique session directory
         session_id = str(time.time())
-        session_dir = os.path.join(TEMP_DIR, session_id)
+        session_dir = os.path.join(os.getcwd(), 'temp', session_id)
         os.makedirs(session_dir, exist_ok=True)
 
         try:
             # Write source code to file
             file_extension = '.cpp' if language == 'cpp' else '.cs'
             source_file = os.path.join(session_dir, f'program{file_extension}')
+            logger.debug(f"Writing source to {source_file}")
+
             with open(source_file, 'w') as f:
                 f.write(code)
 
@@ -89,6 +65,7 @@ def start_session():
             else:
                 compile_cmd = ['mcs', source_file, '-out:' + executable_path]
 
+            logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
             compile_process = subprocess.run(
                 compile_cmd,
                 capture_output=True,
@@ -97,6 +74,7 @@ def start_session():
             )
 
             if compile_process.returncode != 0:
+                logger.error(f"Compilation failed: {compile_process.stderr}")
                 response = jsonify({
                     'success': False,
                     'error': compile_process.stderr
@@ -104,10 +82,13 @@ def start_session():
                 response.headers['Content-Type'] = 'application/json'
                 return response, 400
 
+            logger.debug("Compilation successful")
             os.chmod(executable_path, 0o755)
 
             # Start interactive process
             cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
+            logger.debug(f"Starting process with command: {' '.join(cmd)}")
+
             process = subprocess.Popen(
                 cmd,
                 stdin=subprocess.PIPE,
@@ -128,7 +109,7 @@ def start_session():
                     'waiting_for_input': False
                 }
 
-            logger.info(f"Started session {session_id} successfully")
+            logger.info(f"Successfully started session {session_id}")
             response = jsonify({
                 'success': True,
                 'session_id': session_id,
@@ -153,6 +134,75 @@ def start_session():
             'success': False,
             'error': str(e)
         })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
+
+@activities.route('/get_output')
+def get_output():
+    """Get output from a running program"""
+    session_id = request.args.get('session_id')
+    logger.debug(f"Received get_output request for session {session_id}")
+
+    if not session_id or session_id not in active_sessions:
+        logger.error(f"Invalid session ID: {session_id}")
+        response = jsonify({'success': False, 'error': 'Invalid session'})
+        response.headers['Content-Type'] = 'application/json'
+        return response, 400
+
+    session = active_sessions[session_id]
+    process = session['process']
+    output = []
+    waiting_for_input = False
+
+    try:
+        # Check if process has terminated
+        if process.poll() is not None:
+            logger.debug(f"Process terminated for session {session_id}")
+            stdout, stderr = process.communicate()
+            if stdout:
+                output.append(stdout)
+            if stderr:
+                output.append(stderr)
+            cleanup_session(session_id)
+            response = jsonify({
+                'success': True,
+                'output': ''.join(output),
+                'session_ended': True
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response
+
+        # Read available output
+        reads = [process.stdout, process.stderr]
+        readable, _, _ = select.select(reads, [], [], 0.1)
+
+        for pipe in readable:
+            line = pipe.readline()
+            if line:
+                logger.debug(f"Read output from process: {line.strip()}")
+                output.append(line)
+                # Check for input prompts
+                lower_line = line.lower()
+                if any(prompt in lower_line for prompt in [
+                    'input', 'enter', 'type', '?', ':', '>',
+                    'cin', 'cin >>', 'console.readline', 'console.read'
+                ]):
+                    waiting_for_input = True
+                    session['waiting_for_input'] = True
+
+        session['last_activity'] = time.time()
+        response = jsonify({
+            'success': True,
+            'output': ''.join(output) if output else '',
+            'waiting_for_input': waiting_for_input,
+            'session_ended': False
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    except Exception as e:
+        logger.error(f"Error in get_output: {str(e)}", exc_info=True)
+        response = jsonify({'success': False, 'error': str(e)})
         response.headers['Content-Type'] = 'application/json'
         return response, 500
 
@@ -219,92 +269,6 @@ def send_input():
 
     except Exception as e:
         logger.error(f"Error in send_input: {e}", exc_info=True)
-        response = jsonify({'success': False, 'error': str(e)})
-        response.headers['Content-Type'] = 'application/json'
-        return response, 500
-
-@activities.route('/get_output')
-def get_output():
-    """Get output from a running program"""
-    try:
-        session_id = request.args.get('session_id')
-        if not session_id or session_id not in active_sessions:
-            response = jsonify({'success': False, 'error': 'Invalid session'})
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
-
-        session = active_sessions[session_id]
-        process = session['process']
-        output = []
-        waiting_for_input = False
-
-        # Add any buffered output
-        if session['output_buffer']:
-            output.extend(session['output_buffer'])
-            session['output_buffer'] = []
-
-        # Check if process has terminated
-        if process.poll() is not None:
-            stdout, stderr = process.communicate()
-            if stdout:
-                output.append(stdout)
-            if stderr:
-                output.append(stderr)
-            cleanup_session(session_id)
-            response = jsonify({
-                'success': True,
-                'output': ''.join(output),
-                'session_ended': True
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response
-
-        # Read available output with non-blocking
-        try:
-            # Use select with a short timeout to check for available output
-            reads = [process.stdout, process.stderr]
-            readable, _, _ = select.select(reads, [], [], 0.1)
-
-            for pipe in readable:
-                line = pipe.readline()
-                if line:
-                    output.append(line)
-                    # Enhanced input prompt detection
-                    lower_line = line.lower()
-                    if any(prompt in lower_line for prompt in [
-                        'input', 'enter', 'type', '?', ':', '>',
-                        'cin', 'cin >>', 'console.readline', 'console.read',
-                        'please', 'getline', 'input:', 'enter:', 'name:'
-                    ]):
-                        waiting_for_input = True
-                        session['waiting_for_input'] = True
-
-            # If no output is available and process is still running,
-            # check if we're waiting for input
-            if not output and not readable and process.poll() is None:
-                # If the process is not terminated and we don't have output,
-                # it's likely waiting for input
-                waiting_for_input = True
-                session['waiting_for_input'] = True
-
-            session['last_activity'] = time.time()
-            response = jsonify({
-                'success': True,
-                'output': ''.join(output) if output else '',
-                'waiting_for_input': waiting_for_input,
-                'session_ended': False
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response
-
-        except Exception as e:
-            logger.error(f"Error reading output: {e}", exc_info=True)
-            response = jsonify({'success': False, 'error': str(e)})
-            response.headers['Content-Type'] = 'application/json'
-            return response, 500
-
-    except Exception as e:
-        logger.error(f"Error in get_output: {e}", exc_info=True)
         response = jsonify({'success': False, 'error': str(e)})
         response.headers['Content-Type'] = 'application/json'
         return response, 500
@@ -563,7 +527,9 @@ def log_api_request(start_time, client_ip, endpoint, status_code):
 
 def compile_and_run(code, language, input_data=None):
     """Compile and run code with input support"""
+    logger.debug("Starting compile_and_run")
     if not code or not language:
+        logger.error("Invalid parameters to compile_and_run")
         return {'success': False, 'error': 'Invalid parameters'}
 
     try:
@@ -621,3 +587,28 @@ def compile_and_run(code, language, input_data=None):
         # Cleanup temporary files if compilation fails
         if 'session_id' not in locals():
             shutil.rmtree(session_dir, ignore_errors=True)
+
+TEMP_DIR = os.path.join(os.getcwd(), 'temp')
+if not os.path.exists(TEMP_DIR):
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    os.chmod(TEMP_DIR, 0o755)
+
+@activities.before_request
+def before_request():
+    """Ensure JSON responses for API endpoints"""
+    if request.path.startswith('/activities/') and not request.path.endswith(('.html', '/')):
+        request.wants_json = True
+
+@activities.errorhandler(Exception)
+def handle_error(error):
+    """Global error handler for the blueprint"""
+    if getattr(request, 'wants_json', False) or request.is_json or request.headers.get('Accept') == 'application/json':
+        response = jsonify({
+            'success': False,
+            'error': str(error)
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, getattr(error, 'code', 500)
+
+    # For regular web routes, return HTML response
+    return render_template('error.html', error=error), 500
