@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const runButton = document.getElementById('runButton');
 
     if (!editorElement) {
-        console.error('Editor element not found');
+        window.console.warn('Editor element not found');
         return;
     }
 
@@ -105,7 +105,7 @@ namespace ProgrammingActivity
 
             const interactiveConsole = getConsole();
             if (!interactiveConsole.isReady()) {
-                console.error('Console not ready');
+                window.console.warn('Console not ready');
                 return;
             }
 
@@ -117,7 +117,7 @@ namespace ProgrammingActivity
                 const language = languageSelect ? languageSelect.value : 'cpp';
                 await interactiveConsole.executeCode(code, language);
             } catch (error) {
-                console.error('Error executing code:', error);
+                window.console.warn('Error executing code:', error);
                 if (interactiveConsole) {
                     interactiveConsole.appendToConsole(`Error: ${error.message}\n`, 'error');
                 }
