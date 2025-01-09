@@ -64,9 +64,10 @@ class InteractiveConsole {
         if (this.inputElement) {
             this.inputElement.value = '';
         }
-        // Don't hide input elements during cleanup
+        // Always maintain visibility
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
+        this.inputElement.disabled = true;
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.isSessionValid = false;
@@ -115,15 +116,15 @@ class InteractiveConsole {
 
         console.log('Setting input state to waiting:', waiting);
         
-        // Keep elements visible but manage enabled state
+        // Always keep both elements visible
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
         
-        // Update state
+        // Only update input state
         this.isWaitingForInput = waiting;
         this.inputElement.disabled = !waiting;
-
-        if (this.isWaitingForInput) {
+        
+        if (waiting) {
             this.inputElement.focus();
             this.outputElement.scrollTop = this.outputElement.scrollHeight;
         }
