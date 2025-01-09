@@ -42,10 +42,16 @@ async function ensureConsoleInitialized() {
                 lang: document.documentElement.lang || 'en'
             });
             await consoleInstance.init();
+            //Added check for successful initialization
+            if (!consoleInstance.isInitialized) {
+                throw new Error("Console initialization failed despite successful init call.");
+            }
             return consoleInstance;
         } catch (error) {
             console.error("Console initialization error:", error);
-            throw error;
+            //Added retry logic with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, initRetries * 1000));
+            return ensureConsoleInitialized(); //Retry
         }
     }
     return consoleInstance;
@@ -137,7 +143,7 @@ window.executeCode = async function() {
 document.addEventListener('DOMContentLoaded', async function() {
     // Wait for all elements to be fully loaded
     await new Promise(resolve => setTimeout(resolve, 100));
-    
+
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
     const consoleOutput = document.getElementById('consoleOutput');
@@ -228,4 +234,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
+
+    function highlightSyntax() {
+        // Add your syntax highlighting logic here if needed.
+    }
+    highlightSyntax();
 });
