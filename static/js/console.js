@@ -304,9 +304,9 @@ class InteractiveConsole {
 
     appendToConsole(text, type = 'output') {
         if (!text || !this.outputElement) {
-            console.log('Cannot append to console - missing text or element:', { 
-                hasText: !!text, 
-                hasElement: !!this.outputElement 
+            console.log('Cannot append to console - missing text or element:', {
+                hasText: !!text,
+                hasElement: !!this.outputElement
             });
             return;
         }
@@ -386,6 +386,35 @@ class InteractiveConsole {
         } catch (error) {
             console.error('Error sending input:', error);
             this.appendToConsole('Error: Failed to send input', 'error');
+        }
+    }
+
+    setInputState(enabled) {
+        if (!this.inputElement) {
+            console.error('Input element not found');
+            return;
+        }
+
+        console.log('Setting input state:', enabled);
+        this.inputElement.disabled = !enabled;
+        this.isWaitingForInput = enabled;
+
+        if (enabled) {
+            this.inputElement.value = '';
+            this.inputElement.focus();
+            this.inputLine.classList.add('active');
+        } else {
+            this.inputLine.classList.remove('active');
+        }
+
+        // Update console container state
+        const consoleContainer = document.querySelector('.console-container');
+        if (consoleContainer) {
+            if (enabled) {
+                consoleContainer.classList.add('console-waiting');
+            } else {
+                consoleContainer.classList.remove('console-waiting');
+            }
         }
     }
 }
