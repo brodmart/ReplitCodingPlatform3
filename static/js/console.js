@@ -63,6 +63,10 @@ class InteractiveConsole {
         }
         if (this.inputElement) {
             this.inputElement.value = '';
+            this.inputElement.style.display = 'block';
+        }
+        if (this.inputLine) {
+            this.inputLine.style.display = 'flex';
         }
         this.sessionId = null;
         this.isWaitingForInput = false;
@@ -160,7 +164,12 @@ class InteractiveConsole {
                 await this.endSession();
             }
             
-            // Clean output but maintain input state
+            // Keep input elements visible but disabled during transition
+            this.inputLine.style.display = 'flex';
+            this.inputElement.style.display = 'block';
+            this.inputElement.disabled = true;
+            
+            // Clean output
             this.outputElement.innerHTML = '';
             
             const success = await this.startSession(code, language);
