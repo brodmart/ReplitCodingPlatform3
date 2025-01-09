@@ -41,18 +41,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setExecutionState(executing) {
         isExecuting = executing;
-        if (executing) {
-            lastExecution = Date.now();
-            runButton.disabled = true;
-            runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
-        } else {
-            runButton.disabled = false;
-            runButton.innerHTML = document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run';
-        }
+        runButton.disabled = executing;
+        runButton.innerHTML = executing ? 
+            `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...` :
+            (document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run');
     }
 
     function initializeConsole() {
         try {
+            if (!window.InteractiveConsole) {
+                throw new Error('Console component not loaded');
+            }
             return new InteractiveConsole({
                 lang: document.documentElement.lang || 'en'
             });
@@ -93,7 +92,7 @@ namespace ProgrammingActivity
         }
     }
 
-    // Set initial template and initialize console
+    // Set initial template
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
     editor.refresh();
@@ -121,9 +120,10 @@ namespace ProgrammingActivity
             return;
         }
 
-        try {
-            setExecutionState(true);
+        setExecutionState(true);
+        lastExecution = Date.now();
 
+        try {
             // Initialize console if needed
             if (!console) {
                 console = initializeConsole();

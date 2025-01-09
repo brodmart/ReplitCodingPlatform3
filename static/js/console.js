@@ -30,11 +30,11 @@ class InteractiveConsole {
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
+        this.cleanupInProgress = false;
 
         // Initialize and mark as ready
         this.setupEventListeners();
         this.isInitialized = true;
-        console.log("InteractiveConsole initialized successfully");
     }
 
     setupEventListeners() {
@@ -54,7 +54,7 @@ class InteractiveConsole {
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && !this.isBusy;
+        return this.isInitialized && this.csrfToken && !this.cleanupInProgress;
     }
 
     setInputState(waiting) {
@@ -79,10 +79,8 @@ class InteractiveConsole {
     }
 
     async executeCode(code, language) {
-        console.log("executeCode called:", { language, codeLength: code?.length });
-
         if (!this.isReady()) {
-            throw new Error("Console not ready. Please refresh the page.");
+            throw new Error("Console not ready. Please wait a moment.");
         }
 
         if (!code?.trim()) {
@@ -96,14 +94,15 @@ class InteractiveConsole {
         this.isBusy = true;
 
         try {
+            // Clear console first
+            this.outputElement.innerHTML = '';
+            this.appendToConsole("Initializing...\n", 'system');
+
             // Clean up existing session
             await this.endSession();
 
-            // Clear output and show status
-            this.outputElement.innerHTML = '';
-
             // Start new session
-            console.log("Starting new session");
+            this.appendToConsole("Compiling and running code...\n", 'system');
             const success = await this.startSession(code, language);
 
             if (!success) {
@@ -111,12 +110,12 @@ class InteractiveConsole {
             }
 
             // Begin output polling
-            console.log("Session started successfully");
             this.startPolling();
+            return true;
 
         } catch (error) {
             console.error("Error in executeCode:", error);
-            this.isBusy = false;
+            this.appendToConsole(`Error: ${error.message}\n`, 'error');
             throw error;
         }
     }
@@ -125,7 +124,6 @@ class InteractiveConsole {
         if (!code || !language) return false;
 
         try {
-            console.log("Sending start_session request");
             const response = await fetch('/activities/start_session', {
                 method: 'POST',
                 headers: {
@@ -141,7 +139,6 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-            console.log("Response data:", data);
 
             if (!data.success) {
                 throw new Error(data.error || "Failed to start session");
@@ -162,12 +159,11 @@ class InteractiveConsole {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
         }
-        this.poll();
+        this.pollTimer = setTimeout(() => this.poll(), 100); // Small initial delay
     }
 
     async poll() {
         if (!this.sessionId || !this.isSessionValid) {
-            console.log("Polling stopped: invalid session state");
             return;
         }
 
@@ -190,7 +186,6 @@ class InteractiveConsole {
                 }
 
                 if (data.session_ended) {
-                    console.log("Session ended normally");
                     await this.endSession();
                     return;
                 }
@@ -220,33 +215,38 @@ class InteractiveConsole {
     }
 
     async endSession() {
-        if (this.pollTimer) {
-            clearTimeout(this.pollTimer);
-            this.pollTimer = null;
-        }
+        this.cleanupInProgress = true;
 
-        if (this.sessionId && this.csrfToken) {
-            try {
-                await fetch('/activities/end_session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': this.csrfToken
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({ session_id: this.sessionId })
-                });
-            } catch (error) {
-                console.error("Error ending session:", error);
+        try {
+            if (this.pollTimer) {
+                clearTimeout(this.pollTimer);
+                this.pollTimer = null;
             }
-        }
 
-        this.sessionId = null;
-        this.isSessionValid = false;
-        this.setInputState(false);
-        this.inputQueue = [];
-        this.pollRetryCount = 0;
-        this.isBusy = false;
+            if (this.sessionId) {
+                try {
+                    await fetch('/activities/end_session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': this.csrfToken
+                        },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({ session_id: this.sessionId })
+                    });
+                } catch (error) {
+                    console.error("Error ending session:", error);
+                }
+            }
+        } finally {
+            this.sessionId = null;
+            this.isSessionValid = false;
+            this.setInputState(false);
+            this.inputQueue = [];
+            this.pollRetryCount = 0;
+            this.isBusy = false;
+            this.cleanupInProgress = false;
+        }
     }
 
     async sendInput(input) {
