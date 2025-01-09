@@ -77,13 +77,8 @@ class InteractiveConsole {
     setupEventListeners() {
         if (!this.inputElement) return;
 
-        // Remove existing listeners
-        const newInput = this.inputElement.cloneNode(true);
-        this.inputElement.parentNode.replaceChild(newInput, this.inputElement);
-        this.inputElement = newInput;
-
         // Handle Enter key press
-        this.inputElement.addEventListener('keypress', async (e) => {
+        const handleEnter = async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
                 const inputText = this.inputElement.value.trim();
@@ -93,14 +88,20 @@ class InteractiveConsole {
                     await this.sendInput(inputText);
                 }
             }
-        });
+        };
+
+        this.inputElement.removeEventListener('keypress', handleEnter);
+        this.inputElement.addEventListener('keypress', handleEnter);
 
         // Keep focus on input when needed
-        this.inputElement.addEventListener('blur', () => {
+        const handleBlur = () => {
             if (this.isWaitingForInput && this.isSessionValid) {
                 this.inputElement.focus();
             }
-        });
+        };
+
+        this.inputElement.removeEventListener('blur', handleBlur);
+        this.inputElement.addEventListener('blur', handleBlur);
     }
 
     setInputState(waiting) {
@@ -115,8 +116,9 @@ class InteractiveConsole {
         // Update input element state
         this.inputElement.disabled = !this.isWaitingForInput;
 
-        // Update visibility
-        this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
+        // Keep input line visible but toggle input field
+        this.inputLine.style.display = 'flex';
+        this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
 
         if (this.isWaitingForInput) {
             this.inputElement.value = '';
@@ -127,7 +129,7 @@ class InteractiveConsole {
         console.log('Input state updated:', {
             waiting: this.isWaitingForInput,
             sessionValid: this.isSessionValid,
-            inputVisible: this.inputLine.style.display
+            inputVisible: this.inputElement.style.display
         });
     }
 
