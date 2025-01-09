@@ -97,6 +97,9 @@ namespace ProgrammingActivity
     editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
     editor.refresh();
 
+    // Initialize console once at startup
+    console = initializeConsole();
+
     // Language change handler
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
@@ -124,7 +127,7 @@ namespace ProgrammingActivity
             setExecutionState(true);
             lastExecution = Date.now();
 
-            // Initialize console if needed
+            // Ensure console is initialized
             if (!console) {
                 console = initializeConsole();
                 if (!console) {
@@ -143,9 +146,15 @@ namespace ProgrammingActivity
         }
     }
 
-    // Run button handler
+    // Run button handler - ensure proper binding
     if (runButton) {
-        runButton.addEventListener('click', executeCode);
+        // Remove any existing event listeners
+        const newRunButton = runButton.cloneNode(true);
+        runButton.parentNode.replaceChild(newRunButton, runButton);
+        runButton = newRunButton;
+
+        // Add new event listener
+        runButton.addEventListener('click', () => executeCode());
 
         // Add keyboard shortcut for running code
         document.addEventListener('keydown', function(e) {
