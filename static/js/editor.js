@@ -131,8 +131,17 @@ window.executeCode = async function() {
     }
 
     try {
+        if (!consoleInstance || !consoleInstance.isInitialized) {
+            console.log('Console not ready, reinitializing...');
+            await ensureConsoleInitialized();
+        }
+        
         setExecutionState(true);
         lastExecution = Date.now();
+        console.log('Starting execution with state:', {
+            consoleReady: consoleInstance?.isInitialized,
+            executing: isExecuting
+        });
 
         // Ensure console is initialized and ready
         const console = await ensureConsoleInitialized();

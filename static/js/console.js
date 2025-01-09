@@ -6,12 +6,12 @@ class InteractiveConsole {
         const maxRetries = 10;
         const retryDelay = 100;
         let retryCount = 0;
-        
+
         const findElements = () => {
             this.outputElement = document.getElementById('consoleOutput');
             this.inputElement = document.getElementById('consoleInput');
             this.inputLine = document.querySelector('.console-input-line');
-            
+
             if (!this.outputElement || !this.inputElement || !this.inputLine) {
                 if (retryCount < maxRetries) {
                     retryCount++;
@@ -20,18 +20,18 @@ class InteractiveConsole {
                 }
                 throw new Error('Console elements not found after maximum retries');
             }
-            
+
             // Force display after finding elements
             this.outputElement.style.display = 'block';
             this.inputElement.style.display = 'block';
             this.inputLine.style.display = 'flex';
-            
+
             // Force reflow
             this.outputElement.offsetHeight;
             this.inputElement.offsetHeight;
             this.inputLine.offsetHeight;
         };
-        
+
         findElements();
 
         // Get CSRF token
@@ -53,6 +53,7 @@ class InteractiveConsole {
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
+        this.polling = false; // Added to track polling status
 
         // Initialize immediately
         this.init();
@@ -81,7 +82,7 @@ class InteractiveConsole {
                     this.inputLine.style.display = 'flex';
                     this.inputElement.style.display = 'block';
                     this.inputElement.style.visibility = 'visible';
-                    
+
                     // Force browser reflow
                     this.outputElement.offsetHeight;
                     this.inputLine.offsetHeight;
@@ -297,13 +298,18 @@ class InteractiveConsole {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
         }
-        
+
         // Attendre que la session soit prête
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Vérifier l'état avant de démarrer
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         if (this.sessionId && this.isSessionValid) {
+            console.log('Starting poll for session:', this.sessionId);
             this.poll();
+        } else {
+            console.log('Session not ready:', {
+                sessionId: this.sessionId,
+                isValid: this.isSessionValid
+            });
         }
     }
 
@@ -349,7 +355,7 @@ class InteractiveConsole {
                     const currentWaitingState = this.isWaitingForInput;
                     this.isSessionValid = true;
                     this.isWaitingForInput = data.waiting_for_input;
-                    
+
                     if (currentWaitingState !== data.waiting_for_input) {
                         this.setInputState(data.waiting_for_input);
                     }
@@ -365,7 +371,7 @@ class InteractiveConsole {
 
                 // Schedule next poll with guaranteed minimum delay
                 await new Promise(resolve => setTimeout(resolve, this.baseDelay));
-                
+
                 if (this.isSessionValid) {
                     this.pollTimer = setTimeout(() => this.poll(), 0);
                 }
