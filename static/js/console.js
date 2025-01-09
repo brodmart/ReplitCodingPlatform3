@@ -215,7 +215,10 @@ class InteractiveConsole {
 
         try {
             const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
-                credentials: 'same-origin'
+                credentials: 'same-origin',
+                headers: {
+                    'X-CSRF-Token': this.csrfToken
+                }
             });
 
             if (!response.ok) {
@@ -240,12 +243,14 @@ class InteractiveConsole {
                 return;
             }
 
+            // Reset retry count on successful poll
             this.pollRetryCount = 0;
             this.isWaitingForInput = data.waiting_for_input;
             this.setInputState(data.waiting_for_input);
 
+            // Continue polling with immediate next request if session is valid
             if (this.isSessionValid) {
-                this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
+                this.pollTimer = setTimeout(() => this.poll(), 100);
             }
         } catch (error) {
             console.error('Poll error:', error);
@@ -261,61 +266,17 @@ class InteractiveConsole {
 
         if (this.pollRetryCount >= this.maxRetries) {
             this.isSessionValid = false;
-            this.appendToConsole(`Error: ${error.message}`, 'error');
+            this.appendToConsole(`Error: Maximum polling retries reached. Please try again.`, 'error');
+            if (this.pollTimer) {
+                clearTimeout(this.pollTimer);
+                this.pollTimer = null;
+            }
             return;
         }
 
         const delay = this.baseDelay * Math.pow(2, this.pollRetryCount);
         console.log(`Retrying poll in ${delay}ms`);
         this.pollTimer = setTimeout(() => this.poll(), delay);
-    }
-
-    async endSession() {
-        if (!this.sessionId) {
-            return;
-        }
-
-        console.log('Ending session:', this.sessionId);
-
-        try {
-            const response = await fetch('/activities/end_session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': this.csrfToken
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({ session_id: this.sessionId })
-            });
-
-            if (!response.ok) {
-                console.error('Failed to end session:', response.status);
-            }
-        } catch (error) {
-            console.error('Error ending session:', error);
-        } finally {
-            if (this.pollTimer) {
-                clearTimeout(this.pollTimer);
-                this.pollTimer = null;
-            }
-            this.sessionId = null;
-            this.isSessionValid = false;
-        }
-    }
-
-    setInputState(waiting) {
-        if (!this.inputElement || !this.inputLine) {
-            return;
-        }
-
-        this.inputLine.style.display = 'flex';
-        this.inputElement.style.display = 'block';
-        this.isWaitingForInput = waiting;
-        this.inputElement.disabled = !waiting;
-
-        if (waiting) {
-            this.inputElement.focus();
-        }
     }
 
     appendToConsole(text, type = 'output') {
@@ -325,11 +286,17 @@ class InteractiveConsole {
 
         console.log('Appending to console:', { text, type });
 
-        const line = document.createElement('div');
-        line.className = `console-${type}`;
-        line.textContent = type === 'input' ? `> ${text}` : text;
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            if (line.trim()) {
+                const lineElement = document.createElement('div');
+                lineElement.className = `console-${type}`;
+                lineElement.textContent = type === 'input' ? `> ${line}` : line;
+                this.outputElement.appendChild(lineElement);
+            }
+        });
 
-        this.outputElement.appendChild(line);
+        // Scroll to bottom
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
