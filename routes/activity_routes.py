@@ -131,10 +131,10 @@ def start_session():
 @activities.route('/get_output', methods=['GET'])
 def get_output():
     """Get output from a running program"""
-    try:
-        session_id = request.args.get('session_id')
-        logger.info(f"GET /get_output - Session {session_id}")
+    session_id = request.args.get('session_id')
+    logger.info(f"GET /get_output - Session {session_id}")
 
+    try:
         if not session_id:
             logger.error("No session ID provided")
             return jsonify({'success': False, 'error': 'No session ID'}), 400
@@ -212,7 +212,7 @@ def get_output():
             return response
 
         except Exception as e:
-            logger.error(f"Error reading process output: {e}")
+            logger.error(f"Error reading process output: {e}", exc_info=True)
             return jsonify({'success': False, 'error': str(e)}), 500
 
     except Exception as e:
