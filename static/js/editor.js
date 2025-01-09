@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
     const runButton = document.getElementById('runButton');
+    const clearConsoleButton = document.getElementById('clearConsole');
 
     if (!editorElement) {
         window.console.warn('Editor element not found');
@@ -30,6 +31,41 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Initialize Interactive Console with retry mechanism
+    let console = null;
+    let isRunning = false;
+    let consoleInitializationAttempts = 0;
+    const maxInitializationAttempts = 3;
+
+    function initializeConsole() {
+        if (!window.InteractiveConsole) {
+            if (consoleInitializationAttempts < maxInitializationAttempts) {
+                consoleInitializationAttempts++;
+                window.setTimeout(initializeConsole, 500);
+                return null;
+            }
+            window.console.warn('InteractiveConsole class not available after maximum attempts');
+            return null;
+        }
+
+        try {
+            return new InteractiveConsole({
+                lang: document.documentElement.lang || 'en'
+            });
+        } catch (error) {
+            window.console.warn('Failed to initialize console:', error);
+            return null;
+        }
+    }
+
+    // Function to get or create console instance
+    function getConsole() {
+        if (!console) {
+            console = initializeConsole();
+        }
+        return console;
+    }
 
     function getTemplateForLanguage(language) {
         if (language === 'cpp') {
@@ -64,34 +100,22 @@ namespace ProgrammingActivity
 
     // Set initial template
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(getTemplateForLanguage(initialLanguage));
+    editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
     editor.refresh();
-
-    // Initialize Interactive Console
-    let console = null;
-    let isRunning = false;
-
-    // Function to get or create console instance
-    function getConsole() {
-        if (!console) {
-            console = new InteractiveConsole({
-                lang: document.documentElement.lang || 'en'
-            });
-        }
-        return console;
-    }
 
     // Language change handler
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            editor.setValue(getTemplateForLanguage(language));
-            editor.refresh();
+            if (!editor.getValue().trim()) {
+                editor.setValue(getTemplateForLanguage(language));
+                editor.refresh();
+            }
         });
     }
 
-    // Run button handler
+    // Run button handler with improved error handling
     if (runButton) {
         runButton.addEventListener('click', async function() {
             if (isRunning) {
@@ -104,8 +128,19 @@ namespace ProgrammingActivity
             }
 
             const interactiveConsole = getConsole();
+            if (!interactiveConsole) {
+                const consoleOutput = document.getElementById('consoleOutput');
+                if (consoleOutput) {
+                    consoleOutput.innerHTML += '<div class="console-error">Error: Console initialization failed. Please refresh the page.</div>';
+                }
+                return;
+            }
+
             if (!interactiveConsole.isReady()) {
-                window.console.warn('Console not ready');
+                const consoleOutput = document.getElementById('consoleOutput');
+                if (consoleOutput) {
+                    consoleOutput.innerHTML += '<div class="console-error">Error: Console not ready. Please wait a moment and try again.</div>';
+                }
                 return;
             }
 
@@ -133,6 +168,16 @@ namespace ProgrammingActivity
             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isRunning) {
                 e.preventDefault();
                 runButton.click();
+            }
+        });
+    }
+
+    // Clear console handler
+    if (clearConsoleButton) {
+        clearConsoleButton.addEventListener('click', function() {
+            const interactiveConsole = getConsole();
+            if (interactiveConsole) {
+                interactiveConsole.clear();
             }
         });
     }
