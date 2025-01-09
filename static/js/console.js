@@ -314,7 +314,7 @@ class InteractiveConsole {
             }
 
             if (data.session_ended) {
-                console.log('Session ended - disabling input');
+                console.log('Session ended - indicating completion');
                 this.isSessionValid = false;
                 this.isWaitingForInput = false;
 
@@ -332,11 +332,17 @@ class InteractiveConsole {
                     this.inputStateTimer = null;
                 }
 
-                // Force disable input
-                this.setInputState(false);
+                // Keep input visible but disabled
                 this.inputElement.disabled = true;
-                this.inputElement.style.display = 'none';
-                this.inputLine.style.display = 'none';
+                this.inputElement.style.display = 'block';
+                this.inputLine.style.display = 'flex';
+                this.inputElement.placeholder = this.getInterfaceLanguage() === 'fr' ? 
+                    'Programme terminé. Cliquez sur Exécuter pour recommencer.' : 
+                    'Program ended. Click Run to start again.';
+
+                // Add visual feedback
+                this.inputLine.classList.remove('active');
+                this.inputLine.classList.add('program-ended');
 
                 // Clear stored state
                 sessionStorage.removeItem('console_input_state');
@@ -523,6 +529,10 @@ class InteractiveConsole {
             this.sessionId = null;
             this.isSessionValid = false;
         }
+    }
+    getInterfaceLanguage(){
+        //This function needs to be implemented based on how the language is determined in your application.  This is a placeholder.
+        return 'en';
     }
 }
 

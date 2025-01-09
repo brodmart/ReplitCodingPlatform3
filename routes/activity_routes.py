@@ -210,7 +210,6 @@ def get_output():
                 # Try to get any remaining output
                 stdout, stderr = process.communicate(timeout=1)
                 if stdout:
-                    # Handle both string and bytes output
                     if isinstance(stdout, bytes):
                         output.append(stdout.decode('utf-8', errors='replace'))
                     else:
@@ -240,7 +239,8 @@ def get_output():
             return jsonify({
                 'success': True,
                 'output': final_output,
-                'session_ended': True
+                'session_ended': True,
+                'waiting_for_input': False
             })
 
         # Handle stdout and stderr reading
