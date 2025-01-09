@@ -249,10 +249,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            if (!editor.getValue().trim()) {
-                editor.setValue(getTemplateForLanguage(language));
-                editor.refresh();
-            }
+            // Always update template when language changes
+            editor.setValue(getTemplateForLanguage(language));
+            editor.refresh();
+            editor.focus();
         });
     }
 
