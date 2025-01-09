@@ -34,7 +34,7 @@ class InteractiveConsole {
             this.cleanupConsole();
             this.isInitialized = true;
             console.log('Console initialized successfully');
-            window.dispatchEvent(new Event('consoleReady'));
+            return true;
         } catch (error) {
             console.error('Failed to initialize console:', error);
             throw error;
@@ -62,6 +62,7 @@ class InteractiveConsole {
                     return;
                 }
 
+                // Set initial visibility
                 this.outputElement.style.display = 'block';
                 this.inputElement.style.display = 'block';
                 this.inputLine.style.display = 'flex';
@@ -80,8 +81,6 @@ class InteractiveConsole {
             this.inputElement.value = '';
         }
         if (this.inputLine) {
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
             this.inputElement.disabled = true;
         }
 
@@ -110,11 +109,12 @@ class InteractiveConsole {
             throw new Error("Console is busy");
         }
 
-        try {
-            this.isBusy = true;
+        this.isBusy = true;
 
-            // Clean up any existing session
+        try {
+            // Clean up existing session
             await this.endSession();
+            this.cleanupConsole();
 
             // Start new session
             const success = await this.startSession(code, language);
@@ -179,6 +179,8 @@ class InteractiveConsole {
             this.pollTimer = null;
         }
 
+        // Initial delay before starting to poll
+        await new Promise(resolve => setTimeout(resolve, 100));
         await this.poll();
     }
 
@@ -205,7 +207,6 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-
             if (!data.success) {
                 throw new Error(data.error || "Failed to get output");
             }
@@ -224,11 +225,10 @@ class InteractiveConsole {
             this.isWaitingForInput = data.waiting_for_input;
             this.setInputState(data.waiting_for_input);
 
-            // Schedule next poll
+            // Schedule next poll if session is still valid
             if (this.isSessionValid) {
                 this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
             }
-
         } catch (error) {
             console.error('Poll error:', error);
             this.handlePollError(error);
@@ -318,8 +318,7 @@ class InteractiveConsole {
                 e.preventDefault();
                 const inputText = this.inputElement.value.trim();
                 if (inputText) {
-                    this.appendToConsole(`${inputText}\n`, 'input');
-                    this.inputElement.value = '';
+                    this.appendToConsole(inputText, 'input');
                     await this.sendInput(inputText);
                 }
             }

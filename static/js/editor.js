@@ -5,13 +5,10 @@ let isExecuting = false;
 let lastExecution = 0;
 let isConsoleReady = false;
 const MIN_EXECUTION_INTERVAL = 1000;
-const MAX_INIT_RETRIES = 5;
-let initRetries = 0;
 
 async function executeCode() {
-    console.log('executeCode called'); // Debug log
     if (!editor || !isConsoleReady || isExecuting) {
-        console.log('Execute prevented:', { // Debug log
+        console.log('Execute prevented:', {
             hasEditor: !!editor,
             isConsoleReady,
             isExecuting
@@ -19,26 +16,19 @@ async function executeCode() {
         return;
     }
 
-    const currentTime = Date.now();
-    if (currentTime - lastExecution < MIN_EXECUTION_INTERVAL) {
-        console.log('Execution throttled');
-        return;
-    }
-    lastExecution = currentTime;
-
     const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.disabled = true;
-        runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-    }
-
     try {
+        if (runButton) {
+            runButton.disabled = true;
+            runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+        }
+
         isExecuting = true;
         const code = editor.getValue().trim();
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
 
-        console.log('Preparing to execute:', { language, codeLength: code.length }); // Debug log
+        console.log('Preparing to execute:', { language, codeLength: code.length });
 
         if (!consoleInstance) {
             throw new Error('Console instance not initialized');
@@ -114,17 +104,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         lineWrapping: true
     });
 
-    // Initialize console
-    try {
-        consoleInstance = new InteractiveConsole();
-        await consoleInstance.init();
-        isConsoleReady = true;
-    } catch (error) {
-        console.error('Console initialization failed:', error);
-        if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Failed to initialize console: ${error.message}</div>`;
+    // Initialize console with delay to ensure DOM is ready
+    setTimeout(async () => {
+        try {
+            consoleInstance = new InteractiveConsole();
+            await consoleInstance.init();
+            isConsoleReady = true;
+            console.log('Console initialized successfully');
+        } catch (error) {
+            console.error('Console initialization failed:', error);
+            if (consoleOutput) {
+                consoleOutput.innerHTML = `<div class="console-error">Failed to initialize console: ${error.message}</div>`;
+            }
         }
-    }
+    }, 500);
 
     // Set initial template
     const language = languageSelect ? languageSelect.value : 'cpp';
