@@ -31,6 +31,7 @@ class InteractiveConsole {
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
+        this.contentCleared = false;
 
         this.setupEventListeners();
         this.isInitialized = true;
@@ -112,6 +113,7 @@ class InteractiveConsole {
         }
 
         this.isBusy = true;
+        this.contentCleared = false;
 
         try {
             // Clean up any existing session and polling
@@ -125,11 +127,7 @@ class InteractiveConsole {
                 await this.endSession();
             }
 
-            // Clear console and show status
-            this.outputElement.innerHTML = '';
-            this.appendToConsole("Compiling and running code...\n", 'system');
-
-            // Start new session
+            // Start new session first
             console.log("Starting new session");
             const success = await this.startSession(code, language);
 
@@ -139,8 +137,14 @@ class InteractiveConsole {
                 return false;
             }
 
+            // Only clear console after successful session start
+            if (!this.contentCleared) {
+                this.outputElement.innerHTML = '';
+                this.contentCleared = true;
+            }
+            this.appendToConsole("Compiling and running code...\n", 'system');
+
             console.log("Session started successfully, beginning output polling");
-            // Start polling for output
             this.startPolling();
             return true;
 
@@ -262,41 +266,6 @@ class InteractiveConsole {
         }
     }
 
-    async sendInput(input) {
-        if (!this.sessionId || !this.csrfToken || !this.isSessionValid) return;
-
-        try {
-            const response = await fetch('/activities/send_input', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': this.csrfToken
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    session_id: this.sessionId,
-                    input: input
-                })
-            });
-
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                if (data.error?.includes('Invalid session')) {
-                    this.isSessionValid = false;
-                    this.appendToConsole(`Session ended\n`, 'system');
-                    await this.endSession();
-                    return;
-                }
-                this.appendToConsole(`Error: ${data.error || 'Failed to send input'}\n`, 'error');
-            }
-
-            this.processInputQueue();
-        } catch (error) {
-            this.appendToConsole(`Error: ${error.message}\n`, 'error');
-            await this.endSession();
-        }
-    }
-
     async endSession() {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
@@ -327,6 +296,7 @@ class InteractiveConsole {
         this.setInputState(false);
         this.inputQueue = [];
         this.pollRetryCount = 0;
+        this.contentCleared = false;
     }
 
     async processInputQueue() {

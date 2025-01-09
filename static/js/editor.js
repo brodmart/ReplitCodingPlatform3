@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize Interactive Console
     let console = null;
     let isRunning = false;
+    let runDebounceTimer = null;
 
     function initializeConsole() {
         if (!window.InteractiveConsole) {
@@ -102,37 +103,44 @@ namespace ProgrammingActivity
         });
     }
 
-    // Run button handler with improved error handling
+    // Run button handler with improved error handling and debouncing
     if (runButton) {
         runButton.addEventListener('click', async function() {
             if (isRunning) return;
 
-            const code = editor.getValue().trim();
-            if (!code) {
-                consoleOutput.innerHTML = '<div class="console-error">Error: No code to execute</div>';
-                return;
+            // Clear any pending execution
+            if (runDebounceTimer) {
+                clearTimeout(runDebounceTimer);
             }
 
-            if (!console) {
-                console = initializeConsole();
-                if (!console) return;
-            }
+            runDebounceTimer = setTimeout(async () => {
+                const code = editor.getValue().trim();
+                if (!code) {
+                    consoleOutput.innerHTML = '<div class="console-error">Error: No code to execute</div>';
+                    return;
+                }
 
-            isRunning = true;
-            runButton.disabled = true;
-            runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
+                if (!console) {
+                    console = initializeConsole();
+                    if (!console) return;
+                }
 
-            try {
-                const language = languageSelect ? languageSelect.value : 'cpp';
-                await console.executeCode(code, language);
-            } catch (error) {
-                console.error('Error executing code:', error);
-                consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
-            } finally {
-                isRunning = false;
-                runButton.disabled = false;
-                runButton.innerHTML = document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run';
-            }
+                isRunning = true;
+                runButton.disabled = true;
+                runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
+
+                try {
+                    const language = languageSelect ? languageSelect.value : 'cpp';
+                    await console.executeCode(code, language);
+                } catch (error) {
+                    console.error('Error executing code:', error);
+                    consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
+                } finally {
+                    isRunning = false;
+                    runButton.disabled = false;
+                    runButton.innerHTML = document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run';
+                }
+            }, 250); // 250ms debounce
         });
 
         // Add keyboard shortcut for running code
