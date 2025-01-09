@@ -325,15 +325,26 @@ class InteractiveConsole {
 
         this.polling = true;
         try {
+            console.log(`[${new Date().toISOString()}] Polling backend for session ${this.sessionId}`);
+            
             const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
                 credentials: 'same-origin'
             });
 
+            console.log(`[${new Date().toISOString()}] Backend response status:`, response.status);
+
             if (!response.ok) {
+                console.error(`[${new Date().toISOString()}] Backend error response:`, response.status);
                 throw new Error('Failed to get output');
             }
 
             const data = await response.json();
+            console.log(`[${new Date().toISOString()}] Backend data received:`, {
+                success: data.success,
+                hasOutput: !!data.output,
+                sessionEnded: data.session_ended,
+                waitingForInput: data.waiting_for_input
+            });
 
             if (data.success) {
                 this.pollRetryCount = 0;
