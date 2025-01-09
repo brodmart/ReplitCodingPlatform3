@@ -314,36 +314,33 @@ class InteractiveConsole {
             }
 
             if (data.session_ended) {
-                console.log('Session ended');
+                console.log('Session ended - disabling input');
                 this.isSessionValid = false;
-                this.setInputState(false);
-                return;
-            }
+                this.isWaitingForInput = false;
 
-            // Prevent rapid state changes
-            if (data.waiting_for_input !== this.isWaitingForInput) {
-                console.log('Input state change requested:', data.waiting_for_input);
-
-                // Clear any pending state updates
+                // Clear all timers
+                if (this.pollTimer) {
+                    clearTimeout(this.pollTimer);
+                    this.pollTimer = null;
+                }
                 if (this.stateUpdateTimer) {
                     clearTimeout(this.stateUpdateTimer);
+                    this.stateUpdateTimer = null;
+                }
+                if (this.inputStateTimer) {
+                    clearTimeout(this.inputStateTimer);
+                    this.inputStateTimer = null;
                 }
 
-                // If enabling input, do it immediately
-                if (data.waiting_for_input) {
-                    this.setInputState(true);
-                    this.inputElement.style.display = 'block';
-                    this.inputLine.style.display = 'flex';
-                    this.inputElement.focus();
-                } else {
-                    // Only disable input if we've received all output
-                    this.stateUpdateTimer = setTimeout(() => {
-                        // Double check we're not waiting for more output
-                        if (!this.isWaitingForInput && this.emptyPollCount > 1) {
-                            this.setInputState(false);
-                        }
-                    }, 2000); // Longer wait to ensure we catch all output
-                }
+                // Force disable input
+                this.setInputState(false);
+                this.inputElement.disabled = true;
+                this.inputElement.style.display = 'none';
+                this.inputLine.style.display = 'none';
+
+                // Clear stored state
+                sessionStorage.removeItem('console_input_state');
+                return;
             }
 
             // Adjust polling interval based on state and output
@@ -451,7 +448,10 @@ class InteractiveConsole {
 
         console.log('Setting input state:', enabled);
 
-        // Always update the visual state when enabled
+        if (!this.isSessionValid) {
+            enabled = false;
+        }
+
         if (enabled) {
             this.isWaitingForInput = true;
             this.inputElement.disabled = false;
@@ -461,38 +461,39 @@ class InteractiveConsole {
             this.inputElement.focus();
             this.inputLine.classList.add('active');
 
-            // Update console container state
             const consoleContainer = document.querySelector('.console-container');
             if (consoleContainer) {
                 consoleContainer.classList.add('console-waiting');
             }
 
-            // Force persist input state
             sessionStorage.setItem('console_input_state', JSON.stringify({
                 isWaiting: true,
                 timestamp: Date.now()
             }));
 
-            // Set a minimum duration for input state
             if (this.inputStateTimer) {
                 clearTimeout(this.inputStateTimer);
             }
             this.inputStateTimer = setTimeout(() => {
                 this.inputStateTimer = null;
-            }, 5000); // Keep input active for at least 5 seconds
+            }, 5000);
         } else {
-            // Only disable if there's no pending input timer
-            if (!this.inputStateTimer && this.isWaitingForInput) {
-                this.isWaitingForInput = false;
-                this.inputElement.disabled = true;
-                this.inputLine.classList.remove('active');
+            this.isWaitingForInput = false;
+            this.inputElement.disabled = true;
+            this.inputElement.style.display = 'none';
+            this.inputLine.style.display = 'none';
+            this.inputLine.classList.remove('active');
 
-                const consoleContainer = document.querySelector('.console-container');
-                if (consoleContainer) {
-                    consoleContainer.classList.remove('console-waiting');
-                }
+            const consoleContainer = document.querySelector('.console-container');
+            if (consoleContainer) {
+                consoleContainer.classList.remove('console-waiting');
+            }
 
-                sessionStorage.removeItem('console_input_state');
+            sessionStorage.removeItem('console_input_state');
+
+            if (this.inputStateTimer) {
+                clearTimeout(this.inputStateTimer);
+                this.inputStateTimer = null;
             }
         }
     }
