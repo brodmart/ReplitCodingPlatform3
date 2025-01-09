@@ -230,21 +230,19 @@ def get_output():
                 'session_ended': True
             })
 
-        # Set stdout and stderr to non-blocking mode if they exist
+        # Handle stdout and stderr reading
         try:
-            # Handle stdout
+            # Set non-blocking mode for stdout if it exists
             if process.stdout and not process.stdout.closed:
                 try:
                     fd = process.stdout.fileno()
                     flags = fcntl.fcntl(fd, fcntl.F_GETFL)
                     fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-                    # Read from stdout
                     try:
-                        while True:  # Read until BlockingIOError
-                            chunk = process.stdout.read1(1024)
-                            if not chunk:  # EOF
-                                break
+                        # Read from stdout
+                        chunk = process.stdout.read()
+                        if chunk:
                             text = chunk.decode('utf-8', errors='replace')
                             logger.debug(f"Read stdout: {text}")
                             output.append(text)
@@ -258,30 +256,28 @@ def get_output():
                                 waiting_for_input = True
                                 session_data['waiting_for_input'] = True
                     except BlockingIOError:
-                        logger.debug("No more data available from stdout")
+                        logger.debug("No data available from stdout")
                     except Exception as e:
                         logger.error(f"Error reading stdout: {e}", exc_info=True)
                 except Exception as e:
                     logger.error(f"Error setting up non-blocking stdout: {e}", exc_info=True)
 
-            # Handle stderr
+            # Handle stderr if it exists
             if process.stderr and not process.stderr.closed:
                 try:
                     fd = process.stderr.fileno()
                     flags = fcntl.fcntl(fd, fcntl.F_GETFL)
                     fcntl.fcntl(fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
-                    # Read from stderr
                     try:
-                        while True:  # Read until BlockingIOError
-                            chunk = process.stderr.read1(1024)
-                            if not chunk:  # EOF
-                                break
+                        # Read from stderr
+                        chunk = process.stderr.read()
+                        if chunk:
                             text = chunk.decode('utf-8', errors='replace')
                             logger.debug(f"Read stderr: {text}")
                             output.append(text)
                     except BlockingIOError:
-                        logger.debug("No more data available from stderr")
+                        logger.debug("No data available from stderr")
                     except Exception as e:
                         logger.error(f"Error reading stderr: {e}", exc_info=True)
                 except Exception as e:
@@ -519,6 +515,7 @@ def execute_code():
         return response, 500
 
 # Request logging and error handling
+
 
 
 @activities.route('/activities')
