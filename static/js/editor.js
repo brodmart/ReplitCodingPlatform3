@@ -26,23 +26,24 @@ async function executeCode() {
     }
     lastExecution = currentTime;
 
-    isExecuting = true;
-    const code = editor.getValue().trim();
-    const languageSelect = document.getElementById('languageSelect');
-    const language = languageSelect ? languageSelect.value : 'cpp';
-
-    console.log('Preparing to execute:', { language, codeLength: code.length }); // Debug log
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.disabled = true;
+        runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+    }
 
     try {
+        isExecuting = true;
+        const code = editor.getValue().trim();
+        const languageSelect = document.getElementById('languageSelect');
+        const language = languageSelect ? languageSelect.value : 'cpp';
+
+        console.log('Preparing to execute:', { language, codeLength: code.length }); // Debug log
+
         if (!consoleInstance) {
-            console.error('Console instance not initialized');
-            return;
+            throw new Error('Console instance not initialized');
         }
 
-        // First ensure any existing session is cleaned up
-        await consoleInstance.endSession();
-
-        // Then execute the new code
         await consoleInstance.executeCode(code, language);
     } catch (error) {
         console.error('Error executing code:', error);
@@ -52,6 +53,10 @@ async function executeCode() {
         }
     } finally {
         isExecuting = false;
+        if (runButton) {
+            runButton.disabled = false;
+            runButton.innerHTML = 'Run';
+        }
     }
 }
 
@@ -116,34 +121,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         isConsoleReady = true;
     } catch (error) {
         console.error('Console initialization failed:', error);
+        if (consoleOutput) {
+            consoleOutput.innerHTML = `<div class="console-error">Failed to initialize console: ${error.message}</div>`;
+        }
     }
 
     // Set initial template
     const language = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(getTemplateForLanguage(language));
     editor.refresh();
-
-    // Run button handler
-    if (runButton) {
-        runButton.addEventListener('click', async function(e) {
-            e.preventDefault();
-            if (!isExecuting && isConsoleReady) {
-                // Show loading state
-                runButton.disabled = true;
-                runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-
-                try {
-                    await executeCode();
-                } catch (error) {
-                    console.error('Error executing code:', error);
-                } finally {
-                    // Reset button state
-                    runButton.disabled = false;
-                    runButton.innerHTML = 'Run';
-                }
-            }
-        });
-    }
 
     // Language change handler
     if (languageSelect) {
@@ -162,6 +148,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             executeCode();
         }
     });
+
+    // Run button handler
+    if (runButton) {
+        runButton.addEventListener('click', async function(e) {
+            e.preventDefault();
+            if (!isExecuting && isConsoleReady) {
+                await executeCode();
+            }
+        });
+    }
 });
 
 // Wait for console to be ready
