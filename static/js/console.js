@@ -3,7 +3,6 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        console.log("Initializing InteractiveConsole");
         this.outputElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
         this.inputLine = document.querySelector('.console-input-line');
@@ -32,6 +31,7 @@ class InteractiveConsole {
         this.isBusy = false;
         this.pollTimer = null;
 
+        // Initialize and mark as ready
         this.setupEventListeners();
         this.isInitialized = true;
         console.log("InteractiveConsole initialized successfully");
@@ -62,18 +62,15 @@ class InteractiveConsole {
         this.inputElement.disabled = !this.isWaitingForInput;
 
         if (this.inputLine) {
+            this.inputLine.classList.toggle('console-waiting', this.isWaitingForInput);
             if (this.isWaitingForInput) {
-                this.inputLine.classList.add('console-waiting');
                 this.inputElement.focus();
-            } else {
-                this.inputLine.classList.remove('console-waiting');
             }
         }
     }
 
     appendToConsole(text, type = 'output') {
         if (!text) return;
-
         const line = document.createElement('div');
         line.className = `console-${type}`;
         line.textContent = type === 'input' ? `> ${text}` : text;
@@ -85,39 +82,36 @@ class InteractiveConsole {
         console.log("executeCode called:", { language, codeLength: code?.length });
 
         if (!this.isReady()) {
-            console.error("Console not ready");
-            throw new Error("Console not ready. Please try again.");
+            throw new Error("Console not ready. Please refresh the page.");
         }
 
         if (!code?.trim()) {
-            console.error("Empty code submission");
             throw new Error("No code to execute");
+        }
+
+        if (this.isBusy) {
+            throw new Error("Already executing code. Please wait.");
         }
 
         this.isBusy = true;
 
         try {
-            // Clean up any existing session first
-            if (this.pollTimer) {
-                clearTimeout(this.pollTimer);
-                this.pollTimer = null;
-            }
+            // Clean up existing session
+            await this.endSession();
 
-            if (this.sessionId) {
-                console.log("Cleaning up existing session");
-                await this.endSession();
-            }
+            // Clear output and show status
+            this.outputElement.innerHTML = '';
 
             // Start new session
             console.log("Starting new session");
             const success = await this.startSession(code, language);
 
             if (!success) {
-                console.error("Failed to start session");
                 throw new Error("Failed to start program execution");
             }
 
-            console.log("Session started successfully, beginning output polling");
+            // Begin output polling
+            console.log("Session started successfully");
             this.startPolling();
 
         } catch (error) {
@@ -127,16 +121,8 @@ class InteractiveConsole {
         }
     }
 
-    startPolling() {
-        console.log("Starting polling cycle");
-        if (this.pollTimer) {
-            clearTimeout(this.pollTimer);
-        }
-        this.poll();
-    }
-
     async startSession(code, language) {
-        console.log("startSession called:", { language, codeLength: code?.length });
+        if (!code || !language) return false;
 
         try {
             console.log("Sending start_session request");
@@ -150,25 +136,33 @@ class InteractiveConsole {
                 body: JSON.stringify({ code, language })
             });
 
-            console.log("Received start_session response:", response.status);
+            if (!response.ok) {
+                throw new Error("Failed to start session");
+            }
+
             const data = await response.json();
             console.log("Response data:", data);
 
-            if (!response.ok || !data.success) {
-                console.error("Start session failed:", data.error);
-                return false;
+            if (!data.success) {
+                throw new Error(data.error || "Failed to start session");
             }
 
             this.sessionId = data.session_id;
             this.isSessionValid = true;
             this.pollRetryCount = 0;
-            console.log("Session started successfully:", this.sessionId);
             return true;
 
         } catch (error) {
             console.error("Error in startSession:", error);
             return false;
         }
+    }
+
+    startPolling() {
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+        }
+        this.poll();
     }
 
     async poll() {
@@ -178,7 +172,6 @@ class InteractiveConsole {
         }
 
         try {
-            console.log("Polling for output");
             const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
                 credentials: 'same-origin'
             });
@@ -188,13 +181,11 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-            console.log("Poll response:", data);
 
             if (data.success) {
                 this.pollRetryCount = 0;
 
                 if (data.output) {
-                    console.log("Received output:", data.output);
                     this.appendToConsole(data.output);
                 }
 
@@ -210,11 +201,9 @@ class InteractiveConsole {
                     this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
                 }
             } else {
-                console.error("Poll failed:", data.error);
                 this.handlePollError(data.error);
             }
         } catch (error) {
-            console.error("Error in poll:", error);
             this.handlePollError(error.message);
         }
     }
@@ -222,15 +211,11 @@ class InteractiveConsole {
     handlePollError(error) {
         this.pollRetryCount++;
         if (this.pollRetryCount >= this.maxRetries) {
-            if (error?.includes('Invalid session')) {
-                this.isSessionValid = false;
-                this.appendToConsole(`Session ended\n`, 'system');
-            } else {
-                this.appendToConsole(`Error: ${error || 'Connection lost'}\n`, 'error');
-            }
+            this.isSessionValid = false;
             this.endSession();
         } else {
-            this.pollTimer = setTimeout(() => this.poll(), this.baseDelay * Math.pow(2, this.pollRetryCount));
+            this.pollTimer = setTimeout(() => this.poll(), 
+                this.baseDelay * Math.pow(2, this.pollRetryCount));
         }
     }
 
@@ -249,9 +234,7 @@ class InteractiveConsole {
                         'X-CSRF-Token': this.csrfToken
                     },
                     credentials: 'same-origin',
-                    body: JSON.stringify({
-                        session_id: this.sessionId
-                    })
+                    body: JSON.stringify({ session_id: this.sessionId })
                 });
             } catch (error) {
                 console.error("Error ending session:", error);

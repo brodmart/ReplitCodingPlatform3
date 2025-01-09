@@ -37,13 +37,21 @@ document.addEventListener('DOMContentLoaded', function() {
     let console = null;
     let isExecuting = false;
     let lastExecution = 0;
+    const MIN_EXECUTION_INTERVAL = 1000; // Minimum time between executions
+
+    function setExecutionState(executing) {
+        isExecuting = executing;
+        if (executing) {
+            lastExecution = Date.now();
+            runButton.disabled = true;
+            runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
+        } else {
+            runButton.disabled = false;
+            runButton.innerHTML = document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run';
+        }
+    }
 
     function initializeConsole() {
-        if (!window.InteractiveConsole) {
-            consoleOutput.innerHTML = '<div class="console-error">Error: Console initialization failed</div>';
-            return null;
-        }
-
         try {
             return new InteractiveConsole({
                 lang: document.documentElement.lang || 'en'
@@ -89,7 +97,6 @@ namespace ProgrammingActivity
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
     editor.refresh();
-    console = initializeConsole();
 
     // Language change handler
     if (languageSelect) {
@@ -104,9 +111,8 @@ namespace ProgrammingActivity
     }
 
     async function executeCode() {
-        if (!console) {
-            console = initializeConsole();
-            if (!console) return;
+        if (isExecuting || Date.now() - lastExecution < MIN_EXECUTION_INTERVAL) {
+            return;
         }
 
         const code = editor.getValue().trim();
@@ -115,17 +121,16 @@ namespace ProgrammingActivity
             return;
         }
 
-        // Prevent multiple executions
-        if (isExecuting || Date.now() - lastExecution < 1000) {
-            return;
-        }
-
         try {
-            isExecuting = true;
-            lastExecution = Date.now();
-            runButton.disabled = true;
-            runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
-            consoleOutput.innerHTML = '<div class="console-status">Running...</div>';
+            setExecutionState(true);
+
+            // Initialize console if needed
+            if (!console) {
+                console = initializeConsole();
+                if (!console) {
+                    throw new Error("Failed to initialize console");
+                }
+            }
 
             const language = languageSelect ? languageSelect.value : 'cpp';
             await console.executeCode(code, language);
@@ -134,9 +139,7 @@ namespace ProgrammingActivity
             console.error('Error executing code:', error);
             consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
         } finally {
-            isExecuting = false;
-            runButton.disabled = false;
-            runButton.innerHTML = document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run';
+            setExecutionState(false);
         }
     }
 
