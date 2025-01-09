@@ -252,26 +252,28 @@ class InteractiveConsole {
 
             if (data.success) {
                 this.pollRetryCount = 0;
-                this.isSessionValid = true;
 
                 // Show output if present
                 if (data.output) {
                     this.appendToConsole(data.output);
                 }
 
-                // Update input state but maintain visibility
-                if (data.waiting_for_input) {
-                    this.isWaitingForInput = true;
-                    this.inputElement.disabled = false;
-                    this.inputElement.focus();
-                }
-
+                // Handle session state
                 if (data.session_ended) {
                     this.isSessionValid = false;
                     this.isWaitingForInput = false;
                     this.inputElement.disabled = true;
                     this.inputElement.value = '';
                     return;
+                }
+
+                // Update input state
+                this.isSessionValid = true;
+                if (data.waiting_for_input) {
+                    this.isWaitingForInput = true;
+                    this.inputElement.disabled = false;
+                    this.inputElement.focus();
+                    this.outputElement.scrollTop = this.outputElement.scrollHeight;
                 }
 
                 // Continue polling if session is active
