@@ -32,20 +32,24 @@ def create_app():
         SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SQLALCHEMY_ENGINE_OPTIONS={
-            'pool_size': 5,
-            'max_overflow': 10,
-            'pool_timeout': 30,
+            'pool_size': 10,
+            'max_overflow': 20,
+            'pool_timeout': 60,
             'pool_recycle': 1800,
             'pool_pre_ping': True
-        }
+        },
+        # Session security settings
+        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        PERMANENT_SESSION_LIFETIME=1800,  # 30 minutes
+        # Request settings
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max-limit
     )
 
     try:
         # Create session directory if it does not exist
         os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
-
-        # Setup logging
-        setup_logging(app)
 
         # Initialize database
         init_db(app)
@@ -83,7 +87,12 @@ def create_app():
 
         @app.errorhandler(500)
         def internal_error(error):
+            db.session.rollback()  # Roll back db session in case of errors
             return render_template('errors/500.html', lang='en'), 500
+
+        @app.errorhandler(413)
+        def request_entity_too_large(error):
+            return render_template('errors/413.html', lang='en'), 413
 
         logger.info("Application initialized successfully")
         return app
@@ -94,3 +103,6 @@ def create_app():
 
 # Create the application instance
 app = create_app()
+
+# Add ProxyFix middleware to handle proxy headers
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
