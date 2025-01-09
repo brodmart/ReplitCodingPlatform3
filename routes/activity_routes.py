@@ -25,6 +25,67 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.chmod(TEMP_DIR, 0o755)
 
+def compile_and_run(code, language, input_data=None):
+    """Compile and run code with input support"""
+    if not code or not language:
+        return {'success': False, 'error': 'Invalid parameters'}
+
+    try:
+        session_id = str(time.time())
+        session_dir = os.path.join(TEMP_DIR, session_id)
+        os.makedirs(session_dir, exist_ok=True)
+
+        # Write source code to file
+        file_extension = '.cpp' if language == 'cpp' else '.cs'
+        source_file = os.path.join(session_dir, f'program{file_extension}')
+
+        try:
+            with open(source_file, 'w') as f:
+                f.write(code)
+        except IOError as e:
+            logger.error(f"Failed to write source file: {e}")
+            return {'success': False, 'error': 'Failed to save code'}
+
+        # Compile code
+        executable_name = 'program' if language == 'cpp' else 'program.exe'
+        executable_path = os.path.join(session_dir, executable_name)
+
+        try:
+            if language == 'cpp':
+                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
+            else:
+                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
+
+            compile_process = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if compile_process.returncode != 0:
+                logger.error(f"Compilation error: {compile_process.stderr}")
+                return {'success': False, 'error': compile_process.stderr}
+
+            os.chmod(executable_path, 0o755)
+
+        except subprocess.TimeoutExpired:
+            logger.error("Compilation timeout")
+            return {'success': False, 'error': 'Compilation timeout'}
+        except Exception as e:
+            logger.error(f"Compilation failed: {e}")
+            return {'success': False, 'error': str(e)}
+
+        return {'success': True, 'session_id': session_id}
+
+    except Exception as e:
+        logger.error(f"Error in compile_and_run: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+    finally:
+        # Cleanup temporary files if compilation fails
+        if 'session_id' not in locals():
+            shutil.rmtree(session_dir, ignore_errors=True)
+
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
 def start_session():
@@ -43,44 +104,17 @@ def start_session():
         if language not in ['cpp', 'csharp']:
             return jsonify({'success': False, 'error': 'Unsupported language'}), 400
 
-        # Create unique session directory
-        session_id = str(time.time())
+        # Compile the code first
+        result = compile_and_run(code, language)
+        if not result['success']:
+            return jsonify(result), 400
+
+        session_id = result['session_id']
         session_dir = os.path.join(TEMP_DIR, session_id)
-        os.makedirs(session_dir, exist_ok=True)
+        executable_name = 'program' if language == 'cpp' else 'program.exe'
+        executable_path = os.path.join(session_dir, executable_name)
 
         try:
-            # Write source code to file
-            file_extension = '.cpp' if language == 'cpp' else '.cs'
-            source_file = os.path.join(session_dir, f'program{file_extension}')
-            with open(source_file, 'w') as f:
-                f.write(code)
-
-            # Compile code
-            executable_name = 'program' if language == 'cpp' else 'program.exe'
-            executable_path = os.path.join(session_dir, executable_name)
-
-            if language == 'cpp':
-                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
-            else:
-                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
-
-            compile_process = subprocess.run(
-                compile_cmd,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-
-            if compile_process.returncode != 0:
-                logger.error(f"Compilation failed: {compile_process.stderr}")
-                return jsonify({
-                    'success': False,
-                    'error': compile_process.stderr
-                }), 400
-
-            # Make executable
-            os.chmod(executable_path, 0o755)
-
             # Start interactive process
             cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
 
@@ -110,14 +144,6 @@ def start_session():
                 'session_id': session_id,
                 'message': 'Program started successfully'
             })
-
-        except subprocess.TimeoutExpired:
-            logger.error("Compilation timeout")
-            shutil.rmtree(session_dir, ignore_errors=True)
-            return jsonify({
-                'success': False,
-                'error': 'Compilation timeout'
-            }), 400
 
         except Exception as e:
             logger.error(f"Failed to start process: {str(e)}", exc_info=True)

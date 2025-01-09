@@ -13,20 +13,25 @@ class InteractiveConsole {
         }
 
         this.sessionId = null;
-        this.outputPoller = null;
         this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.maxRetries = 3;
-        this.baseDelay = 200;
+        this.baseDelay = 100;  // Reduced polling delay
         this.isSessionValid = true;
-        this.setupEventListeners();
-        this.csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+        // Get CSRF token from meta tag
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        this.csrfToken = metaToken ? metaToken.content : null;
 
         if (!this.csrfToken) {
             console.error('CSRF token not found');
+            this.appendToConsole("Error: Security token missing. Please refresh the page.", 'error');
+            return;
         }
+
+        this.setupEventListeners();
     }
 
     setupEventListeners() {
@@ -39,14 +44,8 @@ class InteractiveConsole {
                 this.appendToConsole(`${inputText}\n`, 'input');
 
                 if (this.sessionId) {
-                    await this.sendInput(inputText + '\n');
+                    await this.sendInput(inputText);
                 }
-            }
-        });
-
-        this.inputElement.addEventListener('focus', () => {
-            if (!this.isWaitingForInput || !this.isSessionValid) {
-                this.inputElement.blur();
             }
         });
 
@@ -76,7 +75,6 @@ class InteractiveConsole {
                 this.inputElement.focus();
             } else {
                 this.inputLine.classList.remove('console-waiting');
-                this.inputElement.blur();
             }
         }
     }
@@ -93,11 +91,6 @@ class InteractiveConsole {
     appendToConsole(text, type = 'output') {
         if (!text) return;
 
-        // Prevent duplicate error messages
-        if (type === 'error' && this.outputElement.lastChild?.textContent?.includes(text)) {
-            return;
-        }
-
         const line = document.createElement('div');
         line.className = `console-${type}`;
         line.textContent = type === 'input' ? `> ${text}` : text;
@@ -111,16 +104,14 @@ class InteractiveConsole {
         }
         this.setInputState(false);
         this.endSession();
+        this.inputQueue = [];
         this.pollRetryCount = 0;
         this.isSessionValid = true;
     }
 
     async startSession(code, language) {
-        this.clear();
-        if (!code?.trim()) {
-            this.appendToConsole(this.lang === 'fr' ?
-                "Erreur: Aucun code à exécuter\n" :
-                "Error: No code to execute\n", 'error');
+        if (!this.csrfToken) {
+            this.appendToConsole("Error: Security token missing. Please refresh the page.", 'error');
             return false;
         }
 
@@ -131,21 +122,28 @@ class InteractiveConsole {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': this.csrfToken
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({ code, language })
             });
 
+            if (!response.ok) {
+                const data = await response.json();
+                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
+                return false;
+            }
+
             const data = await response.json();
-            if (response.ok && data.success) {
+            if (data.success) {
                 this.sessionId = data.session_id;
                 this.isSessionValid = true;
-                this.poll(); // Start with immediate poll
+                this.poll();  // Start immediate polling
                 return true;
             } else {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to start session'}\n`, 'error');
+                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
                 return false;
             }
         } catch (error) {
-            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
+            this.appendToConsole(`Error: ${error.message}\n`, 'error');
             return false;
         }
     }
@@ -154,10 +152,16 @@ class InteractiveConsole {
         if (!this.sessionId || !this.isSessionValid) return;
 
         try {
-            const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`);
-            const data = await response.json();
+            const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
+                credentials: 'same-origin'
+            });
 
-            if (response.ok && data.success) {
+            if (!response.ok) {
+                throw new Error('Failed to get output');
+            }
+
+            const data = await response.json();
+            if (data.success) {
                 this.pollRetryCount = 0;
 
                 if (data.output) {
@@ -171,30 +175,30 @@ class InteractiveConsole {
 
                 this.setInputState(data.waiting_for_input);
 
-                // Schedule next poll if session is still valid
                 if (this.isSessionValid && this.sessionId) {
                     setTimeout(() => this.poll(), this.baseDelay);
                 }
             } else {
-                if (data.error?.includes('Invalid session')) {
-                    this.isSessionValid = false;
-                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
-                    this.endSession();
-                    return;
-                }
-
-                this.pollRetryCount++;
-                if (this.pollRetryCount >= this.maxRetries) {
-                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Session ended unexpectedly'}\n`, 'error');
-                    this.endSession();
-                }
+                this.handlePollError(data.error);
             }
         } catch (error) {
-            this.pollRetryCount++;
-            if (this.pollRetryCount >= this.maxRetries) {
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Connection lost\n`, 'error');
-                this.endSession();
+            this.handlePollError(error.message);
+        }
+    }
+
+    handlePollError(error) {
+        this.pollRetryCount++;
+        if (this.pollRetryCount >= this.maxRetries) {
+            if (error?.includes('Invalid session')) {
+                this.isSessionValid = false;
+                this.appendToConsole(`Session ended\n`, 'error');
+            } else {
+                this.appendToConsole(`Error: ${error || 'Connection lost'}\n`, 'error');
             }
+            this.endSession();
+        } else {
+            // Retry with exponential backoff
+            setTimeout(() => this.poll(), this.baseDelay * Math.pow(2, this.pollRetryCount));
         }
     }
 
@@ -208,6 +212,7 @@ class InteractiveConsole {
                     'Content-Type': 'application/json',
                     'X-CSRF-Token': this.csrfToken
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     session_id: this.sessionId,
                     input: input
@@ -218,56 +223,57 @@ class InteractiveConsole {
             if (!response.ok || !data.success) {
                 if (data.error?.includes('Invalid session')) {
                     this.isSessionValid = false;
-                    this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}Session ended\n`, 'error');
+                    this.appendToConsole(`Session ended\n`, 'error');
                     this.endSession();
                     return;
                 }
-                this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${data.error || 'Failed to send input'}\n`, 'error');
+                this.appendToConsole(`Error: ${data.error || 'Failed to send input'}\n`, 'error');
             }
 
-            // Process next input immediately
             this.processInputQueue();
         } catch (error) {
-            this.appendToConsole(`${this.lang === 'fr' ? 'Erreur: ' : 'Error: '}${error.message}\n`, 'error');
+            this.appendToConsole(`Error: ${error.message}\n`, 'error');
             this.endSession();
         }
     }
 
-    endSession() {
-        if (this.sessionId) {
-            fetch('/activities/end_session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': this.csrfToken
-                },
-                body: JSON.stringify({
-                    session_id: this.sessionId
-                })
-            }).catch(console.error);
-
-            this.sessionId = null;
-            this.isSessionValid = false;
-            this.setInputState(false);
-            this.inputQueue = [];
-            this.pollRetryCount = 0;
+    async endSession() {
+        if (this.sessionId && this.csrfToken) {
+            try {
+                await fetch('/activities/end_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': this.csrfToken
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        session_id: this.sessionId
+                    })
+                });
+            } catch (error) {
+                console.error('Error ending session:', error);
+            }
         }
+
+        this.sessionId = null;
+        this.isSessionValid = false;
+        this.setInputState(false);
+        this.inputQueue = [];
+        this.pollRetryCount = 0;
     }
 
     async executeCode(code, language) {
         this.clear();
+
         if (!code?.trim()) {
-            this.appendToConsole(this.lang === 'fr' ?
-                "Erreur: Aucun code à exécuter\n" :
-                "Error: No code to execute\n", 'error');
+            this.appendToConsole("Error: No code to execute\n", 'error');
             return;
         }
 
         const success = await this.startSession(code, language);
         if (!success) {
-            this.appendToConsole(this.lang === 'fr' ?
-                "Échec du démarrage de la session\n" :
-                "Failed to start session\n", 'error');
+            this.appendToConsole("Failed to start session. Please try again.\n", 'error');
         }
     }
 }

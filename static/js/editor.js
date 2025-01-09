@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
+    const runButton = document.getElementById('runButton');
 
     if (!editorElement) {
         console.error('Editor element not found');
@@ -66,13 +67,15 @@ namespace ProgrammingActivity
     editor.setValue(getTemplateForLanguage(initialLanguage));
     editor.refresh();
 
-    // Initialize Interactive Console only if elements exist
+    // Initialize Interactive Console
     const consoleElements = {
         output: document.getElementById('consoleOutput'),
         input: document.getElementById('consoleInput')
     };
 
     let console;
+    let isRunning = false;
+
     if (consoleElements.output && consoleElements.input) {
         console = new InteractiveConsole({
             lang: document.documentElement.lang || 'en'
@@ -89,15 +92,36 @@ namespace ProgrammingActivity
         });
     }
 
-    // Run button handler
-    const runButton = document.getElementById('runButton');
+    // Run button handler with state management
     if (runButton && console) {
         runButton.addEventListener('click', async function() {
+            if (isRunning) return; // Prevent multiple executions
+
             const code = editor.getValue().trim();
             if (!code) return;
 
-            const language = languageSelect ? languageSelect.value : 'cpp';
-            await console.executeCode(code, language);
+            try {
+                isRunning = true;
+                runButton.disabled = true;
+                runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
+
+                const language = languageSelect ? languageSelect.value : 'cpp';
+                await console.executeCode(code, language);
+            } catch (error) {
+                console.appendToConsole(`Error: ${error.message}\n`, 'error');
+            } finally {
+                isRunning = false;
+                runButton.disabled = false;
+                runButton.innerHTML = languageSelect.value === 'fr' ? 'Exécuter' : 'Run';
+            }
+        });
+
+        // Add keyboard shortcut for running code
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isRunning) {
+                e.preventDefault();
+                runButton.click();
+            }
         });
     }
 });
