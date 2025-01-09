@@ -155,9 +155,14 @@ class InteractiveConsole {
         this.isBusy = true;
 
         try {
-            await this.endSession();
-            this.cleanupConsole();
-
+            // Only end previous session if one exists
+            if (this.sessionId) {
+                await this.endSession();
+            }
+            
+            // Clean output but maintain input state
+            this.outputElement.innerHTML = '';
+            
             const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error("Failed to start program execution");
@@ -244,12 +249,15 @@ class InteractiveConsole {
                     this.appendToConsole(data.output);
                 }
 
-                // Keep input enabled while session is valid
-                this.setInputState(data.waiting_for_input);
+                // Update input state but maintain visibility
+                if (data.waiting_for_input) {
+                    this.isWaitingForInput = true;
+                    this.inputElement.disabled = false;
+                    this.inputElement.focus();
+                }
 
                 if (data.session_ended) {
-                    console.log('Session ended, cleaning up');
-                    await this.endSession();
+                    this.isSessionValid = false;
                     return;
                 }
 
