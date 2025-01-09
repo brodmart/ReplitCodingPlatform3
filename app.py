@@ -28,7 +28,8 @@ def create_app():
                 SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
                 SESSION_TYPE='filesystem',
                 SESSION_FILE_DIR=os.path.join(os.getcwd(), 'flask_session'),  # Ensure this directory exists
-                # Additional configurations...
+                SQLALCHEMY_DATABASE_URI='sqlite:///codecrafthub.db',
+                SQLALCHEMY_TRACK_MODIFICATIONS=False
             )
 
             try:
