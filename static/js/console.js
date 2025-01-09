@@ -33,21 +33,34 @@ class InteractiveConsole {
         this.executionPromise = null;
 
         this.setupEventListeners();
-        // Mark as initialized after setup is complete
+
+        // Initialize after a short delay to ensure DOM is ready
         setTimeout(() => {
             this.isInitialized = true;
+            this.setInputState(false);
         }, 100);
     }
 
     setupEventListeners() {
+        if (!this.inputElement) return;
+
         this.inputElement.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
-                const inputText = this.inputElement.value;
+                const inputText = this.inputElement.value.trim();
                 this.inputElement.value = '';
-                this.appendToConsole(`${inputText}\n`, 'input');
-                await this.sendInput(inputText);
-                this.setInputState(false);
+
+                if (inputText) {
+                    this.appendToConsole(`${inputText}\n`, 'input');
+                    await this.sendInput(inputText);
+                }
+            }
+        });
+
+        // Ensure input is focused when waiting for input
+        this.inputElement.addEventListener('blur', () => {
+            if (this.isWaitingForInput) {
+                setTimeout(() => this.inputElement.focus(), 0);
             }
         });
     }
@@ -58,20 +71,25 @@ class InteractiveConsole {
 
     setInputState(waiting) {
         this.isWaitingForInput = waiting && this.isSessionValid;
+
+        if (!this.inputElement || !this.inputLine) return;
+
         this.inputElement.disabled = !this.isWaitingForInput;
         this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
+        this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
 
-        if (this.inputLine) {
-            this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
-            this.inputLine.classList.toggle('console-waiting', this.isWaitingForInput);
-            if (this.isWaitingForInput) {
-                this.inputElement.focus();
-            }
+        if (this.isWaitingForInput) {
+            this.inputElement.value = '';
+            this.inputElement.focus();
+            this.inputLine.classList.add('console-waiting');
+        } else {
+            this.inputLine.classList.remove('console-waiting');
         }
     }
 
     appendToConsole(text, type = 'output') {
-        if (!text) return;
+        if (!text || !this.outputElement) return;
+
         const line = document.createElement('div');
         line.className = `console-${type}`;
         line.textContent = type === 'input' ? `> ${text}` : text;
@@ -97,7 +115,9 @@ class InteractiveConsole {
 
         try {
             await this.endSession();
-            this.outputElement.innerHTML = '';
+            if (this.outputElement) {
+                this.outputElement.innerHTML = '';
+            }
 
             this.executionPromise = this.startSession(code, language);
             const success = await this.executionPromise;
@@ -106,7 +126,8 @@ class InteractiveConsole {
                 throw new Error("Failed to start program execution");
             }
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Wait for session to be properly established
+            await new Promise(resolve => setTimeout(resolve, 200));
             this.startPolling();
             return true;
 
@@ -189,7 +210,7 @@ class InteractiveConsole {
                     return;
                 }
 
-                if (data.waiting_for_input) {
+                if (data.waiting_for_input && !this.isWaitingForInput) {
                     this.setInputState(true);
                 }
 
