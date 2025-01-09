@@ -115,6 +115,7 @@ class InteractiveConsole {
 
                     console.log('Console initialized successfully');
                     this.isInitialized = true;
+                    window.dispatchEvent(new Event('consoleReady'));
                     resolve();
                 } catch (error) {
                     console.error('Failed to initialize console:', error);

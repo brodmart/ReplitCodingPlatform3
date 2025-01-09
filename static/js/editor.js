@@ -3,6 +3,7 @@ let consoleInstance = null;
 let editor = null;
 let isExecuting = false;
 let lastExecution = 0;
+let isConsoleReady = false;
 const MIN_EXECUTION_INTERVAL = 1000;
 const MAX_INIT_RETRIES = 5;
 let initRetries = 0;
@@ -108,7 +109,13 @@ namespace ProgrammingActivity
 window.executeCode = async function() {
     try {
         if (!editor) {
-            throw new Error('Editor not initialized');
+            console.error('Editor not initialized');
+            return;
+        }
+
+        if (!isConsoleReady) {
+            console.error('Console not ready');
+            return;
         }
 
         if (isExecuting) {
@@ -178,6 +185,11 @@ window.executeCode = async function() {
 };
 
 // Initialize everything when DOM is ready
+// Wait for console to be ready
+window.addEventListener('consoleReady', () => {
+    isConsoleReady = true;
+});
+
 document.addEventListener('DOMContentLoaded', async function() {
     let initAttempts = 0;
     const maxAttempts = 5;
