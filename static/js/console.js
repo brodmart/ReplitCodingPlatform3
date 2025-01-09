@@ -18,8 +18,9 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.maxRetries = 3;
-        this.baseDelay = 100;  // Reduced polling delay
+        this.baseDelay = 100;
         this.isSessionValid = true;
+        this.isInitialized = false;
 
         // Get CSRF token from meta tag
         const metaToken = document.querySelector('meta[name="csrf-token"]');
@@ -32,6 +33,7 @@ class InteractiveConsole {
         }
 
         this.setupEventListeners();
+        this.isInitialized = true;
     }
 
     setupEventListeners() {
@@ -63,6 +65,10 @@ class InteractiveConsole {
                 }
             }
         });
+    }
+
+    isReady() {
+        return this.isInitialized && this.csrfToken && !this.sessionId;
     }
 
     setInputState(waiting) {
@@ -99,6 +105,10 @@ class InteractiveConsole {
     }
 
     clear() {
+        if (!this.isReady()) {
+            return false;
+        }
+
         if (this.outputElement) {
             this.outputElement.innerHTML = '';
         }
@@ -107,11 +117,12 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
         this.isSessionValid = true;
+        return true;
     }
 
     async startSession(code, language) {
-        if (!this.csrfToken) {
-            this.appendToConsole("Error: Security token missing. Please refresh the page.", 'error');
+        if (!this.isReady()) {
+            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
             return false;
         }
 
@@ -126,17 +137,16 @@ class InteractiveConsole {
                 body: JSON.stringify({ code, language })
             });
 
+            const data = await response.json();
             if (!response.ok) {
-                const data = await response.json();
                 this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
                 return false;
             }
 
-            const data = await response.json();
             if (data.success) {
                 this.sessionId = data.session_id;
                 this.isSessionValid = true;
-                this.poll();  // Start immediate polling
+                this.poll();
                 return true;
             } else {
                 this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
@@ -264,17 +274,17 @@ class InteractiveConsole {
     }
 
     async executeCode(code, language) {
-        this.clear();
-
         if (!code?.trim()) {
             this.appendToConsole("Error: No code to execute\n", 'error');
-            return;
+            return false;
         }
 
-        const success = await this.startSession(code, language);
-        if (!success) {
-            this.appendToConsole("Failed to start session. Please try again.\n", 'error');
+        if (!this.clear()) {
+            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
+            return false;
         }
+
+        return await this.startSession(code, language);
     }
 }
 

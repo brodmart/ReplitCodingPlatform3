@@ -71,22 +71,15 @@ namespace ProgrammingActivity
     let console = null;
     let isRunning = false;
 
-    // Function to initialize console
-    function initializeConsole() {
-        const consoleOutput = document.getElementById('consoleOutput');
-        const consoleInput = document.getElementById('consoleInput');
-
-        if (consoleOutput && consoleInput && !console) {
+    // Function to get or create console instance
+    function getConsole() {
+        if (!console) {
             console = new InteractiveConsole({
                 lang: document.documentElement.lang || 'en'
             });
-            return true;
         }
-        return false;
+        return console;
     }
-
-    // Try to initialize console immediately
-    initializeConsole();
 
     // Language change handler
     if (languageSelect) {
@@ -98,19 +91,23 @@ namespace ProgrammingActivity
         });
     }
 
-    // Run button handler with proper initialization check
+    // Run button handler
     if (runButton) {
         runButton.addEventListener('click', async function() {
-            // Initialize console if not already done
-            if (!console && !initializeConsole()) {
-                console.error('Console initialization failed');
+            if (isRunning) {
+                return; // Prevent multiple executions
+            }
+
+            const code = editor.getValue().trim();
+            if (!code) {
                 return;
             }
 
-            if (isRunning) return; // Prevent multiple executions
-
-            const code = editor.getValue().trim();
-            if (!code) return;
+            const interactiveConsole = getConsole();
+            if (!interactiveConsole.isReady()) {
+                console.error('Console not ready');
+                return;
+            }
 
             try {
                 isRunning = true;
@@ -118,10 +115,11 @@ namespace ProgrammingActivity
                 runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
 
                 const language = languageSelect ? languageSelect.value : 'cpp';
-                await console.executeCode(code, language);
+                await interactiveConsole.executeCode(code, language);
             } catch (error) {
-                if (console) {
-                    console.appendToConsole(`Error: ${error.message}\n`, 'error');
+                console.error('Error executing code:', error);
+                if (interactiveConsole) {
+                    interactiveConsole.appendToConsole(`Error: ${error.message}\n`, 'error');
                 }
             } finally {
                 isRunning = false;
