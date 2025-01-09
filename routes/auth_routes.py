@@ -13,6 +13,10 @@ import time
 auth = Blueprint('auth', __name__, url_prefix='/auth')
 logger = get_logger('auth')
 
+@auth.route('/')
+def index():
+    return render_template('index.html', lang=session.get('lang', 'fr'))
+
 def get_system_metrics():
     """Collecte les métriques système de manière sécurisée"""
     try:

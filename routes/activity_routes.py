@@ -437,8 +437,8 @@ def handle_error(error):
     return response, 500
 
 # Activity list and view routes
-@activities.route('/')
-@activities.route('/<grade>')
+@activities.route('/activities')
+@activities.route('/activities/<grade>')
 @limiter.limit("30 per minute")
 def list_activities(grade=None):
     """List all coding activities for a specific grade"""
