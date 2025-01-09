@@ -19,10 +19,10 @@ function setExecutionState(executing) {
     }
 }
 
-async function waitForConsoleReady(maxWait = 2000) {
+async function waitForConsoleReady(maxWait = 5000) {
     const startTime = Date.now();
     while (Date.now() - startTime < maxWait) {
-        if (consoleInstance?.isReady()) {
+        if (consoleInstance && !consoleInstance.isBusy && consoleInstance.isInitialized) {
             return true;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -31,18 +31,26 @@ async function waitForConsoleReady(maxWait = 2000) {
 }
 
 async function ensureConsoleInitialized() {
-    if (!consoleInstance || !consoleInstance.isReady()) {
+    if (!consoleInstance || !consoleInstance.isInitialized) {
         if (initRetries >= MAX_INIT_RETRIES) {
             throw new Error("Failed to initialize console after multiple attempts");
         }
         initRetries++;
-        const instance = new InteractiveConsole({
-            lang: document.documentElement.lang || 'en'
-        });
-        consoleInstance = instance;
-        const isReady = await waitForConsoleReady();
-        if (!isReady) {
-            throw new Error("Console initialization timed out");
+
+        try {
+            consoleInstance = new InteractiveConsole({
+                lang: document.documentElement.lang || 'en'
+            });
+
+            const isReady = await waitForConsoleReady();
+            if (!isReady) {
+                throw new Error("Console initialization timed out");
+            }
+
+            return consoleInstance;
+        } catch (error) {
+            console.error("Console initialization error:", error);
+            throw error;
         }
     }
     return consoleInstance;
@@ -104,11 +112,14 @@ window.executeCode = async function() {
         lastExecution = Date.now();
 
         // Initialize console if needed
-        consoleInstance = await ensureConsoleInitialized();
+        const console = await ensureConsoleInitialized();
+        if (!console) {
+            throw new Error("Failed to initialize console");
+        }
 
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
-        await consoleInstance.executeCode(code, language);
+        await console.executeCode(code, language);
 
     } catch (error) {
         console.error('Error executing code:', error);
@@ -195,7 +206,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (consoleInstance) {
                 await consoleInstance.endSession();
             }
-            consoleOutput.innerHTML = '';
+            if (consoleOutput) {
+                consoleOutput.innerHTML = '';
+            }
         });
+    }
+
+    // Initialize console
+    try {
+        await ensureConsoleInitialized();
+    } catch (error) {
+        console.error('Initial console initialization failed:', error);
     }
 });

@@ -42,7 +42,7 @@ class InteractiveConsole {
             this.cleanupConsole();
 
             // Setup event listeners
-            await this.setupEventListeners();
+            this.setupEventListeners();
 
             // Set initial state
             this.setInputState(false);
@@ -74,7 +74,7 @@ class InteractiveConsole {
         }
     }
 
-    async setupEventListeners() {
+    setupEventListeners() {
         if (!this.inputElement) return;
 
         // Clone input element to remove existing listeners
@@ -108,7 +108,6 @@ class InteractiveConsole {
             }
         });
 
-        // Log initial setup
         console.log('Event listeners setup complete');
     }
 
@@ -134,7 +133,6 @@ class InteractiveConsole {
             this.inputLine.classList.remove('console-waiting');
         }
 
-        // Log state change
         console.log('Input state updated:', {
             waiting: this.isWaitingForInput,
             sessionValid: this.isSessionValid,
@@ -217,6 +215,7 @@ class InteractiveConsole {
             this.sessionId = data.session_id;
             this.isSessionValid = true;
             this.pollRetryCount = 0;
+
             return true;
 
         } catch (error) {
