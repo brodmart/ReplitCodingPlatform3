@@ -72,12 +72,17 @@ class InteractiveConsole {
             clearTimeout(this.pollTimer);
             this.pollTimer = null;
         }
+
+        // Ensure input line is hidden initially
+        if (this.inputLine) {
+            this.inputLine.style.display = 'none';
+        }
     }
 
     setupEventListeners() {
         if (!this.inputElement) return;
 
-        // Clone input element to remove existing listeners
+        // Remove existing listeners
         const newInput = this.inputElement.cloneNode(true);
         this.inputElement.parentNode.replaceChild(newInput, this.inputElement);
         this.inputElement = newInput;
@@ -115,23 +120,23 @@ class InteractiveConsole {
         // Update state
         this.isWaitingForInput = waiting && this.isSessionValid;
 
-        // Update visibility and state
+        // Update input element state
         this.inputElement.disabled = !this.isWaitingForInput;
-        this.inputLine.style.display = this.isWaitingForInput ? 'flex' : 'none';
 
+        // Update input line visibility
         if (this.isWaitingForInput) {
+            this.inputLine.style.display = 'flex';
             this.inputElement.style.display = 'block';
             this.inputElement.value = '';
-            this.inputLine.classList.add('console-waiting');
-            // Use requestAnimationFrame to ensure DOM updates before focusing
+
+            // Ensure focus and visibility
             requestAnimationFrame(() => {
                 this.inputElement.focus();
-                // Scroll to bottom to ensure input is visible
                 this.outputElement.scrollTop = this.outputElement.scrollHeight;
             });
         } else {
+            this.inputLine.style.display = 'none';
             this.inputElement.style.display = 'none';
-            this.inputLine.classList.remove('console-waiting');
         }
 
         console.log('Input state updated:', {
@@ -148,7 +153,6 @@ class InteractiveConsole {
         line.className = `console-${type}`;
         line.textContent = type === 'input' ? `> ${text}` : text;
 
-        // Always append and scroll
         this.outputElement.appendChild(line);
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
@@ -175,11 +179,8 @@ class InteractiveConsole {
                 throw new Error("Failed to start program execution");
             }
 
-            // Wait for session to establish
-            await new Promise(resolve => setTimeout(resolve, 300));
-
-            // Start polling
-            this.startPolling();
+            // Start polling after a short delay
+            setTimeout(() => this.startPolling(), 100);
             return true;
 
         } catch (error) {
@@ -231,7 +232,7 @@ class InteractiveConsole {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
         }
-        this.pollTimer = setTimeout(() => this.poll(), 100);
+        this.poll();
     }
 
     async poll() {
@@ -254,17 +255,17 @@ class InteractiveConsole {
             if (data.success) {
                 this.pollRetryCount = 0;
 
-                // Always show output if present, regardless of input state
+                // Show output if present
                 if (data.output) {
                     this.appendToConsole(data.output);
                 }
 
-                // Update input state after showing output
+                // Update input state based on server response
                 if (data.waiting_for_input) {
-                    console.log('Setting input state to waiting');
-                    // Ensure output is visible before showing input
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    this.setInputState(true);
+                    // Ensure input is shown after output is displayed
+                    requestAnimationFrame(() => {
+                        this.setInputState(true);
+                    });
                 } else {
                     this.setInputState(false);
                 }
@@ -275,7 +276,7 @@ class InteractiveConsole {
                     return;
                 }
 
-                // Continue polling if session is still valid
+                // Continue polling if session is active
                 if (this.isSessionValid && this.sessionId) {
                     this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
                 }
