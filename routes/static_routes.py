@@ -5,8 +5,7 @@ static_pages = Blueprint('static_pages', __name__)
 
 @static_pages.route('/')
 def index():
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
+    # Removed login requirement check
     return render_template('index.html', lang='en')
 
 @static_pages.route('/about')

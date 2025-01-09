@@ -1,7 +1,7 @@
 import os
 import logging
 from flask import Flask, render_template
-from flask_login import LoginManager
+from flask_login import LoginManager, AnonymousUserMixin
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
@@ -9,6 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_db
 from extensions import init_extensions
 from utils.logger import setup_logging
+from models import User  # Add direct import here
 
 # Configure logging
 logging.basicConfig(
@@ -16,6 +17,11 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Define anonymous user class
+class Anonymous(AnonymousUserMixin):
+    def __init__(self):
+        self.username = 'Guest'
 
 def create_app():
     """Create and configure the Flask application"""
@@ -39,12 +45,14 @@ def create_app():
             'pool_pre_ping': True
         },
         # Session security settings
-        SESSION_COOKIE_SECURE=True,
+        SESSION_COOKIE_SECURE=False,  # Allow non-HTTPS access
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE='Lax',
         PERMANENT_SESSION_LIFETIME=1800,  # 30 minutes
         # Request settings
-        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max-limit
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max-limit
+        # Allow anonymous access
+        LOGIN_DISABLED=True
     )
 
     try:
@@ -57,14 +65,15 @@ def create_app():
         # Initialize extensions
         init_extensions(app, db)
 
-        # Setup Login Manager
+        # Setup Login Manager with anonymous access
         login_manager = LoginManager()
         login_manager.init_app(app)
+        login_manager.anonymous_user = Anonymous
+        login_manager.login_view = None  # Disable login view redirect
 
         @login_manager.user_loader
         def load_user(user_id):
-            from models import User
-            return User.query.get(int(user_id))
+            return User.query.get(int(user_id)) if user_id else None
 
         # Register blueprints
         from routes.auth_routes import auth
