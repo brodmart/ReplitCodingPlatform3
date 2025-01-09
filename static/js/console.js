@@ -325,26 +325,31 @@ class InteractiveConsole {
                     this.appendToConsole(data.output);
                 }
 
-                // Handle session state
+                // Handle session state transitions
                 if (data.session_ended) {
                     this.isSessionValid = false;
                     this.isWaitingForInput = false;
-                    this.inputElement.disabled = true;
-                    this.inputElement.value = '';
+                    this.setInputState(false);
                     return;
                 }
 
-                // Update input state
+                // Lock state transitions during update
+                const currentWaitingState = this.isWaitingForInput;
+                
+                // Update session state
                 this.isSessionValid = true;
-                if (data.waiting_for_input) {
-                    this.isWaitingForInput = true;
-                    this.inputElement.disabled = false;
-                    this.inputElement.focus();
-                    this.outputElement.scrollTop = this.outputElement.scrollHeight;
+                this.isWaitingForInput = data.waiting_for_input;
+
+                // Only update input state if it changed
+                if (currentWaitingState !== data.waiting_for_input) {
+                    this.setInputState(data.waiting_for_input);
                 }
 
-                // Continue polling if session is active
-                if (this.isSessionValid && this.sessionId) {
+                // Always continue polling if session is valid
+                if (this.isSessionValid) {
+                    if (this.pollTimer) {
+                        clearTimeout(this.pollTimer);
+                    }
                     this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
                 }
             } else {
