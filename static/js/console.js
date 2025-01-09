@@ -37,17 +37,33 @@ class InteractiveConsole {
     }
 
     init() {
-        try {
-            if (!this.outputElement || !this.inputLine || !this.inputElement) {
-                throw new Error('Required elements not found');
-            }
+        return new Promise((resolve, reject) => {
+            const maxAttempts = 5;
+            let attempts = 0;
 
-            // Reset and force visibility immediately
-            this.cleanupConsole();
-            this.outputElement.style.display = 'block';
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
-            this.inputElement.style.visibility = 'visible';
+            const tryInit = () => {
+                try {
+                    if (!this.outputElement || !this.inputLine || !this.inputElement) {
+                        if (attempts >= maxAttempts) {
+                            reject(new Error('Required elements not found after maximum attempts'));
+                            return;
+                        }
+                        attempts++;
+                        setTimeout(tryInit, 200);
+                        return;
+                    }
+
+                    // Reset and force visibility immediately
+                    this.cleanupConsole();
+                    this.outputElement.style.display = 'block';
+                    this.inputLine.style.display = 'flex';
+                    this.inputElement.style.display = 'block';
+                    this.inputElement.style.visibility = 'visible';
+                    
+                    // Force browser reflow
+                    this.outputElement.offsetHeight;
+                    this.inputLine.offsetHeight;
+                    this.inputElement.offsetHeight;
 
             // Setup event listeners
             this.setupEventListeners();
@@ -64,11 +80,26 @@ class InteractiveConsole {
                 this.isInitialized = true;
             });
 
-            console.log('Console initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize console:', error);
-            throw error;
-        }
+            // Set up visibility check interval
+                    setInterval(() => {
+                        if (this.outputElement && this.inputLine && this.inputElement) {
+                            this.outputElement.style.display = 'block';
+                            this.inputLine.style.display = 'flex';
+                            this.inputElement.style.display = 'block';
+                            this.inputElement.style.visibility = 'visible';
+                        }
+                    }, 100);
+
+                    console.log('Console initialized successfully');
+                    this.isInitialized = true;
+                    resolve();
+                } catch (error) {
+                    console.error('Failed to initialize console:', error);
+                    reject(error);
+                }
+            };
+            tryInit();
+        });
     }
 
     cleanupConsole() {
