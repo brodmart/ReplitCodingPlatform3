@@ -8,8 +8,7 @@ class InteractiveConsole {
         this.inputLine = document.querySelector('.console-input-line');
 
         if (!this.outputElement || !this.inputElement) {
-            console.error('Console elements not found');
-            return;
+            throw new Error('Console elements not found');
         }
 
         this.sessionId = null;
@@ -28,13 +27,12 @@ class InteractiveConsole {
         this.csrfToken = metaToken ? metaToken.content : null;
 
         if (!this.csrfToken) {
-            console.error('CSRF token not found');
-            this.appendToConsole("Error: Security token missing. Please refresh the page.", 'error');
-            return;
+            throw new Error('CSRF token not found');
         }
 
         this.setupEventListeners();
         this.isInitialized = true;
+        this.appendToConsole('Console initialized\n', 'system');
     }
 
     setupEventListeners() {
@@ -117,6 +115,7 @@ class InteractiveConsole {
             this.sessionId = null;
             this.isSessionValid = true;
 
+            this.appendToConsole('Console cleared\n', 'system');
             return true;
         } finally {
             this.isClearing = false;
@@ -125,7 +124,7 @@ class InteractiveConsole {
 
     async executeCode(code, language) {
         if (!this.isReady()) {
-            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
+            this.appendToConsole("Error: Console not ready. Please refresh the page.\n", 'error');
             return false;
         }
 
@@ -134,16 +133,22 @@ class InteractiveConsole {
             return false;
         }
 
-        await this.clear();
-        return await this.startSession(code, language);
+        try {
+            await this.clear();
+            this.appendToConsole("Compiling and running code...\n", 'system');
+            const success = await this.startSession(code, language);
+
+            if (!success) {
+                this.appendToConsole("Failed to start execution session\n", 'error');
+            }
+            return success;
+        } catch (error) {
+            this.appendToConsole(`Error: ${error.message}\n`, 'error');
+            return false;
+        }
     }
 
     async startSession(code, language) {
-        if (!this.isReady()) {
-            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
-            return false;
-        }
-
         try {
             const response = await fetch('/activities/start_session', {
                 method: 'POST',
@@ -280,7 +285,7 @@ class InteractiveConsole {
                     })
                 });
             } catch (error) {
-                console.error('Error ending session:', error);
+                this.appendToConsole(`Error ending session: ${error.message}\n`, 'error');
             }
         }
 

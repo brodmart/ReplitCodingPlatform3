@@ -4,9 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const languageSelect = document.getElementById('languageSelect');
     const runButton = document.getElementById('runButton');
     const clearConsoleButton = document.getElementById('clearConsole');
+    const consoleOutput = document.getElementById('consoleOutput');
 
-    if (!editorElement) {
-        window.console.warn('Editor element not found');
+    if (!editorElement || !consoleOutput) {
+        window.console.warn('Required elements not found');
         return;
     }
 
@@ -45,21 +46,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.setTimeout(initializeConsole, 500);
                 return null;
             }
-            window.console.warn('InteractiveConsole class not available after maximum attempts');
+            consoleOutput.innerHTML += '<div class="console-error">Error: Console initialization failed</div>';
             return null;
         }
 
         try {
-            return new InteractiveConsole({
+            const instance = new InteractiveConsole({
                 lang: document.documentElement.lang || 'en'
             });
+
+            if (!instance.isReady()) {
+                consoleOutput.innerHTML += '<div class="console-error">Error: Console failed to initialize properly</div>';
+                return null;
+            }
+
+            return instance;
         } catch (error) {
-            window.console.warn('Failed to initialize console:', error);
+            consoleOutput.innerHTML += `<div class="console-error">Error: ${error.message}</div>`;
             return null;
         }
     }
 
-    // Function to get or create console instance
     function getConsole() {
         if (!console) {
             console = initializeConsole();
@@ -122,25 +129,10 @@ namespace ProgrammingActivity
                 return; // Prevent multiple executions
             }
 
+            consoleOutput.innerHTML = ''; // Clear previous output
             const code = editor.getValue().trim();
             if (!code) {
-                return;
-            }
-
-            const interactiveConsole = getConsole();
-            if (!interactiveConsole) {
-                const consoleOutput = document.getElementById('consoleOutput');
-                if (consoleOutput) {
-                    consoleOutput.innerHTML += '<div class="console-error">Error: Console initialization failed. Please refresh the page.</div>';
-                }
-                return;
-            }
-
-            if (!interactiveConsole.isReady()) {
-                const consoleOutput = document.getElementById('consoleOutput');
-                if (consoleOutput) {
-                    consoleOutput.innerHTML += '<div class="console-error">Error: Console not ready. Please wait a moment and try again.</div>';
-                }
+                consoleOutput.innerHTML = '<div class="console-error">Error: No code to execute</div>';
                 return;
             }
 
@@ -149,13 +141,26 @@ namespace ProgrammingActivity
                 runButton.disabled = true;
                 runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
 
-                const language = languageSelect ? languageSelect.value : 'cpp';
-                await interactiveConsole.executeCode(code, language);
-            } catch (error) {
-                window.console.warn('Error executing code:', error);
-                if (interactiveConsole) {
-                    interactiveConsole.appendToConsole(`Error: ${error.message}\n`, 'error');
+                const interactiveConsole = getConsole();
+                if (!interactiveConsole) {
+                    consoleOutput.innerHTML = '<div class="console-error">Error: Console not available. Please refresh the page.</div>';
+                    return;
                 }
+
+                if (!interactiveConsole.isReady()) {
+                    consoleOutput.innerHTML = '<div class="console-error">Error: Console not ready. Please wait a moment.</div>';
+                    return;
+                }
+
+                const language = languageSelect ? languageSelect.value : 'cpp';
+                const result = await interactiveConsole.executeCode(code, language);
+
+                if (!result) {
+                    consoleOutput.innerHTML += '<div class="console-error">Error: Failed to execute code</div>';
+                }
+            } catch (error) {
+                console.error('Error executing code:', error);
+                consoleOutput.innerHTML += `<div class="console-error">Error: ${error.message}</div>`;
             } finally {
                 isRunning = false;
                 runButton.disabled = false;
@@ -174,10 +179,12 @@ namespace ProgrammingActivity
 
     // Clear console handler
     if (clearConsoleButton) {
-        clearConsoleButton.addEventListener('click', function() {
+        clearConsoleButton.addEventListener('click', async function() {
             const interactiveConsole = getConsole();
             if (interactiveConsole) {
-                interactiveConsole.clear();
+                await interactiveConsole.clear();
+            } else {
+                consoleOutput.innerHTML = '';
             }
         });
     }
