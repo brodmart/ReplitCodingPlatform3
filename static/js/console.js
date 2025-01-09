@@ -110,16 +110,17 @@ class InteractiveConsole {
             return;
         }
 
+        console.log('Setting input state to waiting:', waiting);
+        
         // Update state
         this.isWaitingForInput = waiting && this.isSessionValid;
-
-        // Keep both prompt and input visible, just enable/disable input
+        
+        // Always show input line and keep input enabled when session is valid
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
-        this.inputElement.disabled = !this.isWaitingForInput;
+        this.inputElement.disabled = !this.isSessionValid;
 
         if (this.isWaitingForInput) {
-            this.inputElement.value = '';
             this.inputElement.focus();
             this.outputElement.scrollTop = this.outputElement.scrollHeight;
         }
@@ -236,13 +237,14 @@ class InteractiveConsole {
 
             if (data.success) {
                 this.pollRetryCount = 0;
+                this.isSessionValid = true;
 
                 // Show output if present
                 if (data.output) {
                     this.appendToConsole(data.output);
                 }
 
-                // Update input state based on server response
+                // Keep input enabled while session is valid
                 this.setInputState(data.waiting_for_input);
 
                 if (data.session_ended) {
