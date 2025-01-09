@@ -47,11 +47,11 @@ def create_app():
                 # Register blueprints
                 from routes.auth_routes import auth
                 from routes.activity_routes import activities
-                from routes.tutorial import tutorial
+                from routes.tutorial import tutorial_bp
 
                 app.register_blueprint(auth)
                 app.register_blueprint(activities)
-                app.register_blueprint(tutorial)
+                app.register_blueprint(tutorial_bp)
 
                 # Register error handlers
                 @app.errorhandler(404)
