@@ -218,6 +218,46 @@ class InteractiveConsole {
         await this.poll();
     }
 
+    async sendInput(input) {
+        if (!this.sessionId || !this.isSessionValid) {
+            console.error('Cannot send input: invalid session');
+            return;
+        }
+
+        try {
+            console.log('Sending input:', input);
+            const response = await fetch('/activities/send_input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': this.csrfToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    input
+                })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to send input');
+            }
+
+            // Reset input field but keep session valid
+            this.inputElement.value = '';
+            this.inputElement.focus();
+
+            // Don't disable input immediately, wait for next poll
+            // This ensures we catch any immediate program output
+            this.currentPollInterval = this.baseDelay;
+            await this.poll(); // Immediate poll to catch the response
+        } catch (error) {
+            console.error('Error sending input:', error);
+            this.appendToConsole('Error: Failed to send input', 'error');
+        }
+    }
+
     async poll() {
         if (!this.sessionId || !this.isSessionValid) {
             console.log('Poll skipped - invalid session');
@@ -262,6 +302,9 @@ class InteractiveConsole {
                 this.appendToConsole(data.output);
                 this.emptyPollCount = 0;
 
+                // Reset poll interval when we get output
+                this.currentPollInterval = this.baseDelay;
+
                 // If output contains input prompt, force input state
                 if (data.output.includes('Enter') || data.output.includes('Input')) {
                     data.waiting_for_input = true;
@@ -293,20 +336,20 @@ class InteractiveConsole {
                     this.inputLine.style.display = 'flex';
                     this.inputElement.focus();
                 } else {
-                    // If disabling, wait to confirm it's not a false negative
+                    // Only disable input if we've received all output
                     this.stateUpdateTimer = setTimeout(() => {
-                        // Only disable if we haven't received new input requests
-                        if (!this.isWaitingForInput) {
+                        // Double check we're not waiting for more output
+                        if (!this.isWaitingForInput && this.emptyPollCount > 1) {
                             this.setInputState(false);
                         }
-                    }, 1000); // Wait 1 second before disabling
+                    }, 2000); // Longer wait to ensure we catch all output
                 }
             }
 
-            // Adjust polling interval based on state
+            // Adjust polling interval based on state and output
             const nextPollDelay = this.isWaitingForInput ? 2000 : // Longer delay when waiting for input
-                this.emptyPollCount > this.maxEmptyPolls ? 1000 :
-                    this.currentPollInterval;
+                this.emptyPollCount > this.maxEmptyPolls ? 1000 : // Medium delay when no output
+                    this.currentPollInterval; // Base delay when actively receiving output
 
             if (this.isSessionValid) {
                 console.log(`Scheduling next poll with interval: ${nextPollDelay}ms`);
@@ -399,38 +442,6 @@ class InteractiveConsole {
         this.inputElement.addEventListener('blur', handleBlur);
     }
 
-    async sendInput(input) {
-        if (!this.sessionId || !this.isSessionValid) {
-            console.error('Cannot send input: invalid session');
-            return;
-        }
-
-        try {
-            const response = await fetch('/activities/send_input', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': this.csrfToken
-                },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    session_id: this.sessionId,
-                    input
-                })
-            });
-
-            const data = await response.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to send input');
-            }
-
-            this.inputElement.value = '';
-            this.inputElement.focus();
-        } catch (error) {
-            console.error('Error sending input:', error);
-            this.appendToConsole('Error: Failed to send input', 'error');
-        }
-    }
 
     setInputState(enabled) {
         if (!this.inputElement) {
