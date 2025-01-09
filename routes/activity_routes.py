@@ -22,27 +22,17 @@ session_lock = Lock()
 @limiter.limit("30 per minute")
 def start_session():
     """Start a new interactive coding session"""
-    logger.debug("Received start_session request")
-
     if not request.is_json:
-        logger.error("Invalid request format - not JSON")
-        response = jsonify({'success': False, 'error': 'Invalid request format'})
-        response.headers['Content-Type'] = 'application/json'
-        return response, 400
+        return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
     try:
         data = request.get_json()
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
-        logger.debug(f"Processing start_session: language={language}, code length={len(code)}")
 
         if not code:
-            logger.error("Empty code submission")
-            response = jsonify({'success': False, 'error': 'Code cannot be empty'})
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
-        # Create unique session directory
         session_id = str(time.time())
         session_dir = os.path.join(os.getcwd(), 'temp', session_id)
         os.makedirs(session_dir, exist_ok=True)
