@@ -148,61 +148,60 @@ def get_output():
         output = []
         waiting_for_input = False
 
-        try:
-            # Check if process has terminated
-            if process.poll() is not None:
-                logger.debug(f"Process terminated for session {session_id}")
-                stdout, stderr = process.communicate()
-                if stdout:
-                    output.append(stdout)
-                if stderr:
-                    output.append(stderr)
-                cleanup_session(session_id)
-                return jsonify({
-                    'success': True,
-                    'output': ''.join(output),
-                    'session_ended': True
-                })
-
-            # Read available output with a short timeout
-            reads = [process.stdout, process.stderr]
-            logger.debug("Checking for available output...")
-
-            try:
-                readable, _, _ = select.select(reads, [], [], 0.1)
-
-                for pipe in readable:
-                    while True:
-                        line = pipe.readline()
-                        if not line:
-                            break
-                        logger.debug(f"Read output from process: {line.strip()}")
-                        output.append(line)
-                        # Check for input prompts
-                        lower_line = line.lower()
-                        if any(prompt in lower_line for prompt in [
-                            'input', 'enter', 'type', '?', ':', '>',
-                            'cin', 'cin >>', 'console.readline', 'console.read'
-                        ]):
-                            waiting_for_input = True
-                            session['waiting_for_input'] = True
-            except select.error as e:
-                logger.error(f"Select error: {e}")
-                return jsonify({'success': False, 'error': 'Failed to read output'}), 500
-
-            session['last_activity'] = time.time()
-            response = jsonify({
+        # Check if process has terminated
+        if process.poll() is not None:
+            logger.debug(f"Process terminated for session {session_id}")
+            stdout, stderr = process.communicate()
+            if stdout:
+                output.append(stdout)
+            if stderr:
+                output.append(stderr)
+            cleanup_session(session_id)
+            return jsonify({
                 'success': True,
-                'output': ''.join(output) if output else '',
-                'waiting_for_input': waiting_for_input,
-                'session_ended': False
+                'output': ''.join(output),
+                'session_ended': True
             })
-            response.headers['Content-Type'] = 'application/json'
-            return response
 
-        except Exception as e:
-            logger.error(f"Error in get_output: {str(e)}", exc_info=True)
-            return jsonify({'success': False, 'error': str(e)}), 500
+        # Read available output with a short timeout
+        reads = [process.stdout, process.stderr]
+        logger.debug("Checking for available output...")
+
+        try:
+            readable, _, _ = select.select(reads, [], [], 0.1)
+            logger.debug(f"Readable pipes: {len(readable)}")
+
+            for pipe in readable:
+                logger.debug("Reading from pipe...")
+                while True:
+                    line = pipe.readline()
+                    if not line:
+                        break
+                    logger.debug(f"Read line from process: {line.strip()}")
+                    output.append(line)
+                    # Check for input prompts
+                    lower_line = line.lower()
+                    if any(prompt in lower_line for prompt in [
+                        'input', 'enter', 'type', '?', ':', '>',
+                        'cin', 'cin >>', 'console.readline', 'console.read'
+                    ]):
+                        logger.debug("Input prompt detected")
+                        waiting_for_input = True
+                        session['waiting_for_input'] = True
+        except select.error as e:
+            logger.error(f"Select error: {e}")
+            return jsonify({'success': False, 'error': 'Failed to read output'}), 500
+
+        session['last_activity'] = time.time()
+        response = jsonify({
+            'success': True,
+            'output': ''.join(output) if output else '',
+            'waiting_for_input': waiting_for_input,
+            'session_ended': False
+        })
+        logger.debug(f"Sending response: {response.get_json()}")
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
