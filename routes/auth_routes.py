@@ -240,4 +240,4 @@ def logout():
                     error_details=str(e),
                     user_id=user_id)
         flash('Erreur lors de la déconnexion', 'danger')
-        return redirect(url_for('index'))
+        return redirect(url_for('auth.index'))
