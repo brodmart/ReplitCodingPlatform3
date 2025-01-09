@@ -5,7 +5,9 @@ import subprocess
 import shutil
 from threading import Lock
 import atexit
+import fcntl
 from flask import Blueprint, render_template, request, jsonify, session
+from werkzeug.exceptions import RequestTimeout
 from database import db
 from models import CodingActivity
 from extensions import limiter
@@ -16,6 +18,58 @@ logger = logging.getLogger(__name__)
 # Store active sessions
 active_sessions = {}
 session_lock = Lock()
+
+# Create temp directory
+TEMP_DIR = os.path.join(os.getcwd(), 'temp')
+if not os.path.exists(TEMP_DIR):
+    os.makedirs(TEMP_DIR, exist_ok=True)
+    os.chmod(TEMP_DIR, 0o755)
+
+def log_api_request(start_time, client_ip, endpoint, status_code):
+    """Log API request details"""
+    duration = time.time() - start_time
+    logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")
+
+@activities.before_request
+def log_request():
+    """Store request start time for duration calculation"""
+    request.start_time = time.time()
+    if request.path.startswith('/activities/') and not request.path.endswith(('.html', '/')):
+        request.wants_json = True
+
+@activities.after_request
+def after_request(response):
+    """Log request details after completion"""
+    if hasattr(request, 'start_time') and request.endpoint:
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        log_api_request(
+            request.start_time,
+            client_ip,
+            request.endpoint,
+            response.status_code
+        )
+    return response
+
+@activities.errorhandler(Exception)
+def handle_exception(error):
+    """Global error handler for the blueprint"""
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    error_details = f"{type(error).__name__}: {str(error)}"
+    logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
+
+    if isinstance(error, RequestTimeout):
+        return jsonify({
+            'success': False,
+            'error': "The request took too long. Please try again."
+        }), 408
+
+    if getattr(request, 'wants_json', False) or request.is_json or request.headers.get('Accept') == 'application/json':
+        return jsonify({
+            'success': False,
+            'error': "An unexpected error occurred. Please try again."
+        }), 500
+
+    return render_template('error.html', error=error), 500
 
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
@@ -176,26 +230,24 @@ def get_output():
             })
 
         # Set stdout and stderr to non-blocking mode
-        import fcntl
-        import os
-
-        # Set non-blocking mode for stdout
-        if process.stdout:
-            fd = process.stdout.fileno()
-            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-
-        # Set non-blocking mode for stderr
-        if process.stderr:
-            fd = process.stderr.fileno()
-            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
         try:
+            # Set non-blocking mode for stdout
+            if process.stdout:
+                fd = process.stdout.fileno()
+                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+            # Set non-blocking mode for stderr
+            if process.stderr:
+                fd = process.stderr.fileno()
+                fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+                fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
             # Read from stdout (non-blocking)
             if process.stdout:
                 try:
-                    chunk = process.stdout.read1(1024)
+                    chunk = process.stdout.read(1024)
                     if chunk:
                         text = chunk.decode('utf-8', errors='replace')
                         logger.debug(f"Read stdout: {text}")
@@ -209,21 +261,21 @@ def get_output():
                             logger.debug("Input prompt detected")
                             waiting_for_input = True
                             session_data['waiting_for_input'] = True
-                except (IOError, BlockingIOError) as e:
-                    logger.debug(f"Non-blocking read from stdout: {e}")
+                except BlockingIOError:
+                    logger.debug("No data available from stdout")
                 except Exception as e:
                     logger.error(f"Error reading stdout: {e}", exc_info=True)
 
             # Read from stderr (non-blocking)
             if process.stderr:
                 try:
-                    chunk = process.stderr.read1(1024)
+                    chunk = process.stderr.read(1024)
                     if chunk:
                         text = chunk.decode('utf-8', errors='replace')
                         logger.debug(f"Read stderr: {text}")
                         output.append(text)
-                except (IOError, BlockingIOError) as e:
-                    logger.debug(f"Non-blocking read from stderr: {e}")
+                except BlockingIOError:
+                    logger.debug("No data available from stderr")
                 except Exception as e:
                     logger.error(f"Error reading stderr: {e}", exc_info=True)
 
@@ -459,47 +511,8 @@ def execute_code():
         return response, 500
 
 # Request logging and error handling
-@activities.before_request
-def before_request():
-    """Store request start time for duration calculation"""
-    request.start_time = time.time()
 
-@activities.after_request
-def after_request(response):
-    """Log request details after completion"""
-    if hasattr(request, 'start_time') and request.endpoint:
-        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        log_api_request(
-            request.start_time,
-            client_ip,
-            request.endpoint,
-            response.status_code
-        )
-    return response
 
-@activities.errorhandler(Exception)
-def handle_error(error):
-    """Global error handler for the blueprint with enhanced logging"""
-    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    error_details = f"{type(error).__name__}: {str(error)}"
-    logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
-
-    if isinstance(error, RequestTimeout):
-        response = jsonify({
-            'success': False,
-            'error': "The request took too long. Please try again."
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, 408
-
-    response = jsonify({
-        'success': False,
-        'error': "An unexpected error occurred. Please try again."
-    })
-    response.headers['Content-Type'] = 'application/json'
-    return response, 500
-
-# Activity list and view routes
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
 @limiter.limit("30 per minute")
@@ -650,28 +663,3 @@ def compile_and_run(code, language, input_data=None):
         # Cleanup temporary files if compilation fails
         if 'session_id' not in locals():
             shutil.rmtree(session_dir, ignore_errors=True)
-
-TEMP_DIR = os.path.join(os.getcwd(), 'temp')
-if not os.path.exists(TEMP_DIR):
-    os.makedirs(TEMP_DIR, exist_ok=True)
-    os.chmod(TEMP_DIR, 0o755)
-
-@activities.before_request
-def before_request():
-    """Ensure JSON responses for API endpoints"""
-    if request.path.startswith('/activities/') and not request.path.endswith(('.html', '/')):
-        request.wants_json = True
-
-@activities.errorhandler(Exception)
-def handle_error(error):
-    """Global error handler for the blueprint"""
-    if getattr(request, 'wants_json', False) or request.is_json or request.headers.get('Accept') == 'application/json':
-        response = jsonify({
-            'success': False,
-            'error': str(error)
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, getattr(error, 'code', 500)
-
-    # For regular web routes, return HTML response
-    return render_template('error.html', error=error), 500
