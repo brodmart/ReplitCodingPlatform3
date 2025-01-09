@@ -112,16 +112,21 @@ class InteractiveConsole {
                 await this.endSession();
             }
 
-            // Clear the console
+            // Clear the console and show status
             this.outputElement.innerHTML = '';
             this.appendToConsole("Compiling and running code...\n", 'system');
 
             // Start new session
             const success = await this.startSession(code, language);
+
             if (!success) {
                 this.appendToConsole("Failed to start program execution.\n", 'error');
+                return false;
             }
-            return success;
+
+            // Start polling for output immediately
+            this.poll();
+            return true;
 
         } catch (error) {
             this.appendToConsole(`Error: ${error.message}\n`, 'error');
@@ -144,21 +149,22 @@ class InteractiveConsole {
             });
 
             const data = await response.json();
+
             if (!response.ok) {
                 this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
                 return false;
             }
 
-            if (data.success) {
-                this.sessionId = data.session_id;
-                this.isSessionValid = true;
-                this.pollRetryCount = 0;
-                this.poll();
-                return true;
-            } else {
+            if (!data.success) {
                 this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
                 return false;
             }
+
+            this.sessionId = data.session_id;
+            this.isSessionValid = true;
+            this.pollRetryCount = 0;
+            return true;
+
         } catch (error) {
             this.appendToConsole(`Error: ${error.message}\n`, 'error');
             return false;
