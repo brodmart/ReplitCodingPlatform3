@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
-    const runButton = document.getElementById('runButton');
+    let runButton = document.getElementById('runButton');
     const clearConsoleButton = document.getElementById('clearConsole');
     const consoleOutput = document.getElementById('consoleOutput');
 
@@ -41,10 +41,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setExecutionState(executing) {
         isExecuting = executing;
-        runButton.disabled = executing;
-        runButton.innerHTML = executing ? 
-            `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...` :
-            (document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run');
+        if (runButton) {
+            runButton.disabled = executing;
+            runButton.innerHTML = executing ? 
+                `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...` :
+                (document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run');
+        }
     }
 
     function initializeConsole() {
@@ -146,24 +148,34 @@ namespace ProgrammingActivity
         }
     }
 
-    // Run button handler - ensure proper binding
-    if (runButton) {
-        // Remove any existing event listeners
-        const newRunButton = runButton.cloneNode(true);
-        runButton.parentNode.replaceChild(newRunButton, runButton);
-        runButton = newRunButton;
+    // Run button handler setup
+    function setupRunButton() {
+        if (runButton) {
+            // Remove existing listeners
+            const newButton = runButton.cloneNode(true);
+            if (runButton.parentNode) {
+                runButton.parentNode.replaceChild(newButton, runButton);
+            }
+            runButton = newButton;
 
-        // Add new event listener
-        runButton.addEventListener('click', () => executeCode());
-
-        // Add keyboard shortcut for running code
-        document.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
+            // Add new listener
+            runButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 executeCode();
-            }
-        });
+            });
+        }
     }
+
+    // Initial setup
+    setupRunButton();
+
+    // Keyboard shortcut for running code
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
+            e.preventDefault();
+            executeCode();
+        }
+    });
 
     // Clear console handler
     if (clearConsoleButton) {
