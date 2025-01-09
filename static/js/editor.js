@@ -36,31 +36,16 @@ async function ensureConsoleInitialized() {
             throw new Error("Failed to initialize console after multiple attempts");
         }
         initRetries++;
-        consoleInstance = initializeConsole();
+        const instance = new InteractiveConsole({
+            lang: document.documentElement.lang || 'en'
+        });
+        consoleInstance = instance;
         const isReady = await waitForConsoleReady();
         if (!isReady) {
             throw new Error("Console initialization timed out");
         }
     }
     return consoleInstance;
-}
-
-function initializeConsole() {
-    try {
-        if (!window.InteractiveConsole) {
-            throw new Error('Console component not loaded');
-        }
-        const instance = new InteractiveConsole({
-            lang: document.documentElement.lang || 'en'
-        });
-        return instance;
-    } catch (error) {
-        const consoleOutput = document.getElementById('consoleOutput');
-        if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
-        }
-        return null;
-    }
 }
 
 function getTemplateForLanguage(language) {
@@ -118,15 +103,12 @@ window.executeCode = async function() {
         setExecutionState(true);
         lastExecution = Date.now();
 
-        // Ensure console is ready
-        const console = await ensureConsoleInitialized();
-        if (!console) {
-            throw new Error("Failed to initialize console");
-        }
+        // Initialize console if needed
+        consoleInstance = await ensureConsoleInitialized();
 
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
-        await console.executeCode(code, language);
+        await consoleInstance.executeCode(code, language);
 
     } catch (error) {
         console.error('Error executing code:', error);
@@ -172,13 +154,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
     });
-
-    // Initialize console with retry mechanism
-    try {
-        consoleInstance = await ensureConsoleInitialized();
-    } catch (error) {
-        console.error('Failed to initialize console:', error);
-    }
 
     // Set initial template
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';

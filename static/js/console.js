@@ -33,7 +33,10 @@ class InteractiveConsole {
         this.executionPromise = null;
 
         this.setupEventListeners();
-        this.isInitialized = true;
+        // Mark as initialized after setup is complete
+        setTimeout(() => {
+            this.isInitialized = true;
+        }, 100);
     }
 
     setupEventListeners() {
@@ -52,7 +55,7 @@ class InteractiveConsole {
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && !this.cleanupInProgress && !this.isBusy;
+        return this.isInitialized && this.csrfToken && !this.cleanupInProgress;
     }
 
     setInputState(waiting) {
@@ -93,7 +96,6 @@ class InteractiveConsole {
         this.cleanupInProgress = true;
 
         try {
-            // Ensure cleanup is complete before starting new session
             await this.endSession();
             this.outputElement.innerHTML = '';
 
@@ -104,7 +106,6 @@ class InteractiveConsole {
                 throw new Error("Failed to start program execution");
             }
 
-            // Small delay to ensure session is established
             await new Promise(resolve => setTimeout(resolve, 100));
             this.startPolling();
             return true;
@@ -115,6 +116,7 @@ class InteractiveConsole {
         } finally {
             this.executionPromise = null;
             this.cleanupInProgress = false;
+            this.isBusy = false;
         }
     }
 
