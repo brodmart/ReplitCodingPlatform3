@@ -2,21 +2,20 @@
  * Interactive Console class for handling real-time program I/O
  */
 class InteractiveConsole {
-    constructor(options = {}) {
+    constructor() {
         this.outputElement = null;
         this.inputElement = null;
         this.inputLine = null;
         this.sessionId = null;
         this.isWaitingForInput = false;
-        this.lang = options.lang || 'en';
-        this.pollRetryCount = 0;
-        this.maxRetries = 3;
-        this.baseDelay = 100;
         this.isSessionValid = false;
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
         this.polling = false;
+        this.pollRetryCount = 0;
+        this.maxRetries = 3;
+        this.baseDelay = 100;
 
         // Get CSRF token
         const metaToken = document.querySelector('meta[name="csrf-token"]');
@@ -43,9 +42,9 @@ class InteractiveConsole {
 
     async findElements() {
         return new Promise((resolve, reject) => {
+            let retryCount = 0;
             const maxRetries = 10;
             const retryDelay = 100;
-            let retryCount = 0;
 
             const findElements = () => {
                 this.outputElement = document.getElementById('consoleOutput');
@@ -58,11 +57,11 @@ class InteractiveConsole {
                         setTimeout(findElements, retryDelay);
                         return;
                     }
-                    reject(new Error('Console elements not found after maximum retries'));
+                    reject(new Error('Console elements not found'));
                     return;
                 }
 
-                // Set initial visibility
+                // Ensure elements are visible
                 this.outputElement.style.display = 'block';
                 this.inputElement.style.display = 'block';
                 this.inputLine.style.display = 'flex';
@@ -79,8 +78,6 @@ class InteractiveConsole {
         }
         if (this.inputElement) {
             this.inputElement.value = '';
-        }
-        if (this.inputLine) {
             this.inputElement.disabled = true;
         }
 
@@ -112,7 +109,7 @@ class InteractiveConsole {
         this.isBusy = true;
 
         try {
-            // Clean up existing session
+            // Clean up any existing session
             await this.endSession();
             this.cleanupConsole();
 
@@ -134,8 +131,6 @@ class InteractiveConsole {
     }
 
     async startSession(code, language) {
-        console.log('Starting new session:', { language, codeLength: code.length });
-
         try {
             const response = await fetch('/activities/start_session', {
                 method: 'POST',
@@ -152,8 +147,6 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-            console.log("Session start response:", data);
-
             if (!data.success) {
                 throw new Error(data.error || "Failed to start session");
             }
@@ -170,7 +163,6 @@ class InteractiveConsole {
 
     async startPolling() {
         if (!this.sessionId || !this.isSessionValid) {
-            console.log('Session not valid for polling');
             return;
         }
 
@@ -179,19 +171,15 @@ class InteractiveConsole {
             this.pollTimer = null;
         }
 
-        // Initial delay before starting to poll
-        await new Promise(resolve => setTimeout(resolve, 100));
         await this.poll();
     }
 
     async poll() {
         if (!this.sessionId || !this.isSessionValid) {
-            console.log('Poll skipped - invalid session');
             return;
         }
 
         if (this.polling) {
-            console.log('Poll skipped - already polling');
             return;
         }
 
@@ -225,7 +213,6 @@ class InteractiveConsole {
             this.isWaitingForInput = data.waiting_for_input;
             this.setInputState(data.waiting_for_input);
 
-            // Schedule next poll if session is still valid
             if (this.isSessionValid) {
                 this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
             }
@@ -239,33 +226,25 @@ class InteractiveConsole {
 
     handlePollError(error) {
         this.pollRetryCount++;
-        console.error(`Poll error (attempt ${this.pollRetryCount}/${this.maxRetries}):`, error);
-
         if (this.pollRetryCount >= this.maxRetries) {
-            console.log('Max retries reached, ending session');
             this.isSessionValid = false;
             this.endSession();
             return;
         }
 
         const delay = this.baseDelay * Math.pow(2, this.pollRetryCount);
-        console.log(`Retrying poll in ${delay}ms`);
         this.pollTimer = setTimeout(() => this.poll(), delay);
     }
 
     async endSession() {
-        if (!this.sessionId && !this.pollTimer) {
-            return;
+        if (this.pollTimer) {
+            clearTimeout(this.pollTimer);
+            this.pollTimer = null;
         }
 
-        try {
-            if (this.pollTimer) {
-                clearTimeout(this.pollTimer);
-                this.pollTimer = null;
-            }
-
-            if (this.sessionId) {
-                const response = await fetch('/activities/end_session', {
+        if (this.sessionId) {
+            try {
+                await fetch('/activities/end_session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -274,16 +253,12 @@ class InteractiveConsole {
                     credentials: 'same-origin',
                     body: JSON.stringify({ session_id: this.sessionId })
                 });
-
-                if (!response.ok) {
-                    console.error('Failed to end session:', response.status);
-                }
+            } catch (error) {
+                console.error("Error ending session:", error);
             }
-        } catch (error) {
-            console.error("Error ending session:", error);
-        } finally {
-            this.cleanupConsole();
         }
+
+        this.cleanupConsole();
     }
 
     setInputState(waiting) {
@@ -319,7 +294,7 @@ class InteractiveConsole {
                 const inputText = this.inputElement.value.trim();
                 if (inputText) {
                     this.appendToConsole(inputText, 'input');
-                    await this.sendInput(inputText);
+                    await this.sendInput(inputText + '\n');
                 }
             }
         };
@@ -351,7 +326,7 @@ class InteractiveConsole {
                 credentials: 'same-origin',
                 body: JSON.stringify({
                     session_id: this.sessionId,
-                    input: input + '\n'
+                    input
                 })
             });
 
