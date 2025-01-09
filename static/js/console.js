@@ -3,20 +3,15 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        this.initialized = false;
-        this.initializationAttempts = 0;
-        this.maxInitAttempts = 3;
-        this.sessionValid = false;
-        this.initPromise = null;
         const maxRetries = 10;
         const retryDelay = 100;
         let retryCount = 0;
-
+        
         const findElements = () => {
             this.outputElement = document.getElementById('consoleOutput');
             this.inputElement = document.getElementById('consoleInput');
             this.inputLine = document.querySelector('.console-input-line');
-
+            
             if (!this.outputElement || !this.inputElement || !this.inputLine) {
                 if (retryCount < maxRetries) {
                     retryCount++;
@@ -25,19 +20,18 @@ class InteractiveConsole {
                 }
                 throw new Error('Console elements not found after maximum retries');
             }
-
+            
             // Force display after finding elements
             this.outputElement.style.display = 'block';
             this.inputElement.style.display = 'block';
             this.inputLine.style.display = 'flex';
-
+            
             // Force reflow
             this.outputElement.offsetHeight;
             this.inputElement.offsetHeight;
             this.inputLine.offsetHeight;
-            return true;
         };
-
+        
         findElements();
 
         // Get CSRF token
@@ -64,57 +58,71 @@ class InteractiveConsole {
         this.init();
     }
 
-    async init() {
-        if (this.initPromise) {
-            return this.initPromise;
-        }
+    init() {
+        return new Promise((resolve, reject) => {
+            const maxAttempts = 5;
+            let attempts = 0;
 
-        this.initPromise = new Promise(async (resolve, reject) => {
-            try {
-                while (!this.initialized && this.initializationAttempts < this.maxInitAttempts) {
-                    this.initializationAttempts++;
-                    const elements = await this.findElements();
-                    if (elements) {
-                        this.setupEventListeners();
-                        this.initialized = true;
-                        this.sessionValid = true;
-                        resolve(true);
+            const tryInit = () => {
+                try {
+                    if (!this.outputElement || !this.inputLine || !this.inputElement) {
+                        if (attempts >= maxAttempts) {
+                            reject(new Error('Required elements not found after maximum attempts'));
+                            return;
+                        }
+                        attempts++;
+                        setTimeout(tryInit, 200);
                         return;
                     }
-                    await new Promise(r => setTimeout(r, 100));
+
+                    // Reset and force visibility immediately
+                    this.cleanupConsole();
+                    this.outputElement.style.display = 'block';
+                    this.inputLine.style.display = 'flex';
+                    this.inputElement.style.display = 'block';
+                    this.inputElement.style.visibility = 'visible';
+                    
+                    // Force browser reflow
+                    this.outputElement.offsetHeight;
+                    this.inputLine.offsetHeight;
+                    this.inputElement.offsetHeight;
+
+            // Setup event listeners
+            this.setupEventListeners();
+            this.setInputState(false);
+
+            // Ensure visibility persists
+            requestAnimationFrame(() => {
+                this.outputElement.style.display = 'block';
+                this.inputLine.style.display = 'flex';
+                this.inputElement.style.display = 'block';
+                this.inputElement.style.visibility = 'visible';
+
+                // Mark as initialized
+                this.isInitialized = true;
+            });
+
+            // Set up visibility check interval
+                    setInterval(() => {
+                        if (this.outputElement && this.inputLine && this.inputElement) {
+                            this.outputElement.style.display = 'block';
+                            this.inputLine.style.display = 'flex';
+                            this.inputElement.style.display = 'block';
+                            this.inputElement.style.visibility = 'visible';
+                        }
+                    }, 100);
+
+                    console.log('Console initialized successfully');
+                    this.isInitialized = true;
+                    resolve();
+                } catch (error) {
+                    console.error('Failed to initialize console:', error);
+                    reject(error);
                 }
-                if (!this.initialized) {
-                    throw new Error('Failed to initialize console after multiple attempts');
-                }
-            } catch (error) {
-                console.error('Failed to initialize console:', error);
-                reject(error);
-            }
+            };
+            tryInit();
         });
-        return this.initPromise;
     }
-
-    findElements() {
-        return new Promise(resolve => {
-            const maxRetries = 10;
-            let retryCount = 0;
-            const intervalId = setInterval(() => {
-                this.outputElement = document.getElementById('consoleOutput');
-                this.inputElement = document.getElementById('consoleInput');
-                this.inputLine = document.querySelector('.console-input-line');
-
-                if (this.outputElement && this.inputElement && this.inputLine) {
-                    clearInterval(intervalId);
-                    resolve(true);
-                } else if (retryCount >= maxRetries) {
-                    clearInterval(intervalId);
-                    resolve(false);
-                }
-                retryCount++;
-            }, 100);
-        });
-    }
-
 
     cleanupConsole() {
         if (this.outputElement) {
@@ -208,13 +216,9 @@ class InteractiveConsole {
     }
 
     async executeCode(code, language) {
-        if (!this.initialized) {
-            await this.init();
-            if (!this.initialized){
-                throw new Error("Console failed to initialize");
-            }
+        if (!this.isInitialized) {
+            throw new Error("Console not initialized");
         }
-
 
         if (!code?.trim()) {
             throw new Error("No code to execute");
