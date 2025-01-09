@@ -37,37 +37,36 @@ class InteractiveConsole {
     }
 
     init() {
-        try {
-            // Ensure DOM is ready
-            if (!this.outputElement || !this.inputLine || !this.inputElement) {
-                throw new Error('Required elements not found');
-            }
+        return new Promise((resolve, reject) => {
+            try {
+                // Wait for DOM
+                if (!this.outputElement || !this.inputLine || !this.inputElement) {
+                    reject(new Error('Required elements not found'));
+                    return;
+                }
 
-            // Reset state first
-            this.cleanupConsole();
-            
-            // Force visibility state immediately
-            this.outputElement.style.display = 'block';
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
-            this.inputElement.style.visibility = 'visible';
-            
-            // Setup event listeners
-            this.setupEventListeners();
-
-            // Set initial state
-            this.setInputState(false);
-
-            // Double-check visibility after state changes
-            setTimeout(() => {
+                // Reset and force visibility immediately
+                this.cleanupConsole();
                 this.outputElement.style.display = 'block';
                 this.inputLine.style.display = 'flex';
                 this.inputElement.style.display = 'block';
                 this.inputElement.style.visibility = 'visible';
-            }, 0);
+                
+                // Setup event listeners
+                this.setupEventListeners();
+                this.setInputState(false);
 
-            // Mark as initialized
-            this.isInitialized = true;
+                // Ensure visibility persists
+                requestAnimationFrame(() => {
+                    this.outputElement.style.display = 'block';
+                    this.inputLine.style.display = 'flex';
+                    this.inputElement.style.display = 'block';
+                    this.inputElement.style.visibility = 'visible';
+                    
+                    // Mark as initialized and resolve
+                    this.isInitialized = true;
+                    resolve();
+                });
 
             console.log('Console initialized successfully');
         } catch (error) {
@@ -77,20 +76,22 @@ class InteractiveConsole {
     }
 
     cleanupConsole() {
-        if (this.outputElement) {
-            this.outputElement.innerHTML = '';
-        }
-        if (this.inputElement) {
-            this.inputElement.value = '';
-        }
-        // Always maintain visibility
+        this.outputElement.innerHTML = '';
+        this.inputElement.value = '';
+        
+        // Force visibility state
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
+        this.inputElement.style.visibility = 'visible';
         this.inputElement.disabled = true;
+        
+        // Reset state
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.isSessionValid = false;
         this.pollRetryCount = 0;
+        
+        // Clear any pending polls
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
             this.pollTimer = null;
