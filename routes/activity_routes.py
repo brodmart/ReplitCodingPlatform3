@@ -178,37 +178,43 @@ def get_output():
 
             for pipe in readable:
                 logger.debug("Reading from pipe...")
-                chunk = pipe.read1(1024).decode('utf-8')
-                if chunk:
-                    logger.debug(f"Read chunk from process: {chunk}")
-                    output.append(chunk)
-                    # Check for input prompts
-                    lower_chunk = chunk.lower()
-                    if any(prompt in lower_chunk for prompt in [
-                        'input', 'enter', 'type', '?', ':', '>',
-                        'cin', 'cin >>', 'console.readline', 'console.read'
-                    ]):
-                        logger.debug("Input prompt detected")
-                        waiting_for_input = True
-                        session['waiting_for_input'] = True
+                try:
+                    # Use readline() instead of read1() for text streams
+                    line = pipe.readline()
+                    if line:
+                        logger.debug(f"Read line from process: {line}")
+                        output.append(line)
+                        # Check for input prompts
+                        lower_line = line.lower()
+                        if any(prompt in lower_line for prompt in [
+                            'input', 'enter', 'type', '?', ':', '>',
+                            'cin', 'cin >>', 'console.readline', 'console.read'
+                        ]):
+                            logger.debug("Input prompt detected")
+                            waiting_for_input = True
+                            session['waiting_for_input'] = True
+                except Exception as read_error:
+                    logger.error(f"Error reading from pipe: {read_error}")
+                    continue
+
+            session['last_activity'] = time.time()
+            final_output = ''.join(output)
+            logger.debug(f"Sending response - Output: {final_output}, Waiting for input: {waiting_for_input}")
+
+            response = jsonify({
+                'success': True,
+                'output': final_output,
+                'waiting_for_input': waiting_for_input,
+                'session_ended': False
+            })
+            response.headers['Content-Type'] = 'application/json'
+            return response
 
         except select.error as e:
             logger.error(f"Select error: {e}")
             return jsonify({'success': False, 'error': 'Failed to read output'}), 500
 
-        session['last_activity'] = time.time()
-        final_output = ''.join(output)
-        logger.debug(f"Sending response - Output: {final_output}, Waiting for input: {waiting_for_input}")
-
-        response = jsonify({
-            'success': True,
-            'output': final_output,
-            'waiting_for_input': waiting_for_input,
-            'session_ended': False
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response
-
+        
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
