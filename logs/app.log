@@ -6286,3 +6286,170 @@ NameError: name 'Timer' is not defined
 2025-01-09 19:31:08,998 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:31:08] "GET /?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
 2025-01-09 19:31:09,002 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:31:09] "GET /?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
 2025-01-09 19:31:09,045 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:31:09] "GET /?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+2025-01-09 19:42:03,594 - app - INFO - Logging configured successfully
+2025-01-09 19:42:03,594 - app - INFO - Logging configured successfully
+2025-01-09 19:42:04,663 - database - INFO - Database connection established successfully
+2025-01-09 19:42:04,684 - database - INFO - Database tables created successfully
+2025-01-09 19:42:04,766 - database - INFO - Database connection test successful
+2025-01-09 19:42:04,774 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:42:04,774 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:42:04,774 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:42:04,776 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:42:04,782 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:42:04,782 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:42:04,783 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:42:04,809 - app - INFO - Application initialized successfully
+2025-01-09 19:42:04,809 - app - INFO - Application initialized successfully
+2025-01-09 19:42:04,809 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:42:04,820 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.11:5000
+2025-01-09 19:42:04,820 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-09 19:42:04,821 - werkzeug - INFO -  * Restarting with stat
+2025-01-09 19:42:05,423 - app - INFO - Logging configured successfully
+2025-01-09 19:42:05,423 - app - INFO - Logging configured successfully
+2025-01-09 19:42:05,779 - database - INFO - Database connection established successfully
+2025-01-09 19:42:05,800 - database - INFO - Database tables created successfully
+2025-01-09 19:42:05,879 - database - INFO - Database connection test successful
+2025-01-09 19:42:05,882 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:42:05,883 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:42:05,883 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:42:05,883 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:42:05,885 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:42:05,885 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:42:05,885 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:42:05,912 - app - INFO - Application initialized successfully
+2025-01-09 19:42:05,912 - app - INFO - Application initialized successfully
+2025-01-09 19:42:05,913 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:42:05,916 - werkzeug - WARNING -  * Debugger is active!
+2025-01-09 19:42:05,918 - werkzeug - INFO -  * Debugger PIN: 634-874-147
+2025-01-09 19:42:06,387 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:06] "GET / HTTP/1.1" 200 -
+2025-01-09 19:42:06,406 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:06] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-09 19:42:06,476 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:06] "GET /codingmountains.webp HTTP/1.1" 200 -
+2025-01-09 19:42:06,482 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:06] "GET /js/console.js HTTP/1.1" 200 -
+2025-01-09 19:42:06,490 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:06] "GET /js/editor.js HTTP/1.1" 200 -
+2025-01-09 19:42:26,613 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/static_routes.py', reloading
+2025-01-09 19:42:26,736 - werkzeug - INFO -  * Restarting with stat
+2025-01-09 19:42:27,254 - app - INFO - Logging configured successfully
+2025-01-09 19:42:27,254 - app - INFO - Logging configured successfully
+2025-01-09 19:42:27,650 - database - INFO - Database connection established successfully
+2025-01-09 19:42:27,671 - database - INFO - Database tables created successfully
+2025-01-09 19:42:27,755 - database - INFO - Database connection test successful
+2025-01-09 19:42:27,758 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:42:27,758 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:42:27,759 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:42:27,762 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:42:27,763 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:42:27,763 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:42:27,763 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:42:27,793 - app - INFO - Application initialized successfully
+2025-01-09 19:42:27,793 - app - INFO - Application initialized successfully
+2025-01-09 19:42:27,795 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:42:27,799 - werkzeug - WARNING -  * Debugger is active!
+2025-01-09 19:42:27,801 - werkzeug - INFO -  * Debugger PIN: 706-424-382
+2025-01-09 19:42:41,943 - app - INFO - Logging configured successfully
+2025-01-09 19:42:41,943 - app - INFO - Logging configured successfully
+2025-01-09 19:42:42,326 - database - INFO - Database connection established successfully
+2025-01-09 19:42:42,348 - database - INFO - Database tables created successfully
+2025-01-09 19:42:42,433 - database - INFO - Database connection test successful
+2025-01-09 19:42:42,436 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:42:42,436 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:42:42,436 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:42:42,437 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:42:42,439 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:42:42,440 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:42:42,440 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:42:42,474 - app - INFO - Application initialized successfully
+2025-01-09 19:42:42,474 - app - INFO - Application initialized successfully
+2025-01-09 19:42:42,475 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:42:42,492 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.11:5000
+2025-01-09 19:42:42,493 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-09 19:42:42,495 - werkzeug - INFO -  * Restarting with stat
+2025-01-09 19:42:43,250 - app - INFO - Logging configured successfully
+2025-01-09 19:42:43,250 - app - INFO - Logging configured successfully
+2025-01-09 19:42:43,631 - database - INFO - Database connection established successfully
+2025-01-09 19:42:43,652 - database - INFO - Database tables created successfully
+2025-01-09 19:42:43,734 - database - INFO - Database connection test successful
+2025-01-09 19:42:43,738 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:42:43,739 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:42:43,739 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:42:43,740 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:42:43,742 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:42:43,743 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:42:43,743 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:42:43,772 - app - INFO - Application initialized successfully
+2025-01-09 19:42:43,772 - app - INFO - Application initialized successfully
+2025-01-09 19:42:43,773 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:42:43,776 - werkzeug - WARNING -  * Debugger is active!
+2025-01-09 19:42:43,777 - werkzeug - INFO -  * Debugger PIN: 353-746-174
+2025-01-09 19:42:43,823 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:43] "[32mGET / HTTP/1.1[0m" 302 -
+2025-01-09 19:42:43,891 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:43] "[35m[1mGET /auth/login HTTP/1.1[0m" 500 -
+2025-01-09 19:42:43,916 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:43] "GET /auth/login?__debugger__=yes&cmd=resource&f=style.css HTTP/1.1" 200 -
+2025-01-09 19:42:43,929 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:43] "GET /auth/login?__debugger__=yes&cmd=resource&f=debugger.js HTTP/1.1" 200 -
+2025-01-09 19:42:43,983 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:42:43] "GET /auth/login?__debugger__=yes&cmd=resource&f=console.png HTTP/1.1" 200 -
+2025-01-09 19:43:46,015 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/auth_routes.py', reloading
+2025-01-09 19:43:46,175 - werkzeug - INFO -  * Restarting with stat
+2025-01-09 19:43:46,872 - app - INFO - Logging configured successfully
+2025-01-09 19:43:46,872 - app - INFO - Logging configured successfully
+2025-01-09 19:43:47,261 - database - INFO - Database connection established successfully
+2025-01-09 19:43:47,283 - database - INFO - Database tables created successfully
+2025-01-09 19:43:47,368 - database - INFO - Database connection test successful
+2025-01-09 19:43:47,371 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:43:47,371 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:43:47,371 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:43:47,372 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:43:47,374 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:43:47,374 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:43:47,374 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:43:47,401 - app - INFO - Application initialized successfully
+2025-01-09 19:43:47,401 - app - INFO - Application initialized successfully
+2025-01-09 19:43:47,401 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:43:47,404 - werkzeug - WARNING -  * Debugger is active!
+2025-01-09 19:43:47,405 - werkzeug - INFO -  * Debugger PIN: 122-672-199
+2025-01-09 19:44:30,958 - werkzeug - INFO -  * Detected change in '/home/runner/workspace/routes/auth_routes.py', reloading
+2025-01-09 19:44:31,814 - app - INFO - Logging configured successfully
+2025-01-09 19:44:31,814 - app - INFO - Logging configured successfully
+2025-01-09 19:44:32,169 - database - INFO - Database connection established successfully
+2025-01-09 19:44:32,189 - database - INFO - Database tables created successfully
+2025-01-09 19:44:32,269 - database - INFO - Database connection test successful
+2025-01-09 19:44:32,271 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:44:32,271 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:44:32,272 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:44:32,273 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:44:32,274 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:44:32,274 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:44:32,274 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:44:32,301 - app - INFO - Application initialized successfully
+2025-01-09 19:44:32,301 - app - INFO - Application initialized successfully
+2025-01-09 19:44:32,302 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:44:32,314 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.31.196.11:5000
+2025-01-09 19:44:32,315 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-01-09 19:44:32,316 - werkzeug - INFO -  * Restarting with stat
+2025-01-09 19:44:32,844 - app - INFO - Logging configured successfully
+2025-01-09 19:44:32,844 - app - INFO - Logging configured successfully
+2025-01-09 19:44:33,204 - database - INFO - Database connection established successfully
+2025-01-09 19:44:33,225 - database - INFO - Database tables created successfully
+2025-01-09 19:44:33,305 - database - INFO - Database connection test successful
+2025-01-09 19:44:33,308 - extensions - INFO - Cache initialized successfully
+2025-01-09 19:44:33,308 - extensions - INFO - Compression initialized successfully
+2025-01-09 19:44:33,308 - extensions - INFO - CSRF protection initialized successfully
+2025-01-09 19:44:33,309 - extensions - INFO - Rate limiter initialized successfully
+2025-01-09 19:44:33,310 - extensions - INFO - Database migrations initialized successfully
+2025-01-09 19:44:33,311 - extensions - INFO - CORS initialized successfully
+2025-01-09 19:44:33,311 - extensions - INFO - All extensions initialized successfully
+2025-01-09 19:44:33,336 - app - INFO - Application initialized successfully
+2025-01-09 19:44:33,336 - app - INFO - Application initialized successfully
+2025-01-09 19:44:33,336 - __main__ - INFO - Starting Flask server on port 5000
+2025-01-09 19:44:33,339 - werkzeug - WARNING -  * Debugger is active!
+2025-01-09 19:44:33,348 - werkzeug - INFO -  * Debugger PIN: 111-719-590
+2025-01-09 19:44:33,387 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:44:33] "[32mGET / HTTP/1.1[0m" 302 -
+2025-01-09 19:44:33,418 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:44:33] "GET /auth/login HTTP/1.1" 200 -
+2025-01-09 19:44:33,441 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:44:33] "GET /css/style.css HTTP/1.1" 200 -
+2025-01-09 19:44:33,454 - werkzeug - INFO - 172.31.196.11 - - [09/Jan/2025 19:44:33] "GET /codingmountains.webp HTTP/1.1" 200 -

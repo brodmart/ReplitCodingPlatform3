@@ -53,6 +53,18 @@ def create_app():
         # Initialize extensions
         init_extensions(app, db)
 
+        # Setup Login Manager
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message = 'Please log in to access this page.'
+        login_manager.login_message_category = 'info'
+
+        @login_manager.user_loader
+        def load_user(user_id):
+            from models import User
+            return User.query.get(int(user_id))
+
         # Register blueprints
         from routes.auth_routes import auth
         from routes.activity_routes import activities
