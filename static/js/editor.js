@@ -43,7 +43,7 @@ async function ensureConsoleInitialized() {
             initRetries = 0;
             consoleInstance = null;
         }
-        
+
         // Wait for elements to exist
         const elementsExist = await ensureElementsExist();
         if (!elementsExist) {
