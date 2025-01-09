@@ -129,7 +129,7 @@ class InteractiveConsole {
             this.inputElement.style.display = 'block';
             this.inputElement.value = '';
 
-            // Ensure focus and visibility
+            // Ensure focus and scroll to bottom
             requestAnimationFrame(() => {
                 this.inputElement.focus();
                 this.outputElement.scrollTop = this.outputElement.scrollHeight;
@@ -262,10 +262,7 @@ class InteractiveConsole {
 
                 // Update input state based on server response
                 if (data.waiting_for_input) {
-                    // Ensure input is shown after output is displayed
-                    requestAnimationFrame(() => {
-                        this.setInputState(true);
-                    });
+                    this.setInputState(true);
                 } else {
                     this.setInputState(false);
                 }

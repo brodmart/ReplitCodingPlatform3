@@ -35,7 +35,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        overflow: hidden;
+        position: relative;
     }
     .console-output {
         flex-grow: 1;
@@ -48,8 +48,14 @@
     .console-input-line {
         display: flex;
         align-items: center;
-        padding: 5px 0;
-        border-top: 1px solid #2d2d2d;
+        padding: 5px 8px;
+        background-color: #2d2d2d;
+        border-top: 1px solid #3d3d3d;
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 10;
     }
     .console-prompt {
         color: #569cd6;
@@ -68,7 +74,7 @@
         padding: 4px 8px;
     }
     .console-input-field:focus {
-        background-color: #2d2d2d;
+        background-color: #3d3d3d;
     }
     .console-input {
         color: #569cd6;
@@ -81,12 +87,15 @@
         margin: 0;
         border: 1px solid #2d2d2d;
         background-color: #1e1e1e;
+        display: flex;
+        flex-direction: column;
     }
     .card-body {
-        height: calc(100% - 48px);
+        flex: 1;
         padding: 0;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
     .card-header {
         padding: 0.5rem 1rem;
@@ -135,11 +144,15 @@
             <div class="card">
                 <div class="card-header">
                     <span class="header-title">{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
+                    <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="console-container">
                         <div id="consoleOutput" class="console-output"></div>
                         <div class="console-input-line">
+                            <span class="console-prompt">&gt;</span>
                             <input type="text" id="consoleInput" class="console-input-field" 
                                    placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
                                    autocomplete="off"
@@ -160,75 +173,5 @@
 <!-- Load console.js first -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <!-- Then initialize the editor -->
-<script>
-// Wait for InteractiveConsole to be available
-window.addEventListener('load', function() {
-    const templates = {
-        'cpp': `#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    string name;
-    cout << "Enter your name: ";
-    getline(cin, name);
-    cout << "Hello, " << name << "!" << endl;
-    return 0;
-}`,
-        'csharp': `using System;
-
-namespace ProgrammingActivity
-{
-    class Program 
-    {
-        static void Main(string[] args)
-        {
-            Console.Write("Enter your name: ");
-            string name = Console.ReadLine();
-            Console.WriteLine($"Hello, {name}!");
-        }
-    }
-}`
-    };
-
-    // Initialize CodeMirror
-    const editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-        mode: document.getElementById("languageSelect").value === "cpp" ? "text/x-c++src" : "text/x-csharp",
-        theme: "dracula",
-        lineNumbers: true,
-        autoCloseBrackets: true,
-        matchBrackets: true,
-        indentUnit: 4,
-        tabSize: 4,
-        indentWithTabs: true,
-        extraKeys: {"Tab": "indentMore", "Shift-Tab": "indentLess"},
-        viewportMargin: Infinity
-    });
-
-    // Initialize Interactive Console after making sure it's available
-    const console = new InteractiveConsole({
-        lang: '{{ lang }}'
-    });
-
-    // Language change handler
-    document.getElementById("languageSelect").addEventListener("change", function() {
-        const language = this.value;
-        editor.setOption("mode", language === "cpp" ? "text/x-c++src" : "text/x-csharp");
-        editor.setValue(templates[language]);
-        editor.refresh();
-    });
-
-    // Set initial content
-    editor.setValue(templates[document.getElementById("languageSelect").value]);
-
-    // Execute code handler
-    document.getElementById("runButton").addEventListener("click", async function() {
-        const code = editor.getValue().trim();
-        if (!code) return;
-
-        const language = document.getElementById('languageSelect').value;
-        await console.executeCode(code, language);
-    });
-});
-</script>
+<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 {% endblock %}
