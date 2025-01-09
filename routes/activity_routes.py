@@ -164,46 +164,39 @@ def get_output():
                 if stderr:
                     output.append(stderr)
                 cleanup_session(session_id)
-                response = jsonify({
+                return jsonify({
                     'success': True,
                     'output': ''.join(output),
                     'session_ended': True
                 })
-                response.headers['Content-Type'] = 'application/json'
-                return response
 
-            # Read available output with longer timeout
+            # Read available output with a short timeout
             reads = [process.stdout, process.stderr]
-            readable, _, _ = select.select(reads, [], [], 0.5)  # Increased timeout
+            logger.debug("Checking for available output...")
 
-            for pipe in readable:
-                while True:  # Read all available output
-                    line = pipe.readline()
-                    if not line:
-                        break
-                    logger.debug(f"Read output from process: {line.strip()}")
-                    output.append(line)
-                    # Check for input prompts with more patterns
-                    lower_line = line.lower()
-                    if any(prompt in lower_line for prompt in [
-                        'input', 'enter', 'type', '?', ':', '>',
-                        'cin', 'cin >>', 'console.readline', 'console.read',
-                        'name', 'value', 'please'
-                    ]):
-                        waiting_for_input = True
-                        session['waiting_for_input'] = True
+            try:
+                readable, _, _ = select.select(reads, [], [], 0.1)
+
+                for pipe in readable:
+                    while True:
+                        line = pipe.readline()
+                        if not line:
+                            break
+                        logger.debug(f"Read output from process: {line.strip()}")
+                        output.append(line)
+                        # Check for input prompts
+                        lower_line = line.lower()
+                        if any(prompt in lower_line for prompt in [
+                            'input', 'enter', 'type', '?', ':', '>',
+                            'cin', 'cin >>', 'console.readline', 'console.read'
+                        ]):
+                            waiting_for_input = True
+                            session['waiting_for_input'] = True
+            except select.error as e:
+                logger.error(f"Select error: {e}")
+                return jsonify({'success': False, 'error': 'Failed to read output'}), 500
 
             session['last_activity'] = time.time()
-
-            # If no new output but previous output exists, include it
-            if not output and session.get('output_buffer'):
-                output = session['output_buffer']
-                session['output_buffer'] = []
-
-            # Store output for next poll if waiting for input
-            if waiting_for_input and output:
-                session['output_buffer'] = output
-
             response = jsonify({
                 'success': True,
                 'output': ''.join(output) if output else '',
@@ -215,15 +208,11 @@ def get_output():
 
         except Exception as e:
             logger.error(f"Error in get_output: {str(e)}", exc_info=True)
-            response = jsonify({'success': False, 'error': str(e)})
-            response.headers['Content-Type'] = 'application/json'
-            return response, 500
+            return jsonify({'success': False, 'error': str(e)}), 500
 
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
-        response = jsonify({'success': False, 'error': str(e)})
-        response.headers['Content-Type'] = 'application/json'
-        return response, 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def cleanup_old_sessions():
     """Clean up inactive sessions older than 30 minutes"""
