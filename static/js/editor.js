@@ -157,12 +157,30 @@ window.executeCode = async function() {
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-    let initAttempts = 0;
-    const maxAttempts = 5;
-    const initInterval = setInterval(async () => {
-        const editorElement = document.getElementById('editor');
-        const languageSelect = document.getElementById('languageSelect');
-        const consoleOutput = document.getElementById('consoleOutput');
+    // Wait for DOM to be fully ready
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    const waitForElements = async () => {
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        while (attempts < maxAttempts) {
+            const editorElement = document.getElementById('editor');
+            const languageSelect = document.getElementById('languageSelect');
+            const consoleOutput = document.getElementById('consoleOutput');
+            
+            if (editorElement && consoleOutput) {
+                return { editorElement, languageSelect, consoleOutput };
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 200));
+            attempts++;
+        }
+        throw new Error('Failed to find required elements');
+    };
+
+    try {
+        const { editorElement, languageSelect, consoleOutput } = await waitForElements();
 
         if (editorElement && consoleOutput && (!editor || !consoleInstance)) {
             clearInterval(initInterval);
@@ -217,6 +235,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.log('Console initialization complete');
     } catch (error) {
         console.error('Initial console initialization failed:', error);
+        // Retry initialization once
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            await ensureConsoleInitialized();
+        } catch (retryError) {
+            console.error('Retry initialization failed:', retryError);
+        }
     }
 
     // Set up event listeners after console is initialized
