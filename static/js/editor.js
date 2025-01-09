@@ -106,13 +106,8 @@ namespace ProgrammingActivity
 
 // Global executeCode function
 window.executeCode = async function() {
-    if (!editor || !consoleInstance?.initialized) {
-        console.error('Editor or console not fully initialized');
-        return;
-    }
-    
-    // Debounce rapid clicks
-    if (Date.now() - lastExecution < 1000) {
+    if (!editor) {
+        console.error('Editor not initialized');
         return;
     }
 

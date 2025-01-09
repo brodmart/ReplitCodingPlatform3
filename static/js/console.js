@@ -3,16 +3,14 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        this.initialized = false;
-        this.initPromise = new Promise((resolve, reject) => {
-            const maxRetries = 10;
-            const retryDelay = 100;
-            let retryCount = 0;
-
-            const findElements = () => {
-                this.outputElement = document.getElementById('consoleOutput');
-                this.inputElement = document.getElementById('consoleInput');
-                this.inputLine = document.querySelector('.console-input-line');
+        const maxRetries = 10;
+        const retryDelay = 100;
+        let retryCount = 0;
+        
+        const findElements = () => {
+            this.outputElement = document.getElementById('consoleOutput');
+            this.inputElement = document.getElementById('consoleInput');
+            this.inputLine = document.querySelector('.console-input-line');
             
             if (!this.outputElement || !this.inputElement || !this.inputLine) {
                 if (retryCount < maxRetries) {
