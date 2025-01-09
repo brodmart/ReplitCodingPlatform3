@@ -321,10 +321,17 @@ class InteractiveConsole {
 
     async poll() {
         if (!this.sessionId || !this.isSessionValid || this.polling) {
-            console.debug('Poll skipped:', {
+            console.log('Poll skipped:', {
                 hasSessionId: !!this.sessionId,
                 isSessionValid: this.isSessionValid,
-                isPolling: this.polling
+                isPolling: this.polling,
+                timestamp: new Date().toISOString()
+            });
+            return;
+        }
+
+        this.polling = true;
+        console.log(`Polling for session ${this.sessionId}`);
             });
             return;
         }

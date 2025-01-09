@@ -131,16 +131,18 @@ def start_session():
 def get_output():
     """Get output from a running program"""
     try:
-        logger.info("GET /get_output - Request received")
         session_id = request.args.get('session_id')
-        logger.debug(f"Session ID: {session_id}")
+        logger.info(f"GET /get_output - Session {session_id}")
 
-        if not session_id or session_id not in active_sessions:
+        if not session_id:
+            logger.error("No session ID provided")
+            return jsonify({'success': False, 'error': 'No session ID'}), 400
+
+        if session_id not in active_sessions:
             logger.error(f"Invalid session ID: {session_id}")
-            response = jsonify({'success': False, 'error': 'Invalid session'})
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
+            return jsonify({'success': False, 'error': 'Invalid session'}), 400
 
+        logger.debug(f"Active session found: {session_id}")
         session = active_sessions[session_id]
         process = session['process']
         output = []
