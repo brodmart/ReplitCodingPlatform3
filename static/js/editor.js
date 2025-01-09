@@ -46,17 +46,37 @@ async function executeCode() {
 
     isExecuting = true;
     const code = editor.getValue().trim();
+    const languageSelect = document.getElementById('languageSelect');
+    const language = languageSelect ? languageSelect.value : 'cpp';
+
+    // Prepare the data to send to the backend
+    const requestBody = {
+        code: code,
+        language: language
+    };
 
     try {
-        const languageSelect = document.getElementById('languageSelect');
-        const language = languageSelect ? languageSelect.value : 'cpp';
-        await consoleInstance.executeCode(code, language);
+        const response = await fetch('/start_session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': consoleInstance.csrfToken // Ensure CSRF token is sent
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            console.log('Execution successful:', result);
+        } else {
+            console.error('Execution failed:', result.error);
+            const consoleOutput = document.getElementById('consoleOutput');
+            if (consoleOutput) {
+                consoleOutput.innerHTML = `<div class="console-error">Error: ${result.error}</div>`;
+            }
+        }
     } catch (error) {
         console.error('Error executing code:', error);
-        const consoleOutput = document.getElementById('consoleOutput');
-        if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
-        }
     } finally {
         isExecuting = false;
     }
