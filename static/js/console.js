@@ -21,6 +21,7 @@ class InteractiveConsole {
         this.baseDelay = 100;
         this.isSessionValid = true;
         this.isInitialized = false;
+        this.isClearing = false;
 
         // Get CSRF token from meta tag
         const metaToken = document.querySelector('meta[name="csrf-token"]');
@@ -68,7 +69,7 @@ class InteractiveConsole {
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && (!this.sessionId || !this.isSessionValid);
+        return this.isInitialized && this.csrfToken && !this.isClearing;
     }
 
     setInputState(waiting) {
@@ -95,33 +96,45 @@ class InteractiveConsole {
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
-    clear() {
-        if (!this.isReady()) {
+    async clear() {
+        if (this.isClearing) {
             return false;
         }
 
-        if (this.outputElement) {
-            this.outputElement.innerHTML = '';
+        this.isClearing = true;
+        try {
+            if (this.sessionId) {
+                await this.endSession();
+            }
+
+            if (this.outputElement) {
+                this.outputElement.innerHTML = '';
+            }
+
+            this.setInputState(false);
+            this.inputQueue = [];
+            this.pollRetryCount = 0;
+            this.sessionId = null;
+            this.isSessionValid = true;
+
+            return true;
+        } finally {
+            this.isClearing = false;
         }
-        this.setInputState(false);
-        this.endSession();
-        this.inputQueue = [];
-        this.pollRetryCount = 0;
-        this.isSessionValid = true;
-        return true;
     }
 
     async executeCode(code, language) {
+        if (!this.isReady()) {
+            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
+            return false;
+        }
+
         if (!code?.trim()) {
             this.appendToConsole("Error: No code to execute\n", 'error');
             return false;
         }
 
-        if (!this.clear()) {
-            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
-            return false;
-        }
-
+        await this.clear();
         return await this.startSession(code, language);
     }
 
@@ -151,6 +164,7 @@ class InteractiveConsole {
             if (data.success) {
                 this.sessionId = data.session_id;
                 this.isSessionValid = true;
+                this.pollRetryCount = 0;
                 this.poll();
                 return true;
             } else {
@@ -184,7 +198,7 @@ class InteractiveConsole {
                 }
 
                 if (data.session_ended) {
-                    this.endSession();
+                    await this.endSession();
                     return;
                 }
 
@@ -212,7 +226,6 @@ class InteractiveConsole {
             }
             this.endSession();
         } else {
-            // Retry with exponential backoff
             setTimeout(() => this.poll(), this.baseDelay * Math.pow(2, this.pollRetryCount));
         }
     }
@@ -239,7 +252,7 @@ class InteractiveConsole {
                 if (data.error?.includes('Invalid session')) {
                     this.isSessionValid = false;
                     this.appendToConsole(`Session ended\n`, 'error');
-                    this.endSession();
+                    await this.endSession();
                     return;
                 }
                 this.appendToConsole(`Error: ${data.error || 'Failed to send input'}\n`, 'error');
@@ -248,7 +261,7 @@ class InteractiveConsole {
             this.processInputQueue();
         } catch (error) {
             this.appendToConsole(`Error: ${error.message}\n`, 'error');
-            this.endSession();
+            await this.endSession();
         }
     }
 
@@ -277,6 +290,7 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
     }
+
     async processInputQueue() {
         if (this.inputQueue.length > 0 && this.isWaitingForInput && this.isSessionValid) {
             const input = this.inputQueue.shift();
