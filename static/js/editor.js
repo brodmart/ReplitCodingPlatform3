@@ -193,6 +193,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src',
         theme: 'dracula',
+        onLoad: function() {
+            editorElement.classList.add('CodeMirror-initialized');
+        },
         lineNumbers: true,
         autoCloseBrackets: true,
         matchBrackets: true,

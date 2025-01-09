@@ -18,6 +18,14 @@ html, body {
     margin-bottom: 20px;
 }
 
+#editor {
+    visibility: hidden;
+}
+
+.CodeMirror-initialized {
+    visibility: visible;
+}
+
 /* CodeMirror Customization */
 .CodeMirror {
     height: 100% !important;
