@@ -257,6 +257,8 @@ def get_output():
                                 session_data['waiting_for_input'] = True
                     except BlockingIOError:
                         logger.debug("No data available from stdout")
+                        # Maintain existing input state
+                        waiting_for_input = session_data.get('waiting_for_input', False)
                     except Exception as e:
                         logger.error(f"Error reading stdout: {e}", exc_info=True)
                 except Exception as e:
