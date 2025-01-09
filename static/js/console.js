@@ -321,7 +321,7 @@ class InteractiveConsole {
 
     async poll() {
         if (!this.sessionId || !this.isSessionValid || this.polling) {
-            console.log('Poll skipped:', {
+            console.debug('Poll skipped:', {
                 hasSessionId: !!this.sessionId,
                 isSessionValid: this.isSessionValid,
                 isPolling: this.polling

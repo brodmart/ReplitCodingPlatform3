@@ -127,68 +127,76 @@ def start_session():
         response.headers['Content-Type'] = 'application/json'
         return response, 500
 
-@activities.route('/get_output')
+@activities.route('/get_output', methods=['GET'])
 def get_output():
     """Get output from a running program"""
-    session_id = request.args.get('session_id')
-    logger.debug(f"Received get_output request for session {session_id}")
-
-    if not session_id or session_id not in active_sessions:
-        logger.error(f"Invalid session ID: {session_id}")
-        response = jsonify({'success': False, 'error': 'Invalid session'})
-        response.headers['Content-Type'] = 'application/json'
-        return response, 400
-
-    session = active_sessions[session_id]
-    process = session['process']
-    output = []
-    waiting_for_input = False
-
     try:
-        # Check if process has terminated
-        if process.poll() is not None:
-            logger.debug(f"Process terminated for session {session_id}")
-            stdout, stderr = process.communicate()
-            if stdout:
-                output.append(stdout)
-            if stderr:
-                output.append(stderr)
-            cleanup_session(session_id)
+        logger.info("GET /get_output - Request received")
+        session_id = request.args.get('session_id')
+        logger.debug(f"Session ID: {session_id}")
+
+        if not session_id or session_id not in active_sessions:
+            logger.error(f"Invalid session ID: {session_id}")
+            response = jsonify({'success': False, 'error': 'Invalid session'})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 400
+
+        session = active_sessions[session_id]
+        process = session['process']
+        output = []
+        waiting_for_input = False
+
+        try:
+            # Check if process has terminated
+            if process.poll() is not None:
+                logger.debug(f"Process terminated for session {session_id}")
+                stdout, stderr = process.communicate()
+                if stdout:
+                    output.append(stdout)
+                if stderr:
+                    output.append(stderr)
+                cleanup_session(session_id)
+                response = jsonify({
+                    'success': True,
+                    'output': ''.join(output),
+                    'session_ended': True
+                })
+                response.headers['Content-Type'] = 'application/json'
+                return response
+
+            # Read available output
+            reads = [process.stdout, process.stderr]
+            readable, _, _ = select.select(reads, [], [], 0.1)
+
+            for pipe in readable:
+                line = pipe.readline()
+                if line:
+                    logger.debug(f"Read output from process: {line.strip()}")
+                    output.append(line)
+                    # Check for input prompts
+                    lower_line = line.lower()
+                    if any(prompt in lower_line for prompt in [
+                        'input', 'enter', 'type', '?', ':', '>',
+                        'cin', 'cin >>', 'console.readline', 'console.read'
+                    ]):
+                        waiting_for_input = True
+                        session['waiting_for_input'] = True
+
+            session['last_activity'] = time.time()
             response = jsonify({
                 'success': True,
-                'output': ''.join(output),
-                'session_ended': True
+                'output': ''.join(output) if output else '',
+                'waiting_for_input': waiting_for_input,
+                'session_ended': False
             })
             response.headers['Content-Type'] = 'application/json'
             return response
 
-        # Read available output
-        reads = [process.stdout, process.stderr]
-        readable, _, _ = select.select(reads, [], [], 0.1)
-
-        for pipe in readable:
-            line = pipe.readline()
-            if line:
-                logger.debug(f"Read output from process: {line.strip()}")
-                output.append(line)
-                # Check for input prompts
-                lower_line = line.lower()
-                if any(prompt in lower_line for prompt in [
-                    'input', 'enter', 'type', '?', ':', '>',
-                    'cin', 'cin >>', 'console.readline', 'console.read'
-                ]):
-                    waiting_for_input = True
-                    session['waiting_for_input'] = True
-
-        session['last_activity'] = time.time()
-        response = jsonify({
-            'success': True,
-            'output': ''.join(output) if output else '',
-            'waiting_for_input': waiting_for_input,
-            'session_ended': False
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        except Exception as e:
+            logger.error(f"Error in get_output: {str(e)}", exc_info=True)
+            response = jsonify({'success': False, 'error': str(e)})
+            response.headers['Content-Type'] = 'application/json'
+            return response, 500
 
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
