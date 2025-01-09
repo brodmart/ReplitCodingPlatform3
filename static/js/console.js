@@ -113,12 +113,10 @@ class InteractiveConsole {
         // Update state
         this.isWaitingForInput = waiting && this.isSessionValid;
 
-        // Update input element state
-        this.inputElement.disabled = !this.isWaitingForInput;
-
-        // Keep input line visible but toggle input field
+        // Keep both prompt and input visible, just enable/disable input
         this.inputLine.style.display = 'flex';
-        this.inputElement.style.display = this.isWaitingForInput ? 'block' : 'none';
+        this.inputElement.style.display = 'block';
+        this.inputElement.disabled = !this.isWaitingForInput;
 
         if (this.isWaitingForInput) {
             this.inputElement.value = '';
@@ -129,7 +127,7 @@ class InteractiveConsole {
         console.log('Input state updated:', {
             waiting: this.isWaitingForInput,
             sessionValid: this.isSessionValid,
-            inputVisible: this.inputElement.style.display
+            inputEnabled: !this.inputElement.disabled
         });
     }
 
@@ -339,12 +337,13 @@ class InteractiveConsole {
                 throw new Error(data.error || 'Failed to send input');
             }
 
-            // Reset input state after sending
-            this.setInputState(false);
+            // Clear input field but don't change state
+            this.inputElement.value = '';
+            this.inputElement.focus();
 
         } catch (error) {
             console.error("Error sending input:", error);
-            this.handlePollError(error.message);
+            this.appendToConsole("Error: Failed to send input\n", 'error');
         }
     }
 }
