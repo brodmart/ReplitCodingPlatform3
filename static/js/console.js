@@ -11,7 +11,6 @@ class InteractiveConsole {
             throw new Error('Console elements not found');
         }
 
-        // Get CSRF token from meta tag
         const metaToken = document.querySelector('meta[name="csrf-token"]');
         this.csrfToken = metaToken ? metaToken.content : null;
 
@@ -31,6 +30,7 @@ class InteractiveConsole {
         this.isBusy = false;
         this.pollTimer = null;
         this.cleanupInProgress = false;
+        this.executionPromise = null;
 
         this.setupEventListeners();
         this.isInitialized = true;
@@ -44,7 +44,6 @@ class InteractiveConsole {
                 this.inputElement.value = '';
                 this.setInputState(false);
                 this.appendToConsole(`${inputText}\n`, 'input');
-
                 if (this.sessionId) {
                     await this.sendInput(inputText);
                 }
@@ -53,7 +52,7 @@ class InteractiveConsole {
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && !this.cleanupInProgress;
+        return this.isInitialized && this.csrfToken && !this.cleanupInProgress && !this.isBusy;
     }
 
     setInputState(waiting) {
@@ -86,28 +85,36 @@ class InteractiveConsole {
             throw new Error("No code to execute");
         }
 
-        if (this.isBusy) {
-            throw new Error("Already executing code. Please wait.");
+        if (this.executionPromise) {
+            await this.executionPromise;
         }
 
         this.isBusy = true;
+        this.cleanupInProgress = true;
 
         try {
-            // Clean up existing session and clear console
+            // Ensure cleanup is complete before starting new session
             await this.endSession();
             this.outputElement.innerHTML = '';
 
-            const success = await this.startSession(code, language);
+            this.executionPromise = this.startSession(code, language);
+            const success = await this.executionPromise;
+
             if (!success) {
                 throw new Error("Failed to start program execution");
             }
 
+            // Small delay to ensure session is established
+            await new Promise(resolve => setTimeout(resolve, 100));
             this.startPolling();
             return true;
 
         } catch (error) {
             console.error("Error in executeCode:", error);
             throw error;
+        } finally {
+            this.executionPromise = null;
+            this.cleanupInProgress = false;
         }
     }
 
@@ -153,7 +160,7 @@ class InteractiveConsole {
     }
 
     async poll() {
-        if (!this.sessionId || !this.isSessionValid) {
+        if (!this.sessionId || !this.isSessionValid || this.cleanupInProgress) {
             return;
         }
 
@@ -199,13 +206,15 @@ class InteractiveConsole {
             this.isSessionValid = false;
             this.endSession();
         } else {
-            this.pollTimer = setTimeout(() => this.poll(), 
+            this.pollTimer = setTimeout(() => this.poll(),
                 this.baseDelay * Math.pow(2, this.pollRetryCount));
         }
     }
 
     async endSession() {
-        this.cleanupInProgress = true;
+        if (!this.sessionId && !this.pollTimer) {
+            return;
+        }
 
         try {
             if (this.pollTimer) {
@@ -235,7 +244,6 @@ class InteractiveConsole {
             this.inputQueue = [];
             this.pollRetryCount = 0;
             this.isBusy = false;
-            this.cleanupInProgress = false;
         }
     }
 
@@ -267,5 +275,4 @@ class InteractiveConsole {
     }
 }
 
-// Export for use in other files
 window.InteractiveConsole = InteractiveConsole;
