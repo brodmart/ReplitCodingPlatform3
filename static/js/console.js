@@ -32,7 +32,6 @@ class InteractiveConsole {
         this.pollTimer = null;
         this.cleanupInProgress = false;
 
-        // Initialize and mark as ready
         this.setupEventListeners();
         this.isInitialized = true;
     }
@@ -94,28 +93,20 @@ class InteractiveConsole {
         this.isBusy = true;
 
         try {
-            // Clear console first
-            this.outputElement.innerHTML = '';
-            this.appendToConsole("Initializing...\n", 'system');
-
-            // Clean up existing session
+            // Clean up existing session and clear console
             await this.endSession();
+            this.outputElement.innerHTML = '';
 
-            // Start new session
-            this.appendToConsole("Compiling and running code...\n", 'system');
             const success = await this.startSession(code, language);
-
             if (!success) {
                 throw new Error("Failed to start program execution");
             }
 
-            // Begin output polling
             this.startPolling();
             return true;
 
         } catch (error) {
             console.error("Error in executeCode:", error);
-            this.appendToConsole(`Error: ${error.message}\n`, 'error');
             throw error;
         }
     }
@@ -139,7 +130,6 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-
             if (!data.success) {
                 throw new Error(data.error || "Failed to start session");
             }
@@ -159,7 +149,7 @@ class InteractiveConsole {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
         }
-        this.pollTimer = setTimeout(() => this.poll(), 100); // Small initial delay
+        this.pollTimer = setTimeout(() => this.poll(), 100);
     }
 
     async poll() {

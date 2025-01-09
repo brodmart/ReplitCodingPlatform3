@@ -120,10 +120,10 @@ namespace ProgrammingActivity
             return;
         }
 
-        setExecutionState(true);
-        lastExecution = Date.now();
-
         try {
+            setExecutionState(true);
+            lastExecution = Date.now();
+
             // Initialize console if needed
             if (!console) {
                 console = initializeConsole();
