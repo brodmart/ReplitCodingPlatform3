@@ -3,7 +3,6 @@ import logging
 import time
 import subprocess
 import shutil
-import select
 from threading import Lock
 import atexit
 from flask import Blueprint, render_template, request, jsonify, session
@@ -169,23 +168,16 @@ def get_output():
                 'session_ended': True
             })
 
-        # Read available output with a short timeout
-        reads = [process.stdout, process.stderr]
-        logger.debug("Checking for available output...")
-
         try:
-            readable, _, _ = select.select(reads, [], [], 0.1)
-            logger.debug(f"Readable pipes: {len(readable)}")
-
-            for pipe in readable:
-                logger.debug("Reading from pipe...")
+            # Try to read from stdout
+            if process.stdout:
                 try:
-                    data = pipe.read()
-                    if data:
-                        logger.debug(f"Read data from process: {data}")
-                        output.append(data)
+                    stdout_data = process.stdout.read()
+                    if stdout_data:
+                        logger.debug(f"Read stdout data: {stdout_data}")
+                        output.append(stdout_data)
                         # Check for input prompts
-                        lower_data = data.lower()
+                        lower_data = stdout_data.lower()
                         if any(prompt in lower_data for prompt in [
                             'input', 'enter', 'type', '?', ':', '>',
                             'cin', 'cin >>', 'console.readline', 'console.read'
@@ -193,12 +185,21 @@ def get_output():
                             logger.debug("Input prompt detected")
                             waiting_for_input = True
                             session['waiting_for_input'] = True
-                except Exception as read_error:
-                    logger.error(f"Error reading from pipe: {read_error}")
-                    continue
+                except Exception as e:
+                    logger.error(f"Error reading stdout: {e}")
+
+            # Try to read from stderr
+            if process.stderr:
+                try:
+                    stderr_data = process.stderr.read()
+                    if stderr_data:
+                        logger.debug(f"Read stderr data: {stderr_data}")
+                        output.append(stderr_data)
+                except Exception as e:
+                    logger.error(f"Error reading stderr: {e}")
 
             session['last_activity'] = time.time()
-            final_output = ''.join(output)
+            final_output = ''.join(output) if output else ''
             logger.debug(f"Sending response - Output: {final_output}, Waiting for input: {waiting_for_input}")
 
             response = jsonify({
@@ -210,9 +211,9 @@ def get_output():
             response.headers['Content-Type'] = 'application/json'
             return response
 
-        except select.error as e:
-            logger.error(f"Select error: {e}")
-            return jsonify({'success': False, 'error': 'Failed to read output'}), 500
+        except Exception as e:
+            logger.error(f"Error reading process output: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
 
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
