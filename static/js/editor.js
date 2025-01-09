@@ -5,6 +5,9 @@ let isExecuting = false;
 let lastExecution = 0;
 let isConsoleReady = false;
 const MIN_EXECUTION_INTERVAL = 1000;
+const INITIAL_POLL_INTERVAL = 100;
+const MAX_POLL_INTERVAL = 2000;
+const BACKOFF_FACTOR = 1.5;
 
 async function executeCode() {
     console.log('executeCode called');

@@ -15,8 +15,11 @@ class InteractiveConsole {
         this.pollTimer = null;
         this.polling = false;
         this.pollRetryCount = 0;
-        this.maxRetries = 3;
+        this.maxRetries = 5;
+        this.currentPollInterval = 100;
         this.baseDelay = 100;
+        this.maxPollInterval = 2000;
+        this.backoffFactor = 1.5;
 
         // Get CSRF token
         const metaToken = document.querySelector('meta[name="csrf-token"]');
@@ -197,6 +200,10 @@ class InteractiveConsole {
             this.pollTimer = null;
         }
 
+        // Reset polling parameters
+        this.currentPollInterval = this.baseDelay;
+        this.pollRetryCount = 0;
+
         console.log('Starting polling for session:', this.sessionId);
         await this.poll();
     }
@@ -239,6 +246,10 @@ class InteractiveConsole {
                 throw new Error(data.error || 'Failed to get output');
             }
 
+            // Reset retry count and interval on successful poll
+            this.pollRetryCount = 0;
+            this.currentPollInterval = this.baseDelay;
+
             if (data.output) {
                 console.log('Received output:', data.output);
                 this.appendToConsole(data.output);
@@ -251,15 +262,13 @@ class InteractiveConsole {
                 return;
             }
 
-            // Reset retry count on successful poll
-            this.pollRetryCount = 0;
             this.isWaitingForInput = data.waiting_for_input;
             this.setInputState(data.waiting_for_input);
 
-            // Continue polling with immediate next request if session is valid
+            // Schedule next poll with current interval
             if (this.isSessionValid) {
-                console.log('Scheduling next poll');
-                this.pollTimer = setTimeout(() => this.poll(), 100);
+                console.log(`Scheduling next poll with interval: ${this.currentPollInterval}ms`);
+                this.pollTimer = setTimeout(() => this.poll(), this.currentPollInterval);
             }
         } catch (error) {
             console.error('Poll error:', error);
@@ -283,9 +292,14 @@ class InteractiveConsole {
             return;
         }
 
-        const delay = this.baseDelay * Math.pow(2, this.pollRetryCount);
-        console.log(`Retrying poll in ${delay}ms`);
-        this.pollTimer = setTimeout(() => this.poll(), delay);
+        // Implement exponential backoff
+        this.currentPollInterval = Math.min(
+            this.currentPollInterval * this.backoffFactor,
+            this.maxPollInterval
+        );
+
+        console.log(`Retrying poll in ${this.currentPollInterval}ms`);
+        this.pollTimer = setTimeout(() => this.poll(), this.currentPollInterval);
     }
 
     appendToConsole(text, type = 'output') {

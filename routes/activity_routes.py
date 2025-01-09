@@ -144,72 +144,99 @@ def get_output():
             return jsonify({'success': False, 'error': 'Invalid session'}), 400
 
         logger.debug(f"Active session found: {session_id}")
-        session = active_sessions[session_id]
-        process = session['process']
+        session_data = active_sessions[session_id]
+        process = session_data['process']
         output = []
         waiting_for_input = False
 
         # Check if process has terminated
         if process.poll() is not None:
             logger.debug(f"Process terminated for session {session_id}")
-            stdout, stderr = process.communicate()
-            if stdout:
-                logger.debug(f"Final stdout: {stdout}")
-                output.append(stdout)
-            if stderr:
-                logger.debug(f"Final stderr: {stderr}")
-                output.append(stderr)
+            try:
+                stdout, stderr = process.communicate(timeout=1)
+                if stdout:
+                    output.append(stdout)
+                if stderr:
+                    output.append(stderr)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                stdout, stderr = process.communicate()
+                if stdout:
+                    output.append(stdout)
+                if stderr:
+                    output.append(stderr)
+
             cleanup_session(session_id)
-            final_output = ''.join(output)
-            logger.debug(f"Sending final output: {final_output}")
+            final_output = ''.join(output) if output else ''
+            logger.debug(f"Final output: {final_output}")
             return jsonify({
                 'success': True,
                 'output': final_output,
                 'session_ended': True
             })
 
+        # Set stdout and stderr to non-blocking mode
+        import fcntl
+        import os
+
+        # Set non-blocking mode for stdout
+        if process.stdout:
+            fd = process.stdout.fileno()
+            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+        # Set non-blocking mode for stderr
+        if process.stderr:
+            fd = process.stderr.fileno()
+            fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+            fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
         try:
-            # Try to read from stdout
+            # Read from stdout (non-blocking)
             if process.stdout:
                 try:
-                    stdout_data = process.stdout.read()
-                    if stdout_data:
-                        logger.debug(f"Read stdout data: {stdout_data}")
-                        output.append(stdout_data)
+                    chunk = process.stdout.read1(1024)
+                    if chunk:
+                        text = chunk.decode('utf-8', errors='replace')
+                        logger.debug(f"Read stdout: {text}")
+                        output.append(text)
                         # Check for input prompts
-                        lower_data = stdout_data.lower()
-                        if any(prompt in lower_data for prompt in [
+                        lower_text = text.lower()
+                        if any(prompt in lower_text for prompt in [
                             'input', 'enter', 'type', '?', ':', '>',
                             'cin', 'cin >>', 'console.readline', 'console.read'
                         ]):
                             logger.debug("Input prompt detected")
                             waiting_for_input = True
-                            session['waiting_for_input'] = True
+                            session_data['waiting_for_input'] = True
+                except (IOError, BlockingIOError) as e:
+                    logger.debug(f"Non-blocking read from stdout: {e}")
                 except Exception as e:
-                    logger.error(f"Error reading stdout: {e}")
+                    logger.error(f"Error reading stdout: {e}", exc_info=True)
 
-            # Try to read from stderr
+            # Read from stderr (non-blocking)
             if process.stderr:
                 try:
-                    stderr_data = process.stderr.read()
-                    if stderr_data:
-                        logger.debug(f"Read stderr data: {stderr_data}")
-                        output.append(stderr_data)
+                    chunk = process.stderr.read1(1024)
+                    if chunk:
+                        text = chunk.decode('utf-8', errors='replace')
+                        logger.debug(f"Read stderr: {text}")
+                        output.append(text)
+                except (IOError, BlockingIOError) as e:
+                    logger.debug(f"Non-blocking read from stderr: {e}")
                 except Exception as e:
-                    logger.error(f"Error reading stderr: {e}")
+                    logger.error(f"Error reading stderr: {e}", exc_info=True)
 
-            session['last_activity'] = time.time()
+            session_data['last_activity'] = time.time()
             final_output = ''.join(output) if output else ''
             logger.debug(f"Sending response - Output: {final_output}, Waiting for input: {waiting_for_input}")
 
-            response = jsonify({
+            return jsonify({
                 'success': True,
                 'output': final_output,
                 'waiting_for_input': waiting_for_input,
                 'session_ended': False
             })
-            response.headers['Content-Type'] = 'application/json'
-            return response
 
         except Exception as e:
             logger.error(f"Error reading process output: {e}", exc_info=True)
@@ -219,15 +246,62 @@ def get_output():
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
+def cleanup_session(session_id):
+    """Clean up session resources"""
+    if session_id in active_sessions:
+        session = active_sessions[session_id]
+        logger.info(f"Cleaning up session {session_id}")
+        try:
+            # Terminate process if still running
+            process = session['process']
+            if process.poll() is None:
+                logger.debug(f"Terminating process for session {session_id}")
+                process.terminate()
+                try:
+                    # Give process time to terminate gracefully
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    logger.warning(f"Process didn't terminate gracefully, forcing kill for session {session_id}")
+                    process.kill()
+                    process.wait()
+
+            # Close file descriptors
+            logger.debug("Closing file descriptors")
+            for fd in [process.stdout, process.stderr, process.stdin]:
+                if fd:
+                    try:
+                        fd.close()
+                    except Exception as e:
+                        logger.error(f"Error closing file descriptor: {e}", exc_info=True)
+
+            # Clean up temp directory
+            temp_dir = session['temp_dir']
+            if os.path.exists(temp_dir):
+                logger.debug(f"Removing temp directory: {temp_dir}")
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
+        except Exception as e:
+            logger.error(f"Error cleaning up session {session_id}: {e}", exc_info=True)
+        finally:
+            # Remove session from active sessions
+            with session_lock:
+                del active_sessions[session_id]
+                logger.info(f"Session {session_id} cleanup completed")
+
 def cleanup_old_sessions():
     """Clean up inactive sessions older than 30 minutes"""
     try:
         current_time = time.time()
+        cleaned_count = 0
         with session_lock:
             for session_id in list(active_sessions.keys()):
                 session = active_sessions[session_id]
                 if current_time - session['last_activity'] > 1800:  # 30 minutes
+                    logger.info(f"Cleaning up inactive session {session_id}")
                     cleanup_session(session_id)
+                    cleaned_count += 1
+        if cleaned_count > 0:
+            logger.info(f"Cleaned up {cleaned_count} inactive sessions")
     except Exception as e:
         logger.error(f"Error in cleanup_old_sessions: {e}", exc_info=True)
 
@@ -285,30 +359,6 @@ def send_input():
         response = jsonify({'success': False, 'error': str(e)})
         response.headers['Content-Type'] = 'application/json'
         return response, 500
-
-def cleanup_session(session_id):
-    """Clean up session resources"""
-    if session_id in active_sessions:
-        session = active_sessions[session_id]
-        try:
-            # Terminate process if still running
-            process = session['process']
-            if process.poll() is None:
-                process.terminate()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                    process.wait()
-
-            # Clean up temp directory
-            shutil.rmtree(session['temp_dir'], ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Error cleaning up session: {e}", exc_info=True)
-
-        # Remove session from active sessions
-        with session_lock:
-            del active_sessions[session_id]
 
 @activities.route('/end_session', methods=['POST'])
 def end_session():
