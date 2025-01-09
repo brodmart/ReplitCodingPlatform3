@@ -239,23 +239,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // Initialize template only once
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    if (!editor.getValue().trim()) {
-        editor.setValue(getTemplateForLanguage(initialLanguage));
-        editor.refresh();
-        editor.focus();
-    }
+    // Initialize with empty content first
+    editor.setValue('');
 
-    // Language change handler
+    // Language change handler with forced template update
     if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const language = this.value;
+        const updateTemplate = () => {
+            const language = languageSelect.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
             editor.setValue(getTemplateForLanguage(language));
             editor.refresh();
             editor.focus();
-        });
+        };
+
+        // Set initial template
+        updateTemplate();
+
+        // Handle language changes
+        languageSelect.addEventListener('change', updateTemplate);
     }
 
     // Clear console handler
