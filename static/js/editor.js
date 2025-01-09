@@ -7,21 +7,10 @@ const MIN_EXECUTION_INTERVAL = 1000;
 const MAX_INIT_RETRIES = 5;
 let initRetries = 0;
 const INIT_DELAY = 500;
-let isConsoleInitialized = false;
 
 async function ensureElementsExist() {
-    return new Promise((resolve) => {
-        const checkElements = () => {
-            const elements = ['editor', 'consoleOutput', 'consoleInput'];
-            const allExist = elements.every(id => document.getElementById(id));
-            if (allExist) {
-                resolve(true);
-            } else {
-                setTimeout(checkElements, 100);
-            }
-        };
-        checkElements();
-    });
+    const elements = ['editor', 'consoleOutput', 'consoleInput'];
+    return elements.every(id => document.getElementById(id));
 }
 
 // Function definitions outside DOMContentLoaded
@@ -118,18 +107,8 @@ namespace ProgrammingActivity
 // Global executeCode function
 window.executeCode = async function() {
     try {
-        await ensureElementsExist();
-        
         if (!editor) {
             throw new Error('Editor not initialized');
-        }
-
-        if (!isConsoleInitialized) {
-            consoleInstance = new InteractiveConsole({
-                lang: document.documentElement.lang || 'en'
-            });
-            await consoleInstance.init();
-            isConsoleInitialized = true;
         }
 
         if (isExecuting) {
