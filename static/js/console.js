@@ -68,7 +68,7 @@ class InteractiveConsole {
     }
 
     isReady() {
-        return this.isInitialized && this.csrfToken && !this.sessionId;
+        return this.isInitialized && this.csrfToken && (!this.sessionId || !this.isSessionValid);
     }
 
     setInputState(waiting) {
@@ -82,15 +82,6 @@ class InteractiveConsole {
             } else {
                 this.inputLine.classList.remove('console-waiting');
             }
-        }
-    }
-
-    async processInputQueue() {
-        if (this.inputQueue.length > 0 && this.isWaitingForInput && this.isSessionValid) {
-            const input = this.inputQueue.shift();
-            this.inputElement.value = input;
-            const event = new KeyboardEvent('keypress', { key: 'Enter' });
-            this.inputElement.dispatchEvent(event);
         }
     }
 
@@ -118,6 +109,20 @@ class InteractiveConsole {
         this.pollRetryCount = 0;
         this.isSessionValid = true;
         return true;
+    }
+
+    async executeCode(code, language) {
+        if (!code?.trim()) {
+            this.appendToConsole("Error: No code to execute\n", 'error');
+            return false;
+        }
+
+        if (!this.clear()) {
+            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
+            return false;
+        }
+
+        return await this.startSession(code, language);
     }
 
     async startSession(code, language) {
@@ -272,19 +277,13 @@ class InteractiveConsole {
         this.inputQueue = [];
         this.pollRetryCount = 0;
     }
-
-    async executeCode(code, language) {
-        if (!code?.trim()) {
-            this.appendToConsole("Error: No code to execute\n", 'error');
-            return false;
+    async processInputQueue() {
+        if (this.inputQueue.length > 0 && this.isWaitingForInput && this.isSessionValid) {
+            const input = this.inputQueue.shift();
+            this.inputElement.value = input;
+            const event = new KeyboardEvent('keypress', { key: 'Enter' });
+            this.inputElement.dispatchEvent(event);
         }
-
-        if (!this.clear()) {
-            this.appendToConsole("Error: Console not ready. Please refresh the page.", 'error');
-            return false;
-        }
-
-        return await this.startSession(code, language);
     }
 }
 
