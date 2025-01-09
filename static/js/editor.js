@@ -104,7 +104,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         runButton.addEventListener('click', async function(e) {
             e.preventDefault();
             if (!isExecuting && isConsoleReady) {
-                await executeCode();
+                // Show loading state
+                runButton.disabled = true;
+                runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+                
+                try {
+                    await executeCode();
+                } catch (error) {
+                    console.error('Error executing code:', error);
+                } finally {
+                    // Reset button state
+                    runButton.disabled = false;
+                    runButton.innerHTML = 'Run';
+                }
             }
         });
     }

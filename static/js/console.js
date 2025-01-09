@@ -226,7 +226,12 @@ class InteractiveConsole {
             throw new Error("No code to execute");
         }
 
+        if (this.isBusy) {
+            throw new Error("Console is busy");
+        }
+
         this.isBusy = true;
+        this.cleanupConsole();
 
         try {
             // Only end previous session if one exists
