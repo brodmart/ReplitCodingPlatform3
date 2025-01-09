@@ -68,19 +68,25 @@ namespace ProgrammingActivity
     editor.refresh();
 
     // Initialize Interactive Console
-    const consoleElements = {
-        output: document.getElementById('consoleOutput'),
-        input: document.getElementById('consoleInput')
-    };
-
-    let console;
+    let console = null;
     let isRunning = false;
 
-    if (consoleElements.output && consoleElements.input) {
-        console = new InteractiveConsole({
-            lang: document.documentElement.lang || 'en'
-        });
+    // Function to initialize console
+    function initializeConsole() {
+        const consoleOutput = document.getElementById('consoleOutput');
+        const consoleInput = document.getElementById('consoleInput');
+
+        if (consoleOutput && consoleInput && !console) {
+            console = new InteractiveConsole({
+                lang: document.documentElement.lang || 'en'
+            });
+            return true;
+        }
+        return false;
     }
+
+    // Try to initialize console immediately
+    initializeConsole();
 
     // Language change handler
     if (languageSelect) {
@@ -92,9 +98,15 @@ namespace ProgrammingActivity
         });
     }
 
-    // Run button handler with state management
-    if (runButton && console) {
+    // Run button handler with proper initialization check
+    if (runButton) {
         runButton.addEventListener('click', async function() {
+            // Initialize console if not already done
+            if (!console && !initializeConsole()) {
+                console.error('Console initialization failed');
+                return;
+            }
+
             if (isRunning) return; // Prevent multiple executions
 
             const code = editor.getValue().trim();
@@ -108,11 +120,13 @@ namespace ProgrammingActivity
                 const language = languageSelect ? languageSelect.value : 'cpp';
                 await console.executeCode(code, language);
             } catch (error) {
-                console.appendToConsole(`Error: ${error.message}\n`, 'error');
+                if (console) {
+                    console.appendToConsole(`Error: ${error.message}\n`, 'error');
+                }
             } finally {
                 isRunning = false;
                 runButton.disabled = false;
-                runButton.innerHTML = languageSelect.value === 'fr' ? 'Exécuter' : 'Run';
+                runButton.innerHTML = document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run';
             }
         });
 
