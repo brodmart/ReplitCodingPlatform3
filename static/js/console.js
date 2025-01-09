@@ -3,14 +3,36 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        // DOM elements
-        this.outputElement = document.getElementById('consoleOutput');
-        this.inputElement = document.getElementById('consoleInput');
-        this.inputLine = document.querySelector('.console-input-line');
-
-        if (!this.outputElement || !this.inputElement || !this.inputLine) {
-            throw new Error('Console elements not found');
-        }
+        const maxRetries = 10;
+        const retryDelay = 100;
+        let retryCount = 0;
+        
+        const findElements = () => {
+            this.outputElement = document.getElementById('consoleOutput');
+            this.inputElement = document.getElementById('consoleInput');
+            this.inputLine = document.querySelector('.console-input-line');
+            
+            if (!this.outputElement || !this.inputElement || !this.inputLine) {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(findElements, retryDelay);
+                    return;
+                }
+                throw new Error('Console elements not found after maximum retries');
+            }
+            
+            // Force display after finding elements
+            this.outputElement.style.display = 'block';
+            this.inputElement.style.display = 'block';
+            this.inputLine.style.display = 'flex';
+            
+            // Force reflow
+            this.outputElement.offsetHeight;
+            this.inputElement.offsetHeight;
+            this.inputLine.offsetHeight;
+        };
+        
+        findElements();
 
         // Get CSRF token
         const metaToken = document.querySelector('meta[name="csrf-token"]');
