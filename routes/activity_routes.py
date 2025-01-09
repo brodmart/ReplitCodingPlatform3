@@ -210,16 +210,29 @@ def get_output():
                 # Try to get any remaining output
                 stdout, stderr = process.communicate(timeout=1)
                 if stdout:
-                    output.append(stdout.decode('utf-8', errors='replace'))
+                    # Handle both string and bytes output
+                    if isinstance(stdout, bytes):
+                        output.append(stdout.decode('utf-8', errors='replace'))
+                    else:
+                        output.append(str(stdout))
                 if stderr:
-                    output.append(stderr.decode('utf-8', errors='replace'))
+                    if isinstance(stderr, bytes):
+                        output.append(stderr.decode('utf-8', errors='replace'))
+                    else:
+                        output.append(str(stderr))
             except subprocess.TimeoutExpired:
                 process.kill()
                 stdout, stderr = process.communicate()
                 if stdout:
-                    output.append(stdout.decode('utf-8', errors='replace'))
+                    if isinstance(stdout, bytes):
+                        output.append(stdout.decode('utf-8', errors='replace'))
+                    else:
+                        output.append(str(stdout))
                 if stderr:
-                    output.append(stderr.decode('utf-8', errors='replace'))
+                    if isinstance(stderr, bytes):
+                        output.append(stderr.decode('utf-8', errors='replace'))
+                    else:
+                        output.append(str(stderr))
 
             cleanup_session(session_id)
             final_output = ''.join(output) if output else ''
