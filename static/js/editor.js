@@ -114,7 +114,8 @@ namespace ProgrammingActivity
         });
     }
 
-    async function executeCode() {
+    // Define executeCode in the correct scope
+    window.executeCode = async function() {
         if (isExecuting || Date.now() - lastExecution < MIN_EXECUTION_INTERVAL) {
             return;
         }
@@ -161,7 +162,7 @@ namespace ProgrammingActivity
             // Add new listener
             runButton.addEventListener('click', function(e) {
                 e.preventDefault();
-                executeCode();
+                window.executeCode();
             });
         }
     }
@@ -173,7 +174,7 @@ namespace ProgrammingActivity
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
             e.preventDefault();
-            executeCode();
+            window.executeCode();
         }
     });
 
