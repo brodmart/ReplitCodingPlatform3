@@ -135,7 +135,9 @@ window.executeCode = async function() {
 
 // Initialize everything when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-    // Initialize CodeMirror and other UI elements
+    // Wait for all elements to be fully loaded
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
     const consoleOutput = document.getElementById('consoleOutput');
@@ -144,6 +146,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('Required elements not found');
         return;
     }
+
+    // Force redraw
+    editorElement.style.display = 'none';
+    editorElement.offsetHeight; // Force reflow
+    editorElement.style.display = 'block';
 
     // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(editorElement, {
