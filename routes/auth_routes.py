@@ -77,7 +77,7 @@ def login():
         logger.info("Already authenticated user attempting to access login page", 
                    user_id=current_user.id,
                    username=current_user.username)
-        return redirect(url_for('index'))
+        return redirect(url_for('auth.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -108,7 +108,7 @@ def login():
 
                 next_page = request.args.get('next')
                 if not next_page or not is_safe_url(next_page):
-                    next_page = url_for('index')
+                    next_page = url_for('auth.index')
 
                 logger.info("Successful login",
                            user_id=user.id,
@@ -159,7 +159,7 @@ def register():
         logger.info("Authenticated user attempting to access register page",
                    user_id=current_user.id,
                    username=current_user.username)
-        return redirect(url_for('index'))
+        return redirect(url_for('auth.index'))
 
     form = RegisterForm()
     if form.validate_on_submit():
