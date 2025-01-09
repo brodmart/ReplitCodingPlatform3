@@ -4,41 +4,14 @@
 class InteractiveConsole {
     constructor(options = {}) {
         // DOM elements
-        const initElements = () => {
-            this.outputElement = document.getElementById('consoleOutput');
-            this.inputElement = document.getElementById('consoleInput');  
-            this.inputLine = document.querySelector('.console-input-line');
-            
-            return this.outputElement && this.inputElement && this.inputLine;
-        };
+        this.outputElement = document.getElementById('consoleOutput');
+        this.inputElement = document.getElementById('consoleInput');
+        this.inputLine = document.querySelector('.console-input-line');
 
-        // Retry element initialization
-        let retryCount = 0;
-        const maxRetries = 5;
-        
-        const tryInit = () => {
-            if (initElements()) {
-                this.setupElements();
-                return true;
-            }
-            return false;
-        };
-
-        if (!tryInit()) {
-            const initInterval = setInterval(() => {
-                if (tryInit() || retryCount >= maxRetries) {
-                    clearInterval(initInterval);
-                }
-                retryCount++;
-            }, 100);
+        if (!this.outputElement || !this.inputElement || !this.inputLine) {
+            throw new Error('Console elements not found');
         }
 
-        setupElements() {
-        // Ensure visibility
-        this.outputElement.style.display = 'block';
-        this.inputLine.style.display = 'flex';
-        this.inputElement.style.display = 'block';
-        
         // Get CSRF token
         const metaToken = document.querySelector('meta[name="csrf-token"]');
         this.csrfToken = metaToken ? metaToken.content : null;
