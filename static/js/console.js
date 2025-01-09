@@ -301,10 +301,11 @@ class InteractiveConsole {
     }
 
     async poll() {
-        if (!this.sessionId || !this.isSessionValid) {
+        if (!this.sessionId || !this.isSessionValid || this.polling) {
             return;
         }
 
+        this.polling = true;
         try {
             const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
                 credentials: 'same-origin'
@@ -315,48 +316,54 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-            console.log("Poll response:", data);
 
             if (data.success) {
                 this.pollRetryCount = 0;
 
-                // Show output if present
                 if (data.output) {
                     this.appendToConsole(data.output);
                 }
 
-                // Handle session state transitions
                 if (data.session_ended) {
                     this.isSessionValid = false;
                     this.isWaitingForInput = false;
                     this.setInputState(false);
+                    this.polling = false;
                     return;
                 }
 
-                // Lock state transitions during update
-                const currentWaitingState = this.isWaitingForInput;
-                
-                // Update session state
-                this.isSessionValid = true;
-                this.isWaitingForInput = data.waiting_for_input;
-
-                // Only update input state if it changed
-                if (currentWaitingState !== data.waiting_for_input) {
-                    this.setInputState(data.waiting_for_input);
-                }
-
-                // Always continue polling if session is valid
-                if (this.isSessionValid) {
-                    if (this.pollTimer) {
-                        clearTimeout(this.pollTimer);
+                // Atomic state update
+                const stateUpdate = () => {
+                    const currentWaitingState = this.isWaitingForInput;
+                    this.isSessionValid = true;
+                    this.isWaitingForInput = data.waiting_for_input;
+                    
+                    if (currentWaitingState !== data.waiting_for_input) {
+                        this.setInputState(data.waiting_for_input);
                     }
-                    this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
+                };
+
+                // Execute state update atomically
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => {
+                        stateUpdate();
+                        resolve();
+                    });
+                });
+
+                // Schedule next poll with guaranteed minimum delay
+                await new Promise(resolve => setTimeout(resolve, this.baseDelay));
+                
+                if (this.isSessionValid) {
+                    this.pollTimer = setTimeout(() => this.poll(), 0);
                 }
             } else {
-                this.handlePollError(data.error || 'Unknown error');
+                throw new Error(data.error || 'Unknown error');
             }
         } catch (error) {
             this.handlePollError(error.message);
+        } finally {
+            this.polling = false;
         }
     }
 
