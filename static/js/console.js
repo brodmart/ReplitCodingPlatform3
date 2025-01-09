@@ -28,7 +28,6 @@ class InteractiveConsole {
         this.baseDelay = 100;
         this.isSessionValid = true;
         this.isInitialized = false;
-        this.isClearing = false;
         this.isBusy = false;
 
         this.setupEventListeners();
@@ -106,15 +105,24 @@ class InteractiveConsole {
         }
 
         this.isBusy = true;
+
         try {
-            // Clear console first
-            this.outputElement.innerHTML = '';
+            // Clean up any existing session first
             if (this.sessionId) {
                 await this.endSession();
             }
 
+            // Clear the console
+            this.outputElement.innerHTML = '';
             this.appendToConsole("Compiling and running code...\n", 'system');
-            return await this.startSession(code, language);
+
+            // Start new session
+            const success = await this.startSession(code, language);
+            if (!success) {
+                this.appendToConsole("Failed to start program execution.\n", 'error');
+            }
+            return success;
+
         } catch (error) {
             this.appendToConsole(`Error: ${error.message}\n`, 'error');
             return false;

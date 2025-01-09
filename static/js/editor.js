@@ -84,12 +84,10 @@ namespace ProgrammingActivity
         }
     }
 
-    // Set initial template
+    // Set initial template and initialize console
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
     editor.setValue(editor.getValue() || getTemplateForLanguage(initialLanguage));
     editor.refresh();
-
-    // Initialize console
     console = initializeConsole();
 
     // Language change handler
@@ -107,9 +105,7 @@ namespace ProgrammingActivity
     // Run button handler with improved error handling
     if (runButton) {
         runButton.addEventListener('click', async function() {
-            if (isRunning) {
-                return; // Prevent multiple executions
-            }
+            if (isRunning) return;
 
             const code = editor.getValue().trim();
             if (!code) {
@@ -119,21 +115,19 @@ namespace ProgrammingActivity
 
             if (!console) {
                 console = initializeConsole();
-                if (!console) {
-                    return;
-                }
+                if (!console) return;
             }
 
-            try {
-                isRunning = true;
-                runButton.disabled = true;
-                runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
+            isRunning = true;
+            runButton.disabled = true;
+            runButton.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...`;
 
+            try {
                 const language = languageSelect ? languageSelect.value : 'cpp';
                 await console.executeCode(code, language);
             } catch (error) {
                 console.error('Error executing code:', error);
-                consoleOutput.innerHTML += `<div class="console-error">Error: ${error.message}</div>`;
+                consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
             } finally {
                 isRunning = false;
                 runButton.disabled = false;
@@ -152,9 +146,9 @@ namespace ProgrammingActivity
 
     // Clear console handler
     if (clearConsoleButton) {
-        clearConsoleButton.addEventListener('click', function() {
+        clearConsoleButton.addEventListener('click', async function() {
             if (console) {
-                console.endSession();
+                await console.endSession();
             }
             consoleOutput.innerHTML = '';
         });
