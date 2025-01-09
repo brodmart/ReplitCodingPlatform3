@@ -320,13 +320,19 @@ class InteractiveConsole {
     }
 
     async poll() {
-        if (!this.sessionId || !this.isSessionValid || this.polling) {
-            console.log('Poll skipped:', {
-                hasSessionId: !!this.sessionId,
-                isSessionValid: this.isSessionValid,
-                isPolling: this.polling,
-                timestamp: new Date().toISOString()
-            });
+        console.log('Poll called:', {
+            sessionId: this.sessionId,
+            isValid: this.isSessionValid,
+            isPolling: this.polling
+        });
+
+        if (!this.sessionId || !this.isSessionValid) {
+            console.log('Poll skipped - invalid session state');
+            return;
+        }
+
+        if (this.polling) {
+            console.log('Poll skipped - already polling');
             return;
         }
 
@@ -338,20 +344,12 @@ class InteractiveConsole {
                 credentials: 'same-origin'
             });
 
-            console.log(`[${new Date().toISOString()}] Backend response status:`, response.status);
-
             if (!response.ok) {
-                console.error(`[${new Date().toISOString()}] Backend error response:`, response.status);
                 throw new Error('Failed to get output');
             }
 
             const data = await response.json();
-            console.log(`[${new Date().toISOString()}] Backend data received:`, {
-                success: data.success,
-                hasOutput: !!data.output,
-                sessionEnded: data.session_ended,
-                waitingForInput: data.waiting_for_input
-            });
+            console.log('Poll response:', data);
 
             if (data.success) {
                 this.pollRetryCount = 0;
@@ -364,39 +362,24 @@ class InteractiveConsole {
                     this.isSessionValid = false;
                     this.isWaitingForInput = false;
                     this.setInputState(false);
-                    this.polling = false;
                     return;
                 }
 
-                // Atomic state update
-                const stateUpdate = () => {
-                    const currentWaitingState = this.isWaitingForInput;
-                    this.isSessionValid = true;
-                    this.isWaitingForInput = data.waiting_for_input;
+                this.isSessionValid = true;
+                this.isWaitingForInput = data.waiting_for_input;
+                this.setInputState(data.waiting_for_input);
 
-                    if (currentWaitingState !== data.waiting_for_input) {
-                        this.setInputState(data.waiting_for_input);
+                // Schedule next poll with minimum delay
+                setTimeout(() => {
+                    if (this.isSessionValid) {
+                        this.poll();
                     }
-                };
-
-                // Execute state update atomically
-                await new Promise(resolve => {
-                    requestAnimationFrame(() => {
-                        stateUpdate();
-                        resolve();
-                    });
-                });
-
-                // Schedule next poll with guaranteed minimum delay
-                await new Promise(resolve => setTimeout(resolve, this.baseDelay));
-
-                if (this.isSessionValid) {
-                    this.pollTimer = setTimeout(() => this.poll(), 0);
-                }
+                }, this.baseDelay);
             } else {
                 throw new Error(data.error || 'Unknown error');
             }
         } catch (error) {
+            console.error('Poll error:', error);
             this.handlePollError(error.message);
         } finally {
             this.polling = false;
