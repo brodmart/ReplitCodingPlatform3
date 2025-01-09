@@ -115,16 +115,16 @@ class InteractiveConsole {
         }
 
         console.log('Setting input state to waiting:', waiting);
-        
+
         // Force elements to always be visible
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
-        
+
         // Update state and enable/disable
         this.isWaitingForInput = waiting;
         this.inputElement.disabled = !waiting;
         this.isSessionValid = waiting;
-        
+
         if (this.isWaitingForInput) {
             this.inputElement.focus();
             this.outputElement.scrollTop = this.outputElement.scrollHeight;
@@ -164,15 +164,15 @@ class InteractiveConsole {
             if (this.sessionId) {
                 await this.endSession();
             }
-            
+
             // Keep input elements visible but disabled during transition
             this.inputLine.style.display = 'flex';
             this.inputElement.style.display = 'block';
             this.inputElement.disabled = true;
-            
+
             // Clean output
             this.outputElement.innerHTML = '';
-            
+
             const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error("Failed to start program execution");
@@ -268,6 +268,9 @@ class InteractiveConsole {
 
                 if (data.session_ended) {
                     this.isSessionValid = false;
+                    this.isWaitingForInput = false;
+                    this.inputElement.disabled = true;
+                    this.inputElement.value = '';
                     return;
                 }
 
