@@ -31,6 +31,7 @@ class InteractiveConsole {
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
+        this.processEnded = false;
 
         // Initialize immediately
         this.init();
@@ -61,20 +62,23 @@ class InteractiveConsole {
         if (this.outputElement) {
             this.outputElement.innerHTML = '';
         }
+
+        // Reset input elements but keep them visible
         if (this.inputElement) {
             this.inputElement.value = '';
-            // Always keep input visible but disabled initially
             this.inputElement.disabled = true;
             this.inputElement.style.display = 'block';
         }
         if (this.inputLine) {
-            // Always keep input line visible
             this.inputLine.style.display = 'flex';
         }
+
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.isSessionValid = false;
         this.pollRetryCount = 0;
+        this.processEnded = false;
+
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
             this.pollTimer = null;
@@ -86,13 +90,15 @@ class InteractiveConsole {
 
         // Handle Enter key press
         const handleEnter = async (e) => {
-            if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
-                e.preventDefault();
-                const inputText = this.inputElement.value.trim();
-                if (inputText) {
-                    this.appendToConsole(`${inputText}\n`, 'input');
-                    this.inputElement.value = '';
-                    await this.sendInput(inputText);
+            if (e.key === 'Enter' && !this.processEnded) {
+                if (this.isWaitingForInput && this.isSessionValid) {
+                    e.preventDefault();
+                    const inputText = this.inputElement.value.trim();
+                    if (inputText) {
+                        this.appendToConsole(`${inputText}\n`, 'input');
+                        this.inputElement.value = '';
+                        await this.sendInput(inputText);
+                    }
                 }
             }
         };
@@ -102,7 +108,7 @@ class InteractiveConsole {
 
         // Keep focus on input when needed
         const handleBlur = () => {
-            if (this.isWaitingForInput && this.isSessionValid && !this.inputElement.disabled) {
+            if (this.isWaitingForInput && this.isSessionValid && !this.processEnded) {
                 this.inputElement.focus();
             }
         };
@@ -112,33 +118,25 @@ class InteractiveConsole {
     }
 
     setInputState(waiting) {
-        if (!this.inputElement || !this.inputLine) {
-            console.error('Input elements not available');
-            return;
+        if (!this.inputElement || !this.inputLine) return;
+
+        // Don't enable input if process has ended
+        if (this.processEnded) {
+            waiting = false;
         }
 
-        console.log('Setting input state to waiting:', waiting);
-
-        // Ensure elements are always visible
+        // Always ensure visibility
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
 
-        // Update state and enable/disable input
+        // Update state
         this.isWaitingForInput = waiting;
-        this.inputElement.disabled = !waiting;
+        this.inputElement.disabled = !waiting || this.processEnded;
 
         if (waiting && !this.inputElement.disabled) {
             this.inputElement.focus();
             this.outputElement.scrollTop = this.outputElement.scrollHeight;
         }
-
-        console.log('Input state updated:', {
-            waiting: this.isWaitingForInput,
-            sessionValid: this.isSessionValid,
-            inputEnabled: !this.inputElement.disabled,
-            inputVisible: this.inputElement.style.display === 'block',
-            lineVisible: this.inputLine.style.display === 'flex'
-        });
     }
 
     appendToConsole(text, type = 'output') {
@@ -162,24 +160,15 @@ class InteractiveConsole {
         }
 
         this.isBusy = true;
+        this.processEnded = false;
 
         try {
-            // Only end previous session if one exists
             if (this.sessionId) {
                 await this.endSession();
             }
 
-            // Keep input elements visible but disabled during transition
-            if (this.inputLine) this.inputLine.style.display = 'flex';
-            if (this.inputElement) {
-                this.inputElement.style.display = 'block';
-                this.inputElement.disabled = true;
-            }
-
-            // Clean output
-            if (this.outputElement) {
-                this.outputElement.innerHTML = '';
-            }
+            // Reset console state
+            this.cleanupConsole();
 
             const success = await this.startSession(code, language);
             if (!success) {
@@ -242,7 +231,7 @@ class InteractiveConsole {
     }
 
     async poll() {
-        if (!this.sessionId || !this.isSessionValid) {
+        if (!this.sessionId || !this.isSessionValid || this.processEnded) {
             return;
         }
 
@@ -256,31 +245,24 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-            console.log("Poll response:", data);
 
             if (data.success) {
                 this.pollRetryCount = 0;
-                this.isSessionValid = true;
 
-                // Show output if present
                 if (data.output) {
                     this.appendToConsole(data.output);
                 }
 
-                // Update input state but maintain visibility
-                if (data.waiting_for_input) {
-                    this.isWaitingForInput = true;
-                    this.inputElement.disabled = false;
-                    this.inputElement.focus();
-                }
-
                 if (data.session_ended) {
+                    this.processEnded = true;
                     this.isSessionValid = false;
+                    this.setInputState(false);
                     return;
                 }
 
-                // Continue polling if session is active
-                if (this.isSessionValid && this.sessionId) {
+                this.setInputState(data.waiting_for_input);
+
+                if (this.isSessionValid && !this.processEnded) {
                     this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
                 }
             } else {
