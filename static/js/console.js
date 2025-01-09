@@ -3,46 +3,9 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        const maxRetries = 10;
-        const retryDelay = 100;
-        let retryCount = 0;
-
-        const findElements = () => {
-            this.outputElement = document.getElementById('consoleOutput');
-            this.inputElement = document.getElementById('consoleInput');
-            this.inputLine = document.querySelector('.console-input-line');
-
-            if (!this.outputElement || !this.inputElement || !this.inputLine) {
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    setTimeout(findElements, retryDelay);
-                    return;
-                }
-                throw new Error('Console elements not found after maximum retries');
-            }
-
-            // Force display after finding elements
-            this.outputElement.style.display = 'block';
-            this.inputElement.style.display = 'block';
-            this.inputLine.style.display = 'flex';
-
-            // Force reflow
-            this.outputElement.offsetHeight;
-            this.inputElement.offsetHeight;
-            this.inputLine.offsetHeight;
-        };
-
-        findElements();
-
-        // Get CSRF token
-        const metaToken = document.querySelector('meta[name="csrf-token"]');
-        this.csrfToken = metaToken ? metaToken.content : null;
-
-        if (!this.csrfToken) {
-            throw new Error('CSRF token not found');
-        }
-
-        // Initialize state
+        this.outputElement = null;
+        this.inputElement = null;
+        this.inputLine = null;
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.lang = options.lang || 'en';
@@ -55,74 +18,62 @@ class InteractiveConsole {
         this.pollTimer = null;
         this.polling = false;
 
+        // Get CSRF token
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        this.csrfToken = metaToken ? metaToken.content : null;
+
+        if (!this.csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
         // Initialize immediately
         this.init();
     }
 
-    init() {
-        return new Promise((resolve, reject) => {
-            const maxAttempts = 5;
-            let attempts = 0;
+    async init() {
+        try {
+            await this.findElements();
+            this.setupEventListeners();
+            this.cleanupConsole();
+            this.isInitialized = true;
+            console.log('Console initialized successfully');
+            window.dispatchEvent(new Event('consoleReady'));
+        } catch (error) {
+            console.error('Failed to initialize console:', error);
+            throw error;
+        }
+    }
 
-            const tryInit = () => {
-                try {
-                    if (!this.outputElement || !this.inputLine || !this.inputElement) {
-                        if (attempts >= maxAttempts) {
-                            reject(new Error('Required elements not found after maximum attempts'));
-                            return;
-                        }
-                        attempts++;
-                        setTimeout(tryInit, 200);
+    async findElements() {
+        return new Promise((resolve, reject) => {
+            const maxRetries = 10;
+            const retryDelay = 100;
+            let retryCount = 0;
+
+            const findElements = () => {
+                this.outputElement = document.getElementById('consoleOutput');
+                this.inputElement = document.getElementById('consoleInput');
+                this.inputLine = document.querySelector('.console-input-line');
+
+                if (!this.outputElement || !this.inputElement || !this.inputLine) {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(findElements, retryDelay);
                         return;
                     }
-
-                    // Reset and force visibility immediately
-                    this.cleanupConsole();
-                    this.outputElement.style.display = 'block';
-                    this.inputLine.style.display = 'flex';
-                    this.inputElement.style.display = 'block';
-                    this.inputElement.style.visibility = 'visible';
-
-                    // Force browser reflow
-                    this.outputElement.offsetHeight;
-                    this.inputLine.offsetHeight;
-                    this.inputElement.offsetHeight;
-
-                    // Setup event listeners
-                    this.setupEventListeners();
-                    this.setInputState(false);
-
-                    // Ensure visibility persists
-                    requestAnimationFrame(() => {
-                        this.outputElement.style.display = 'block';
-                        this.inputLine.style.display = 'flex';
-                        this.inputElement.style.display = 'block';
-                        this.inputElement.style.visibility = 'visible';
-
-                        // Mark as initialized
-                        this.isInitialized = true;
-                    });
-
-                    // Set up visibility check interval
-                    setInterval(() => {
-                        if (this.outputElement && this.inputLine && this.inputElement) {
-                            this.outputElement.style.display = 'block';
-                            this.inputLine.style.display = 'flex';
-                            this.inputElement.style.display = 'block';
-                            this.inputElement.style.visibility = 'visible';
-                        }
-                    }, 100);
-
-                    console.log('Console initialized successfully');
-                    this.isInitialized = true;
-                    window.dispatchEvent(new Event('consoleReady'));
-                    resolve();
-                } catch (error) {
-                    console.error('Failed to initialize console:', error);
-                    reject(error);
+                    reject(new Error('Console elements not found after maximum retries'));
+                    return;
                 }
+
+                // Force display after finding elements
+                this.outputElement.style.display = 'block';
+                this.inputElement.style.display = 'block';
+                this.inputLine.style.display = 'flex';
+
+                resolve();
             };
-            tryInit();
+
+            findElements();
         });
     }
 
@@ -133,7 +84,6 @@ class InteractiveConsole {
         if (this.inputElement) {
             this.inputElement.value = '';
         }
-        // Always maintain visibility
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
         this.inputElement.disabled = true;
@@ -141,6 +91,7 @@ class InteractiveConsole {
         this.isWaitingForInput = false;
         this.isSessionValid = false;
         this.pollRetryCount = 0;
+        this.polling = false;
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
             this.pollTimer = null;
@@ -150,7 +101,6 @@ class InteractiveConsole {
     setupEventListeners() {
         if (!this.inputElement) return;
 
-        // Handle Enter key press
         const handleEnter = async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {
                 e.preventDefault();
@@ -163,17 +113,14 @@ class InteractiveConsole {
             }
         };
 
-        this.inputElement.removeEventListener('keypress', handleEnter);
         this.inputElement.addEventListener('keypress', handleEnter);
 
-        // Keep focus on input when needed
         const handleBlur = () => {
             if (this.isWaitingForInput && this.isSessionValid) {
                 this.inputElement.focus();
             }
         };
 
-        this.inputElement.removeEventListener('blur', handleBlur);
         this.inputElement.addEventListener('blur', handleBlur);
     }
 
@@ -183,27 +130,14 @@ class InteractiveConsole {
             return;
         }
 
-        console.log('Setting input state to waiting:', waiting);
-
-        // Force elements to always be visible
         this.inputLine.style.display = 'flex';
         this.inputElement.style.display = 'block';
-
-        // Update state and enable/disable
         this.isWaitingForInput = waiting;
         this.inputElement.disabled = !waiting;
-        this.isSessionValid = waiting;
 
-        if (this.isWaitingForInput) {
+        if (waiting) {
             this.inputElement.focus();
-            this.outputElement.scrollTop = this.outputElement.scrollHeight;
         }
-
-        console.log('Input state updated:', {
-            waiting: this.isWaitingForInput,
-            sessionValid: this.isSessionValid,
-            inputEnabled: !this.inputElement.disabled
-        });
     }
 
     appendToConsole(text, type = 'output') {
@@ -231,30 +165,18 @@ class InteractiveConsole {
         }
 
         this.isBusy = true;
-        this.cleanupConsole();
 
         try {
-            // Only end previous session if one exists
-            if (this.sessionId) {
-                await this.endSession();
-            }
-
-            // Keep input elements visible but disabled during transition
-            this.inputLine.style.display = 'flex';
-            this.inputElement.style.display = 'block';
-            this.inputElement.disabled = true;
-
-            // Clean output
-            this.outputElement.innerHTML = '';
+            await this.endSession();
+            this.cleanupConsole();
 
             const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error("Failed to start program execution");
             }
 
-            this.startPolling();
+            await this.startPolling();
             return true;
-
         } catch (error) {
             console.error("Error executing code:", error);
             throw error;
@@ -291,9 +213,9 @@ class InteractiveConsole {
             this.sessionId = data.session_id;
             this.isSessionValid = true;
             this.pollRetryCount = 0;
+            this.polling = false;
 
             return true;
-
         } catch (error) {
             console.error("Error in startSession:", error);
             return false;
@@ -303,31 +225,22 @@ class InteractiveConsole {
     async startPolling() {
         if (this.pollTimer) {
             clearTimeout(this.pollTimer);
+            this.pollTimer = null;
         }
 
-        // Attendre que la session soit prête
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        if (this.sessionId && this.isSessionValid) {
-            console.log('Starting poll for session:', this.sessionId);
-            this.poll();
-        } else {
-            console.log('Session not ready:', {
-                sessionId: this.sessionId,
-                isValid: this.isSessionValid
-            });
+        if (!this.sessionId || !this.isSessionValid) {
+            console.log('Session not valid for polling');
+            return;
         }
+
+        // Initial delay before starting to poll
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await this.poll();
     }
 
     async poll() {
-        console.log('Poll called:', {
-            sessionId: this.sessionId,
-            isValid: this.isSessionValid,
-            isPolling: this.polling
-        });
-
         if (!this.sessionId || !this.isSessionValid) {
-            console.log('Poll skipped - invalid session state');
+            console.log('Poll skipped - invalid session');
             return;
         }
 
@@ -337,9 +250,8 @@ class InteractiveConsole {
         }
 
         this.polling = true;
-        try {
-            console.log(`[${new Date().toISOString()}] Polling backend for session ${this.sessionId}`);
 
+        try {
             const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`, {
                 credentials: 'same-origin'
             });
@@ -349,38 +261,32 @@ class InteractiveConsole {
             }
 
             const data = await response.json();
-            console.log('Poll response:', data);
 
-            if (data.success) {
-                this.pollRetryCount = 0;
-
-                if (data.output) {
-                    this.appendToConsole(data.output);
-                }
-
-                if (data.session_ended) {
-                    this.isSessionValid = false;
-                    this.isWaitingForInput = false;
-                    this.setInputState(false);
-                    return;
-                }
-
-                this.isSessionValid = true;
-                this.isWaitingForInput = data.waiting_for_input;
-                this.setInputState(data.waiting_for_input);
-
-                // Schedule next poll with minimum delay
-                setTimeout(() => {
-                    if (this.isSessionValid) {
-                        this.poll();
-                    }
-                }, this.baseDelay);
-            } else {
+            if (!data.success) {
                 throw new Error(data.error || 'Unknown error');
             }
+
+            this.pollRetryCount = 0;
+
+            if (data.output) {
+                this.appendToConsole(data.output);
+            }
+
+            if (data.session_ended) {
+                this.isSessionValid = false;
+                this.setInputState(false);
+                return;
+            }
+
+            this.isWaitingForInput = data.waiting_for_input;
+            this.setInputState(data.waiting_for_input);
+
+            // Schedule next poll
+            this.pollTimer = setTimeout(() => this.poll(), this.baseDelay);
+
         } catch (error) {
             console.error('Poll error:', error);
-            this.handlePollError(error.message);
+            this.handlePollError(error);
         } finally {
             this.polling = false;
         }
@@ -406,8 +312,6 @@ class InteractiveConsole {
             return;
         }
 
-        console.log('Ending session:', this.sessionId);
-
         try {
             if (this.pollTimer) {
                 clearTimeout(this.pollTimer);
@@ -430,6 +334,7 @@ class InteractiveConsole {
         } finally {
             this.cleanupConsole();
             this.isBusy = false;
+            this.polling = false;
         }
     }
 
@@ -440,8 +345,6 @@ class InteractiveConsole {
         }
 
         try {
-            console.log('Sending input:', input);
-
             const response = await fetch('/activities/send_input', {
                 method: 'POST',
                 headers: {
@@ -451,7 +354,7 @@ class InteractiveConsole {
                 credentials: 'same-origin',
                 body: JSON.stringify({
                     session_id: this.sessionId,
-                    input: input + '\n'
+                    input: input
                 })
             });
 
@@ -460,7 +363,6 @@ class InteractiveConsole {
                 throw new Error(data.error || 'Failed to send input');
             }
 
-            // Clear input field but don't change state
             this.inputElement.value = '';
             this.inputElement.focus();
 

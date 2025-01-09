@@ -19,6 +19,13 @@ async function executeCode() {
         return;
     }
 
+    const currentTime = Date.now();
+    if (currentTime - lastExecution < MIN_EXECUTION_INTERVAL) {
+        console.log('Execution throttled');
+        return;
+    }
+    lastExecution = currentTime;
+
     isExecuting = true;
     const code = editor.getValue().trim();
     const languageSelect = document.getElementById('languageSelect');
@@ -32,6 +39,10 @@ async function executeCode() {
             return;
         }
 
+        // First ensure any existing session is cleaned up
+        await consoleInstance.endSession();
+
+        // Then execute the new code
         await consoleInstance.executeCode(code, language);
     } catch (error) {
         console.error('Error executing code:', error);
@@ -151,23 +162,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             executeCode();
         }
     });
-
-
-    // Clear console handler
-    const clearConsoleButton = document.getElementById('clearConsoleButton');
-    if (clearConsoleButton) {
-        clearConsoleButton.addEventListener('click', async function() {
-            if (consoleInstance) {
-                await consoleInstance.endSession();
-            }
-            if (consoleOutput) {
-                consoleOutput.innerHTML = '';
-            }
-        });
-    }
 });
 
-// Initialize everything when DOM is ready
 // Wait for console to be ready
 window.addEventListener('consoleReady', () => {
     isConsoleReady = true;
