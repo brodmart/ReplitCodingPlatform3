@@ -89,8 +89,9 @@ def start_session():
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1,  # Line buffering
-                universal_newlines=True,  # Ensure text mode with universal newlines
+                bufsize=0,  # No buffering for immediate output
+                encoding='utf-8',  # Explicitly set encoding
+                errors='replace',  # Handle encoding errors gracefully
                 cwd=session_dir
             )
 
@@ -179,14 +180,14 @@ def get_output():
             for pipe in readable:
                 logger.debug("Reading from pipe...")
                 try:
-                    # Use readline() instead of read1() for text streams
-                    line = pipe.readline()
-                    if line:
-                        logger.debug(f"Read line from process: {line}")
-                        output.append(line)
+                    # Read all available output
+                    data = pipe.read()
+                    if data:
+                        logger.debug(f"Read data from process: {data}")
+                        output.append(data)
                         # Check for input prompts
-                        lower_line = line.lower()
-                        if any(prompt in lower_line for prompt in [
+                        lower_data = data.lower()
+                        if any(prompt in lower_data for prompt in [
                             'input', 'enter', 'type', '?', ':', '>',
                             'cin', 'cin >>', 'console.readline', 'console.read'
                         ]):
@@ -214,7 +215,7 @@ def get_output():
             logger.error(f"Select error: {e}")
             return jsonify({'success': False, 'error': 'Failed to read output'}), 500
 
-        
+
     except Exception as e:
         logger.error(f"Error in get_output: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
