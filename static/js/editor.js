@@ -106,16 +106,23 @@ namespace ProgrammingActivity
 
 // Global executeCode function
 window.executeCode = async function() {
-    console.log('Execute code triggered');
-    if (!editor) {
-        console.error('Editor not initialized');
-        return;
-    }
+    try {
+        if (!editor) {
+            throw new Error('Editor not initialized');
+        }
 
-    if (isExecuting) {
-        console.log('Execution already in progress');
-        return;
-    }
+        if (isExecuting) {
+            throw new Error('Execution already in progress');
+            return;
+        }
+
+        // Ensure console is initialized before proceeding
+        if (!consoleInstance || !consoleInstance.isInitialized) {
+            await ensureConsoleInitialized();
+            if (!consoleInstance || !consoleInstance.isInitialized) {
+                throw new Error('Failed to initialize console');
+            }
+        }
 
     if (Date.now() - lastExecution < MIN_EXECUTION_INTERVAL) {
         return;
