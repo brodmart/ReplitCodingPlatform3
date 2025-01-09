@@ -7,7 +7,6 @@ class InteractiveConsole {
         this.outputElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
         this.inputLine = document.querySelector('.console-input-line');
-        this.runButton = document.getElementById('runButton');
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console elements not found');
@@ -32,8 +31,6 @@ class InteractiveConsole {
         this.isInitialized = false;
         this.isBusy = false;
         this.pollTimer = null;
-        this.contentCleared = false;
-        this.isExecuting = false;
 
         this.setupEventListeners();
         this.isInitialized = true;
@@ -84,37 +81,23 @@ class InteractiveConsole {
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
-    setButtonState(isExecuting) {
-        if (!this.runButton) return;
-
-        this.isExecuting = isExecuting;
-        this.runButton.disabled = isExecuting;
-        this.runButton.innerHTML = isExecuting ? 
-            `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...` :
-            (document.documentElement.lang === 'fr' ? 'Exécuter' : 'Run');
-    }
-
     async executeCode(code, language) {
         console.log("executeCode called:", { language, codeLength: code?.length });
 
-        if (!this.isReady() || this.isExecuting) {
-            console.error("Console not ready or already executing");
-            this.appendToConsole("Error: Console busy. Please wait a moment.\n", 'error');
-            return false;
+        if (!this.isReady()) {
+            console.error("Console not ready");
+            throw new Error("Console not ready. Please try again.");
         }
 
         if (!code?.trim()) {
             console.error("Empty code submission");
-            this.appendToConsole("Error: No code to execute\n", 'error');
-            return false;
+            throw new Error("No code to execute");
         }
 
         this.isBusy = true;
-        this.setButtonState(true);
-        this.contentCleared = false;
 
         try {
-            // Clean up any existing session and polling
+            // Clean up any existing session first
             if (this.pollTimer) {
                 clearTimeout(this.pollTimer);
                 this.pollTimer = null;
@@ -125,33 +108,22 @@ class InteractiveConsole {
                 await this.endSession();
             }
 
-            // Clear console and show compiling status
-            this.outputElement.innerHTML = '';
-            this.contentCleared = true;
-            this.appendToConsole("Compiling code...\n", 'system');
-
             // Start new session
             console.log("Starting new session");
             const success = await this.startSession(code, language);
 
             if (!success) {
                 console.error("Failed to start session");
-                this.appendToConsole("Failed to start program execution.\n", 'error');
-                return false;
+                throw new Error("Failed to start program execution");
             }
 
-            this.appendToConsole("Running program...\n", 'system');
             console.log("Session started successfully, beginning output polling");
             this.startPolling();
-            return true;
 
         } catch (error) {
             console.error("Error in executeCode:", error);
-            this.appendToConsole(`Error: ${error.message}\n`, 'error');
-            return false;
-        } finally {
             this.isBusy = false;
-            this.setButtonState(false);
+            throw error;
         }
     }
 
@@ -184,7 +156,6 @@ class InteractiveConsole {
 
             if (!response.ok || !data.success) {
                 console.error("Start session failed:", data.error);
-                this.appendToConsole(`Error: ${data.error || 'Failed to start session'}\n`, 'error');
                 return false;
             }
 
@@ -196,7 +167,6 @@ class InteractiveConsole {
 
         } catch (error) {
             console.error("Error in startSession:", error);
-            this.appendToConsole(`Error: ${error.message}\n`, 'error');
             return false;
         }
     }
@@ -204,7 +174,6 @@ class InteractiveConsole {
     async poll() {
         if (!this.sessionId || !this.isSessionValid) {
             console.log("Polling stopped: invalid session state");
-            this.setButtonState(false);
             return;
         }
 
@@ -286,25 +255,41 @@ class InteractiveConsole {
                 });
             } catch (error) {
                 console.error("Error ending session:", error);
-                this.appendToConsole(`Error ending session: ${error.message}\n`, 'error');
             }
         }
 
         this.sessionId = null;
         this.isSessionValid = false;
         this.setInputState(false);
-        this.setButtonState(false);
         this.inputQueue = [];
         this.pollRetryCount = 0;
-        this.contentCleared = false;
+        this.isBusy = false;
     }
 
-    async processInputQueue() {
-        if (this.inputQueue.length > 0 && this.isWaitingForInput && this.isSessionValid) {
-            const input = this.inputQueue.shift();
-            this.inputElement.value = input;
-            const event = new KeyboardEvent('keypress', { key: 'Enter' });
-            this.inputElement.dispatchEvent(event);
+    async sendInput(input) {
+        if (!this.sessionId || !this.isSessionValid) return;
+
+        try {
+            const response = await fetch('/activities/send_input', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': this.csrfToken
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    session_id: this.sessionId,
+                    input: input
+                })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to send input');
+            }
+        } catch (error) {
+            console.error("Error sending input:", error);
+            this.handlePollError(error.message);
         }
     }
 }
