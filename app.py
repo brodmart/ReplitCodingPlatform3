@@ -44,6 +44,24 @@ def create_app():
 
                 # Initialize other components...
 
+                # Register blueprints
+                from routes.auth_routes import auth
+                from routes.activity_routes import activities
+                from routes.tutorial import tutorial
+
+                app.register_blueprint(auth)
+                app.register_blueprint(activities)
+                app.register_blueprint(tutorial)
+
+                # Register error handlers
+                @app.errorhandler(404)
+                def not_found_error(error):
+                    return render_template('errors/404.html'), 404
+
+                @app.errorhandler(500)
+                def internal_error(error):
+                    return render_template('errors/500.html'), 500
+
                 logger.info("Application initialized successfully")
                 return app
             except Exception as e:
