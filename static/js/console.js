@@ -38,36 +38,31 @@ class InteractiveConsole {
 
     init() {
         try {
-            // Ensure DOM is ready
             if (!this.outputElement || !this.inputLine || !this.inputElement) {
                 throw new Error('Required elements not found');
             }
 
-            // Reset state first
+            // Reset and force visibility immediately
             this.cleanupConsole();
-            
-            // Force visibility state immediately
             this.outputElement.style.display = 'block';
             this.inputLine.style.display = 'flex';
             this.inputElement.style.display = 'block';
             this.inputElement.style.visibility = 'visible';
-            
+
             // Setup event listeners
             this.setupEventListeners();
-
-            // Set initial state
             this.setInputState(false);
 
-            // Double-check visibility after state changes
-            setTimeout(() => {
+            // Ensure visibility persists
+            requestAnimationFrame(() => {
                 this.outputElement.style.display = 'block';
                 this.inputLine.style.display = 'flex';
                 this.inputElement.style.display = 'block';
                 this.inputElement.style.visibility = 'visible';
-            }, 0);
 
-            // Mark as initialized
-            this.isInitialized = true;
+                // Mark as initialized
+                this.isInitialized = true;
+            });
 
             console.log('Console initialized successfully');
         } catch (error) {
