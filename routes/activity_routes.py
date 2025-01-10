@@ -7,6 +7,7 @@ from threading import Lock
 import atexit
 import fcntl
 from flask import Blueprint, render_template, request, jsonify, session
+from flask_login import login_required
 from werkzeug.exceptions import RequestTimeout
 from database import db
 from models import CodingActivity
@@ -535,6 +536,7 @@ def execute_code():
 
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
+@login_required
 @limiter.limit("30 per minute")
 def list_activities(grade=None):
     """List all coding activities for a specific grade"""
@@ -584,6 +586,7 @@ def list_activities(grade=None):
         return response, 500
 
 @activities.route('/activity/<int:activity_id>')
+@login_required
 @limiter.limit("30 per minute")
 def view_activity(activity_id):
     """View a specific coding activity"""
