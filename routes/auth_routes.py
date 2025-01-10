@@ -135,16 +135,24 @@ def reset_password_request():
 
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
+        logger.info(f"Processing password reset request for email: {form.email.data}")
         user = Student.query.filter_by(email=form.email.data).first()
         if user:
             token = secrets.token_urlsafe(32)
             user.reset_password_token = token
             user.reset_password_token_expiration = datetime.utcnow() + timedelta(hours=24)
-            db.session.commit()
-            send_password_reset_email(user)
-            flash('Check your email for the password reset instructions.', 'success')
-            return redirect(url_for('auth.login'))
+            try:
+                db.session.commit()
+                logger.info(f"Generated reset token for user: {user.username}")
+                send_password_reset_email(user)
+                flash('Check your email for the password reset instructions.', 'success')
+                return redirect(url_for('auth.login'))
+            except Exception as e:
+                logger.error(f"Error during password reset process: {str(e)}")
+                db.session.rollback()
+                flash('An error occurred while processing your request.', 'danger')
         else:
+            logger.warning(f"Password reset attempted for non-existent email: {form.email.data}")
             flash('Email not found.', 'warning')
     return render_template('auth/reset_password_request.html', form=form)
 
@@ -169,11 +177,22 @@ def reset_password(token):
     return render_template('auth/reset_password.html', form=form)
 
 def send_password_reset_email(user):
-    token = user.reset_password_token
-    reset_link = url_for('auth.reset_password', token=token, _external=True)
-    msg = Message('Password Reset Request', sender=current_app.config['MAIL_USERNAME'], recipients=[user.email])
-    msg.body = f'''To reset your password, visit the following link:
+    """Send password reset email with enhanced logging"""
+    try:
+        logger.info(f"Preparing to send password reset email to: {user.email}")
+        token = user.reset_password_token
+        reset_link = url_for('auth.reset_password', token=token, _external=True)
+
+        msg = Message('Password Reset Request', 
+                     sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                     recipients=[user.email])
+        msg.body = f'''To reset your password, visit the following link:
 {reset_link}
 
 This link will expire in 24 hours.'''
-    mail.send(msg)
+
+        mail.send(msg)
+        logger.info(f"Password reset email sent successfully to: {user.email}")
+    except Exception as e:
+        logger.error(f"Failed to send password reset email: {str(e)}")
+        raise

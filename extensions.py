@@ -14,10 +14,8 @@ from flask_mail import Mail
 # Configure logging
 logger = logging.getLogger('extensions')
 
-# Initialize Flask-Mail
-mail = Mail()
-
 # Initialize extensions
+mail = Mail()
 cache = Cache()
 compress = Compress()
 csrf = CSRFProtect()
@@ -36,34 +34,47 @@ def init_extensions(app, db=None):
     """Initialize Flask extensions with proper error handling"""
     try:
         # Configure basic security settings
-        app.config.update(
-            SESSION_COOKIE_HTTPONLY=True,
-            SESSION_COOKIE_SAMESITE='Lax',
-            SESSION_COOKIE_SECURE=False,  # Set to True in production
-            PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+        app.config.update({
+            'SESSION_COOKIE_HTTPONLY': True,
+            'SESSION_COOKIE_SAMESITE': 'Lax',
+            'SESSION_COOKIE_SECURE': False,  # Set to True in production
+            'PERMANENT_SESSION_LIFETIME': timedelta(days=7),
+            # Mail settings
+            'MAIL_SERVER': 'smtp.gmail.com',
+            'MAIL_PORT': 587,
+            'MAIL_USE_TLS': True,
+            'MAIL_USE_SSL': False,
+            'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
+            'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
+            'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_USERNAME'),
             # Cache configuration
-            CACHE_TYPE='SimpleCache',
-            CACHE_DEFAULT_TIMEOUT=3600,
+            'CACHE_TYPE': 'SimpleCache',
+            'CACHE_DEFAULT_TIMEOUT': 3600,
             # Rate limiting
-            RATELIMIT_ENABLED=True,
-            RATELIMIT_HEADERS_ENABLED=True,
-            RATELIMIT_STORAGE_URL="memory://",
+            'RATELIMIT_ENABLED': True,
+            'RATELIMIT_HEADERS_ENABLED': True,
+            'RATELIMIT_STORAGE_URL': "memory://",
             # CSRF Protection
-            WTF_CSRF_ENABLED=True,
-            WTF_CSRF_TIME_LIMIT=3600,
+            'WTF_CSRF_ENABLED': True,
+            'WTF_CSRF_TIME_LIMIT': 3600,
             # CORS settings
-            CORS_SUPPORTS_CREDENTIALS=True,
-        )
+            'CORS_SUPPORTS_CREDENTIALS': True,
+        })
 
-        # Initialize Mail
+        # Initialize Mail with proper error handling
         try:
             mail.init_app(app)
-            logger.info("Mail initialized successfully")
+            # Test mail configuration
+            with app.app_context():
+                mail_username = app.config.get('MAIL_USERNAME')
+                if not mail_username:
+                    raise ValueError("MAIL_USERNAME not configured")
+                logger.info(f"Mail initialized successfully with username: {mail_username}")
         except Exception as e:
             logger.error(f"Failed to initialize mail: {str(e)}")
             raise
 
-        # Initialize extensions with error handling
+        # Initialize other extensions with error handling
         try:
             cache.init_app(app)
             logger.info("Cache initialized successfully")
