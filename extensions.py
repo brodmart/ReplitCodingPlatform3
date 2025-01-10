@@ -9,9 +9,13 @@ from flask_compress import Compress
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from flask_cors import CORS
+from flask_mail import Mail
 
 # Configure logging
 logger = logging.getLogger('extensions')
+
+# Initialize Flask-Mail
+mail = Mail()
 
 # Initialize extensions
 cache = Cache()
