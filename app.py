@@ -53,7 +53,19 @@ def create_app():
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max-limit
         # Registration settings
         REGISTRATION_ENABLED=False,  # Disable public registration by default
-        ALLOWED_EMAIL_DOMAINS=['ontario.ca', 'edu.ontario.ca']  # Restrict to educational domains
+        ALLOWED_EMAIL_DOMAINS=[
+            'ontario.ca',
+            'edu.ontario.ca',
+            'cepeo.on.ca',  # Conseil des écoles publiques de l'Est de l'Ontario
+            'ocdsb.ca',     # Ottawa-Carleton District School Board
+            'tdsb.on.ca',   # Toronto District School Board
+            'yrdsb.ca',     # York Region District School Board
+            'pdsb.net',     # Peel District School Board
+            'ddsb.ca',      # Durham District School Board
+            'hdsb.ca',      # Halton District School Board
+            'tvdsb.ca',     # Thames Valley District School Board
+            'ugdsb.on.ca'   # Upper Grand District School Board
+        ]  # Restrict to Ontario educational domains
     )
 
     try:
