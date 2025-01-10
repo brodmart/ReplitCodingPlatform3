@@ -68,6 +68,7 @@ def create_app():
             # English Public District School Boards
             'tdsb.on.ca',    # Toronto DSB
             'peelschools.org', # Peel DSB
+            'edu.cepeo.on.ca', # Conseil des écoles publiques de l'Est de l'Ontario
             'yrdsb.ca',      # York Region DSB
             'ddsb.ca',       # Durham DSB
             'hdsb.ca',       # Halton DSB
