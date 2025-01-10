@@ -52,7 +52,7 @@ def create_app():
         # Request settings
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max-limit
         # Registration settings
-        REGISTRATION_ENABLED=False,  # Disable public registration by default
+        REGISTRATION_ENABLED=True,  # Enable registration for testing
         ALLOWED_EMAIL_DOMAINS=[
             # Government domains
             'ontario.ca',
