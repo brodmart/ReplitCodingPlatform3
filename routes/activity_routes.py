@@ -597,13 +597,33 @@ def view_activity(activity_id):
             activity = CodingActivity.query.get_or_404(activity_id)
             logger.debug(f"Found activity: {activity.title}")
             logger.debug(f"Activity starter code: {activity.starter_code}")
+
+            if not activity.starter_code:
+                # Set default starter code based on language
+                if activity.language == 'cpp':
+                    activity.starter_code = """#include <iostream>
+using namespace std;
+
+int main() {
+    // Your code here
+    return 0;
+}"""
+                else:  # C#
+                    activity.starter_code = """using System;
+
+class Program {
+    static void Main() {
+        // Your code here
+    }
+}"""
+
         except Exception as db_error:
             logger.error(f"Database error in view_activity: {str(db_error)}", exc_info=True)
             raise
 
         try:
             return render_template(
-                'activity.html',
+                'activities/view.html',  # Changed from activity.html to activities/view.html
                 activity=activity,
                 lang=session.get('lang', 'fr')
             )
