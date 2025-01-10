@@ -9,7 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_db
 from extensions import init_extensions
 from utils.logger import setup_logging
-from models import Student  # Changed from User to Student
+from models import Student
 
 # Configure logging
 logging.basicConfig(
@@ -63,15 +63,20 @@ def create_app():
         # Initialize extensions
         init_extensions(app, db)
 
-        # Setup Login Manager with anonymous access
+        # Setup Login Manager
         login_manager = LoginManager()
         login_manager.init_app(app)
         login_manager.anonymous_user = Anonymous
-        login_manager.login_view = 'auth.login'  # Set login view but don't force redirect
+        login_manager.login_view = 'auth.login'
+        login_manager.login_message = 'Please log in to access this page.'
+        login_manager.login_message_category = 'warning'
 
         @login_manager.user_loader
         def load_user(user_id):
-            return Student.query.get(int(user_id)) if user_id else None
+            try:
+                return Student.query.get(int(user_id))
+            except:
+                return None
 
         # Register blueprints
         from routes.auth_routes import auth
@@ -79,10 +84,10 @@ def create_app():
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
 
-        app.register_blueprint(static_pages)  # No url_prefix for main routes
-        app.register_blueprint(auth, url_prefix='/auth')
+        app.register_blueprint(auth)  # Root URL for auth routes
         app.register_blueprint(activities, url_prefix='/activities')
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+        app.register_blueprint(static_pages)
 
         # Register error handlers
         @app.errorhandler(404)
