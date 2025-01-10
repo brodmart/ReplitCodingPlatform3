@@ -595,43 +595,11 @@ def view_activity(activity_id):
         logger.debug(f"Viewing activity with ID: {activity_id}")
 
         # Get activity with explicit loading of starter_code
-        activity = db.session.query(CodingActivity).filter_by(id=activity_id).first_or_404()
+        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
         logger.debug(f"Found activity: {activity.title}")
         logger.debug(f"Activity language: {activity.language}")
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
-
-        # Only set default template if starter_code is None
-        # Do not override existing starter_code even if it's an empty string
-        if activity.starter_code is None:
-            logger.info(f"No starter code found for activity {activity_id}, using language-specific template")
-            default_templates = {
-                'cpp': """#include <iostream>
-using namespace std;
-
-int main() {
-    // Write your code here
-    // Écrivez votre code ici
-
-    return 0;
-}""",
-                'csharp': """using System;
-
-class Program {
-    static void Main() {
-        // Write your code here
-        // Écrivez votre code ici
-
-    }
-}"""
-            }
-            activity.starter_code = default_templates.get(activity.language.lower())
-            try:
-                db.session.commit()
-                logger.info("Successfully saved starter code template to database")
-            except Exception as e:
-                logger.error(f"Failed to save starter code template: {e}")
-                db.session.rollback()
 
         return render_template(
             'activities/view.html',
