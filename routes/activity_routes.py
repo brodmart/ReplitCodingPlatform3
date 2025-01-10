@@ -533,7 +533,6 @@ def execute_code():
 # Request logging and error handling
 
 
-
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
 @login_required
@@ -596,12 +595,13 @@ def view_activity(activity_id):
         # Get activity with explicit loading of starter_code
         activity = db.session.query(CodingActivity).filter_by(id=activity_id).first_or_404()
         logger.debug(f"Found activity: {activity.title}")
+        logger.debug(f"Activity language: {activity.language}")
 
         # Log the actual starter code for debugging
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-        # Initialize starter code if needed
-        if not activity.starter_code or activity.starter_code.strip() == "":
+        # Initialize starter code if needed, but ONLY if it's completely empty
+        if activity.starter_code is None or activity.starter_code.strip() == "":
             logger.info(f"Initializing starter code for activity {activity_id} with language {activity.language}")
             activity.starter_code = CodingActivity.get_starter_code(activity.language)
             try:
@@ -610,6 +610,8 @@ def view_activity(activity_id):
             except Exception as e:
                 logger.error(f"Failed to save starter code template: {e}")
                 db.session.rollback()
+
+        logger.debug(f"Final starter code being sent to template: {repr(activity.starter_code)}")
 
         return render_template(
             'activities/view.html',
