@@ -533,7 +533,6 @@ def execute_code():
 # Request logging and error handling
 
 
-
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
 @login_required
@@ -598,26 +597,11 @@ def view_activity(activity_id):
             logger.debug(f"Found activity: {activity.title}")
             logger.debug(f"Activity starter code: {activity.starter_code}")
 
-            # Only set default starter code if none exists
+            # If no starter code exists in database, use language-specific template
             if not activity.starter_code or activity.starter_code.strip() == "":
-                logger.debug("No starter code found, setting default template")
-                # Set default starter code based on language
-                if activity.language == 'cpp':
-                    activity.starter_code = """#include <iostream>
-using namespace std;
-
-int main() {
-    // Your code here
-    return 0;
-}"""
-                else:  # C#
-                    activity.starter_code = """using System;
-
-class Program {
-    static void Main() {
-        // Your code here
-    }
-}"""
+                logger.debug("No starter code found in database, using default template")
+                activity.starter_code = CodingActivity.get_starter_code(activity.language)
+                logger.debug(f"Set default starter code template for {activity.language}")
             else:
                 logger.debug("Using existing starter code from database")
 
