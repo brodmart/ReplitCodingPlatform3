@@ -27,7 +27,7 @@ def login():
     """Handle user authentication"""
     if current_user.is_authenticated:
         logger.info(f"Already authenticated user {current_user.username} accessing login page")
-        return redirect(url_for('main.index'))
+        return redirect(url_for('static_pages.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -49,7 +49,7 @@ def login():
 
                 next_page = request.args.get('next')
                 if not next_page or not is_safe_url(next_page):
-                    next_page = url_for('main.index')
+                    next_page = url_for('static_pages.index')
                     logger.debug(f"Redirecting to default page: {next_page}")
                 else:
                     logger.debug(f"Redirecting to next page: {next_page}")
@@ -74,18 +74,16 @@ def login():
 @limiter.limit("20 per minute")
 def register():
     """Handle user registration with restrictions"""
-    # Check if registration is enabled in config
     if not current_app.config.get('REGISTRATION_ENABLED', False):
         flash('Registration is currently disabled.', 'warning')
         return redirect(url_for('auth.login'))
 
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('static_pages.index'))
 
     form = RegisterForm()
     if form.validate_on_submit():
         try:
-            # Additional validation for school email domains if required
             email_domain = form.email.data.split('@')[1].lower()
             allowed_domains = current_app.config.get('ALLOWED_EMAIL_DOMAINS', ['ontario.ca', 'edu.ontario.ca'])
 
@@ -127,18 +125,16 @@ def logout():
     flash('You have been logged out successfully', 'success')
     return redirect(url_for('auth.login'))
 
-
 @auth.route('/reset_password', methods=['GET', 'POST'])
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for('static_pages.index'))
 
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
         logger.info(f"Processing password reset request for email: {form.email.data}")
         user = Student.query.filter_by(email=form.email.data).first()
         if user:
-            # Check if email configuration is available
             if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
                 logger.warning("Password reset attempted but email is not configured")
                 flash('Password reset is temporarily unavailable. Please contact support.', 'warning')
@@ -157,7 +153,6 @@ def reset_password_request():
                 except Exception as e:
                     logger.error(f"Failed to send password reset email: {str(e)}")
                     flash('Unable to send reset email. Please try again later or contact support.', 'danger')
-                    # Rollback the token generation since email failed
                     user.reset_password_token = None
                     user.reset_password_token_expiration = None
                     db.session.commit()
@@ -169,7 +164,6 @@ def reset_password_request():
                 flash('An error occurred while processing your request. Please try again.', 'danger')
         else:
             logger.warning(f"Password reset attempted for non-existent email: {form.email.data}")
-            # Use same message as success for security
             flash('If your email is registered, you will receive password reset instructions.', 'info')
             return redirect(url_for('auth.login'))
     return render_template('auth/reset_password_request.html', form=form)
