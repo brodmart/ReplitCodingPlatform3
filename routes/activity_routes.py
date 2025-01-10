@@ -601,9 +601,10 @@ def view_activity(activity_id):
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-        # Only set default starter code if it's completely empty or None
-        if activity.starter_code is None or activity.starter_code.strip() == "":
-            logger.info(f"No specific starter code found for activity {activity_id}, using language-specific template")
+        # Only set default starter code if it's None, not when it's empty string
+        # This ensures activity-specific starter code is preserved
+        if activity.starter_code is None:
+            logger.info(f"No starter code found for activity {activity_id}, using language-specific template")
             default_templates = {
                 'cpp': """#include <iostream>
 using namespace std;
