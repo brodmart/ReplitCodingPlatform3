@@ -31,4 +31,5 @@ dependencies = [
     "python-socketio>=5.12.1",
     "eventlet>=0.38.2",
     "twilio>=9.4.2",
+    "flask-mail>=0.10.0",
 ]
