@@ -9,7 +9,8 @@ from flask_compress import Compress
 from flask_wtf.csrf import CSRFProtect
 from flask_migrate import Migrate
 from flask_cors import CORS
-from flask_mail import Mail
+from flask_mail import Mail, Message
+from smtplib import SMTPException, SMTPAuthenticationError
 
 # Configure logging
 logger = logging.getLogger('extensions')
@@ -30,6 +31,29 @@ limiter = Limiter(
     strategy="fixed-window"
 )
 
+def test_mail_connection(app):
+    """Test mail server connection with provided credentials"""
+    try:
+        with app.app_context():
+            # Create a test message
+            msg = Message(
+                subject="Mail Server Test",
+                sender=app.config['MAIL_DEFAULT_SENDER'],
+                recipients=[app.config['MAIL_USERNAME']]
+            )
+            msg.body = "This is a test email to verify SMTP configuration."
+            mail.send(msg)
+            return True, "Mail server connection test successful"
+    except SMTPAuthenticationError as e:
+        logger.warning(f"SMTP Authentication Error: {str(e)}")
+        return False, "Invalid SMTP credentials. Please check your username and password."
+    except SMTPException as e:
+        logger.warning(f"SMTP Error: {str(e)}")
+        return False, f"SMTP Error: {str(e)}"
+    except Exception as e:
+        logger.warning(f"Unexpected error testing mail connection: {str(e)}")
+        return False, f"Unexpected error: {str(e)}"
+
 def init_extensions(app, db=None):
     """Initialize Flask extensions with proper error handling"""
     try:
@@ -47,6 +71,9 @@ def init_extensions(app, db=None):
             'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
             'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
             'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_USERNAME'),
+            'MAIL_MAX_EMAILS': 5,  # Limit emails per connection
+            'MAIL_SUPPRESS_SEND': False,  # Enable email sending
+            'MAIL_ASCII_ATTACHMENTS': False,
             # Cache configuration
             'CACHE_TYPE': 'SimpleCache',
             'CACHE_DEFAULT_TIMEOUT': 3600,
@@ -64,15 +91,22 @@ def init_extensions(app, db=None):
         # Initialize Mail with proper error handling
         try:
             mail.init_app(app)
-            # Test mail configuration
+            # Test mail configuration only if credentials are provided
             with app.app_context():
                 mail_username = app.config.get('MAIL_USERNAME')
-                if not mail_username:
-                    raise ValueError("MAIL_USERNAME not configured")
-                logger.info(f"Mail initialized successfully with username: {mail_username}")
+                mail_password = app.config.get('MAIL_PASSWORD')
+
+                if not mail_username or not mail_password:
+                    logger.warning("Mail credentials not configured - email functionality will be disabled")
+                else:
+                    # Test the mail connection but don't fail if it doesn't work
+                    success, message = test_mail_connection(app)
+                    if not success:
+                        logger.warning(f"Mail configuration test failed: {message} - email functionality will be disabled")
+                    else:
+                        logger.info(f"Mail initialized successfully with username: {mail_username}")
         except Exception as e:
-            logger.error(f"Failed to initialize mail: {str(e)}")
-            raise
+            logger.warning(f"Failed to initialize mail: {str(e)} - email functionality will be disabled")
 
         # Initialize other extensions with error handling
         try:
