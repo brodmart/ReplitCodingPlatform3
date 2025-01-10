@@ -596,6 +596,7 @@ def view_activity(activity_id):
         try:
             activity = CodingActivity.query.get_or_404(activity_id)
             logger.debug(f"Found activity: {activity.title}")
+            logger.debug(f"Activity starter code: {activity.starter_code}")
         except Exception as db_error:
             logger.error(f"Database error in view_activity: {str(db_error)}", exc_info=True)
             raise
