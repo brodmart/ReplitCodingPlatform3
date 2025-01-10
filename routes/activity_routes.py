@@ -533,6 +533,7 @@ def execute_code():
 # Request logging and error handling
 
 
+
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
 @login_required
@@ -609,9 +610,6 @@ def view_activity(activity_id):
             except Exception as e:
                 logger.error(f"Failed to save starter code template: {e}")
                 db.session.rollback()
-
-        # Additional debug logging
-        logger.debug(f"Final starter code being sent to template: {repr(activity.starter_code)}")
 
         return render_template(
             'activities/view.html',
