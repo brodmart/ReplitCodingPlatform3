@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, session
+from flask import Blueprint, render_template, request, flash, redirect, url_for, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 from models import Student
@@ -69,13 +69,26 @@ def login():
 @auth.route('/register', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")
 def register():
-    """Handle user registration"""
+    """Handle user registration with restrictions"""
+    # Check if registration is enabled in config
+    if not current_app.config.get('REGISTRATION_ENABLED', False):
+        flash('Registration is currently disabled.', 'warning')
+        return redirect(url_for('auth.login'))
+
     if current_user.is_authenticated:
         return redirect(url_for('auth.index'))
 
     form = RegisterForm()
     if form.validate_on_submit():
         try:
+            # Additional validation for school email domains if required
+            email_domain = form.email.data.split('@')[1].lower()
+            allowed_domains = current_app.config.get('ALLOWED_EMAIL_DOMAINS', ['ontario.ca', 'edu.ontario.ca'])
+
+            if email_domain not in allowed_domains:
+                flash('Please use your school email address to register.', 'danger')
+                return render_template('auth/register.html', form=form)
+
             user = Student(
                 username=form.username.data,
                 email=form.email.data

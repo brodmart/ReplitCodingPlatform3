@@ -50,7 +50,10 @@ def create_app():
         SESSION_COOKIE_SAMESITE='Lax',
         PERMANENT_SESSION_LIFETIME=1800,  # 30 minutes
         # Request settings
-        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max-limit
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max-limit
+        # Registration settings
+        REGISTRATION_ENABLED=False,  # Disable public registration by default
+        ALLOWED_EMAIL_DOMAINS=['ontario.ca', 'edu.ontario.ca']  # Restrict to educational domains
     )
 
     try:
