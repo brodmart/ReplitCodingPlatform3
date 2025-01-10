@@ -24,6 +24,10 @@ class Student(UserMixin, db.Model):
     last_failed_login = db.Column(db.DateTime)
     account_locked_until = db.Column(db.DateTime)
 
+    # Password reset fields
+    reset_password_token = db.Column(db.String(100), unique=True)
+    reset_password_token_expiration = db.Column(db.DateTime)
+
     # Progress tracking
     score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
