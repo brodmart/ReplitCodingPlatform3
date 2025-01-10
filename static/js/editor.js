@@ -150,10 +150,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
-    // Set initial template
-    const language = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(getTemplateForLanguage(language));
-    editor.refresh();
+    // Only set template if editor is empty
+    const currentCode = editor.getValue().trim();
+    if (!currentCode) {
+        const language = languageSelect ? languageSelect.value : 'cpp';
+        editor.setValue(getTemplateForLanguage(language));
+        editor.refresh();
+    }
 
     // Language change handler
     if (languageSelect) {
