@@ -23,7 +23,7 @@
                 <span class="text-muted">{{ activity.points }} points</span>
             </div>
 
-            <a href="{{ url_for('activities.start_activity', activity_id=activity.id) }}" class="btn btn-primary">
+            <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" class="btn btn-primary">
                 {% if lang == 'fr' %}Commencer l'activité{% else %}Start Activity{% endif %}
             </a>
         </div>
