@@ -88,7 +88,7 @@
                                 </div>
                                 <div class="card-body p-0">
                                     <div class="editor-container">
-                                        <textarea id="editor">{% if activity.starter_code %}{{ activity.starter_code|safe }}{% else %}// {{ _('Your code here') }}{% endif %}</textarea>
+                                        <textarea id="editor">{{ activity.starter_code|default('', true)|safe }}</textarea>
                                     </div>
                                 </div>
                             </div>

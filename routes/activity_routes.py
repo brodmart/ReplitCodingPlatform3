@@ -12,6 +12,7 @@ from werkzeug.exceptions import RequestTimeout
 from database import db
 from models import CodingActivity
 from extensions import limiter
+from sqlalchemy import text
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -597,11 +598,10 @@ def view_activity(activity_id):
         activity = db.session.query(CodingActivity).filter_by(id=activity_id).first_or_404()
         logger.debug(f"Found activity: {activity.title}")
         logger.debug(f"Activity language: {activity.language}")
-
-        # Log the actual starter code for debugging
+        logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-        # Initialize default starter code if needed
+        # Only set default starter code if it's completely empty or None
         if activity.starter_code is None or activity.starter_code.strip() == "":
             logger.info(f"No specific starter code found for activity {activity_id}, using language-specific template")
             default_templates = {
@@ -633,6 +633,13 @@ class Program {
                 db.session.rollback()
 
         logger.debug(f"Final starter code being sent to template: {repr(activity.starter_code)}")
+
+        # Execute SQL query to verify the starter code in database
+        with db.engine.connect() as connection:
+            result = connection.execute(text("SELECT starter_code FROM coding_activity WHERE id = :id"), {"id": activity_id})
+            row = result.fetchone()
+            if row:
+                logger.debug(f"Direct database query result for starter_code: {repr(row[0])}")
 
         return render_template(
             'activities/view.html',
