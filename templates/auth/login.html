@@ -6,7 +6,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="mb-0">Connexion</h3>
+                    <h3 class="mb-0">Login</h3>
                 </div>
                 <div class="card-body">
                     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -23,17 +23,25 @@
                         {{ form.hidden_tag() }}
                         <div class="mb-3">
                             {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else ""), autocomplete="username") }}
-                            {% for error in form.username.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
+                            {% if form.username.errors %}
+                                {{ form.username(class="form-control is-invalid", autocomplete="username") }}
+                                {% for error in form.username.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% else %}
+                                {{ form.username(class="form-control", autocomplete="username") }}
+                            {% endif %}
                         </div>
                         <div class="mb-3">
                             {{ form.password.label(class="form-label") }}
-                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), autocomplete="current-password") }}
-                            {% for error in form.password.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
+                            {% if form.password.errors %}
+                                {{ form.password(class="form-control is-invalid", autocomplete="current-password") }}
+                                {% for error in form.password.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            {% else %}
+                                {{ form.password(class="form-control", autocomplete="current-password") }}
+                            {% endif %}
                         </div>
                         <div class="mb-3">
                             <div class="form-check">
@@ -47,7 +55,7 @@
                     </form>
                 </div>
                 <div class="card-footer text-center">
-                    <p class="mb-0">Pas encore de compte? <a href="{{ url_for('auth.register') }}">Inscrivez-vous ici</a></p>
+                    <p class="mb-0">Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
                 </div>
             </div>
         </div>

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from flask_login import UserMixin
 from sqlalchemy import text
 import secrets
-from utils.password_utils import hash_password, verify_password
+from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from database import db
 
@@ -14,18 +14,17 @@ class Student(UserMixin, db.Model):
         db.Index('idx_student_username_email', 'username', 'email'),
     )
 
-    # Basic user information
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(256), nullable=False)
 
-    # Basic security fields
+    # Security fields
     failed_login_attempts = db.Column(db.Integer, default=0)
     last_failed_login = db.Column(db.DateTime)
     account_locked_until = db.Column(db.DateTime)
 
-    # Student progress tracking
+    # Progress tracking
     score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -36,26 +35,29 @@ class Student(UserMixin, db.Model):
     shared_codes = db.relationship('SharedCode', back_populates='student', lazy=True)
 
     def set_password(self, password):
-        """Hash password using the utility function"""
+        """Hash password using werkzeug's built-in method"""
+        if len(password) < 6:
+            return False, "Password must be at least 6 characters long."
         try:
-            if len(password) < 6:
-                return False, "Le mot de passe doit contenir au moins 6 caractères."
-            self.password_hash = hash_password(password)
+            self.password_hash = generate_password_hash(password)
             return True, None
         except Exception as e:
             logger.error(f"Password hashing error: {str(e)}")
-            return False, "Une erreur s'est produite lors du changement de mot de passe."
+            return False, "An error occurred while setting the password."
 
     def check_password(self, password):
-        """Verify password hash using the utility function"""
+        """Verify password using werkzeug's built-in method"""
         try:
-            return verify_password(self.password_hash, password)
+            if not self.password_hash:
+                logger.error("Password hash is empty")
+                return False
+            return check_password_hash(self.password_hash, password)
         except Exception as e:
             logger.error(f"Password verification error: {str(e)}")
             return False
 
     def increment_failed_login(self):
-        """Track failed login attempts with simple lockout"""
+        """Track failed login attempts"""
         self.failed_login_attempts += 1
         self.last_failed_login = datetime.utcnow()
 
