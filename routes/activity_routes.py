@@ -600,6 +600,13 @@ def view_activity(activity_id):
         logger.debug(f"Activity language: {activity.language}")
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
+        
+        if activity.starter_code is None:
+            logger.error(f"Activity {activity_id} has no starter code")
+            activity.starter_code = ''  # Provide empty default
+        elif not isinstance(activity.starter_code, str):
+            logger.error(f"Activity {activity_id} has invalid starter code type: {type(activity.starter_code)}")
+            activity.starter_code = str(activity.starter_code)  # Convert to string
 
         return render_template(
             'activities/view.html',
