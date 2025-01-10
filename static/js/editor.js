@@ -157,10 +157,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Language change handler
     if (languageSelect) {
-        languageSelect.addEventListener('change', () => {
-            const language = languageSelect.value;
+        languageSelect.addEventListener('change', function() {
+            const language = this.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            editor.setValue(getTemplateForLanguage(language));
+            // Only set template if editor is empty
+            if (editor.getValue().trim() === '') {
+                editor.setValue(getTemplateForLanguage(language));
+            }
             editor.refresh();
         });
     }
