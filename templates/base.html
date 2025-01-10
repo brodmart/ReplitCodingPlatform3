@@ -51,29 +51,44 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('static_pages.index') }}">
-                            {% if lang == 'fr' %}Éditeur{% else %}Editor{% endif %}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('activities.list_activities', grade='10') }}">
-                            {% if lang == 'fr' %}10e année (TEJ2O){% else %}Grade 10 (TEJ2O){% endif %}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('activities.list_activities', grade='11') }}">
-                            {% if lang == 'fr' %}11e année (ICS3U){% else %}Grade 11 (ICS3U){% endif %}
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('tutorial.tutorial_view') }}">
-                            {% if lang == 'fr' %}Tutoriel interactif (expérimental){% else %}Interactive Tutorial (experimental){% endif %}
-                        </a>
-                    </li>
-                </ul>
-            </div>
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('static_pages.index') }}">
+                                {% if lang == 'fr' %}Éditeur{% else %}Editor{% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('activities.list_activities', grade='10') }}">
+                                {% if lang == 'fr' %}10e année (TEJ2O){% else %}Grade 10 (TEJ2O){% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('activities.list_activities', grade='11') }}">
+                                {% if lang == 'fr' %}11e année (ICS3U){% else %}Grade 11 (ICS3U){% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('tutorial.tutorial_view') }}">
+                                {% if lang == 'fr' %}Tutoriel interactif (expérimental){% else %}Interactive Tutorial (experimental){% endif %}
+                            </a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav">
+                        {% if current_user.is_authenticated %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                                    {% if lang == 'fr' %}Se déconnecter{% else %}Logout{% endif %}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url_for('auth.login') }}">
+                                    {% if lang == 'fr' %}Se connecter{% else %}Login{% endif %}
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
         </div>
     </nav>
 
