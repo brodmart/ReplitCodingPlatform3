@@ -31,29 +31,37 @@ def create_app():
                 template_folder='templates')
 
     # Basic configuration
-    app.config.update(
-        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
-        SESSION_TYPE='filesystem',
-        SESSION_FILE_DIR=os.path.join(os.getcwd(), 'flask_session'),
-        SQLALCHEMY_DATABASE_URI=os.environ.get('DATABASE_URL'),
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SQLALCHEMY_ENGINE_OPTIONS={
+    app.config.update({
+        'SECRET_KEY': os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
+        'SESSION_TYPE': 'filesystem',
+        'SESSION_FILE_DIR': os.path.join(os.getcwd(), 'flask_session'),
+        'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
+        'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+        'SQLALCHEMY_ENGINE_OPTIONS': {
             'pool_size': 10,
             'max_overflow': 20,
             'pool_timeout': 60,
             'pool_recycle': 1800,
             'pool_pre_ping': True
         },
+        # Mail settings
+        'MAIL_SERVER': 'smtp.gmail.com',
+        'MAIL_PORT': 587,
+        'MAIL_USE_TLS': True,
+        'MAIL_USE_SSL': False,
+        'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
+        'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
+        'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_USERNAME'),
         # Session security settings
-        SESSION_COOKIE_SECURE=False,  # Allow non-HTTPS access
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax',
-        PERMANENT_SESSION_LIFETIME=1800,  # 30 minutes
+        'SESSION_COOKIE_SECURE': False,  # Allow non-HTTPS access
+        'SESSION_COOKIE_HTTPONLY': True,
+        'SESSION_COOKIE_SAMESITE': 'Lax',
+        'PERMANENT_SESSION_LIFETIME': 1800,  # 30 minutes
         # Request settings
-        MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max-limit
+        'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,  # 16MB max-limit
         # Registration settings
-        REGISTRATION_ENABLED=True,  # Enable registration for testing
-        ALLOWED_EMAIL_DOMAINS=[
+        'REGISTRATION_ENABLED': True,  # Enable registration for testing
+        'ALLOWED_EMAIL_DOMAINS': [
             # Government domains
             'ontario.ca',
             'edu.ontario.ca',
@@ -100,7 +108,7 @@ def create_app():
             'gapps.yrdsb.ca',
             'students.ocdsb.ca'
         ],  # Restrict to Ontario educational domains
-    )
+    })
 
     try:
         # Create session directory if it does not exist

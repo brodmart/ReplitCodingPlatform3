@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, session
 from flask_mail import Message
 from extensions import mail
 import secrets
@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
 from models import Student
-from forms import LoginForm, RegisterForm
+from forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPasswordForm
 from database import db
 from extensions import limiter
 from urllib.parse import urlparse, urljoin
