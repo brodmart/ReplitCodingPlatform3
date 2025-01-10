@@ -55,6 +55,9 @@
                     </form>
                 </div>
                 <div class="card-footer text-center">
+                    <div class="mb-2">
+                        <a href="{{ url_for('auth.reset_password_request') }}">Forgot Password?</a>
+                    </div>
                     <p class="mb-0">Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
                 </div>
             </div>
