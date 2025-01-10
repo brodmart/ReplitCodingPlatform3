@@ -162,32 +162,6 @@ class CodingActivity(db.Model):
 
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
 
-    @staticmethod
-    def get_starter_code(language: str) -> str:
-        """Return the appropriate starter code template based on language"""
-        templates = {
-            'cpp': """#include <iostream>
-using namespace std;
-
-int main() {
-    // Votre code ici
-    return 0;
-}""",
-            'csharp': """using System;
-
-namespace ProgrammingActivity
-{
-    public class Program 
-    {
-        public static void Main(string[] args)
-        {
-            // Votre code ici
-        }
-    }
-}"""
-        }
-        return templates.get(language.lower(), templates['cpp'])
-
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
     id = db.Column(db.Integer, primary_key=True)

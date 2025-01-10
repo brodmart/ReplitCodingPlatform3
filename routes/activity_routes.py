@@ -533,6 +533,7 @@ def execute_code():
 # Request logging and error handling
 
 
+
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
 @login_required
@@ -600,10 +601,30 @@ def view_activity(activity_id):
         # Log the actual starter code for debugging
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-        # Initialize starter code if needed, but ONLY if it's completely empty
+        # Initialize default starter code if needed
         if activity.starter_code is None or activity.starter_code.strip() == "":
-            logger.info(f"Initializing starter code for activity {activity_id} with language {activity.language}")
-            activity.starter_code = CodingActivity.get_starter_code(activity.language)
+            logger.info(f"No specific starter code found for activity {activity_id}, using language-specific template")
+            default_templates = {
+                'cpp': """#include <iostream>
+using namespace std;
+
+int main() {
+    // Write your code here
+    // Écrivez votre code ici
+
+    return 0;
+}""",
+                'csharp': """using System;
+
+class Program {
+    static void Main() {
+        // Write your code here
+        // Écrivez votre code ici
+
+    }
+}"""
+            }
+            activity.starter_code = default_templates.get(activity.language.lower(), "// Add your code here\n// Ajoutez votre code ici")
             try:
                 db.session.commit()
                 logger.info("Successfully saved starter code template to database")
