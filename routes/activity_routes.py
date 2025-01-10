@@ -598,7 +598,9 @@ def view_activity(activity_id):
             logger.debug(f"Found activity: {activity.title}")
             logger.debug(f"Activity starter code: {activity.starter_code}")
 
-            if not activity.starter_code:
+            # Only set default starter code if none exists
+            if not activity.starter_code or activity.starter_code.strip() == "":
+                logger.debug("No starter code found, setting default template")
                 # Set default starter code based on language
                 if activity.language == 'cpp':
                     activity.starter_code = """#include <iostream>
@@ -616,6 +618,8 @@ class Program {
         // Your code here
     }
 }"""
+            else:
+                logger.debug("Using existing starter code from database")
 
         except Exception as db_error:
             logger.error(f"Database error in view_activity: {str(db_error)}", exc_info=True)
@@ -623,7 +627,7 @@ class Program {
 
         try:
             return render_template(
-                'activities/view.html',  # Changed from activity.html to activities/view.html
+                'activities/view.html',
                 activity=activity,
                 lang=session.get('lang', 'fr')
             )
@@ -633,12 +637,10 @@ class Program {
 
     except Exception as e:
         logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
-        response = jsonify({
+        return jsonify({
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, 500
+        }), 500
 
 def log_api_request(start_time, client_ip, endpoint, status_code):
     """Log API request details"""
