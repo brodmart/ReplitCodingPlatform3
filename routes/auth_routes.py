@@ -27,7 +27,7 @@ def login():
     """Handle user authentication"""
     if current_user.is_authenticated:
         logger.info(f"Already authenticated user {current_user.username} accessing login page")
-        return redirect(url_for('auth.index'))
+        return redirect(url_for('main.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -49,7 +49,7 @@ def login():
 
                 next_page = request.args.get('next')
                 if not next_page or not is_safe_url(next_page):
-                    next_page = url_for('auth.index')
+                    next_page = url_for('main.index')
                     logger.debug(f"Redirecting to default page: {next_page}")
                 else:
                     logger.debug(f"Redirecting to next page: {next_page}")
@@ -80,7 +80,7 @@ def register():
         return redirect(url_for('auth.login'))
 
     if current_user.is_authenticated:
-        return redirect(url_for('auth.index'))
+        return redirect(url_for('main.index'))
 
     form = RegisterForm()
     if form.validate_on_submit():
@@ -131,7 +131,7 @@ def logout():
 @auth.route('/reset_password', methods=['GET', 'POST'])
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for('auth.index'))
+        return redirect(url_for('main.index'))
 
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
