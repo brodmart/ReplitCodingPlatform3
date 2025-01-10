@@ -54,18 +54,52 @@ def create_app():
         # Registration settings
         REGISTRATION_ENABLED=False,  # Disable public registration by default
         ALLOWED_EMAIL_DOMAINS=[
+            # Government domains
             'ontario.ca',
             'edu.ontario.ca',
-            'cepeo.on.ca',  # Conseil des écoles publiques de l'Est de l'Ontario
-            'ocdsb.ca',     # Ottawa-Carleton District School Board
-            'tdsb.on.ca',   # Toronto District School Board
-            'yrdsb.ca',     # York Region District School Board
-            'pdsb.net',     # Peel District School Board
-            'ddsb.ca',      # Durham District School Board
-            'hdsb.ca',      # Halton District School Board
-            'tvdsb.ca',     # Thames Valley District School Board
-            'ugdsb.on.ca'   # Upper Grand District School Board
-        ]  # Restrict to Ontario educational domains
+            # English Public District School Boards
+            'tdsb.on.ca',    # Toronto DSB
+            'peelschools.org', # Peel DSB
+            'yrdsb.ca',      # York Region DSB
+            'ddsb.ca',       # Durham DSB
+            'hdsb.ca',       # Halton DSB
+            'hwdsb.on.ca',   # Hamilton-Wentworth DSB
+            'dsbn.org',      # DSB Niagara
+            'wrdsb.ca',      # Waterloo Region DSB
+            'tvdsb.ca',      # Thames Valley DSB
+            'ocdsb.ca',      # Ottawa-Carleton DSB
+            'ugdsb.on.ca',   # Upper Grand DSB
+            'scdsb.on.ca',   # Simcoe County DSB
+            'kprschools.ca', # Kawartha Pine Ridge DSB
+            'lkdsb.net',     # Lambton Kent DSB
+            'gogeeco.net',   # Greater Essex County DSB
+            'tldsb.on.ca',   # Trillium Lakelands DSB
+            # French Public School Boards
+            'cepeo.on.ca',   # Conseil des écoles publiques de l'Est de l'Ontario
+            'csviamonde.ca', # Conseil scolaire Viamonde
+            # French Catholic School Boards
+            'ecolecatholique.ca', # CECCE
+            'cscmonavenir.ca',    # CS catholique MonAvenir
+            'cspne.ca',           # CS public du Nord-Est
+            'cscprovidence.ca',   # CS catholique Providence
+            # English Catholic School Boards
+            'tcdsb.org',     # Toronto Catholic DSB
+            'dpcdsb.org',    # Dufferin-Peel Catholic DSB
+            'ycdsb.ca',      # York Catholic DSB
+            'dcdsb.ca',      # Durham Catholic DSB
+            'hcdsb.org',     # Halton Catholic DSB
+            'bhncdsb.ca',    # Brant Haldimand Norfolk Catholic DSB
+            'alcdsb.on.ca',  # Algonquin & Lakeshore Catholic DSB
+            'ocsb.ca',       # Ottawa Catholic SB
+            # First Nations School Authorities
+            'knet.ca',       # Keewaytinook Okimakanak Board of Education
+            'nnec.on.ca',    # Northern Nishnawbe Education Council
+            # Add student-specific subdomains
+            'student.tdsb.on.ca',
+            'students.peelschools.org',
+            'gapps.yrdsb.ca',
+            'students.ocdsb.ca'
+        ],  # Restrict to Ontario educational domains
     )
 
     try:
