@@ -241,8 +241,8 @@
                         </div>
                     </div>
 
-                    {% if activity.hints %}
                     <div class="accordion mt-4" id="activityAccordion">
+                        {% if activity.hints %}
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="hintsHeader">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hintsCollapse" aria-expanded="false" aria-controls="hintsCollapse">
@@ -255,8 +255,23 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
+
+                        {% if activity.common_errors %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="errorsHeader">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#errorsCollapse" aria-expanded="false" aria-controls="errorsCollapse">
+                                    <i class="bi bi-exclamation-triangle me-2"></i> {% if lang == 'fr' %}Erreurs courantes{% else %}Common Errors{% endif %}
+                                </button>
+                            </h2>
+                            <div id="errorsCollapse" class="accordion-collapse collapse" aria-labelledby="errorsHeader" data-bs-parent="#activityAccordion">
+                                <div class="accordion-body">
+                                    {{ activity.common_errors|safe }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
