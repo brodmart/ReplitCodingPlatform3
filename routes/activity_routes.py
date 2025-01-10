@@ -601,8 +601,8 @@ def view_activity(activity_id):
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-        # Do not set default template if starter_code exists (even if empty string)
-        # This ensures activity-specific code is always preserved
+        # Only set default template if starter_code is None
+        # Do not override existing starter_code even if it's an empty string
         if activity.starter_code is None:
             logger.info(f"No starter code found for activity {activity_id}, using language-specific template")
             default_templates = {
@@ -625,7 +625,7 @@ class Program {
     }
 }"""
             }
-            activity.starter_code = default_templates.get(activity.language.lower(), "// Add your code here\n// Ajoutez votre code ici")
+            activity.starter_code = default_templates.get(activity.language.lower())
             try:
                 db.session.commit()
                 logger.info("Successfully saved starter code template to database")
