@@ -601,8 +601,8 @@ def view_activity(activity_id):
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-        # Only set default starter code if it's None, not when it's empty string
-        # This ensures activity-specific starter code is preserved
+        # Do not set default template if starter_code exists (even if empty string)
+        # This ensures activity-specific code is always preserved
         if activity.starter_code is None:
             logger.info(f"No starter code found for activity {activity_id}, using language-specific template")
             default_templates = {
@@ -632,15 +632,6 @@ class Program {
             except Exception as e:
                 logger.error(f"Failed to save starter code template: {e}")
                 db.session.rollback()
-
-        logger.debug(f"Final starter code being sent to template: {repr(activity.starter_code)}")
-
-        # Execute SQL query to verify the starter code in database
-        with db.engine.connect() as connection:
-            result = connection.execute(text("SELECT starter_code FROM coding_activity WHERE id = :id"), {"id": activity_id})
-            row = result.fetchone()
-            if row:
-                logger.debug(f"Direct database query result for starter_code: {repr(row[0])}")
 
         return render_template(
             'activities/view.html',
