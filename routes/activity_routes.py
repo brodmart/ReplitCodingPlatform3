@@ -593,30 +593,31 @@ def view_activity(activity_id):
         logger.debug(f"Viewing activity with ID: {activity_id}")
 
         try:
-            activity = CodingActivity.query.get_or_404(activity_id)
+            # Get activity with explicit query for starter_code
+            activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
             logger.debug(f"Found activity: {activity.title}")
-            logger.debug(f"Activity starter code: {activity.starter_code}")
 
-            # If no starter code exists in database, use language-specific template
+            # Log the actual starter code for debugging
+            logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
+
+            # Ensure starter code exists
             if not activity.starter_code or activity.starter_code.strip() == "":
                 logger.debug("No starter code found in database, using default template")
                 activity.starter_code = CodingActivity.get_starter_code(activity.language)
-                logger.debug(f"Set default starter code template for {activity.language}")
+                # Save the default template to database
+                db.session.commit()
+                logger.debug(f"Set and saved default starter code template for {activity.language}")
             else:
                 logger.debug("Using existing starter code from database")
 
-        except Exception as db_error:
-            logger.error(f"Database error in view_activity: {str(db_error)}", exc_info=True)
-            raise
-
-        try:
             return render_template(
                 'activities/view.html',
                 activity=activity,
                 lang=session.get('lang', 'fr')
             )
-        except Exception as template_error:
-            logger.error(f"Template rendering error in view_activity: {str(template_error)}", exc_info=True)
+
+        except Exception as db_error:
+            logger.error(f"Database error in view_activity: {str(db_error)}", exc_info=True)
             raise
 
     except Exception as e:
