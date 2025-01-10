@@ -592,33 +592,32 @@ def view_activity(activity_id):
     try:
         logger.debug(f"Viewing activity with ID: {activity_id}")
 
-        try:
-            # Get activity with explicit query for starter_code
-            activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
-            logger.debug(f"Found activity: {activity.title}")
+        # Get activity with explicit loading of starter_code
+        activity = db.session.query(CodingActivity).filter_by(id=activity_id).first_or_404()
+        logger.debug(f"Found activity: {activity.title}")
 
-            # Log the actual starter code for debugging
-            logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
+        # Log the actual starter code for debugging
+        logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
-            # Ensure starter code exists
-            if not activity.starter_code or activity.starter_code.strip() == "":
-                logger.debug("No starter code found in database, using default template")
-                activity.starter_code = CodingActivity.get_starter_code(activity.language)
-                # Save the default template to database
+        # Initialize starter code if needed
+        if not activity.starter_code or activity.starter_code.strip() == "":
+            logger.info(f"Initializing starter code for activity {activity_id} with language {activity.language}")
+            activity.starter_code = CodingActivity.get_starter_code(activity.language)
+            try:
                 db.session.commit()
-                logger.debug(f"Set and saved default starter code template for {activity.language}")
-            else:
-                logger.debug("Using existing starter code from database")
+                logger.info("Successfully saved starter code template to database")
+            except Exception as e:
+                logger.error(f"Failed to save starter code template: {e}")
+                db.session.rollback()
 
-            return render_template(
-                'activities/view.html',
-                activity=activity,
-                lang=session.get('lang', 'fr')
-            )
+        # Additional debug logging
+        logger.debug(f"Final starter code being sent to template: {repr(activity.starter_code)}")
 
-        except Exception as db_error:
-            logger.error(f"Database error in view_activity: {str(db_error)}", exc_info=True)
-            raise
+        return render_template(
+            'activities/view.html',
+            activity=activity,
+            lang=session.get('lang', 'fr')
+        )
 
     except Exception as e:
         logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
