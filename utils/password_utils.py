@@ -6,9 +6,10 @@ logger = logging.getLogger(__name__)
 def hash_password(password: str) -> str:
     """
     Hash a password using Werkzeug's secure hash function.
+    Uses sha256 method by default.
     """
     try:
-        return generate_password_hash(password)
+        return generate_password_hash(password, method='sha256')
     except Exception as e:
         logger.error(f"Error hashing password: {str(e)}")
         raise
@@ -18,6 +19,9 @@ def verify_password(password_hash: str, password: str) -> bool:
     Verify a password against its hash using Werkzeug's secure check.
     """
     try:
+        if not password_hash:
+            logger.error("Empty password hash provided")
+            return False
         return check_password_hash(password_hash, password)
     except Exception as e:
         logger.error(f"Error verifying password: {str(e)}")
