@@ -165,16 +165,15 @@ class CodingActivity(db.Model):
     @staticmethod
     def get_starter_code(language: str) -> str:
         """Return the appropriate starter code template based on language"""
-        if language == 'cpp':
-            return """#include <iostream>
+        templates = {
+            'cpp': """#include <iostream>
 using namespace std;
 
 int main() {
     // Votre code ici
     return 0;
-}"""
-        else:  # csharp
-            return """using System;
+}""",
+            'csharp': """using System;
 
 namespace ProgrammingActivity
 {
@@ -186,6 +185,8 @@ namespace ProgrammingActivity
         }
     }
 }"""
+        }
+        return templates.get(language.lower(), templates['cpp'])
 
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
