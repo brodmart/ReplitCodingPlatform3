@@ -138,22 +138,40 @@ def reset_password_request():
         logger.info(f"Processing password reset request for email: {form.email.data}")
         user = Student.query.filter_by(email=form.email.data).first()
         if user:
+            # Check if email configuration is available
+            if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
+                logger.warning("Password reset attempted but email is not configured")
+                flash('Password reset is temporarily unavailable. Please contact support.', 'warning')
+                return redirect(url_for('auth.login'))
+
             token = secrets.token_urlsafe(32)
             user.reset_password_token = token
             user.reset_password_token_expiration = datetime.utcnow() + timedelta(hours=24)
             try:
                 db.session.commit()
                 logger.info(f"Generated reset token for user: {user.username}")
-                send_password_reset_email(user)
-                flash('Check your email for the password reset instructions.', 'success')
+
+                try:
+                    send_password_reset_email(user)
+                    flash('Check your email for the password reset instructions.', 'success')
+                except Exception as e:
+                    logger.error(f"Failed to send password reset email: {str(e)}")
+                    flash('Unable to send reset email. Please try again later or contact support.', 'danger')
+                    # Rollback the token generation since email failed
+                    user.reset_password_token = None
+                    user.reset_password_token_expiration = None
+                    db.session.commit()
+
                 return redirect(url_for('auth.login'))
-            except Exception as e:
-                logger.error(f"Error during password reset process: {str(e)}")
+            except SQLAlchemyError as e:
+                logger.error(f"Database error during password reset: {str(e)}")
                 db.session.rollback()
-                flash('An error occurred while processing your request.', 'danger')
+                flash('An error occurred while processing your request. Please try again.', 'danger')
         else:
             logger.warning(f"Password reset attempted for non-existent email: {form.email.data}")
-            flash('Email not found.', 'warning')
+            # Use same message as success for security
+            flash('If your email is registered, you will receive password reset instructions.', 'info')
+            return redirect(url_for('auth.login'))
     return render_template('auth/reset_password_request.html', form=form)
 
 @auth.route('/reset_password/<token>', methods=['GET', 'POST'])
