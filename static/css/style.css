@@ -246,22 +246,11 @@ html, body {
 }
 
 .console-container {
-    width: 65% !important;
-    min-width: 65% !important;
-    max-width: 65% !important;
-    flex: 2 !important;
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .output-container {
-    width: 65% !important;
-    min-width: 65% !important;
-    max-width: 65% !important;
-    flex: 2 !important;
-}
-
-.editor-container {
-    width: 35% !important;
-    min-width: 35% !important;
-    max-width: 35% !important;
-    flex: 1 !important;
+    width: 100% !important;
+    max-width: none !important;
 }
