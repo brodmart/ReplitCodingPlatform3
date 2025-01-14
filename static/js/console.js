@@ -419,6 +419,13 @@ class InteractiveConsole {
         if (!this.inputElement) {
             return;
         }
+        
+        // Ensure console respects parent container width
+        const consoleContainer = document.querySelector('.console-container');
+        if (consoleContainer) {
+            consoleContainer.style.width = '100%';
+            consoleContainer.style.maxWidth = 'none';
+        }
 
         const handleEnter = async (e) => {
             if (e.key === 'Enter' && this.isWaitingForInput && this.isSessionValid) {

@@ -238,8 +238,19 @@ html, body {
 @media (max-width: 768px) {
     .editor-container,
     .console-container {
-        width: 100%; /* Stack vertically on smaller screens */
+        width: 100%;
         height: 50vh;
-        float: none; /* Remove float for vertical stacking */
+        float: none;
+        max-width: none;
     }
+}
+
+.console-container {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.output-container {
+    width: 100% !important;
+    max-width: none !important;
 }
