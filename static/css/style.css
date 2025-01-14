@@ -246,14 +246,11 @@ html, body {
 }
 
 .console-container {
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .output-container {
-    width: 50%;
-}
-
-.editor-container {
-    width: 50%;
+    width: 100% !important;
+    max-width: none !important;
 }
