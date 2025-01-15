@@ -45,7 +45,7 @@ def create_app():
             'pool_pre_ping': True
         },
         # Mail settings
-        'MAIL_SERVER': 'smtp.protonmail.ch',
+        'MAIL_SERVER': 'smtp.gmail.com',
         'MAIL_PORT': 587,
         'MAIL_USE_TLS': True,
         'MAIL_USE_SSL': False,
