@@ -15,20 +15,8 @@
         <div class="col-md-6 mb-4">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title">
-                        {% if lang == 'fr' %}
-                            {{ activity.title_fr if activity.title_fr else activity.title }}
-                        {% else %}
-                            {{ activity.title }}
-                        {% endif %}
-                    </h5>
-                    <p class="card-text">
-                        {% if lang == 'fr' %}
-                            {{ activity.description_fr if activity.description_fr else activity.description }}
-                        {% else %}
-                            {{ activity.description }}
-                        {% endif %}
-                    </p>
+                    <h5 class="card-title">{{ activity.title }}</h5>
+                    <p class="card-text">{{ activity.description }}</p>
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="badge bg-{{ 'success' if activity.difficulty == 'beginner' else 'warning' if activity.difficulty == 'intermediate' else 'danger' }}">
                             {% if activity.difficulty == 'beginner' %}
