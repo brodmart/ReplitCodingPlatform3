@@ -11,29 +11,28 @@ def switch_language():
 
 @static_pages.route('/')
 def index():
-    # Removed login requirement check
-    return render_template('index.html', lang='en')
+    return render_template('index.html', lang=session.get('lang', 'fr'))
 
 @static_pages.route('/about')
 def about():
-    return render_template('about.html', lang='en')
+    return render_template('about.html', lang=session.get('lang', 'fr'))
 
 @static_pages.route('/contact')
 def contact():
-    return render_template('contact.html', lang='en')
+    return render_template('contact.html', lang=session.get('lang', 'fr'))
 
 @static_pages.route('/faq')
 def faq():
-    return render_template('faq.html', lang='en')
+    return render_template('faq.html', lang=session.get('lang', 'fr'))
 
 @static_pages.route('/terms')
 def terms():
-    return render_template('terms.html', lang='en')
+    return render_template('terms.html', lang=session.get('lang', 'fr'))
 
 @static_pages.route('/privacy')
 def privacy():
-    return render_template('privacy.html', lang='en')
+    return render_template('privacy.html', lang=session.get('lang', 'fr'))
 
 @static_pages.route('/accessibility')
 def accessibility():
-    return render_template('accessibility.html', lang='en')
+    return render_template('accessibility.html', lang=session.get('lang', 'fr'))
