@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_login import LoginManager, AnonymousUserMixin
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
@@ -150,16 +150,16 @@ def create_app():
         # Register error handlers
         @app.errorhandler(404)
         def not_found_error(error):
-            return render_template('errors/404.html', lang='en'), 404
+            return render_template('errors/404.html', lang=session.get('lang', 'en')), 404
 
         @app.errorhandler(500)
         def internal_error(error):
             db.session.rollback()  # Roll back db session in case of errors
-            return render_template('errors/500.html', lang='en'), 500
+            return render_template('errors/500.html', lang=session.get('lang', 'en')), 500
 
         @app.errorhandler(413)
         def request_entity_too_large(error):
-            return render_template('errors/413.html', lang='en'), 413
+            return render_template('errors/413.html', lang=session.get('lang', 'en')), 413
 
         logger.info("Application initialized successfully")
         return app

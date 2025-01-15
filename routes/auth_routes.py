@@ -40,7 +40,7 @@ def login():
                 if user.is_account_locked():
                     logger.warning(f"Login attempt on locked account: {user.username}")
                     flash('Account temporarily locked. Try again later.', 'danger')
-                    return render_template('auth/login.html', form=form)
+                    return render_template('auth/login.html', form=form, lang=session.get('lang', 'en'))
 
                 user.reset_failed_login()
                 db.session.commit()
@@ -68,7 +68,7 @@ def login():
             db.session.rollback()
             flash('A server error occurred. Please try again.', 'danger')
 
-    return render_template('auth/login.html', form=form)
+    return render_template('auth/login.html', form=form, lang=session.get('lang', 'en'))
 
 @auth.route('/register', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")
@@ -89,7 +89,7 @@ def register():
 
             if email_domain not in allowed_domains:
                 flash('Please use your school email address to register.', 'danger')
-                return render_template('auth/register.html', form=form)
+                return render_template('auth/register.html', form=form, lang=session.get('lang', 'en'))
 
             user = Student(
                 username=form.username.data,
@@ -98,7 +98,7 @@ def register():
             success, message = user.set_password(form.password.data)
             if not success:
                 flash(message, 'danger')
-                return render_template('auth/register.html', form=form)
+                return render_template('auth/register.html', form=form, lang=session.get('lang', 'en'))
 
             db.session.add(user)
             db.session.commit()
@@ -112,7 +112,7 @@ def register():
             db.session.rollback()
             flash('An error occurred during registration.', 'danger')
 
-    return render_template('auth/register.html', form=form)
+    return render_template('auth/register.html', form=form, lang=session.get('lang', 'en'))
 
 @auth.route('/logout')
 @login_required
