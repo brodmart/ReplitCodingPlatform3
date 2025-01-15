@@ -1,7 +1,13 @@
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, session
 from flask_login import current_user
 
 static_pages = Blueprint('static_pages', __name__)
+
+@static_pages.route('/switch-language')
+def switch_language():
+    current_lang = session.get('lang', 'fr')
+    session['lang'] = 'en' if current_lang == 'fr' else 'fr'
+    return redirect(request.referrer or url_for('static_pages.index'))
 
 @static_pages.route('/')
 def index():
