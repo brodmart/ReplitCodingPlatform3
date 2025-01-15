@@ -12,6 +12,7 @@
 <meta name="interface-lang" content="{{ lang }}">
 
 <style>
+    /* Keep existing styles */
     .editor-container {
         width: 100%;
         height: 400px;
@@ -65,12 +66,24 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="mb-0">{{ activity.title }}</h3>
+                        <h3 class="mb-0">
+                            {% if lang == 'fr' %}
+                                {{ activity.title_fr if activity.title_fr else activity.title }}
+                            {% else %}
+                                {{ activity.title }}
+                            {% endif %}
+                        </h3>
                         <span class="badge bg-secondary">{{ activity.language|upper }}</span>
                     </div>
                 </div>
                 <div class="card-body">
-                    <p class="mb-3">{{ activity.description }}</p>
+                    <p class="mb-3">
+                        {% if lang == 'fr' %}
+                            {{ activity.description_fr if activity.description_fr else activity.description }}
+                        {% else %}
+                            {{ activity.description }}
+                        {% endif %}
+                    </p>
 
                     <div class="editor-console-row">
                         <div class="editor-column">
@@ -133,10 +146,22 @@
                                 <div class="accordion-body">
                                     <ul class="hints-list">
                                         {% if activity.hints is string %}
-                                            <li>{{ activity.hints|safe }}</li>
+                                            <li>
+                                                {% if lang == 'fr' %}
+                                                    {{ activity.hints_fr if activity.hints_fr else activity.hints|safe }}
+                                                {% else %}
+                                                    {{ activity.hints|safe }}
+                                                {% endif %}
+                                            </li>
                                         {% else %}
                                             {% for hint in activity.hints %}
-                                                <li>{{ hint|safe }}</li>
+                                                <li>
+                                                    {% if lang == 'fr' %}
+                                                        {{ hint.fr if hint.fr else hint|safe }}
+                                                    {% else %}
+                                                        {{ hint|safe }}
+                                                    {% endif %}
+                                                </li>
                                             {% endfor %}
                                         {% endif %}
                                     </ul>
@@ -156,10 +181,22 @@
                                 <div class="accordion-body">
                                     <ul class="errors-list">
                                         {% if activity.common_errors is string %}
-                                            <li>{{ activity.common_errors|safe }}</li>
+                                            <li>
+                                                {% if lang == 'fr' %}
+                                                    {{ activity.common_errors_fr if activity.common_errors_fr else activity.common_errors|safe }}
+                                                {% else %}
+                                                    {{ activity.common_errors|safe }}
+                                                {% endif %}
+                                            </li>
                                         {% else %}
                                             {% for error in activity.common_errors %}
-                                                <li>{{ error|safe }}</li>
+                                                <li>
+                                                    {% if lang == 'fr' %}
+                                                        {{ error.fr if error.fr else error|safe }}
+                                                    {% else %}
+                                                        {{ error|safe }}
+                                                    {% endif %}
+                                                </li>
                                             {% endfor %}
                                         {% endif %}
                                     </ul>

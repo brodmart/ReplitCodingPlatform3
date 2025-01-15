@@ -565,17 +565,14 @@ def list_activities(grade=None):
         except Exception as db_error:
             logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
             raise
-        try:
-            return render_template(
-                'activities/list.html',
-                activities=activities_list,
-                curriculum=curriculum,
-                lang=session.get('lang', 'fr'),
-                grade=grade
-            )
-        except Exception as template_error:
-            logger.error(f"Template rendering error: {str(template_error)}", exc_info=True)
-            raise
+
+        return render_template(
+            'activities/list.html',
+            activities=activities_list,
+            curriculum=curriculum,
+            lang=session.get('lang', 'fr'),
+            grade=grade
+        )
 
     except Exception as e:
         logger.error(f"Error listing activities: {str(e)}", exc_info=True)
@@ -600,7 +597,7 @@ def view_activity(activity_id):
         logger.debug(f"Activity language: {activity.language}")
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
-        
+
         if activity.starter_code is None:
             logger.error(f"Activity {activity_id} has no starter code")
             activity.starter_code = ''  # Provide empty default
