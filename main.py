@@ -17,8 +17,8 @@ if __name__ == '__main__':
             os.makedirs(temp_dir, exist_ok=True)
             os.chmod(temp_dir, 0o755)
 
-        logger.info("Starting Flask server on port 5001")
-        app.run(host='0.0.0.0', port=5001, debug=True)
+        logger.info("Starting Flask server on port 5000")
+        app.run(host='0.0.0.0', port=5000, debug=True)
     except Exception as e:
         logger.error(f"Failed to start Flask server: {e}", exc_info=True)
         raise

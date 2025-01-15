@@ -3,25 +3,23 @@
 {% block content %}
 <div class="container mt-5">
     <div class="alert alert-warning">
-        <h4>{% if lang == 'fr' %}Page non trouvée (404){% else %}Page Not Found (404){% endif %}</h4>
-        <p>{% if lang == 'fr' %}La page que vous recherchez n'existe pas ou a été déplacée.{% else %}The page you are looking for does not exist or has been moved.{% endif %}</p>
+        <h4>Page non trouvée (404)</h4>
+        <p>La page que vous recherchez n'existe pas ou a été déplacée.</p>
         {% if error and error.id %}
-            <small class="text-muted">{% if lang == 'fr' %}Référence d'erreur{% else %}Error Reference{% endif %}: {{ error.id }}</small>
+            <small class="text-muted">Référence d'erreur: {{ error.id }}</small>
         {% endif %}
         <div class="mt-3">
-            <a href="{{ url_for('static_pages.index') }}" class="btn btn-primary">
-                {% if lang == 'fr' %}Retour à l'accueil{% else %}Back to Home{% endif %}
-            </a>
+            <a href="{{ url_for('static_pages.index') }}" class="btn btn-primary">Retour à l'accueil</a>
             {% if request.referrer %}
                 <a href="{{ request.referrer }}" class="btn btn-outline-secondary ms-2">
-                    {% if lang == 'fr' %}Page précédente{% else %}Previous Page{% endif %}
+                    Page précédente
                 </a>
             {% endif %}
         </div>
         {% if config.DEBUG and error %}
             <div class="mt-4">
-                <small class="text-muted">{% if lang == 'fr' %}Détails techniques (visible en mode DEBUG uniquement){% else %}Technical details (visible in DEBUG mode only){% endif %}:</small>
-                <pre class="mt-2 bg-light p-3 rounded"><code>{% if lang == 'fr' %}URL demandée{% else %}Requested URL{% endif %}: {{ request.path }}</code></pre>
+                <small class="text-muted">Détails techniques (visible en mode DEBUG uniquement):</small>
+                <pre class="mt-2 bg-light p-3 rounded"><code>URL demandée: {{ request.path }}</code></pre>
             </div>
         {% endif %}
     </div>
