@@ -5,8 +5,28 @@ static_pages = Blueprint('static_pages', __name__)
 
 @static_pages.route('/switch-language')
 def switch_language():
+    """Handle language switching with proper redirection"""
     current_lang = session.get('lang', 'fr')
     session['lang'] = 'en' if current_lang == 'fr' else 'fr'
+
+    # Get the return path from the query parameters
+    return_path = request.args.get('return_to')
+
+    if return_path:
+        # Extract the endpoint and arguments from the return path
+        try:
+            parts = return_path.split('?')
+            path = parts[0]
+            if path.startswith('/activities/'):
+                grade = path.split('/')[-1]
+                return redirect(url_for('activities.list_activities', grade=grade))
+            elif path.startswith('/activity/'):
+                activity_id = int(path.split('/')[-1])
+                return redirect(url_for('activities.view_activity', activity_id=activity_id))
+        except (ValueError, IndexError):
+            pass
+
+    # Fallback to referrer or index
     return redirect(request.referrer or url_for('static_pages.index'))
 
 @static_pages.route('/')
