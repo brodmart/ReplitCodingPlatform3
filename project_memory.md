@@ -7,6 +7,8 @@ A bilingual educational coding platform for high school computer science student
 - Administrative tools
 - Progress tracking
 - Bilingual support (English/French)
+- Enhanced memory management system
+- Version-controlled project memory
 
 ## Technical Stack
 - Backend: Flask with APScheduler

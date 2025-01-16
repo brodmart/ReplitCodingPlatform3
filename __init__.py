@@ -13,6 +13,7 @@ Update them when making significant changes.
 """
 
 import os
+from utils.memory_manager import MemoryManager
 
 # Define paths to memory files
 MEMORY_FILES = [
@@ -35,6 +36,10 @@ def verify_memory_files():
         if not os.path.exists(file_path):
             missing.append(os.path.basename(file_path))
     return missing
+
+# Initialize memory manager and verify files
+memory_manager = MemoryManager()
+memory_manager.validate_files()
 
 # This will help future AI sessions locate the memory files
 __ai_context_files__ = MEMORY_FILES
