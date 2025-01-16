@@ -4,6 +4,7 @@ from datetime import datetime
 import subprocess
 from flask import current_app
 from urllib.parse import urlparse
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +12,41 @@ class DatabaseBackup:
     def __init__(self, db_url=None):
         self.db_url = db_url or os.environ.get('DATABASE_URL')
         self.backup_dir = os.path.join(os.getcwd(), 'backups')
+        self.history_file = os.path.join(self.backup_dir, 'backup_history.json')
         if not os.path.exists(self.backup_dir):
             os.makedirs(self.backup_dir)
+        self._init_history_file()
+
+    def _init_history_file(self):
+        """Initialize backup history file if it doesn't exist"""
+        if not os.path.exists(self.history_file):
+            with open(self.history_file, 'w') as f:
+                json.dump({"backups": [], "version": 1}, f)
+
+    def _log_backup_event(self, backup_file, success, error=None):
+        """Log backup event to history file"""
+        try:
+            with open(self.history_file, 'r') as f:
+                history = json.load(f)
+
+            backup_event = {
+                "timestamp": datetime.now().isoformat(),
+                "file": os.path.basename(backup_file),
+                "success": success,
+                "error": error,
+                "version": history.get("version", 1) + 1
+            }
+
+            history["backups"].append(backup_event)
+            history["version"] = backup_event["version"]
+
+            with open(self.history_file, 'w') as f:
+                json.dump(history, f, indent=2)
+
+            return backup_event["version"]
+        except Exception as e:
+            logger.error(f"Failed to log backup event: {str(e)}")
+            return None
 
     def create_backup(self):
         """Create a backup of the database"""
@@ -53,17 +87,22 @@ class DatabaseBackup:
             )
             logger.info(f"Database backup created successfully: {backup_file}")
 
+            # Log successful backup
+            version = self._log_backup_event(backup_file, True)
+
             # Keep only last 5 backups
             self._cleanup_old_backups()
 
-            return True, backup_file
+            return True, f"Backup created successfully (version {version}): {backup_file}"
         except subprocess.CalledProcessError as e:
             error_msg = f"pg_dump error: {e.stderr}"
             logger.error(error_msg)
+            self._log_backup_event(backup_file, False, error_msg)
             return False, error_msg
         except Exception as e:
             error_msg = f"Backup creation failed: {str(e)}"
             logger.error(error_msg)
+            self._log_backup_event(backup_file, False, error_msg)
             return False, error_msg
 
     def _parse_db_url(self):
@@ -123,16 +162,26 @@ class DatabaseBackup:
         """Keep only the 5 most recent backups"""
         try:
             backups = sorted(
-                [f for f in os.listdir(self.backup_dir) if f.startswith('backup_')],
+                [f for f in os.listdir(self.backup_dir) if f.startswith('backup_') and f.endswith('.sql')],
                 reverse=True
             )
 
             # Remove old backups keeping only the last 5
             for old_backup in backups[5:]:
-                os.remove(os.path.join(self.backup_dir, old_backup))
+                backup_path = os.path.join(self.backup_dir, old_backup)
+                os.remove(backup_path)
                 logger.info(f"Removed old backup: {old_backup}")
         except Exception as e:
             logger.error(f"Cleanup of old backups failed: {str(e)}")
+
+    def get_backup_history(self):
+        """Get the backup history"""
+        try:
+            with open(self.history_file, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to read backup history: {str(e)}")
+            return {"backups": [], "version": 1}
 
     @classmethod
     def schedule_backup(cls):
