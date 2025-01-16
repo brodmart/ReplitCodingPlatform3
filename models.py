@@ -1,12 +1,39 @@
 from datetime import datetime, timedelta
 from flask_login import UserMixin
-from sqlalchemy import text
-import secrets
+from sqlalchemy import text, event
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
 from database import db
 
 logger = logging.getLogger(__name__)
+
+class SoftDeleteMixin:
+    """Mixin to add soft delete functionality"""
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    def soft_delete(self):
+        self.deleted_at = datetime.utcnow()
+        db.session.commit()
+
+    def restore(self):
+        self.deleted_at = None
+        db.session.commit()
+
+    @classmethod
+    def get_active(cls):
+        return cls.query.filter_by(deleted_at=None)
+
+class AuditLog(db.Model):
+    """Model to track changes to content"""
+    id = db.Column(db.Integer, primary_key=True)
+    table_name = db.Column(db.String(100), nullable=False)
+    record_id = db.Column(db.Integer, nullable=False)
+    action = db.Column(db.String(20), nullable=False)  # INSERT, UPDATE, DELETE
+    changes = db.Column(db.JSON)
+    user_id = db.Column(db.Integer, db.ForeignKey('student.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('Student', backref=db.backref('audit_logs', lazy=True))
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
@@ -39,6 +66,7 @@ class Student(UserMixin, db.Model):
     submissions = db.relationship('CodeSubmission', back_populates='student', lazy=True)
     progress = db.relationship('StudentProgress', backref='student', lazy=True)
     shared_codes = db.relationship('SharedCode', back_populates='student', lazy=True)
+    audit_logs = db.relationship('AuditLog', backref='user', lazy=True)
 
     def set_password(self, password):
         """Hash password using werkzeug's built-in method"""
@@ -146,7 +174,7 @@ class SharedCode(db.Model):
     student = db.relationship('Student', back_populates='shared_codes', lazy=True)
 
 
-class CodingActivity(db.Model):
+class CodingActivity(SoftDeleteMixin, db.Model):
     """Model for coding exercises and activities"""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -166,9 +194,9 @@ class CodingActivity(db.Model):
     points = db.Column(db.Integer, default=10)
     max_attempts = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    version = db.Column(db.Integer, default=1)  # Add version control
 
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
-
 
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
@@ -182,3 +210,45 @@ class StudentProgress(db.Model):
     last_submission = db.Column(db.Text)
 
     activity = db.relationship('CodingActivity', back_populates='student_progress', lazy=True)
+
+def create_audit_log(mapper, connection, target):
+    if hasattr(target, '__table__'):
+        audit = AuditLog(
+            table_name=target.__table__.name,
+            record_id=target.id,
+            action='INSERT',
+            changes={'new_values': {c.name: getattr(target, c.name) for c in target.__table__.columns}},
+            created_at=datetime.utcnow()
+        )
+        db.session.add(audit)
+
+def update_audit_log(mapper, connection, target):
+    if hasattr(target, '__table__'):
+        audit = AuditLog(
+            table_name=target.__table__.name,
+            record_id=target.id,
+            action='UPDATE',
+            changes={
+                'changed_fields': {
+                    key: getattr(target, key)
+                    for key in target.__dict__
+                    if not key.startswith('_') and key != 'id'
+                }
+            },
+            created_at=datetime.utcnow()
+        )
+        db.session.add(audit)
+
+def delete_audit_log(mapper, connection, target):
+    if hasattr(target, '__table__'):
+        audit = AuditLog(
+            table_name=target.__table__.name,
+            record_id=target.id,
+            action='DELETE',
+            created_at=datetime.utcnow()
+        )
+        db.session.add(audit)
+
+event.listen(CodingActivity, 'after_insert', create_audit_log)
+event.listen(CodingActivity, 'after_update', update_audit_log)
+event.listen(CodingActivity, 'after_delete', delete_audit_log)

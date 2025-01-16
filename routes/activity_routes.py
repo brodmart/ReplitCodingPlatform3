@@ -13,6 +13,18 @@ from database import db
 from models import CodingActivity
 from extensions import limiter
 from sqlalchemy import text
+from datetime import datetime
+from apscheduler.schedulers.background import BackgroundScheduler
+from utils.backup import DatabaseBackup
+
+# Initialize scheduler for backups
+scheduler = BackgroundScheduler()
+scheduler.add_job(DatabaseBackup.schedule_backup, 'interval', hours=6)
+scheduler.start()
+
+# Register cleanup on application shutdown
+atexit.register(lambda: scheduler.shutdown())
+
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -565,17 +577,18 @@ def list_activities(grade=None):
         logger.debug(f"Using curriculum: {curriculum}, language: {language}")
 
         try:
-            # Query activities for the specified grade level
-            activities_list = CodingActivity.query.filter_by(
+            # Query activities for the specified grade level, excluding soft-deleted ones
+            activities_list = CodingActivity.get_active().filter_by(
                 curriculum=curriculum,
                 language=language
             ).order_by(CodingActivity.sequence).all()
 
-            logger.debug(f"Found {len(activities_list)} activities")
+            logger.debug(f"Found {len(activities_list)} active activities")
 
         except Exception as db_error:
             logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
             raise
+
         try:
             return render_template(
                 'activities/list.html',
