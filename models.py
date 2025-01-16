@@ -33,7 +33,8 @@ class AuditLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('student.id'))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('Student', backref=db.backref('audit_logs', lazy=True))
+    # Fix the duplicate backref issue by using a different name
+    student = db.relationship('Student', backref=db.backref('audit_history', lazy=True))
 
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
