@@ -1,0 +1,26 @@
+{
+  "backups": [
+    {
+      "timestamp": "2025-01-16T04:20:06.528975",
+      "file": "backup_20250116_042003.sql",
+      "success": true,
+      "error": null,
+      "version": 2
+    },
+    {
+      "timestamp": "2025-01-16T04:20:11.736703",
+      "file": "backup_20250116_042008.sql",
+      "success": true,
+      "error": null,
+      "version": 3
+    },
+    {
+      "timestamp": "2025-01-16T04:20:16.941451",
+      "file": "backup_20250116_042013.sql",
+      "success": true,
+      "error": null,
+      "version": 4
+    }
+  ],
+  "version": 4
+}
