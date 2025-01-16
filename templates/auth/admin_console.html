@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h2>Admin Console</h2>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>User Management</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="mb-4">
+                        {{ form.hidden_tag() }}
+                        <div class="row align-items-end">
+                            <div class="col-md-4">
+                                {{ form.username.label(class="form-label") }}
+                                {{ form.username(class="form-control") }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.reset_password(class="btn btn-warning me-2") }}
+                                {{ form.unlock_account(class="btn btn-success") }}
+                            </div>
+                        </div>
+                    </form>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Username</th>
+                                    <th>Created</th>
+                                    <th>Score</th>
+                                    <th>Last Login</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ user.score }}</td>
+                                    <td>
+                                        {% if user.last_failed_login %}
+                                            {{ user.last_failed_login.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            Never
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.is_account_locked() %}
+                                            <span class="badge bg-danger">Locked</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% set completed = user.progress|selectattr('completed')|list|length %}
+                                        {% set total = user.progress|length %}
+                                        {% if total > 0 %}
+                                            <div class="progress">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ (completed/total*100)|round }}%"
+                                                     aria-valuenow="{{ (completed/total*100)|round }}"
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                    {{ completed }}/{{ total }}
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            No activities started
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -11,13 +11,15 @@ logger = logging.getLogger(__name__)
 class Student(UserMixin, db.Model):
     """Student model representing a user in the system"""
     __table_args__ = (
-        db.Index('idx_student_username_email', 'username', 'email'),
+        db.Index('idx_student_username', 'username'),
     )
 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(120), unique=True, nullable=True)  # Made email optional
     password_hash = db.Column(db.String(256), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)  # Added admin flag
+    avatar_path = db.Column(db.String(256))  # Added avatar support
 
     # Security fields
     failed_login_attempts = db.Column(db.Integer, default=0)
@@ -81,9 +83,9 @@ class Student(UserMixin, db.Model):
         return False
 
     @staticmethod
-    def get_by_email(email):
-        """Safely get user by email"""
-        return Student.query.filter(Student.email == email).first()
+    def get_by_username(username):
+        """Safely get user by username"""
+        return Student.query.filter(Student.username == username).first()
 
     def __repr__(self):
         return f'<Student {self.username}>'
@@ -161,6 +163,7 @@ class CodingActivity(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
+
 
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
