@@ -109,7 +109,6 @@ def start_session():
 
             logger.debug(f"Writing source to {source_file}")
             logger.info(f"Starting compilation for {language} code ({code_size} bytes)")
-            logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
 
             with open(source_file, 'w') as f:
                 f.write(code)
@@ -122,6 +121,8 @@ def start_session():
                 compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
             else:
                 compile_cmd = ['mcs', source_file, '-out:' + executable_path]
+                
+            logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
 
             compile_start = time.time()
             compile_process = subprocess.run(
