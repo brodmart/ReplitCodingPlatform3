@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timedelta
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
-from models import Student, CodeSubmission, CodingActivity, StudentProgress # Added imports
+from models import Student, CodeSubmission, CodingActivity, StudentProgress
 from forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPasswordForm, AdminConsoleForm
 from database import db
 from extensions import limiter
@@ -15,20 +15,6 @@ from functools import wraps
 
 auth = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
-
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
-            flash('You need to be an administrator to access this page.', 'danger')
-            return redirect(url_for('auth.login'))
-        return f(*args, **kwargs)
-    return decorated_function
-
-def is_safe_url(target):
-    ref_url = urlparse(request.host_url)
-    test_url = urlparse(urljoin(request.host_url, target))
-    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth.route('/login', methods=['GET', 'POST'])
 @limiter.limit("30 per minute")
@@ -73,8 +59,26 @@ def login():
             logger.error(f"Database error during login: {str(e)}")
             db.session.rollback()
             flash('A server error occurred. Please try again.', 'danger')
+        except Exception as e:
+            logger.error(f"Unexpected error during login: {str(e)}", exc_info=True)
+            db.session.rollback()
+            flash('A server error occurred. Please try again.', 'danger')
 
     return render_template('auth/login.html', form=form)
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('You need to be an administrator to access this page.', 'danger')
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def is_safe_url(target):
+    ref_url = urlparse(request.host_url)
+    test_url = urlparse(urljoin(request.host_url, target))
+    return test_url.scheme in ('http', 'https') and ref_url.netloc == test_url.netloc
 
 @auth.route('/register', methods=['GET', 'POST'])
 @limiter.limit("20 per minute")
