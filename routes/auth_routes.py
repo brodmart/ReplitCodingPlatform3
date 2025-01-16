@@ -40,27 +40,34 @@ def login():
     if form.validate_on_submit():
         try:
             user = Student.query.filter_by(username=form.username.data).first()
+            logger.info(f"Login attempt for username: {form.username.data}")
 
-            if user and user.check_password(form.password.data):
-                if user.is_account_locked():
-                    flash('Account temporarily locked. Try again later.', 'danger')
-                    return render_template('auth/login.html', form=form)
+            if user:
+                logger.debug(f"User found: {user.username}, verifying password")
+                if user.check_password(form.password.data):
+                    if user.is_account_locked():
+                        flash('Account temporarily locked. Try again later.', 'danger')
+                        return render_template('auth/login.html', form=form)
 
-                user.reset_failed_login()
-                db.session.commit()
-                login_user(user, remember=form.remember_me.data)
+                    user.reset_failed_login()
+                    db.session.commit()
+                    login_user(user, remember=form.remember_me.data)
+                    logger.info(f"Successful login for user: {user.username}")
 
-                next_page = request.args.get('next')
-                if not next_page or not is_safe_url(next_page):
-                    next_page = url_for('static_pages.index')
+                    next_page = request.args.get('next')
+                    if not next_page or not is_safe_url(next_page):
+                        next_page = url_for('static_pages.index')
 
-                flash('Login successful!', 'success')
-                return redirect(next_page)
-            else:
-                if user:
+                    flash('Login successful!', 'success')
+                    return redirect(next_page)
+                else:
+                    logger.warning(f"Invalid password for user: {user.username}")
                     user.increment_failed_login()
                     db.session.commit()
-                flash('Invalid username or password', 'danger')
+            else:
+                logger.warning(f"Login attempt failed - user not found: {form.username.data}")
+
+            flash('Invalid username or password', 'danger')
 
         except SQLAlchemyError as e:
             logger.error(f"Database error during login: {str(e)}")

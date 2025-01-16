@@ -57,7 +57,10 @@ class Student(UserMixin, db.Model):
             if not self.password_hash:
                 logger.error("Password hash is empty")
                 return False
-            return check_password_hash(self.password_hash, password)
+            logger.debug(f"Attempting password verification for user: {self.username}")
+            result = check_password_hash(self.password_hash, password)
+            logger.debug(f"Password verification result for {self.username}: {result}")
+            return result
         except Exception as e:
             logger.error(f"Password verification error: {str(e)}")
             return False
