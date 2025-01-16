@@ -22,7 +22,7 @@ class Student(UserMixin, db.Model):
     avatar_path = db.Column(db.String(256))  # Added avatar support
 
     # Security fields
-    failed_login_attempts = db.Column(db.Integer, default=0)
+    failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)  # Added nullable=False and default=0
     last_failed_login = db.Column(db.DateTime)
     account_locked_until = db.Column(db.DateTime)
 
@@ -64,6 +64,8 @@ class Student(UserMixin, db.Model):
 
     def increment_failed_login(self):
         """Track failed login attempts"""
+        if self.failed_login_attempts is None:  # Add safety check
+            self.failed_login_attempts = 0
         self.failed_login_attempts += 1
         self.last_failed_login = datetime.utcnow()
 
