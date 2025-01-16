@@ -102,7 +102,14 @@ def start_session():
             # Write source code to file
             file_extension = '.cpp' if language == 'cpp' else '.cs'
             source_file = os.path.join(session_dir, f'program{file_extension}')
+            code_size = len(code)
+            logger.info(f"Code submission size: {code_size} bytes")
+            if code_size > 50000:
+                logger.warning(f"Large code submission detected: {code_size} bytes")
+
             logger.debug(f"Writing source to {source_file}")
+            logger.info(f"Starting compilation for {language} code ({code_size} bytes)")
+            logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
 
             with open(source_file, 'w') as f:
                 f.write(code)
@@ -116,13 +123,16 @@ def start_session():
             else:
                 compile_cmd = ['mcs', source_file, '-out:' + executable_path]
 
-            logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
+            compile_start = time.time()
             compile_process = subprocess.run(
                 compile_cmd,
                 capture_output=True,
                 text=True,
                 timeout=10
             )
+            compile_time = time.time() - compile_start
+            logger.info(f"Compilation completed in {compile_time:.2f} seconds")
+
 
             if compile_process.returncode != 0:
                 logger.error(f"Compilation failed: {compile_process.stderr}")
@@ -600,7 +610,7 @@ def view_activity(activity_id):
         logger.debug(f"Activity language: {activity.language}")
         logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
         logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
-        
+
         if activity.starter_code is None:
             logger.error(f"Activity {activity_id} has no starter code")
             activity.starter_code = ''  # Provide empty default

@@ -163,6 +163,12 @@ class InteractiveConsole {
             throw new Error('Console not initialized');
         }
 
+        // Show compilation progress
+        this.appendToConsole('Starting compilation...', 'info');
+        if (code.length > 50000) {
+            this.appendToConsole('Large code submission detected, this may take longer...', 'info');
+        }
+
         console.log('Starting new session with:', { language, codeLength: code.length });
 
         try {
@@ -185,6 +191,11 @@ class InteractiveConsole {
 
             if (!data.success) {
                 throw new Error(data.error || 'Failed to start session');
+            }
+
+            this.appendToConsole('Compilation successful', 'info');
+            if (data.compilation_time) {
+                this.appendToConsole(`Compiled in ${data.compilation_time.toFixed(2)}s`, 'info');
             }
 
             this.sessionId = data.session_id;

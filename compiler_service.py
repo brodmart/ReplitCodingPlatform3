@@ -19,14 +19,19 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
+            chunk_size = 1024 * 1024 # 1MB chunks
 
             if language == 'cpp':
                 source_file = temp_path / "program.cpp"
                 executable = temp_path / "program"
 
-                # Write source code
+                # Write code in chunks to handle large files
                 with open(source_file, 'w') as f:
-                    f.write(code)
+                    for i in range(0, len(code), chunk_size):
+                        chunk = code[i:i + chunk_size]
+                        f.write(chunk)
+                        f.flush()
+                        logger.debug(f"Wrote chunk {i//chunk_size + 1} of {(len(code) + chunk_size - 1)//chunk_size}")
 
                 # Compile
                 compile_process = subprocess.run(
@@ -84,9 +89,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                 source_file = temp_path / "program.cs"
                 executable = temp_path / "program.exe"
 
-                # Write source code
+                # Write code in chunks to handle large files
                 with open(source_file, 'w') as f:
-                    f.write(code)
+                    for i in range(0, len(code), chunk_size):
+                        chunk = code[i:i + chunk_size]
+                        f.write(chunk)
+                        f.flush()
+                        logger.debug(f"Wrote chunk {i//chunk_size + 1} of {(len(code) + chunk_size - 1)//chunk_size}")
 
                 # Compile
                 compile_process = subprocess.run(
