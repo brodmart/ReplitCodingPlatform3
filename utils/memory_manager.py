@@ -17,6 +17,9 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import uuid
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 MEMORY_FILES = [
     'AI_CONTEXT.md',
@@ -33,6 +36,24 @@ class MemoryManager:
         self.backup_dir = os.path.join(self.base_dir, 'memory_backups')
         self.change_log_file = os.path.join(self.base_dir, 'memory_changes.json')
         os.makedirs(self.backup_dir, exist_ok=True)
+        # Automatically load context on initialization
+        self.load_ai_context()
+
+    def load_ai_context(self) -> Optional[str]:
+        """Load and return the AI context at the start of each session."""
+        try:
+            context_path = os.path.join(self.base_dir, 'AI_CONTEXT.md')
+            if os.path.exists(context_path):
+                with open(context_path, 'r') as f:
+                    context = f.read()
+                logger.info("AI context loaded successfully")
+                return context
+            else:
+                logger.warning("AI_CONTEXT.md not found")
+                return None
+        except Exception as e:
+            logger.error(f"Error loading AI context: {str(e)}")
+            return None
 
     def update_timestamp(self, file_path: str) -> bool:
         """Update the timestamp in a memory file and log the change."""
@@ -58,7 +79,7 @@ class MemoryManager:
                 f.write(content)
             return True
         except Exception as e:
-            print(f"Error updating timestamp: {str(e)}")
+            logger.error(f"Error updating timestamp: {str(e)}")
             return False
 
     def validate_files(self) -> Dict[str, bool]:
@@ -73,6 +94,7 @@ class MemoryManager:
                 results[file_name] = exists and structure_valid and cross_refs_valid
             else:
                 results[file_name] = False
+                logger.warning(f"Memory file not found: {file_name}")
         return results
 
     def update_all_timestamps(self) -> List[str]:
@@ -94,9 +116,10 @@ class MemoryManager:
                 f"{filename}.{timestamp}.bak"
             )
             shutil.copy2(file_path, backup_path)
+            logger.info(f"Created backup: {backup_path}")
             return True
         except Exception as e:
-            print(f"Backup creation failed: {str(e)}")
+            logger.error(f"Backup creation failed: {str(e)}")
             return False
 
     def _log_change(self, file_path: str, operation: str) -> None:
@@ -118,8 +141,9 @@ class MemoryManager:
 
             with open(self.change_log_file, 'w') as f:
                 json.dump(existing_logs, f, indent=2)
+            logger.info(f"Logged change: {operation} on {os.path.basename(file_path)}")
         except Exception as e:
-            print(f"Logging failed: {str(e)}")
+            logger.error(f"Logging failed: {str(e)}")
 
     def _validate_file_structure(self, file_path: str) -> bool:
         """Validate the structure of a memory file."""
@@ -146,22 +170,27 @@ class MemoryManager:
             for ref in references:
                 ref_path = os.path.join(self.base_dir, ref)
                 if not os.path.exists(ref_path):
+                    logger.warning(f"Missing cross-reference in {file_path}: {ref}")
                     return False
 
             return True
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error validating cross-references: {str(e)}")
             return False
 
 # Initialize the memory manager
 memory_manager = MemoryManager()
 
 if __name__ == "__main__":
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+
     # Validate files on import
     validation = memory_manager.validate_files()
     if not all(validation.values()):
-        print("Warning: Some memory files are missing or invalid:", 
+        logger.warning("Some memory files are missing or invalid:", 
               [f for f, valid in validation.items() if not valid])
 
     # Update timestamps
     updated = memory_manager.update_all_timestamps()
-    print(f"Updated timestamps in: {', '.join(updated)}")
+    logger.info(f"Updated timestamps in: {', '.join(updated)}")

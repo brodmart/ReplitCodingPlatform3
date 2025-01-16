@@ -13,7 +13,12 @@ Update them when making significant changes.
 """
 
 import os
+import logging
 from utils.memory_manager import MemoryManager
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Define paths to memory files
 MEMORY_FILES = [
@@ -39,7 +44,19 @@ def verify_memory_files():
 
 # Initialize memory manager and verify files
 memory_manager = MemoryManager()
-memory_manager.validate_files()
+validation_results = memory_manager.validate_files()
+
+# Log initialization status
+if all(validation_results.values()):
+    logger.info("Memory system initialized successfully")
+    # Load AI context automatically
+    context = memory_manager.load_ai_context()
+    if context:
+        logger.info("AI context loaded successfully")
+    else:
+        logger.warning("Failed to load AI context")
+else:
+    logger.warning("Some memory files are invalid or missing")
 
 # This will help future AI sessions locate the memory files
 __ai_context_files__ = MEMORY_FILES
