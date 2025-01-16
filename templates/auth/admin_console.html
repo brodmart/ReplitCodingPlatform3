@@ -6,42 +6,122 @@
         <div class="col-md-12">
             <h2>Admin Console</h2>
             <div class="card mb-4">
-                <div class="card-header">
-                    <h4>User Management</h4>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>Student Progress Dashboard</h4>
+                    <div>
+                        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#userManagement">
+                            User Management
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <form method="POST" class="mb-4">
-                        {{ form.hidden_tag() }}
-                        <div class="row align-items-end">
-                            <div class="col-md-4">
-                                {{ form.username.label(class="form-label") }}
-                                {{ form.username(class="form-control") }}
-                            </div>
-                            <div class="col-md-4">
-                                {{ form.reset_password(class="btn btn-warning me-2") }}
-                                {{ form.unlock_account(class="btn btn-success") }}
+                    <!-- User Management Section -->
+                    <div class="collapse mb-4" id="userManagement">
+                        <div class="card card-body bg-light">
+                            <h5>User Management Tools</h5>
+                            <form method="POST">
+                                {{ form.hidden_tag() }}
+                                <div class="row align-items-end">
+                                    <div class="col-md-4">
+                                        {{ form.username.label(class="form-label") }}
+                                        {{ form.username(class="form-control") }}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {{ form.reset_password(class="btn btn-warning me-2") }}
+                                        {{ form.unlock_account(class="btn btn-success") }}
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Stats Overview -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Students</h6>
+                                    <h2 class="card-text">{{ users|length }}</h2>
+                                </div>
                             </div>
                         </div>
-                    </form>
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Active Today</h6>
+                                    <h2 class="card-text">{{ active_today }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Avg. Completion Rate</h6>
+                                    <h2 class="card-text">{{ avg_completion_rate }}%</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Total Activities</h6>
+                                    <h2 class="card-text">{{ total_activities }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Student List -->
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table table-hover">
+                            <thead class="table-light">
                                 <tr>
                                     <th>Username</th>
-                                    <th>Created</th>
+                                    <th>Joined</th>
                                     <th>Score</th>
-                                    <th>Last Login</th>
-                                    <th>Status</th>
+                                    <th>Activities</th>
                                     <th>Progress</th>
+                                    <th>Last Active</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for user in users %}
                                 <tr>
-                                    <td>{{ user.username }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if user.avatar_path %}
+                                                <img src="{{ user.avatar_path }}" class="rounded-circle me-2" width="30" height="30">
+                                            {% else %}
+                                                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2" style="width: 30px; height: 30px">
+                                                    {{ user.username[0]|upper }}
+                                                </div>
+                                            {% endif %}
+                                            {{ user.username }}
+                                        </div>
+                                    </td>
                                     <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
                                     <td>{{ user.score }}</td>
+                                    <td>
+                                        {% set completed = user.progress|selectattr('completed')|list|length %}
+                                        {% set total = user.progress|length %}
+                                        {{ completed }}/{{ total }}
+                                    </td>
+                                    <td style="width: 200px;">
+                                        {% if total > 0 %}
+                                            <div class="progress">
+                                                <div class="progress-bar" role="progressbar" 
+                                                     style="width: {{ (completed/total*100)|round }}%"
+                                                     aria-valuenow="{{ (completed/total*100)|round }}"
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                    {{ (completed/total*100)|round }}%
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">No activities started</span>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         {% if user.last_failed_login %}
                                             {{ user.last_failed_login.strftime('%Y-%m-%d %H:%M') }}
@@ -57,20 +137,27 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% set completed = user.progress|selectattr('completed')|list|length %}
-                                        {% set total = user.progress|length %}
-                                        {% if total > 0 %}
-                                            <div class="progress">
-                                                <div class="progress-bar" role="progressbar" 
-                                                     style="width: {{ (completed/total*100)|round }}%"
-                                                     aria-valuenow="{{ (completed/total*100)|round }}"
-                                                     aria-valuemin="0" aria-valuemax="100">
-                                                    {{ completed }}/{{ total }}
-                                                </div>
-                                            </div>
-                                        {% else %}
-                                            No activities started
-                                        {% endif %}
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                                Actions
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <form method="POST" class="dropdown-item">
+                                                        {{ form.hidden_tag() }}
+                                                        <input type="hidden" name="username" value="{{ user.username }}">
+                                                        {{ form.reset_password(class="btn btn-link p-0") }}
+                                                    </form>
+                                                </li>
+                                                <li>
+                                                    <form method="POST" class="dropdown-item">
+                                                        {{ form.hidden_tag() }}
+                                                        <input type="hidden" name="username" value="{{ user.username }}">
+                                                        {{ form.unlock_account(class="btn btn-link p-0") }}
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}

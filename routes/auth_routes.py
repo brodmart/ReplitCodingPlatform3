@@ -5,7 +5,7 @@ import secrets
 from datetime import datetime, timedelta
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
-from models import Student
+from models import Student, CodeSubmission, CodingActivity, StudentProgress # Added imports
 from forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPasswordForm, AdminConsoleForm
 from database import db
 from extensions import limiter
@@ -138,9 +138,33 @@ def admin_console():
             db.session.commit()
             flash('Account unlocked successfully.', 'success')
 
-    # Get all users for display
+    # Get all users and related statistics
     users = Student.query.order_by(Student.username).all()
-    return render_template('auth/admin_console.html', form=form, users=users)
+
+    # Calculate dashboard statistics
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Count active users today (users who have made submissions today)
+    active_today = db.session.query(db.func.count(db.distinct(CodeSubmission.student_id)))\
+        .filter(CodeSubmission.submitted_at >= today_start).scalar() or 0
+
+    # Calculate average completion rate
+    total_activities = db.session.query(db.func.count(CodingActivity.id)).scalar() or 0
+    if total_activities > 0:
+        completed_activities = db.session.query(db.func.count(StudentProgress.id))\
+            .filter(StudentProgress.completed == True).scalar() or 0
+        total_possible = total_activities * len(users) if users else 1
+        avg_completion_rate = round((completed_activities / total_possible) * 100, 1)
+    else:
+        avg_completion_rate = 0
+
+    return render_template('auth/admin_console.html',
+                         form=form,
+                         users=users,
+                         active_today=active_today,
+                         avg_completion_rate=avg_completion_rate,
+                         total_activities=total_activities)
 
 @auth.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
