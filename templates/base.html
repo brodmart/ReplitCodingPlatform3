@@ -68,6 +68,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('activities.view_enhanced_activity', activity_id=1) }}">
+                                {% if lang == 'fr' %}Apprentissage amélioré{% else %}Enhanced Learning{% endif %}
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('tutorial.tutorial_view') }}">
                                 {% if lang == 'fr' %}Tutoriel interactif (expérimental){% else %}Interactive Tutorial (experimental){% endif %}
                             </a>
