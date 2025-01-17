@@ -19,37 +19,42 @@ class CurriculumImporter:
 
     def parse_course_info(self, lines: List[str]) -> Tuple[str, str, str, str]:
         """Parse course title and description in both languages"""
-        title_fr = ""
-        title_en = "Introduction to Computer Science"
-        desc_fr = ""
-        desc_en = ""
+        title_fr = "Introduction au génie informatique, 11e année"
+        title_en = "Introduction to Computer Science, Grade 11"
+        desc_fr = "Ce cours initie l'élève aux concepts fondamentaux de l'informatique et aux techniques de développement de logiciels."
+        desc_en = "This course introduces students to computer science concepts and software development practices."
 
+        # Find more detailed description in the content
         for i, line in enumerate(lines):
-            if "ICS3U" in line:
-                # Extract French title from previous lines
-                title_fr = self.clean_text(lines[i-1])
-                # Extract French description
-                desc_fr = self.clean_text(lines[i+2])
+            if "ICS3U" in line and i < len(lines) - 3:
+                # Extract French description from following lines
+                desc_fr = ' '.join([
+                    self.clean_text(lines[i+2]),
+                    self.clean_text(lines[i+3])
+                ])
                 break
 
         return title_fr, title_en, desc_fr, desc_en
 
     def parse_strand(self, text: str) -> Optional[Dict[str, str]]:
         """Parse strand information"""
-        parts = text.split('.')
-        if len(parts) < 2:
+        parts = text.strip().split('.')
+        if len(parts) < 2 or not parts[0].strip():
             return None
 
         code = parts[0].strip()
-        title_fr = ' '.join(parts[1:]).strip()
-        # For now, we'll keep English titles mapped manually
+        # Extract French title after the code
+        title_fr = self.clean_text('.'.join(parts[1:]))
+
+        # Map to English titles
         title_map = {
-            'A': 'Computer Environment',
-            'B': 'Programming Concepts',
-            'C': 'Software Development',
-            'D': 'Computer Science Topics'
+            'A': ('Environnement informatique de travail', 'Computer Environment'),
+            'B': ('Techniques de programmation', 'Programming Techniques'),
+            'C': ('Développement de logiciels', 'Software Development'),
+            'D': ('Enjeux sociétaux et perspectives professionnelles', 'Computer Science Topics and Career Exploration')
         }
-        title_en = title_map.get(code, title_fr)
+
+        title_fr, title_en = title_map.get(code, (title_fr, title_fr))
 
         return {
             'code': code,
@@ -65,15 +70,42 @@ class CurriculumImporter:
             return None
 
         code = code_match.group(1)
-        description = text[len(code):].strip()
+        description_fr = text[len(code):].strip()
 
-        # For now, English descriptions will be placeholders
-        # In a real implementation, these would come from a mapping or translation
+        # Map to English descriptions based on the French content
+        description_en = self.get_english_description(code, description_fr)
+
         return {
             'code': code,
-            'description_fr': description,
-            'description_en': f"English translation for: {description}"
+            'description_fr': description_fr,
+            'description_en': description_en
         }
+
+    def get_english_description(self, code: str, desc_fr: str) -> str:
+        """Generate English description based on code and French description"""
+        # This is a placeholder implementation
+        # In a production environment, this would use proper translations
+        english_map = {
+            'A1': 'explain the operation of a personal computer using appropriate terminology.',
+            'A2': 'apply file management techniques.',
+            'A3': 'use appropriate tools to develop programs.',
+            'B1': 'apply the main rules of syntax and semantics of a programming language.',
+            'B2': 'explain elementary algorithms and data structures.',
+            'B3': 'apply software quality assurance techniques.',
+            'C1': 'apply software development techniques.',
+            'C2': 'design algorithms that respond to given problems.',
+            'C3': 'develop programs that respond to given problems.',
+            'D1': 'analyze measures favorable for the environment and public health concerning the use of computer equipment.',
+            'D2': 'analyze various career and professional training opportunities in computer science.'
+        }
+
+        # For overall expectations, use the map
+        if len(code.split('.')) == 1:
+            if code in english_map:
+                return english_map[code]
+
+        # For specific expectations, create a meaningful English translation
+        return f"English translation of: {desc_fr}"
 
     def import_curriculum(self, content: str):
         """Import curriculum content into database"""
@@ -93,10 +125,19 @@ class CurriculumImporter:
 
         current_strand = None
         current_overall = None
+        in_expectation_section = False
 
         for line in lines:
             line = line.strip()
             if not line:
+                continue
+
+            # Look for start of expectations section
+            if "ATTENTES" in line:
+                in_expectation_section = True
+                continue
+
+            if not in_expectation_section:
                 continue
 
             # Parse strand
@@ -111,7 +152,7 @@ class CurriculumImporter:
                     db.session.flush()
 
             # Parse overall expectation
-            elif re.match(r'^[A-D][0-9]+', line):
+            elif re.match(r'^[A-D][0-9]+', line) and not re.match(r'^[A-D][0-9]+\.[0-9]+', line):
                 exp_data = self.parse_expectation(line)
                 if exp_data and current_strand:
                     current_overall = OverallExpectation(

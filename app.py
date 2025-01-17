@@ -10,7 +10,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_db
 from extensions import init_extensions
 from utils.logger import setup_logging
-from models import Student
+
+# Remove the Student import since it's not needed in the main app file
+# The models will be imported in their respective routes
 
 # Configure logging
 logging.basicConfig(
@@ -135,6 +137,8 @@ def create_app():
         @login_manager.user_loader
         def load_user(user_id):
             try:
+                #Import model here to avoid circular import.
+                from models import Student
                 return Student.query.get(int(user_id))
             except:
                 return None
