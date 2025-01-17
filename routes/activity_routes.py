@@ -829,38 +829,81 @@ def run_code():
         if language not in ['cpp', 'csharp']:
             return jsonify({'success': False, 'error': 'Unsupported language'}), 400
 
-        # Compile and run the code
-        result = compile_and_run(code, language)
+        # Create temporary directory for compilation
+        session_id = str(time.time())
+        session_dir = os.path.join(TEMP_DIR, session_id)
+        os.makedirs(session_dir, exist_ok=True)
 
-        if not result.get('success', False):
-            error_msg = result.get('error', 'An error occurred')
-            if 'memory' in error_msg.lower():
-                error_msg += ". Try reducing the size of variables or arrays."
-            elif 'timeout' in error_msg.lower():
-                error_msg += ". Check for infinite loops."
-            return jsonify({'success': False, 'error': error_msg})
+        try:
+            # Write source code to file
+            file_extension = '.cpp' if language == 'cpp' else '.cs'
+            source_file = os.path.join(session_dir, f'program{file_extension}')
+            with open(source_file, 'w') as f:
+                f.write(code)
 
-        # Start an interactive session
-        session_id = result.get('session_id')
+            # Compile code
+            executable_name = 'program' if language == 'cpp' else 'program.exe'
+            executable_path = os.path.join(session_dir, executable_name)
 
-        # Get initial output
-        output = ''
-        if session_id in active_sessions:
+            if language == 'cpp':
+                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
+            else:
+                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
+
+            compile_process = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if compile_process.returncode != 0:
+                return jsonify({
+                    'success': False,
+                    'error': f"Compilation error:\n{compile_process.stderr}"
+                })
+
+            # Execute the compiled program
+            cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
+            process = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                cwd=session_dir
+            )
+
+            output = process.stdout
+            error = process.stderr
+
+            if process.returncode != 0:
+                return jsonify({
+                    'success': False,
+                    'error': f"Runtime error:\n{error if error else 'Program exited with error code ' + str(process.returncode)}"
+                })
+
+            return jsonify({
+                'success': True,
+                'output': output if output else "Program completed successfully with no output."
+            })
+
+        except subprocess.TimeoutExpired:
+            return jsonify({
+                'success': False,
+                'error': "Program execution timed out. Check for infinite loops."
+            })
+        except Exception as e:
+            logger.error(f"Error running code: {str(e)}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': f"Error running program: {str(e)}"
+            })
+        finally:
+            # Clean up
             try:
-                process = active_sessions[session_id]['process']
-                stdout, _ = process.communicate(timeout=1)
-                if stdout:
-                    output = stdout.decode('utf-8', errors='replace')
+                shutil.rmtree(session_dir)
             except Exception as e:
-                logger.error(f"Error getting initial output: {e}")
-                cleanup_session(session_id)
-                return jsonify({'success': False, 'error': str(e)})
-
-        return jsonify({
-            'success': True,
-            'session_id': session_id,
-            'output': output
-        })
+                logger.error(f"Error cleaning up session directory: {str(e)}")
 
     except Exception as e:
         logger.error(f"Error in run_code: {str(e)}", exc_info=True)
