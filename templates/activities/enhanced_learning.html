@@ -217,6 +217,57 @@
     .feedback-panel.visible {
         display: block;
     }
+
+    /* New styles from edited snippet */
+    .step-indicators {
+        display: flex;
+        gap: 8px;
+    }
+
+    .indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #2d2d2d;
+        transition: background-color 0.3s;
+    }
+
+    .indicator.active {
+        background-color: #28a745;
+    }
+
+    .reflection-feedback {
+        padding: 8px;
+        border-radius: 4px;
+        background-color: #2d2d2d;
+    }
+
+    .strategy-selector select {
+        background-color: #2d2d2d;
+        border: 1px solid #3d3d3d;
+    }
+
+    .task-step {
+        background-color: #2d2d2d;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        transition: all 0.3s;
+    }
+
+    .task-step:hover {
+        background-color: #3d3d3d;
+    }
+
+    .step-content {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .step-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
 </style>
 {% endblock %}
 
@@ -230,32 +281,77 @@
                     <!-- Cognitive Level Indicator -->
                     <div class="cognitive-level-indicator">
                         <h4 class="text-primary">
-                            {% if lang == 'fr' %}Niveau Cognitif{% else %}Cognitive Level{% endif %}
+                            {% if lang == 'fr' %}Processus d'Apprentissage{% else %}Learning Process{% endif %}
                         </h4>
-                        <div class="current-level">
+                        <div class="current-level mb-3">
                             <i class="bi bi-diagram-3"></i>
                             <span id="cognitiveLevelText">
                                 {% if lang == 'fr' %}Analyse{% else %}Analysis{% endif %}
                             </span>
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div class="progress-bar" role="progressbar" style="width: 0%" id="cognitionProgress"></div>
+                            </div>
                         </div>
-                        <small class="text-muted">
-                            {% if lang == 'fr' %}
-                                Basé sur la taxonomie de Bloom
-                            {% else %}
-                                Based on Bloom's Taxonomy
-                            {% endif %}
-                        </small>
+
+                        <!-- New: Metacognitive Strategy Selector -->
+                        <div class="strategy-selector mb-3">
+                            <h5 class="text-secondary">
+                                {% if lang == 'fr' %}Stratégie d'Apprentissage{% else %}Learning Strategy{% endif %}
+                            </h5>
+                            <select class="form-select bg-dark text-light" id="strategySelect">
+                                <option value="visual">{% if lang == 'fr' %}Visuel{% else %}Visual Learner{% endif %}</option>
+                                <option value="verbal">{% if lang == 'fr' %}Verbal{% else %}Verbal Learner{% endif %}</option>
+                                <option value="active">{% if lang == 'fr' %}Pratique{% else %}Active Learner{% endif %}</option>
+                            </select>
+                        </div>
+
+                        <!-- Enhanced Task Breakdown with Process Indicators -->
+                        <div class="task-breakdown">
+                            <h4 class="text-primary">
+                                {% if lang == 'fr' %}Progression de la Pensée{% else %}Thinking Progress{% endif %}
+                            </h4>
+                            <div id="taskSteps">
+                                <div class="task-step">
+                                    <div class="step-content">
+                                        <span class="step-title">{% if lang == 'fr' %}Comprendre{% else %}Understanding{% endif %}</span>
+                                        <div class="step-indicators d-flex mt-1">
+                                            <span class="indicator" data-type="read"></span>
+                                            <span class="indicator" data-type="analyze"></span>
+                                            <span class="indicator" data-type="question"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Add more process-focused steps -->
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Reflection Section with Adaptive Prompts -->
+                        <div class="reflection-prompt">
+                            <h4 class="text-warning">
+                                {% if lang == 'fr' %}Réflexion Active{% else %}Active Reflection{% endif %}
+                            </h4>
+                            <div id="reflectionArea">
+                                <div class="reflection-question mb-2" id="currentPrompt"></div>
+                                <textarea class="form-control bg-dark text-light mb-2" 
+                                        id="reflectionResponse" 
+                                        rows="3"
+                                        placeholder="{% if lang == 'fr' %}Votre réflexion ici...{% else %}Your reflection here...{% endif %}">
+                                </textarea>
+                                <div class="reflection-feedback mt-2 d-none" id="reflectionFeedback"></div>
+                            </div>
+                        </div>
+
+                        <!-- New: Actionable Feedback Panel -->
+                        <div class="feedback-panel mt-3">
+                            <h4 class="text-info">
+                                {% if lang == 'fr' %}Suggestions d'Amélioration{% else %}Improvement Suggestions{% endif %}
+                            </h4>
+                            <div id="actionableFeedback" class="p-2 rounded">
+                                <!-- Feedback will be dynamically inserted here -->
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Task Breakdown -->
-                    <div class="task-breakdown">
-                        <h4 class="text-primary">
-                            {% if lang == 'fr' %}Étapes de l'Activité{% else %}Task Breakdown{% endif %}
-                        </h4>
-                        <div id="taskSteps">
-                            <!-- Steps will be populated dynamically -->
-                        </div>
-                    </div>
 
                     <!-- Confidence Assessment -->
                     <div class="confidence-prediction mb-4">
@@ -280,28 +376,15 @@
                         </div>
                     </div>
 
-                    <!-- Reflection Prompt -->
-                    <div class="reflection-prompt">
-                        <h4 class="text-warning">
-                            {% if lang == 'fr' %}Réflexion{% else %}Reflection{% endif %}
+                    <!-- Hint Panel -->
+                    <div class="hint-panel">
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Indices Adaptatifs{% else %}Adaptive Hints{% endif %}
                         </h4>
-                        <p id="reflectionPrompt" class="mb-2"></p>
-                        <textarea class="form-control bg-dark text-light" 
-                                id="reflectionResponse" 
-                                rows="3"
-                                placeholder="{% if lang == 'fr' %}Votre réponse ici...{% else %}Your response here...{% endif %}">
-                        </textarea>
+                        <div id="hintContainer">
+                            <!-- Hints will be populated dynamically -->
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Hint Panel -->
-            <div class="hint-panel">
-                <h4 class="text-primary">
-                    {% if lang == 'fr' %}Indices Adaptatifs{% else %}Adaptive Hints{% endif %}
-                </h4>
-                <div id="hintContainer">
-                    <!-- Hints will be populated dynamically -->
                 </div>
             </div>
         </div>
@@ -621,6 +704,85 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSolutionComparisons();
     updateTaskSteps();
     updateReflectionPrompt();
+
+    // Initialize metacognitive components from edited snippet
+    const reflectionPrompts2 = {
+        understanding: [
+            lang === 'fr' ? 
+                'Comment approchez-vous ce problème différemment des précédents ?' :
+                'How are you approaching this problem differently from previous ones?',
+            lang === 'fr' ?
+                'Quelles connexions faites-vous avec des concepts déjà appris ?' :
+                'What connections are you making with previously learned concepts?'
+        ],
+        planning: [
+            lang === 'fr' ?
+                'Quelle est votre stratégie pour décomposer ce problème ?' :
+                'What is your strategy for breaking down this problem?',
+            lang === 'fr' ?
+                'Comment savez-vous si votre approche est efficace ?' :
+                'How do you know if your approach is effective?'
+        ],
+        reflection: [
+            lang === 'fr' ?
+                'Quels aspects de votre solution pourraient être améliorés ?' :
+                'Which aspects of your solution could be improved?',
+            lang === 'fr' ?
+                'Comment cette activité a-t-elle changé votre compréhension ?' :
+                'How has this activity changed your understanding?'
+        ]
+    };
+
+    function updateReflectionPrompt2(stage) {
+        const prompts = reflectionPrompts2[stage];
+        const promptEl = document.getElementById('currentPrompt');
+        promptEl.textContent = prompts[Math.floor(Math.random() * prompts.length)];
+    }
+
+    // Initialize with understanding prompts
+    updateReflectionPrompt2('understanding');
+
+
+    // Handle strategy selection
+    document.getElementById('strategySelect').addEventListener('change', function(e) {
+        const strategy = e.target.value;
+        // Adapt interface based on learning strategy
+        adaptInterface(strategy);
+    });
+
+    function adaptInterface(strategy) {
+        // Modify interface elements based on learning strategy
+        const hintContainer = document.getElementById('hintContainer');
+        switch(strategy) {
+            case 'visual':
+                // Show more diagrams, flowcharts
+                break;
+            case 'verbal':
+                // Show more text explanations
+                break;
+            case 'active':
+                // Show more interactive elements
+                break;
+        }
+    }
+
+    // Monitor reflection responses
+    document.getElementById('reflectionResponse').addEventListener('input', function(e) {
+        const response = e.target.value;
+        if (response.length > 50) {
+            // Provide feedback based on response content
+            provideFeedback(response);
+        }
+    });
+
+    function provideFeedback(response) {
+        const feedbackEl = document.getElementById('reflectionFeedback');
+        feedbackEl.classList.remove('d-none');
+        // Analyze response and provide appropriate feedback
+        feedbackEl.textContent = lang === 'fr' ?
+            'Bonne réflexion ! Pensez aussi à...' :
+            'Good reflection! Consider also...';
+    }
 });
 </script>
 {% endblock %}
