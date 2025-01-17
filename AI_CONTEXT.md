@@ -52,50 +52,56 @@ Last Updated: January 17, 2025
 
 ### Core Educational Requirements:
 
-1. **ICS4U Curriculum Alignment**:
-   - Ontario's ICS4U (Grade 12) curriculum serves as the baseline standard for ALL platform features
-   - All programming concepts must meet or exceed Grade 12 level requirements
-   - Advanced topics coverage includes:
-     * Object-Oriented Programming principles
-     * Advanced algorithm design and analysis
-     * Software engineering methodologies
-     * Data structures and abstract data types
-     * Program efficiency and complexity analysis
-     * Recursive problem-solving techniques
-     * File manipulation and database management
+1. **Multi-Level Curriculum Support**:
+   - Support for multiple Ontario curriculum levels:
+     * ICS4U (Grade 12 University)
+     * ICS3U (Grade 11 University)
+     * ICS2O (Grade 10 Open)
+     * TEJ2O (Grade 10 Computer Technology)
+   - Adaptive difficulty scaling per student's course level
+   - Individual student progress tracking
+   - Course-specific assessment criteria
+   - Dynamic content presentation based on course level
 
 2. **Lexicon System Requirements**:
-   - Bilingual support (French/English) with ICS4U-level terminology
-   - Context-aware syntax highlighting for advanced code structures
-   - Support for multiple programming paradigms at Grade 12 level
+   - Unified bilingual support (French/English) across all levels
+   - Context-aware syntax highlighting for all supported languages
+   - Support for multiple programming paradigms
    - Advanced curriculum-specific content organization
    - Database-driven architecture for scalability
    - JSON-based content storage with curriculum mapping
    - Advanced code editor integration
    - Comprehensive search with curriculum tags
-   - ICS4U curriculum alignment verification system
+   - Student-specific curriculum alignment verification
 
 3. **Language Support Requirements**:
-   - Primary Languages (Full ICS4U Coverage):
-     * C++: Advanced OOP, templates, STL
-     * C#: Advanced .NET features, LINQ, async programming
+   - Primary Languages:
+     * C++: Scalable from TEJ2O basics to ICS4U advanced features
+     * C#: Progressive from ICS2O fundamentals to ICS4U advanced concepts
    - Secondary Languages:
-     * Python: Advanced features, decorators, metaclasses
+     * Python: Adaptable complexity based on course level
    - Future Consideration:
-     * JavaScript: Advanced ES6+, TypeScript integration
-   - All languages must demonstrate:
-     * Advanced OOP concepts
-     * Data structure implementations
-     * Algorithm efficiency
-     * File I/O and database operations
-     * Memory management (where applicable)
+     * JavaScript: Progressive complexity support
+   - Language features adapt to course level:
+     * Basic concepts for ICS2O/TEJ2O
+     * Intermediate structures for ICS3U
+     * Advanced implementations for ICS4U
 
 4. **Assessment and Learning Analytics**:
-   - Difficulty scaling based on ICS4U curriculum
-   - Advanced problem complexity alignment
+   - Course-specific difficulty scaling
+   - Adaptive problem complexity per curriculum level
    - Metacognitive assessment strategies
-   - Performance analytics at Grade 12 level
-   - Adaptive learning paths based on ICS4U requirements
+   - Performance analytics tailored to course requirements
+   - Individual learning paths based on course curriculum
+   - Cross-course progression tracking
+
+5. **Curriculum Verification System**:
+   - Student-specific curriculum checking
+   - Individual progress tracking per course
+   - Automatic difficulty adjustment
+   - Course-appropriate content delivery
+   - Achievement tracking against course expectations
+   - Cross-reference with Ontario curriculum documents
 
 ### Timestamps and Versioning:
 - All updates include timestamps
