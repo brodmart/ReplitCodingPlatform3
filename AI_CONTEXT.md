@@ -52,27 +52,50 @@ Last Updated: January 17, 2025
 
 ### Core Educational Requirements:
 
-1. **Curriculum Alignment**:
-   - All lexicon and programming features must align with Ontario's ICS4U (Grade 12) curriculum
-   - ICS4U serves as the baseline for advanced programming concepts
-   - All supported languages (C++, C#, Python, JavaScript) must meet ICS4U standards
+1. **ICS4U Curriculum Alignment**:
+   - Ontario's ICS4U (Grade 12) curriculum serves as the baseline standard for ALL platform features
+   - All programming concepts must meet or exceed Grade 12 level requirements
+   - Advanced topics coverage includes:
+     * Object-Oriented Programming principles
+     * Advanced algorithm design and analysis
+     * Software engineering methodologies
+     * Data structures and abstract data types
+     * Program efficiency and complexity analysis
+     * Recursive problem-solving techniques
+     * File manipulation and database management
 
 2. **Lexicon System Requirements**:
-   - Bilingual support (French/English)
-   - Context-aware syntax highlighting
-   - Support for multiple programming languages
-   - Curriculum-specific content organization
+   - Bilingual support (French/English) with ICS4U-level terminology
+   - Context-aware syntax highlighting for advanced code structures
+   - Support for multiple programming paradigms at Grade 12 level
+   - Advanced curriculum-specific content organization
    - Database-driven architecture for scalability
-   - JSON-based content storage for flexibility
-   - Integration with code editor
-   - Quick search functionality
-   - ICS4U curriculum tags and categorization
+   - JSON-based content storage with curriculum mapping
+   - Advanced code editor integration
+   - Comprehensive search with curriculum tags
+   - ICS4U curriculum alignment verification system
 
-3. **Language Support Priority**:
-   - Primary: C++, C#
-   - Secondary: Python
-   - Future consideration: JavaScript
-   - All language features must support ICS4U curriculum requirements
+3. **Language Support Requirements**:
+   - Primary Languages (Full ICS4U Coverage):
+     * C++: Advanced OOP, templates, STL
+     * C#: Advanced .NET features, LINQ, async programming
+   - Secondary Languages:
+     * Python: Advanced features, decorators, metaclasses
+   - Future Consideration:
+     * JavaScript: Advanced ES6+, TypeScript integration
+   - All languages must demonstrate:
+     * Advanced OOP concepts
+     * Data structure implementations
+     * Algorithm efficiency
+     * File I/O and database operations
+     * Memory management (where applicable)
+
+4. **Assessment and Learning Analytics**:
+   - Difficulty scaling based on ICS4U curriculum
+   - Advanced problem complexity alignment
+   - Metacognitive assessment strategies
+   - Performance analytics at Grade 12 level
+   - Adaptive learning paths based on ICS4U requirements
 
 ### Timestamps and Versioning:
 - All updates include timestamps
