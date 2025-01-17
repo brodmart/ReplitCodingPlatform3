@@ -10,8 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import app, db
 from utils.curriculum_importer import CurriculumImporter
-from app.models import Course, Strand # Assuming these models exist
-
+from models.curriculum import Course, Strand  # Fixed import path
 
 def main():
     # Set up logging
