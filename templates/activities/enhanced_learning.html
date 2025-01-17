@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Left Column: Activity Details -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h3 class="card-title">{{ activity.title }}</h3>
+                    <p class="card-text">{{ activity.description }}</p>
+                    <div class="difficulty-badge mb-3">
+                        <span class="badge bg-{{ 'success' if activity.difficulty == 'beginner' else 'warning' if activity.difficulty == 'intermediate' else 'danger' }}">
+                            {% if activity.difficulty == 'beginner' %}
+                                {% if lang == 'fr' %}Débutant{% else %}Beginner{% endif %}
+                            {% elif activity.difficulty == 'intermediate' %}
+                                {% if lang == 'fr' %}Intermédiaire{% else %}Intermediate{% endif %}
+                            {% else %}
+                                {% if lang == 'fr' %}Avancé{% else %}Advanced{% endif %}
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <!-- Confidence Prediction (Hattie Effect Size 1.44) -->
+                    <div class="confidence-prediction mb-4">
+                        <h4>{% if lang == 'fr' %}Prédiction de Confiance{% else %}Confidence Prediction{% endif %}</h4>
+                        <p>{% if lang == 'fr' %}À quel point êtes-vous confiant de pouvoir résoudre ce défi ?{% else %}How confident are you in solving this challenge?{% endif %}</p>
+                        <div class="btn-group w-100" role="group" id="confidenceButtons">
+                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="1">1</button>
+                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="2">2</button>
+                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="3">3</button>
+                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="4">4</button>
+                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="5">5</button>
+                        </div>
+                        <small class="text-muted">
+                            {% if lang == 'fr' %}1 = Pas confiant, 5 = Très confiant{% else %}1 = Not confident, 5 = Very confident{% endif %}
+                        </small>
+                    </div>
+
+                    <!-- Solution Comparison Section -->
+                    <div class="solution-comparison mb-4">
+                        <h4>{% if lang == 'fr' %}Approches de Solution{% else %}Solution Approaches{% endif %}</h4>
+                        <div class="accordion" id="solutionApproaches">
+                            <!-- Will be populated dynamically based on previous solutions -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Code Editor and Output -->
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="code-editor-container">
+                        <div id="editor" class="mb-3">{{ activity.starter_code }}</div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <button class="btn btn-primary" id="runCode">
+                                {% if lang == 'fr' %}Exécuter{% else %}Run Code{% endif %}
+                            </button>
+                            <button class="btn btn-secondary" id="showHint" disabled>
+                                {% if lang == 'fr' %}Indice{% else %}Hint{% endif %}
+                            </button>
+                        </div>
+                        <div id="output" class="bg-dark text-light p-3 rounded"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div class="card">
+                <div class="card-body">
+                    <h4>{% if lang == 'fr' %}Rétroaction{% else %}Feedback{% endif %}</h4>
+                    <div id="feedbackArea">
+                        <!-- Will be populated with multi-level feedback -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Enhanced Features -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confidence Prediction Handling
+    const confidenceButtons = document.querySelectorAll('.confidence-btn');
+    confidenceButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const confidence = this.dataset.value;
+            // Store confidence level
+            fetch('/activities/store_confidence', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    activity_id: '{{ activity.id }}',
+                    confidence_level: confidence
+                })
+            });
+            
+            // Visual feedback
+            confidenceButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Solution Comparison Loading
+    function loadSolutionComparisons() {
+        fetch(`/activities/get_solutions/${activity.id}`)
+            .then(response => response.json())
+            .then(solutions => {
+                const container = document.getElementById('solutionApproaches');
+                solutions.forEach((solution, index) => {
+                    // Create comparison card for each solution
+                    // Implementation details here
+                });
+            });
+    }
+});
+</script>
+{% endblock %}

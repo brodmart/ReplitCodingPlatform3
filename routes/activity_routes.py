@@ -7,10 +7,10 @@ from threading import Lock
 import atexit
 import fcntl
 from flask import Blueprint, render_template, request, jsonify, session
-from flask_login import login_required
+from flask_login import login_required, current_user
 from werkzeug.exceptions import RequestTimeout
 from database import db
-from models import CodingActivity
+from models import CodingActivity, StudentProgress, CodeSubmission # Added imports for new models
 from extensions import limiter
 from sqlalchemy import text
 from datetime import datetime
@@ -644,6 +644,103 @@ def view_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
+
+# Add these new routes after the existing view_activity route
+
+@activities.route('/activity/enhanced/<int:activity_id>')
+@login_required
+@limiter.limit("30 per minute")
+def view_enhanced_activity(activity_id):
+    """View an activity with enhanced learning features"""
+    try:
+        logger.debug(f"Viewing enhanced activity with ID: {activity_id}")
+
+        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
+
+        if activity.starter_code is None:
+            activity.starter_code = ''
+        elif not isinstance(activity.starter_code, str):
+            activity.starter_code = str(activity.starter_code)
+
+        return render_template(
+            'activities/enhanced_learning.html',
+            activity=activity,
+            lang=session.get('lang', 'fr')
+        )
+    except Exception as e:
+        logger.error(f"Error viewing enhanced activity {activity_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "An unexpected error occurred while loading the activity"
+        }), 500
+
+@activities.route('/activities/store_confidence', methods=['POST'])
+@login_required
+@limiter.limit("30 per minute")
+def store_confidence():
+    """Store student's confidence prediction for an activity"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        activity_id = data.get('activity_id')
+        confidence_level = data.get('confidence_level')
+
+        if not activity_id or not confidence_level:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        # Store confidence prediction in student progress
+        student_progress = StudentProgress.query.filter_by(
+            student_id=current_user.id,
+            activity_id=activity_id
+        ).first()
+
+        if not student_progress:
+            student_progress = StudentProgress(
+                student_id=current_user.id,
+                activity_id=activity_id,
+                confidence_level=confidence_level,
+                started_at=datetime.utcnow()
+            )
+            db.session.add(student_progress)
+        else:
+            student_progress.confidence_level = confidence_level
+
+        db.session.commit()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error storing confidence: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@activities.route('/activities/get_solutions/<int:activity_id>')
+@login_required
+@limiter.limit("30 per minute")
+def get_solutions(activity_id):
+    """Get different solution approaches for comparison"""
+    try:
+        # Get successful submissions for this activity
+        submissions = CodeSubmission.query.filter_by(
+            activity_id=activity_id,
+            success=True
+        ).distinct(CodeSubmission.solution_pattern).limit(3).all()
+
+        solutions = []
+        for submission in submissions:
+            solutions.append({
+                'code': submission.code,
+                'efficiency_score': submission.efficiency_score,
+                'memory_usage': submission.memory_usage,
+                'approach_description': submission.approach_description
+            })
+
+        return jsonify(solutions)
+
+    except Exception as e:
+        logger.error(f"Error getting solutions: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 def log_api_request(start_time, client_ip, endpoint, status_code):
     """Log API request details"""
