@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, request, jsonify, session
 from flask_login import login_required, current_user
 from werkzeug.exceptions import RequestTimeout
 from database import db
-from models import CodingActivity, StudentProgress, CodeSubmission # Added imports for new models
+from models import CodingActivity, StudentProgress, CodeSubmission
 from extensions import limiter
 from sqlalchemy import text
 from datetime import datetime
@@ -24,7 +24,6 @@ scheduler.start()
 
 # Register cleanup on application shutdown
 atexit.register(lambda: scheduler.shutdown())
-
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -44,46 +43,340 @@ def log_api_request(start_time, client_ip, endpoint, status_code):
     duration = time.time() - start_time
     logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")
 
-@activities.before_request
-def log_request():
-    """Store request start time for duration calculation"""
-    request.start_time = time.time()
-    if request.path.startswith('/activities/') and not request.path.endswith(('.html', '/')):
-        request.wants_json = True
+def compile_and_run(code, language, input_data=None):
+    """Compile and run code with input support"""
+    logger.debug("Starting compile_and_run")
+    if not code or not language:
+        logger.error("Invalid parameters to compile_and_run")
+        return {'success': False, 'error': 'Invalid parameters'}
 
-@activities.after_request
-def after_request(response):
-    """Log request details after completion"""
-    if hasattr(request, 'start_time') and request.endpoint:
-        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-        log_api_request(
-            request.start_time,
-            client_ip,
-            request.endpoint,
-            response.status_code
+    try:
+        session_id = str(time.time())
+        session_dir = os.path.join(TEMP_DIR, session_id)
+        os.makedirs(session_dir, exist_ok=True)
+
+        try:
+            # Write source code to file
+            file_extension = '.cpp' if language == 'cpp' else '.cs'
+            source_file = os.path.join(session_dir, f'program{file_extension}')
+
+            with open(source_file, 'w') as f:
+                f.write(code)
+
+            # Set up compilation
+            executable_name = 'program' if language == 'cpp' else 'program.exe'
+            executable_path = os.path.join(session_dir, executable_name)
+
+            if language == 'cpp':
+                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
+            else:
+                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
+
+            # Compile code
+            compile_process = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+
+            if compile_process.returncode != 0:
+                logger.error(f"Compilation error: {compile_process.stderr}")
+                return {'success': False, 'error': compile_process.stderr}
+
+            os.chmod(executable_path, 0o755)
+
+            # Execute code
+            cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
+
+            process = subprocess.run(
+                cmd,
+                input=input_data,
+                capture_output=True,
+                text=True,
+                timeout=5,
+                cwd=session_dir
+            )
+
+            return {
+                'success': process.returncode == 0,
+                'output': process.stdout,
+                'error': process.stderr if process.returncode != 0 else None
+            }
+
+        except subprocess.TimeoutExpired:
+            logger.error("Execution timeout")
+            return {'success': False, 'error': 'Execution timeout - check for infinite loops'}
+        except Exception as e:
+            logger.error(f"Execution failed: {e}")
+            return {'success': False, 'error': str(e)}
+
+    except Exception as e:
+        logger.error(f"Error in compile_and_run: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+    finally:
+        # Cleanup temporary files
+        if 'session_dir' in locals():
+            shutil.rmtree(session_dir, ignore_errors=True)
+
+@activities.route('/activities/submit_confidence', methods=['POST'])
+@login_required
+@limiter.limit("30 per minute")
+def submit_confidence():
+    """Store student's confidence prediction for an activity"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        activity_id = data.get('activity_id')
+        confidence_level = data.get('confidence_level')
+
+        if not activity_id or not confidence_level:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        # Store confidence prediction in student progress
+        progress = StudentProgress.query.filter_by(
+            student_id=current_user.id,
+            activity_id=activity_id
+        ).first()
+
+        if not progress:
+            progress = StudentProgress(
+                student_id=current_user.id,
+                activity_id=activity_id,
+                confidence_level=confidence_level,
+                started_at=datetime.utcnow()
+            )
+            db.session.add(progress)
+        else:
+            progress.confidence_level = confidence_level
+
+        db.session.commit()
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error storing confidence: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@activities.route('/activities/fetch_solutions/<int:activity_id>')
+@login_required
+@limiter.limit("30 per minute")
+def fetch_solutions(activity_id):
+    """Get different solution approaches for comparison"""
+    try:
+        # Get successful submissions for this activity
+        submissions = CodeSubmission.query.filter_by(
+            activity_id=activity_id,
+            success=True
+        ).distinct(CodeSubmission.solution_pattern).limit(3).all()
+
+        solutions = []
+        for submission in submissions:
+            solutions.append({
+                'code': submission.code,
+                'efficiency_score': submission.efficiency_score,
+                'memory_usage': submission.memory_usage,
+                'approach_description': submission.approach_description
+            })
+
+        return jsonify(solutions)
+
+    except Exception as e:
+        logger.error(f"Error getting solutions: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@activities.route('/activities/submit_code', methods=['POST'])
+@login_required
+@limiter.limit("30 per minute")
+def submit_code():
+    """Execute code submitted from the enhanced learning view"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        code = data.get('code', '').strip()
+        activity_id = data.get('activity_id')
+        language = data.get('language', 'cpp').lower()
+
+        if not code:
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+
+        if language not in ['cpp', 'csharp']:
+            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
+
+        # Record start time for performance tracking
+        start_time = time.time()
+
+        # Compile and run the code
+        result = compile_and_run(code, language)
+        execution_success = result.get('success', False)
+
+        # Calculate completion time
+        completion_time = time.time() - start_time
+
+        # Update student progress with new metrics
+        progress = StudentProgress.query.filter_by(
+            student_id=current_user.id,
+            activity_id=activity_id
+        ).first()
+
+        if not progress:
+            progress = StudentProgress(
+                student_id=current_user.id,
+                activity_id=activity_id,
+                started_at=datetime.utcnow()
+            )
+            db.session.add(progress)
+
+        # Update difficulty and performance metrics
+        progress.update_difficulty(execution_success, completion_time)
+
+        # Generate personalized feedback
+        feedback = progress.generate_personalized_feedback(
+            submission_error=result.get('error') if not execution_success else None
         )
-    return response
 
-@activities.errorhandler(Exception)
-def handle_exception(error):
-    """Global error handler for the blueprint"""
-    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    error_details = f"{type(error).__name__}: {str(error)}"
-    logger.error(f"Error for client {client_ip}: {error_details}", exc_info=True)
+        # If successful, mark as completed
+        if execution_success and not progress.completed:
+            progress.completed = True
+            progress.completed_at = datetime.utcnow()
 
-    if isinstance(error, RequestTimeout):
+        progress.attempts += 1
+        progress.last_submission = code
+
+        db.session.commit()
+
+        # Add learning analytics to response
+        result['difficulty_level'] = progress.difficulty_level
+        result['success_rate'] = progress.success_rate
+        result['personalized_feedback'] = feedback
+        result['learning_patterns'] = progress.analyze_performance()
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error running code: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "The request took too long. Please try again."
-        }), 408
-
-    if getattr(request, 'wants_json', False) or request.is_json or request.headers.get('Accept') == 'application/json':
-        return jsonify({
-            'success': False,
-            'error': "An unexpected error occurred. Please try again."
+            'error': "An error occurred while running your code."
         }), 500
 
-    return render_template('error.html', error=error), 500
+@activities.route('/activities')
+@activities.route('/activities/<grade>')
+@login_required
+@limiter.limit("30 per minute")
+def list_activities(grade=None):
+    """List all coding activities for a specific grade"""
+    try:
+        logger.debug(f"Listing activities for grade: {grade}")
+
+        if grade == '11':
+            curriculum = 'ICS3U'
+            language = 'csharp'
+        else:  # Default to grade 10
+            curriculum = 'TEJ2O'
+            language = 'cpp'
+
+        logger.debug(f"Using curriculum: {curriculum}, language: {language}")
+
+        try:
+            # Query activities for the specified grade level, excluding soft-deleted ones
+            activities_list = CodingActivity.get_active().filter_by(
+                curriculum=curriculum,
+                language=language
+            ).order_by(CodingActivity.sequence).all()
+
+            logger.debug(f"Found {len(activities_list)} active activities")
+
+        except Exception as db_error:
+            logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
+            raise
+
+        try:
+            return render_template(
+                'activities/list.html',
+                activities=activities_list,
+                curriculum=curriculum,
+                lang=session.get('lang', 'fr'),
+                grade=grade
+            )
+        except Exception as template_error:
+            logger.error(f"Template rendering error: {str(template_error)}", exc_info=True)
+            raise
+
+    except Exception as e:
+        logger.error(f"Error listing activities: {str(e)}", exc_info=True)
+        response = jsonify({
+            'success': False,
+            'error': "An unexpected error occurred while loading activities"
+        })
+        response.headers['Content-Type'] = 'application/json'
+        return response, 500
+
+@activities.route('/activity/<int:activity_id>')
+@login_required
+@limiter.limit("30 per minute")
+def view_activity(activity_id):
+    """View a specific coding activity"""
+    try:
+        logger.debug(f"Viewing activity with ID: {activity_id}")
+
+        # Get activity with explicit loading of starter_code
+        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
+        logger.debug(f"Found activity: {activity.title}")
+        logger.debug(f"Activity language: {activity.language}")
+        logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
+        logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
+
+        if activity.starter_code is None:
+            logger.error(f"Activity {activity_id} has no starter code")
+            activity.starter_code = ''  # Provide empty default
+        elif not isinstance(activity.starter_code, str):
+            logger.error(f"Activity {activity_id} has invalid starter code type: {type(activity.starter_code)}")
+            activity.starter_code = str(activity.starter_code)  # Convert to string
+
+        return render_template(
+            'activities/view.html',
+            activity=activity,
+            lang=session.get('lang', 'fr')
+        )
+
+    except Exception as e:
+        logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "An unexpected error occurred while loading the activity"
+        }), 500
+
+@activities.route('/activity/enhanced/<int:activity_id>')
+@login_required
+@limiter.limit("30 per minute")
+def view_enhanced_activity(activity_id):
+    """View an activity with enhanced learning features"""
+    try:
+        logger.debug(f"Viewing enhanced activity with ID: {activity_id}")
+
+        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
+
+        if activity.starter_code is None:
+            activity.starter_code = ''
+        elif not isinstance(activity.starter_code, str):
+            activity.starter_code = str(activity.starter_code)
+
+        return render_template(
+            'activities/enhanced_learning.html',
+            activity=activity,
+            lang=session.get('lang', 'fr')
+        )
+    except Exception as e:
+        logger.error(f"Error viewing enhanced activity {activity_id}: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "An unexpected error occurred while loading the activity"
+        }), 500
+
 
 @activities.route('/start_session', methods=['POST'])
 @limiter.limit("30 per minute")
@@ -133,7 +426,7 @@ def start_session():
                 compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
             else:
                 compile_cmd = ['mcs', source_file, '-out:' + executable_path]
-                
+
             logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
 
             compile_start = time.time()
@@ -450,7 +743,7 @@ def send_input():
             return response, 500
 
     except Exception as e:
-        logger.error(f"Error in send_input: {e}", exc_info=True)
+        logger.error(f"Error in send_input: {str(e)}", exc_info=True)
         response = jsonify({'success': False, 'error': str(e)})
         response.headers['Content-Type'] = 'application/json'
         return response, 500
@@ -552,362 +845,3 @@ def execute_code():
         })
         response.headers['Content-Type'] = 'application/json'
         return response, 500
-
-# Request logging and error handling
-
-
-
-@activities.route('/activities')
-@activities.route('/activities/<grade>')
-@login_required
-@limiter.limit("30 per minute")
-def list_activities(grade=None):
-    """List all coding activities for a specific grade"""
-    try:
-        logger.debug(f"Listing activities for grade: {grade}")
-
-        if grade == '11':
-            curriculum = 'ICS3U'
-            language = 'csharp'
-        else:  # Default to grade 10
-            curriculum = 'TEJ2O'
-            language = 'cpp'
-
-        logger.debug(f"Using curriculum: {curriculum}, language: {language}")
-
-        try:
-            # Query activities for the specified grade level, excluding soft-deleted ones
-            activities_list = CodingActivity.get_active().filter_by(
-                curriculum=curriculum,
-                language=language
-            ).order_by(CodingActivity.sequence).all()
-
-            logger.debug(f"Found {len(activities_list)} active activities")
-
-        except Exception as db_error:
-            logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
-            raise
-
-        try:
-            return render_template(
-                'activities/list.html',
-                activities=activities_list,
-                curriculum=curriculum,
-                lang=session.get('lang', 'fr'),
-                grade=grade
-            )
-        except Exception as template_error:
-            logger.error(f"Template rendering error: {str(template_error)}", exc_info=True)
-            raise
-
-    except Exception as e:
-        logger.error(f"Error listing activities: {str(e)}", exc_info=True)
-        response = jsonify({
-            'success': False,
-            'error': "An unexpected error occurred while loading activities"
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, 500
-
-@activities.route('/activity/<int:activity_id>')
-@login_required
-@limiter.limit("30 per minute")
-def view_activity(activity_id):
-    """View a specific coding activity"""
-    try:
-        logger.debug(f"Viewing activity with ID: {activity_id}")
-
-        # Get activity with explicit loading of starter_code
-        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
-        logger.debug(f"Found activity: {activity.title}")
-        logger.debug(f"Activity language: {activity.language}")
-        logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
-        logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
-
-        if activity.starter_code is None:
-            logger.error(f"Activity {activity_id} has no starter code")
-            activity.starter_code = ''  # Provide empty default
-        elif not isinstance(activity.starter_code, str):
-            logger.error(f"Activity {activity_id} has invalid starter code type: {type(activity.starter_code)}")
-            activity.starter_code = str(activity.starter_code)  # Convert to string
-
-        return render_template(
-            'activities/view.html',
-            activity=activity,
-            lang=session.get('lang', 'fr')
-        )
-
-    except Exception as e:
-        logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': "An unexpected error occurred while loading the activity"
-        }), 500
-
-# Add these new routes after the existing view_activity route
-
-@activities.route('/activity/enhanced/<int:activity_id>')
-@login_required
-@limiter.limit("30 per minute")
-def view_enhanced_activity(activity_id):
-    """View an activity with enhanced learning features"""
-    try:
-        logger.debug(f"Viewing enhanced activity with ID: {activity_id}")
-
-        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
-
-        if activity.starter_code is None:
-            activity.starter_code = ''
-        elif not isinstance(activity.starter_code, str):
-            activity.starter_code = str(activity.starter_code)
-
-        return render_template(
-            'activities/enhanced_learning.html',
-            activity=activity,
-            lang=session.get('lang', 'fr')
-        )
-    except Exception as e:
-        logger.error(f"Error viewing enhanced activity {activity_id}: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': "An unexpected error occurred while loading the activity"
-        }), 500
-
-@activities.route('/activities/store_confidence', methods=['POST'])
-@login_required
-@limiter.limit("30 per minute")
-def store_confidence():
-    """Store student's confidence prediction for an activity"""
-    try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
-        data = request.get_json()
-        activity_id = data.get('activity_id')
-        confidence_level = data.get('confidence_level')
-
-        if not activity_id or not confidence_level:
-            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-
-        # Store confidence prediction in student progress
-        student_progress = StudentProgress.query.filter_by(
-            student_id=current_user.id,
-            activity_id=activity_id
-        ).first()
-
-        if not student_progress:
-            student_progress = StudentProgress(
-                student_id=current_user.id,
-                activity_id=activity_id,
-                confidence_level=confidence_level,
-                started_at=datetime.utcnow()
-            )
-            db.session.add(student_progress)
-        else:
-            student_progress.confidence_level = confidence_level
-
-        db.session.commit()
-
-        return jsonify({'success': True})
-
-    except Exception as e:
-        logger.error(f"Error storing confidence: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@activities.route('/activities/get_solutions/<int:activity_id>')
-@login_required
-@limiter.limit("30 per minute")
-def get_solutions(activity_id):
-    """Get different solution approaches for comparison"""
-    try:
-        # Get successful submissions for this activity
-        submissions = CodeSubmission.query.filter_by(
-            activity_id=activity_id,
-            success=True
-        ).distinct(CodeSubmission.solution_pattern).limit(3).all()
-
-        solutions = []
-        for submission in submissions:
-            solutions.append({
-                'code': submission.code,
-                'efficiency_score': submission.efficiency_score,
-                'memory_usage': submission.memory_usage,
-                'approach_description': submission.approach_description
-            })
-
-        return jsonify(solutions)
-
-    except Exception as e:
-        logger.error(f"Error getting solutions: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-def log_api_request(start_time, client_ip, endpoint, status_code):
-    """Log API request details"""
-    duration = time.time() - start_time
-    logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")
-
-def compile_and_run(code, language, input_data=None):
-    """Compile and run code with input support"""
-    logger.debug("Starting compile_and_run")
-    if not code or not language:
-        logger.error("Invalid parameters to compile_and_run")
-        return {'success': False, 'error': 'Invalid parameters'}
-
-    try:
-        session_id = str(time.time())
-        session_dir = os.path.join(TEMP_DIR, session_id)
-        os.makedirs(session_dir, exist_ok=True)
-
-        # Write source code to file
-        file_extension = '.cpp' if language == 'cpp' else '.cs'
-        source_file = os.path.join(session_dir, f'program{file_extension}')
-
-        try:
-            with open(source_file, 'w') as f:
-                f.write(code)
-        except IOError as e:
-            logger.error(f"Failed to write source file: {e}")
-            return {'success': False, 'error': 'Failed to save code'}
-
-        # Compile code
-        executable_name = 'program' if language == 'cpp' else 'program.exe'
-        executable_path = os.path.join(session_dir, executable_name)
-
-        try:
-            if language == 'cpp':
-                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
-            else:
-                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
-
-            compile_process = subprocess.run(
-                compile_cmd,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-
-            if compile_process.returncode != 0:
-                logger.error(f"Compilation error: {compile_process.stderr}")
-                return {'success': False, 'error': compile_process.stderr}
-
-            os.chmod(executable_path, 0o755)
-
-        except subprocess.TimeoutExpired:
-            logger.error("Compilation timeout")
-            return {'success': False, 'error': 'Compilation timeout'}
-        except Exception as e:
-            logger.error(f"Compilation failed: {e}")
-            return {'success': False, 'error': str(e)}
-
-        return {'success': True, 'session_id': session_id}
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {e}", exc_info=True)
-        return {'success': False, 'error': str(e)}
-    finally:
-        # Cleanup temporary files if compilation fails
-        if 'session_id' not in locals():
-            shutil.rmtree(session_dir, ignore_errors=True)
-
-@activities.route('/run_code', methods=['POST'])
-@login_required
-@limiter.limit("30 per minute")
-def run_code():
-    """Execute code submitted from the enhanced learning view"""
-    try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
-        data = request.get_json()
-        code = data.get('code', '').strip()
-        activity_id = data.get('activity_id')
-        language = data.get('language', 'cpp').lower()
-
-        if not code:
-            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
-
-        if language not in ['cpp', 'csharp']:
-            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
-
-        # Create temporary directory for compilation
-        session_id = str(time.time())
-        session_dir = os.path.join(TEMP_DIR, session_id)
-        os.makedirs(session_dir, exist_ok=True)
-
-        try:
-            # Write source code to file
-            file_extension = '.cpp' if language == 'cpp' else '.cs'
-            source_file = os.path.join(session_dir, f'program{file_extension}')
-            with open(source_file, 'w') as f:
-                f.write(code)
-
-            # Compile code
-            executable_name = 'program' if language == 'cpp' else 'program.exe'
-            executable_path = os.path.join(session_dir, executable_name)
-
-            if language == 'cpp':
-                compile_cmd = ['g++', source_file, '-o', executable_path, '-std=c++11']
-            else:
-                compile_cmd = ['mcs', source_file, '-out:' + executable_path]
-
-            compile_process = subprocess.run(
-                compile_cmd,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-
-            if compile_process.returncode != 0:
-                return jsonify({
-                    'success': False,
-                    'error': f"Compilation error:\n{compile_process.stderr}"
-                })
-
-            # Execute the compiled program
-            cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
-            process = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=5,
-                cwd=session_dir
-            )
-
-            output = process.stdout
-            error = process.stderr
-
-            if process.returncode != 0:
-                return jsonify({
-                    'success': False,
-                    'error': f"Runtime error:\n{error if error else 'Program exited with error code ' + str(process.returncode)}"
-                })
-
-            return jsonify({
-                'success': True,
-                'output': output if output else "Program completed successfully with no output."
-            })
-
-        except subprocess.TimeoutExpired:
-            return jsonify({
-                'success': False,
-                'error': "Program execution timed out. Check for infinite loops."
-            })
-        except Exception as e:
-            logger.error(f"Error running code: {str(e)}", exc_info=True)
-            return jsonify({
-                'success': False,
-                'error': f"Error running program: {str(e)}"
-            })
-        finally:
-            # Clean up
-            try:
-                shutil.rmtree(session_dir)
-            except Exception as e:
-                logger.error(f"Error cleaning up session directory: {str(e)}")
-
-    except Exception as e:
-        logger.error(f"Error in run_code: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': "An unexpected error occurred while running the code"
-        }), 500

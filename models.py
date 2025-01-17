@@ -218,8 +218,201 @@ class StudentProgress(db.Model):
     last_submission = db.Column(db.Text)
     confidence_level = db.Column(db.Integer)  # Added for Hattie's self-reported grades feature
 
+    # Fields for adaptive learning
+    difficulty_level = db.Column(db.Float, default=1.0)  # Current difficulty level
+    success_rate = db.Column(db.Float, default=0.0)  # Success rate on previous attempts
+    avg_completion_time = db.Column(db.Float)  # Average time to complete activities
+    difficulty_history = db.Column(db.JSON, default=list)  # Track difficulty changes
+    performance_metrics = db.Column(db.JSON, default=dict)  # Store detailed performance data
+    learning_patterns = db.Column(db.JSON, default=dict)  # Store identified learning patterns
+    feedback_history = db.Column(db.JSON, default=list)  # Track feedback given to student
+
     activity = db.relationship('CodingActivity', back_populates='student_progress', lazy=True)
 
+    def update_difficulty(self, submission_success, completion_time):
+        """Update difficulty based on performance"""
+        current_time = datetime.utcnow()
+
+        # Initialize history if empty
+        if not self.difficulty_history:
+            self.difficulty_history = []
+
+        # Initialize metrics if empty
+        if not self.performance_metrics:
+            self.performance_metrics = {
+                'successful_attempts': 0,
+                'total_attempts': 0,
+                'completion_times': [],
+                'error_patterns': {},
+                'concept_mastery': {}
+            }
+
+        # Update metrics
+        self.performance_metrics['total_attempts'] += 1
+        if submission_success:
+            self.performance_metrics['successful_attempts'] += 1
+
+        if completion_time:
+            self.performance_metrics['completion_times'].append(completion_time)
+
+        # Calculate success rate
+        self.success_rate = (
+            self.performance_metrics['successful_attempts'] / 
+            self.performance_metrics['total_attempts']
+        )
+
+        # Calculate average completion time
+        if self.performance_metrics['completion_times']:
+            self.avg_completion_time = (
+                sum(self.performance_metrics['completion_times']) / 
+                len(self.performance_metrics['completion_times'])
+            )
+
+        # Adjust difficulty based on performance and confidence
+        confidence_weight = 0.3
+        success_weight = 0.4
+        time_weight = 0.3
+
+        confidence_factor = self.confidence_level / 5.0 if self.confidence_level else 0.5
+        success_factor = self.success_rate
+        time_factor = min(1.0, self.avg_completion_time / 300.0) if self.avg_completion_time else 0.5
+
+        new_difficulty = (
+            confidence_weight * confidence_factor +
+            success_weight * success_factor +
+            time_weight * time_factor
+        )
+
+        # Ensure difficulty stays within bounds [0.1, 2.0]
+        self.difficulty_level = max(0.1, min(2.0, new_difficulty))
+
+        # Record difficulty change
+        self.difficulty_history.append({
+            'timestamp': current_time.isoformat(),
+            'difficulty': self.difficulty_level,
+            'confidence': self.confidence_level,
+            'success_rate': self.success_rate,
+            'avg_time': self.avg_completion_time
+        })
+
+    def analyze_performance(self):
+        """Analyze student performance patterns"""
+        if not self.performance_metrics:
+            return None
+
+        patterns = {
+            'strengths': [],
+            'areas_for_improvement': [],
+            'learning_style': None,
+            'recommended_strategies': []
+        }
+
+        # Analyze success trends
+        recent_attempts = 5
+        if len(self.difficulty_history) >= recent_attempts:
+            recent_performance = self.difficulty_history[-recent_attempts:]
+            success_trend = sum(1 for x in recent_performance if x['success_rate'] > 0.7)
+
+            if success_trend >= 4:
+                patterns['strengths'].append('consistent_high_performance')
+            elif success_trend <= 1:
+                patterns['areas_for_improvement'].append('performance_consistency')
+
+        # Analyze completion time patterns
+        if self.avg_completion_time:
+            if self.avg_completion_time < 120:  # Less than 2 minutes
+                patterns['strengths'].append('quick_problem_solving')
+            elif self.avg_completion_time > 600:  # More than 10 minutes
+                patterns['areas_for_improvement'].append('problem_solving_speed')
+
+        # Analyze confidence alignment
+        if self.confidence_level and self.success_rate:
+            confidence_accuracy = abs(self.confidence_level/5.0 - self.success_rate)
+            if confidence_accuracy < 0.2:
+                patterns['strengths'].append('accurate_self_assessment')
+            elif confidence_accuracy > 0.4:
+                patterns['areas_for_improvement'].append('self_assessment_accuracy')
+
+        # Determine learning style
+        if self.performance_metrics.get('completion_times'):
+            time_variance = sum((t - self.avg_completion_time) ** 2 
+                              for t in self.performance_metrics['completion_times']) / len(self.performance_metrics['completion_times'])
+
+            if time_variance < 100:  # Consistent timing
+                patterns['learning_style'] = 'methodical'
+            elif time_variance > 400:  # Variable timing
+                patterns['learning_style'] = 'explorative'
+
+        # Generate recommendations
+        if 'performance_consistency' in patterns['areas_for_improvement']:
+            patterns['recommended_strategies'].append({
+                'type': 'practice',
+                'description': 'Focus on solving similar problems to build consistency'
+            })
+
+        if 'problem_solving_speed' in patterns['areas_for_improvement']:
+            patterns['recommended_strategies'].append({
+                'type': 'technique',
+                'description': 'Practice breaking down problems into smaller steps'
+            })
+
+        if 'self_assessment_accuracy' in patterns['areas_for_improvement']:
+            patterns['recommended_strategies'].append({
+                'type': 'metacognition',
+                'description': 'Review your confidence predictions against actual results'
+            })
+
+        return patterns
+
+    def generate_personalized_feedback(self, submission_error=None):
+        """Generate personalized feedback based on performance analysis"""
+        patterns = self.analyze_performance()
+        if not patterns:
+            return "Keep practicing! Each attempt helps you learn."
+
+        feedback = []
+
+        # Add strength-based encouragement
+        if patterns['strengths']:
+            if 'consistent_high_performance' in patterns['strengths']:
+                feedback.append("Excellent work! You're showing great consistency in your solutions.")
+            if 'quick_problem_solving' in patterns['strengths']:
+                feedback.append("You're solving problems efficiently - great problem-solving skills!")
+            if 'accurate_self_assessment' in patterns['strengths']:
+                feedback.append("You have a good understanding of your abilities - this is key for learning!")
+
+        # Add constructive suggestions
+        if patterns['areas_for_improvement']:
+            if 'performance_consistency' in patterns['areas_for_improvement']:
+                feedback.append("Try to maintain a steady rhythm while coding. Take short breaks if needed.")
+            if 'problem_solving_speed' in patterns['areas_for_improvement']:
+                feedback.append("Remember to break down complex problems into smaller, manageable steps.")
+            if 'self_assessment_accuracy' in patterns['areas_for_improvement']:
+                feedback.append("Take a moment to reflect on your confidence levels versus actual results.")
+
+        # Add learning style specific advice
+        if patterns['learning_style'] == 'methodical':
+            feedback.append("Your systematic approach is valuable. Keep refining your step-by-step process.")
+        elif patterns['learning_style'] == 'explorative':
+            feedback.append("Your creative approach helps you find unique solutions. Remember to document your thinking.")
+
+        # Add specific error-based feedback
+        if submission_error:
+            if 'syntax error' in submission_error.lower():
+                feedback.append("Double-check your syntax, especially brackets and semicolons.")
+            elif 'runtime error' in submission_error.lower():
+                feedback.append("Review your variable types and array bounds.")
+            elif 'timeout' in submission_error.lower():
+                feedback.append("Look for ways to optimize your code, especially in loops.")
+
+        # Store feedback in history
+        self.feedback_history.append({
+            'timestamp': datetime.utcnow().isoformat(),
+            'feedback': feedback,
+            'patterns': patterns
+        })
+
+        return " ".join(feedback)
 
 def create_audit_log(mapper, connection, target):
     if hasattr(target, '__table__'):
