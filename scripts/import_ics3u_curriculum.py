@@ -64,28 +64,34 @@ def main():
                 raise
 
             # Import curriculum data
-            importer.import_curriculum(content)
+            try:
+                importer.import_curriculum(content)
 
-            # Verify import by checking database
-            course = Course.query.filter_by(code='ICS3U').first()
-            if course:
-                logger.info(f"Successfully imported course {course.code}: {course.title_fr}")
-                strands = Strand.query.filter_by(course_id=course.id).all()
-                logger.info(f"Imported {len(strands)} strands:")
-                for strand in strands:
-                    logger.info(f"  Strand {strand.code}: {strand.title_fr}")
-                    overall_count = OverallExpectation.query.filter_by(strand_id=strand.id).count()
-                    specific_count = (
-                        db.session.query(SpecificExpectation)
-                        .join(OverallExpectation)
-                        .filter(OverallExpectation.strand_id == strand.id)
-                        .count()
-                    )
-                    logger.info(f"    Overall expectations: {overall_count}")
-                    logger.info(f"    Specific expectations: {specific_count}")
-            else:
-                logger.error("Failed to find imported course in database")
-                raise Exception("Course import verification failed")
+                # Verify import by checking database
+                course = Course.query.filter_by(code='ICS3U').first()
+                if course:
+                    logger.info(f"Successfully imported course {course.code}: {course.title_fr}")
+                    strands = Strand.query.filter_by(course_id=course.id).all()
+                    logger.info(f"Imported {len(strands)} strands:")
+                    for strand in strands:
+                        logger.info(f"  Strand {strand.code}: {strand.title_fr}")
+                        overall_count = OverallExpectation.query.filter_by(strand_id=strand.id).count()
+                        specific_count = (
+                            db.session.query(SpecificExpectation)
+                            .join(OverallExpectation)
+                            .filter(OverallExpectation.strand_id == strand.id)
+                            .count()
+                        )
+                        logger.info(f"    Overall expectations: {overall_count}")
+                        logger.info(f"    Specific expectations: {specific_count}")
+                else:
+                    logger.error("Failed to find imported course in database")
+                    raise Exception("Course import verification failed")
+
+            except Exception as e:
+                logger.error(f"Error during import process: {str(e)}")
+                db.session.rollback()
+                raise
 
             logger.info("ICS3U curriculum import completed successfully!")
 
