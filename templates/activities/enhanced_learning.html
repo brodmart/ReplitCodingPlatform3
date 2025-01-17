@@ -493,6 +493,9 @@
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 
 <script>
+// Initialize lang variable from meta tag
+const lang = document.querySelector('meta[name="interface-lang"]').content;
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize CodeMirror
     const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
