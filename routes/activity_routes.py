@@ -146,7 +146,6 @@ def start_session():
             compile_time = time.time() - compile_start
             logger.info(f"Compilation completed in {compile_time:.2f} seconds")
 
-
             if compile_process.returncode != 0:
                 logger.error(f"Compilation failed: {compile_process.stderr}")
                 return jsonify({
@@ -809,3 +808,63 @@ def compile_and_run(code, language, input_data=None):
         # Cleanup temporary files if compilation fails
         if 'session_id' not in locals():
             shutil.rmtree(session_dir, ignore_errors=True)
+
+@activities.route('/activities/run_code', methods=['POST'])
+@login_required
+@limiter.limit("30 per minute")
+def run_code():
+    """Execute code submitted from the enhanced learning view"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        code = data.get('code', '').strip()
+        activity_id = data.get('activity_id')
+        language = data.get('language', 'cpp').lower()
+
+        if not code:
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+
+        if language not in ['cpp', 'csharp']:
+            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
+
+        # Compile and run the code
+        result = compile_and_run(code, language)
+
+        if not result.get('success', False):
+            error_msg = result.get('error', 'An error occurred')
+            if 'memory' in error_msg.lower():
+                error_msg += ". Try reducing the size of variables or arrays."
+            elif 'timeout' in error_msg.lower():
+                error_msg += ". Check for infinite loops."
+            return jsonify({'success': False, 'error': error_msg})
+
+        # Start an interactive session
+        session_id = result.get('session_id')
+
+        # Get initial output
+        output = ''
+        if session_id in active_sessions:
+            try:
+                process = active_sessions[session_id]['process']
+                stdout, _ = process.communicate(timeout=1)
+                if stdout:
+                    output = stdout.decode('utf-8', errors='replace')
+            except Exception as e:
+                logger.error(f"Error getting initial output: {e}")
+                cleanup_session(session_id)
+                return jsonify({'success': False, 'error': str(e)})
+
+        return jsonify({
+            'success': True,
+            'session_id': session_id,
+            'output': output
+        })
+
+    except Exception as e:
+        logger.error(f"Error in run_code: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "An unexpected error occurred while running the code"
+        }), 500
