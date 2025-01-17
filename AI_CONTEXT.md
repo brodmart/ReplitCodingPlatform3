@@ -113,4 +113,30 @@ Last Updated: January 17, 2025
 - Maintain consistency in terminology
 - Reference specific sections when needed
 
+### Recent Layout Changes (January 17, 2025)
+A critical layout fix was implemented to address container width inconsistencies across different page types:
+
+1. **Container Width Inheritance**
+   - Base template (base.html) controls initial container width settings
+   - Full-width layout is applied conditionally based on page type
+   - Main editor and activity pages were correctly using full width
+   - Enhanced learning and grade list pages were incorrectly receiving padding
+
+2. **Layout Fix Implementation**
+   - Location: templates/base.html
+   - Issue: Conditional statement for full-width layout was too restrictive
+   - Fix: Extended the condition to include:
+     * Enhanced learning pages
+     * Activity list pages (Grade 10/11)
+   - Previous working pages remain unaffected
+
+3. **Affected Pages**
+   - Working correctly (before fix):
+     * Main editor page
+     * Individual activity templates
+   - Fixed pages (after update):
+     * Enhanced learning view
+     * Grade 10 activities list
+     * Grade 11 activities list
+
 This guide helps maintain consistent project understanding across AI sessions. Always read these files at the start of each session and update them when making significant changes.

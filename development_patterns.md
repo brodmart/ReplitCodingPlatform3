@@ -50,6 +50,29 @@ Last Updated: January 17, 2025
       # transaction operations
   ```
 
+## Layout and Styling Practices
+
+### 1. Container Width Management
+- Pattern: Conditional full-width layout in base template
+- Implementation:
+  * Use base.html for container width control
+  * Apply full-width to specific page types:
+    - Main editor
+    - Activity views
+    - Enhanced learning
+    - Activity lists
+- Benefits:
+  * Consistent layout across pages
+  * Centralized width control
+  * Easy maintenance
+
+### 2. Responsive Design
+- Pattern: Bootstrap grid system with custom modifiers
+- Implementation:
+  * Fluid containers for full-width layouts
+  * Fixed containers for content-focused pages
+  * Custom padding/margin management
+
 ## Security Practices
 
 ### 1. Input Validation
