@@ -809,7 +809,7 @@ def compile_and_run(code, language, input_data=None):
         if 'session_id' not in locals():
             shutil.rmtree(session_dir, ignore_errors=True)
 
-@activities.route('/activities/run_code', methods=['POST'])
+@activities.route('/run_code', methods=['POST'])
 @login_required
 @limiter.limit("30 per minute")
 def run_code():

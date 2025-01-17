@@ -337,18 +337,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 language: '{{ activity.language }}'
             })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.output) {
-                appendToConsole(data.output, 'console-output');
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
-            if (data.error) {
-                appendToConsole(data.error, 'console-error');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                if (data.output) {
+                    appendToConsole(data.output, 'console-output');
+                }
+            } else {
+                appendToConsole('Error: ' + (data.error || 'Unknown error'), 'console-error');
             }
             consoleInput.disabled = false;
         })
         .catch(error => {
-            appendToConsole('Error executing code: ' + error, 'console-error');
+            appendToConsole('Error executing code: ' + error.message, 'console-error');
             consoleInput.disabled = false;
         });
     });
