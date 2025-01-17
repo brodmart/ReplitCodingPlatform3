@@ -289,15 +289,33 @@
         padding: 15px;
         border-radius: 4px;
     }
+
+    /* Update container related styles */
+    .container-fluid {
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .row {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+
+    .col-md-4, .col-md-8 {
+        padding: 10px;  /* Add minimal padding for content spacing */
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid p-0">
-    <div class="row g-0">
+<div class="container-fluid">
+    <div class="row">
         <!-- Left Column: Learning Journey -->
-        <div class="col-md-4 px-3">
-            <div class="card mb-4 bg-dark text-light border-secondary">
+        <div class="col-md-4">
+            <div class="card mb-3 bg-dark text-light border-secondary">
                 <div class="card-body">
                     <!-- Curriculum Level Indicator -->
                     <div class="curriculum-level-indicator mb-4">
@@ -429,8 +447,8 @@
         </div>
 
         <!-- Right Column: Code Editor and Console -->
-        <div class="col-md-8 px-3">
-            <div class="card mb-4 bg-dark text-light border-secondary">
+        <div class="col-md-8">
+            <div class="card mb-3 bg-dark text-light border-secondary">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">
                         {% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}

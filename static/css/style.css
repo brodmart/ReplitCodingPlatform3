@@ -1,3 +1,30 @@
+/* Adding/updating container control at the start of the file */
+.container-fluid {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+.row {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+/* Card styling */
+.card {
+    border-radius: 0;
+    margin: 0;
+    background-color: var(--bs-dark);
+    border: 1px solid var(--bs-border-color);
+}
+
+.col-12, .col-md-4, .col-md-8 {
+    padding: 0;
+}
+
 html, body {
     min-height: 100%;
     background-color: var(--bs-dark);
@@ -269,28 +296,3 @@ html, body {
 }
 
 /* Container width control */
-.container-fluid {
-    width: 100%;
-    max-width: 100%;
-    padding: 0;
-    margin: 0;
-    overflow-x: hidden;
-}
-
-.row {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-}
-
-/* Card styling */
-.card {
-    border-radius: 0;
-    margin: 0;
-    background-color: var(--bs-dark);
-    border: 1px solid var(--bs-border-color);
-}
-
-.col-12 {
-    padding: 0;
-}
