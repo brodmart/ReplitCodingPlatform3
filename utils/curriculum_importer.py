@@ -157,55 +157,71 @@ class CurriculumImporter:
         """Parse specific expectations grouped by overall expectations"""
         self.logger.debug(f"Parsing specific expectations for strand {strand_code}")
 
-        # Extract CONTENUS D'APPRENTISSAGE section with simpler pattern
-        contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE.*?Pour satisfaire.*?:(.*?)(?=[A-D]\.|$)'
-        contenus_match = re.search(contenus_pattern, content, re.DOTALL | re.IGNORECASE)
+        # Split content into sections
+        sections = re.split(r'(?:\n\s*){2,}', content)
 
-        if not contenus_match:
-            self.logger.warning(f"No specific expectations found for strand {strand_code}")
-            self.logger.debug(f"Content being searched: {content[:200]}...")  # Log first 200 chars for debugging
+        # Find the CONTENUS D'APPRENTISSAGE section
+        contenus_pattern = r'CONTENUS\s+D(?:\'|E)?\s*APPRENTISSAGE'
+        contenus_section = None
+
+        for section in sections:
+            if re.search(contenus_pattern, section, re.IGNORECASE):
+                contenus_section = section
+                break
+
+        if not contenus_section:
+            self.logger.warning(f"No specific expectations section found for strand {strand_code}")
+            self.logger.debug(f"Content sections available:\n" + "\n---\n".join(sections[:3]))
+            return {}
+
+        self.logger.debug(f"Found CONTENUS D'APPRENTISSAGE section:\n{contenus_section[:500]}...")
+
+        # Extract expectations content
+        intro_pattern = r'Pour satisfaire.*?:\s*(.*?)(?=(?:\n\s*){2,}|$)'
+        content_match = re.search(intro_pattern, contenus_section, re.DOTALL | re.IGNORECASE)
+
+        if not content_match:
+            self.logger.warning(f"Could not extract expectations content from section")
             return {}
 
         specifics_by_overall = {}
-        section_text = contenus_match.group(1)
+        content_text = content_match.group(1)
 
-        # Pre-process the section text
-        section_text = self.clean_text(section_text)  # Use the main clean_text first
-        section_text = re.sub(r'\n+', '\n', section_text)  # Normalize newlines
-        section_text = re.sub(r'\s+', ' ', section_text)   # Normalize spaces
+        # Clean and normalize the content text
+        content_text = re.sub(r'\n+', ' ', content_text)
+        content_text = re.sub(r'\s+', ' ', content_text)
+        content_text = self.clean_text(content_text)
 
-        self.logger.debug(f"Processing section text: {section_text[:200]}...")
+        self.logger.debug(f"Processing cleaned content:\n{content_text}")
 
-        # More lenient pattern for expectation codes
-        code_pattern = rf'{strand_code}\s*(\d+)\s*\.\s*(\d+)'
-        matches = list(re.finditer(code_pattern, section_text))
+        # Extract expectations with improved pattern
+        exp_pattern = rf'{strand_code}(\d+)\.(\d+)\s*([^{strand_code}\d]+?)(?={strand_code}\d+\.\d+|$)'
+        matches = list(re.finditer(exp_pattern, content_text))
 
-        self.logger.debug(f"Found {len(matches)} potential specific expectations")
+        self.logger.debug(f"Found {len(matches)} potential expectations")
 
-        for i, match in enumerate(matches):
-            code = re.sub(r'\s+', '', match.group(0))  # Full code without spaces
+        for match in matches:
             overall_num = match.group(1)
             specific_num = match.group(2)
+            description = self.clean_specific_expectation(match.group(3))
+
+            code = f"{strand_code}{overall_num}.{specific_num}"
             overall_code = f"{strand_code}{overall_num}"
-
-            # Get description text until next match or end
-            start_pos = match.end()
-            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(section_text)
-            description = section_text[start_pos:end_pos].strip()
-
-            # Clean and format the description
-            description = self.clean_specific_expectation(description)
 
             if description:
                 if overall_code not in specifics_by_overall:
                     specifics_by_overall[overall_code] = []
 
-                self.logger.info(f"Found specific expectation {code}: {description[:50]}...")
+                self.logger.info(f"Found specific expectation {code}: {description[:100]}...")
                 specifics_by_overall[overall_code].append({
                     'code': code,
                     'description_fr': description,
-                    'description_en': f"[NEEDS TRANSLATION] {description}"
+                    'description_en': self.get_english_description(code, description)
                 })
+
+        if not specifics_by_overall:
+            self.logger.warning(f"No specific expectations found in content for strand {strand_code}")
+            self.logger.debug("Content searched:\n" + content_text[:500])
 
         return specifics_by_overall
 
@@ -216,31 +232,49 @@ class CurriculumImporter:
 
         # Initial cleaning
         text = text.strip()
+        text = re.sub(r'^\s*\d+\.\s*', '', text)
+        text = re.sub(r'^\s*[•●⚫⬤]\s*', '', text)
 
         # Handle examples in parentheses
         text = re.sub(r'\(\s*p\.\s*ex\.,([^)]+)\)', r'(p. ex., \1)', text)
+        text = re.sub(r'\(\s*p\.\s*ex\.\s*:', r'(p. ex., ', text)
+        text = re.sub(r'\(\s*p\.\s*ex\.\s*\)', r'(p. ex.)', text)
 
-        # Clean up bullet points and sub-lists
-        text = re.sub(r'[•●⚫⬤]\s*', '• ', text)
-        text = re.sub(r'^\s*[–-]\s*', '- ', text, flags=re.MULTILINE)
-
-        # Normalize spaces and newlines
-        text = re.sub(r'\s+', ' ', text)
-        text = re.sub(r'\s*([.,:;])\s*', r'\1 ', text)
-
-        # Fix common OCR artifacts in specific expectations
+        # Fix common OCR artifacts and French text issues
         replacements = {
             ' e année': 'e année',
             'p.ex.': 'p. ex.',
             '( p. ex.,': '(p. ex.,',
             'etc...)': 'etc.)',
             '...)': '.)',
+            '–': '-',
+            '«': '"',
+            '»': '"',
+            ' :': ' :',
+            ';e': 'e',
+            'E e': 'e',
+            'e E': 'e',
+            'émE': 'ème',
+            ' ee ': 'e ',
+            'eeé': 'é',
+            'éee': 'ée'
         }
 
         for old, new in replacements.items():
             text = text.replace(old, new)
 
-        return text.strip()
+        # Fix spaces around punctuation according to French typography rules
+        text = re.sub(r'\s*([.,:;!?])\s*', r'\1 ', text)
+        text = re.sub(r'\s*([()])\s*', r'\1', text)
+
+        # Remove any remaining OCR artifacts (single letters with spaces)
+        text = re.sub(r'\s+([A-Za-z])\s+', r'\1', text)
+
+        # Final cleanup
+        text = re.sub(r'\s+', ' ', text)
+        text = text.strip()
+
+        return text
 
     def import_curriculum(self, content: str):
         """Import curriculum content into database"""
