@@ -4,14 +4,119 @@
 <!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+<style>
+    .editor-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .editor-row {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+        min-height: 500px;
+        width: 100%;
+    }
+    .output-container {
+        flex: 2;
+        display: flex;
+        flex-direction: column;
+        min-width: 60%;
+    }
+    .editor-container {
+        flex: 1;
+        min-width: 35%;
+    }
+    .CodeMirror {
+        height: 100% !important;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    }
+    .console-container {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 14px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+    }
+    .console-output {
+        flex-grow: 1;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        margin-bottom: 40px; /* Space for input line */
+        padding: 8px;
+    }
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        background-color: #2d2d2d;
+        border-top: 1px solid #3d3d3d;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        min-height: 40px;
+    }
+    .console-prompt {
+        color: #569cd6;
+        margin-right: 8px;
+        user-select: none;
+    }
+    .console-input-field {
+        background: transparent;
+        border: none;
+        color: #d4d4d4;
+        font-family: inherit;
+        font-size: inherit;
+        flex-grow: 1;
+        outline: none;
+        padding: 4px 8px;
+    }
+    .console-input-field:focus {
+        background-color: #3d3d3d;
+    }
+    .console-input {
+        color: #569cd6;
+    }
+    .console-output {
+        color: #d4d4d4;
+    }
+    .card {
+        height: 100%;
+        margin: 0;
+        border: 1px solid #2d2d2d;
+        background-color: #1e1e1e;
+    }
+    .card-body {
+        height: calc(100% - 48px);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .card-header {
+        padding: 0.5rem 1rem;
+        background-color: #2d2d2d;
+        border-bottom: 1px solid #3d3d3d;
+        color: #d4d4d4;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Language selector row -->
     <div class="row mb-3">
-        <div class="col-12">
+        <div class="col">
             <h2 class="mb-4">{% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}</h2>
+            <form id="code-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </form>
             <select id="languageSelect" class="form-select" style="width: auto;">
                 <option value="cpp" {% if language == "cpp" %}selected{% endif %}>C++</option>
                 <option value="csharp" {% if language == "csharp" %}selected{% endif %}>C#</option>
@@ -19,44 +124,36 @@
         </div>
     </div>
 
-    <!-- Editor and Console row -->
-    <div class="editor-console-row">
-        <!-- Editor Column -->
-        <div class="editor-column">
+    <div class="editor-row">
+        <div class="editor-container">
             <div class="card">
                 <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>{% if lang == 'fr' %}Code{% else %}Code{% endif %}</span>
+                    <span class="header-title">{% if lang == 'fr' %}Code{% else %}Code{% endif %}</span>
+                    <div class="header-actions">
                         <button id="runButton" class="btn btn-primary btn-sm">
                             {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
                         </button>
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="editor-container">
-                        <textarea id="editor"></textarea>
-                    </div>
+                    <textarea id="editor"></textarea>
                 </div>
             </div>
         </div>
-
-        <!-- Console Column -->
-        <div class="console-column">
+        <div class="output-container">
             <div class="card">
                 <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
-                        <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
+                    <span class="header-title">{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
+                    <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
                 <div class="card-body">
                     <div class="console-container">
-                        <div id="consoleOutput"></div>
+                        <div id="consoleOutput" class="console-output"></div>
                         <div class="console-input-line">
                             <span class="console-prompt">&gt;</span>
-                            <input type="text" id="consoleInput" class="console-input-field"
+                            <input type="text" id="consoleInput" class="console-input-field" 
                                    placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
                                    autocomplete="off"
                                    spellcheck="false">
@@ -64,22 +161,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Bottom Bar -->
-<div class="bottom-bar">
-    <div class="d-flex justify-content-between align-items-center w-100">
-        <div class="status-indicators">
-            <span class="text-muted">{% if lang == 'fr' %}État{% else %}Status{% endif %}: </span>
-            <span class="text-success">Ready</span>
-        </div>
-        <div class="action-buttons">
-            <button class="btn btn-sm btn-outline-light">
-                <i class="bi bi-gear"></i>
-                {% if lang == 'fr' %}Paramètres{% else %}Settings{% endif %}
-            </button>
         </div>
     </div>
 </div>
