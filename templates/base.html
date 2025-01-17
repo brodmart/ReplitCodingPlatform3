@@ -102,7 +102,9 @@
         </div>
     </nav>
 
-    {% if request.endpoint in ['static_pages.index', 'activities.view_activity'] %}
+    {% if request.endpoint in ['static_pages.index', 'activities.view_activity'] or 
+                             'enhanced' in request.endpoint or 
+                             request.endpoint == 'activities.list_activities' %}
     <main class="flex-grow-1">
     {% else %}
     <main class="container mt-4 flex-grow-1">
