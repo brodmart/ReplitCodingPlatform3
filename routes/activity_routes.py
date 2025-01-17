@@ -89,19 +89,25 @@ def compile_and_run(code, language, input_data=None):
             # Execute code
             cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
 
-            # Run the program with input if provided
+            # Prepare input data if provided
+            input_bytes = None
+            if input_data:
+                input_bytes = input_data.encode('utf-8')
+
+            # Run the program
             process = subprocess.run(
                 cmd,
-                input=input_data,
+                input=input_bytes,
                 capture_output=True,
                 text=True,
                 timeout=5,
                 cwd=session_dir
             )
 
+            # Prepare response
             return {
                 'success': process.returncode == 0,
-                'output': process.stdout,
+                'output': process.stdout if process.stdout else '',
                 'error': process.stderr if process.returncode != 0 else None
             }
 
@@ -294,7 +300,6 @@ def list_activities(grade=None):
         except Exception as db_error:
             logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
             raise
-
         try:
             return render_template(
                 'activities/list.html',
