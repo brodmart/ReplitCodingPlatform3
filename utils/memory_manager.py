@@ -2,7 +2,7 @@
 Enhanced Memory Manager for AI Context
 
 This module helps manage and maintain the AI context memory files with improved performance,
-error handling, and automatic versioning.
+error handling, automatic versioning, and intelligent context summarization.
 """
 
 import os
@@ -16,16 +16,19 @@ import re
 import logging
 from functools import lru_cache
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 logger = logging.getLogger(__name__)
 
-MEMORY_FILES = [
-    'AI_CONTEXT.md',
-    'project_memory.md',
-    'architectural_decisions.md',
-    'development_patterns.md',
-    'integration_notes.md'
-]
+@dataclass
+class ContextRelevance:
+    """Stores relevance information for context entries"""
+    score: float
+    last_accessed: datetime
+    access_count: int
+    importance_weight: float
 
 class MemoryManager:
     def __init__(self):
@@ -34,15 +37,19 @@ class MemoryManager:
         self.backup_dir = os.path.join(self.base_dir, 'memory_backups')
         self.change_log_file = os.path.join(self.base_dir, 'memory_changes.json')
         self.version_file = os.path.join(self.base_dir, 'memory_versions.json')
+        self.relevance_file = os.path.join(self.base_dir, 'context_relevance.json')
         self.cache = {}
+        self.relevance_scores: Dict[str, ContextRelevance] = {}
+        self.vectorizer = TfidfVectorizer(stop_words='english')
+
         os.makedirs(self.backup_dir, exist_ok=True)
         self.executor = ThreadPoolExecutor(max_workers=4)
+        self._load_relevance_scores()
         self.load_ai_context()
         self._cleanup_old_backups()
 
     @lru_cache(maxsize=32)
     def load_ai_context(self) -> Optional[str]:
-        """Load and cache the AI context at the start of each session."""
         try:
             context_path = os.path.join(self.base_dir, 'AI_CONTEXT.md')
             if os.path.exists(context_path):
@@ -59,9 +66,7 @@ class MemoryManager:
             return None
 
     def update_timestamp(self, file_path: str) -> bool:
-        """Update the timestamp in a memory file and log the change with versioning."""
         try:
-            # Create backup before modification
             backup_path = self._create_backup(file_path)
             if not backup_path:
                 raise Exception("Backup creation failed")
@@ -69,10 +74,8 @@ class MemoryManager:
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            # Update version before modifying
             self._update_version(file_path)
 
-            # Update or add timestamp
             date_line = f"Last Updated: {datetime.now().strftime('%B %d, %Y')}"
             if "Last Updated:" in content:
                 content = content.replace(content.split('\n')[1], date_line)
@@ -80,18 +83,15 @@ class MemoryManager:
                 header = content.split('\n')[0]
                 content = f"{header}\n{date_line}\n" + '\n'.join(content.split('\n')[1:])
 
-            # Check for conflicts
             if self._check_conflicts(file_path, content):
                 logger.warning(f"Potential conflict detected in {file_path}")
                 self._handle_conflict(file_path, content)
 
-            # Log change before writing
             self._log_change(file_path, 'update_timestamp')
 
             with open(file_path, 'w') as f:
                 f.write(content)
 
-            # Clear cache for this file
             self.cache.pop(file_path, None)
             return True
         except Exception as e:
@@ -99,7 +99,6 @@ class MemoryManager:
             return False
 
     def _update_version(self, file_path: str) -> None:
-        """Track versions of memory files."""
         try:
             versions = {}
             if os.path.exists(self.version_file):
@@ -116,7 +115,6 @@ class MemoryManager:
             logger.error(f"Version update failed: {str(e)}")
 
     def _check_conflicts(self, file_path: str, new_content: str) -> bool:
-        """Check for potential conflicts in file changes."""
         try:
             if file_path in self.cache:
                 cached_content = self.cache[file_path]
@@ -126,7 +124,6 @@ class MemoryManager:
             return False
 
     def _handle_conflict(self, file_path: str, content: str) -> None:
-        """Handle detected conflicts in file changes."""
         conflict_path = f"{file_path}.conflict"
         try:
             with open(conflict_path, 'w') as f:
@@ -136,7 +133,6 @@ class MemoryManager:
             logger.error(f"Conflict handling failed: {str(e)}")
 
     def _create_backup(self, file_path: str) -> Optional[str]:
-        """Create a compressed backup of a file before modification."""
         try:
             filename = os.path.basename(file_path)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -156,7 +152,6 @@ class MemoryManager:
             return None
 
     def _cleanup_old_backups(self) -> None:
-        """Clean up backups older than 7 days."""
         try:
             current_time = datetime.now()
             for backup_file in os.listdir(self.backup_dir):
@@ -169,7 +164,6 @@ class MemoryManager:
             logger.error(f"Backup cleanup failed: {str(e)}")
 
     def validate_files(self) -> Dict[str, bool]:
-        """Validate all memory files exist and have proper structure."""
         results = {}
         futures = []
 
@@ -188,7 +182,6 @@ class MemoryManager:
         return results
 
     def _validate_single_file(self, file_path: str) -> bool:
-        """Validate a single memory file."""
         try:
             exists = os.path.exists(file_path)
             if exists:
@@ -202,16 +195,13 @@ class MemoryManager:
             return False
 
     def _validate_content_format(self, file_path: str) -> bool:
-        """Validate the content format of a memory file."""
         try:
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            # Check for minimum content requirements
             if len(content.strip()) < 10:
                 return False
 
-            # Validate markdown structure
             headers = re.findall(r'^#{1,6}\s+.+$', content, re.MULTILINE)
             if not headers:
                 return False
@@ -221,7 +211,6 @@ class MemoryManager:
             return False
 
     def _log_change(self, file_path: str, operation: str) -> None:
-        """Log changes made to memory files with enhanced metadata."""
         try:
             log_entry = {
                 'timestamp': datetime.now().isoformat(),
@@ -251,7 +240,6 @@ class MemoryManager:
             logger.error(f"Logging failed: {str(e)}")
 
     def _get_current_version(self, file_path: str) -> int:
-        """Get the current version number of a file."""
         try:
             if os.path.exists(self.version_file):
                 with open(self.version_file, 'r') as f:
@@ -262,27 +250,22 @@ class MemoryManager:
             return 0
 
     def _validate_file_structure(self, file_path: str) -> bool:
-        """Validate the structure of a memory file."""
         try:
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            # Check for required sections
             required_sections = ['#', 'Last Updated:']
             return all(section in content for section in required_sections)
         except Exception:
             return False
 
     def _validate_cross_references(self, file_path: str) -> bool:
-        """Validate cross-references between memory files."""
         try:
             with open(file_path, 'r') as f:
                 content = f.read()
 
-            # Find all markdown-style references to other memory files
             references = re.findall(r'\[.*?\]\((.*?\.md)\)', content)
 
-            # Verify each referenced file exists
             for ref in references:
                 ref_path = os.path.join(self.base_dir, ref)
                 if not os.path.exists(ref_path):
@@ -295,7 +278,6 @@ class MemoryManager:
             return False
 
     def update_all_timestamps(self) -> List[str]:
-        """Update timestamps in all memory files."""
         updated = []
         for file_name in MEMORY_FILES:
             file_path = os.path.join(self.base_dir, file_name)
@@ -303,23 +285,168 @@ class MemoryManager:
                 updated.append(file_name)
         return updated
 
+    def _load_relevance_scores(self) -> None:
+        try:
+            if os.path.exists(self.relevance_file):
+                with open(self.relevance_file, 'r') as f:
+                    data = json.load(f)
+                    for file_name, score_data in data.items():
+                        self.relevance_scores[file_name] = ContextRelevance(
+                            score=score_data['score'],
+                            last_accessed=datetime.fromisoformat(score_data['last_accessed']),
+                            access_count=score_data['access_count'],
+                            importance_weight=score_data['importance_weight']
+                        )
+        except Exception as e:
+            logger.error(f"Error loading relevance scores: {str(e)}")
+
+    def _save_relevance_scores(self) -> None:
+        try:
+            data = {
+                file_name: {
+                    'score': relevance.score,
+                    'last_accessed': relevance.last_accessed.isoformat(),
+                    'access_count': relevance.access_count,
+                    'importance_weight': relevance.importance_weight
+                }
+                for file_name, relevance in self.relevance_scores.items()
+            }
+            with open(self.relevance_file, 'w') as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            logger.error(f"Error saving relevance scores: {str(e)}")
+
+    def calculate_context_relevance(self, file_path: str, current_context: str) -> float:
+        try:
+            with open(file_path, 'r') as f:
+                content = f.read()
+
+            tfidf_matrix = self.vectorizer.fit_transform([content, current_context])
+            similarity = (tfidf_matrix * tfidf_matrix.T).toarray()[0][1]
+
+            file_name = os.path.basename(file_path)
+            relevance = self.relevance_scores.get(file_name, ContextRelevance(
+                score=0.0,
+                last_accessed=datetime.now(),
+                access_count=0,
+                importance_weight=1.0
+            ))
+
+            relevance.access_count += 1
+            relevance.last_accessed = datetime.now()
+
+            time_factor = 1.0 / (1.0 + (datetime.now() - relevance.last_accessed).days)
+            usage_factor = min(1.0, relevance.access_count / 100)
+
+            final_score = (
+                similarity * 0.4 +
+                time_factor * 0.3 +
+                usage_factor * 0.3
+            ) * relevance.importance_weight
+
+            relevance.score = final_score
+            self.relevance_scores[file_name] = relevance
+            self._save_relevance_scores()
+
+            return final_score
+
+        except Exception as e:
+            logger.error(f"Error calculating relevance: {str(e)}")
+            return 0.0
+
+    def prune_outdated_context(self, threshold: float = 0.3) -> List[str]:
+        pruned_files = []
+        try:
+            for file_name, relevance in self.relevance_scores.items():
+                if (
+                    relevance.score < threshold and
+                    datetime.now() - relevance.last_accessed > timedelta(days=30)
+                ):
+                    file_path = os.path.join(self.base_dir, file_name)
+                    backup_path = self._create_backup(file_path)
+                    if backup_path:
+                        pruned_files.append(file_name)
+                        os.remove(file_path) #remove the file after backup
+                        logger.info(f"Pruned outdated context: {file_name}")
+            return pruned_files
+        except Exception as e:
+            logger.error(f"Error pruning context: {str(e)}")
+            return []
+
+    def compress_context(self, file_path: str) -> Optional[str]:
+        try:
+            with open(file_path, 'r') as f:
+                content = f.read()
+
+            headers = re.findall(r'^#{1,3}\s+.*$', content, re.MULTILINE)
+            key_points = re.findall(r'^\s*[-*]\s+.*$', content, re.MULTILINE)
+
+            sentences = re.split(r'[.!?]+', content)
+            sentence_scores = []
+
+            for sentence in sentences:
+                score = 0
+                if any(term in sentence.lower() for term in ['important', 'critical', 'key', 'must']):
+                    score += 2
+                if 10 <= len(sentence.split()) <= 30:
+                    score += 1
+                sentence_scores.append((sentence, score))
+
+            important_sentences = [s[0] for s in sorted(sentence_scores, key=lambda x: x[1], reverse=True)[:10]]
+
+            compressed_content = "# Compressed Context Summary\n\n"
+            compressed_content += "## Key Headers\n" + '\n'.join(headers) + "\n\n"
+            compressed_content += "## Important Points\n" + '\n'.join(key_points) + "\n\n"
+            compressed_content += "## Key Content\n" + '\n'.join(important_sentences)
+
+            compressed_path = file_path + '.compressed'
+            with open(compressed_path, 'w') as f:
+                f.write(compressed_content)
+
+            return compressed_path
+
+        except Exception as e:
+            logger.error(f"Error compressing context: {str(e)}")
+            return None
+
+
+MEMORY_FILES = [
+    'AI_CONTEXT.md',
+    'project_memory.md',
+    'architectural_decisions.md',
+    'development_patterns.md',
+    'integration_notes.md'
+]
 
 # Initialize the memory manager
 memory_manager = MemoryManager()
 
 if __name__ == "__main__":
-    # Configure logging
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
 
-    # Validate files on import
     validation = memory_manager.validate_files()
     if not all(validation.values()):
         logger.warning("Some memory files are missing or invalid: %s", 
               [f for f, valid in validation.items() if not valid])
 
-    # Update timestamps
     updated = memory_manager.update_all_timestamps()
     logger.info("Updated timestamps in: %s", ', '.join(updated))
+
+    #Example usage of new functions
+    current_context = "This is the current context."
+    for file_name in MEMORY_FILES:
+        file_path = os.path.join(memory_manager.base_dir, file_name)
+        relevance_score = memory_manager.calculate_context_relevance(file_path, current_context)
+        logger.info(f"Relevance score for {file_name}: {relevance_score}")
+
+    pruned = memory_manager.prune_outdated_context()
+    logger.info(f"Pruned files: {pruned}")
+
+    for file_name in MEMORY_FILES:
+        file_path = os.path.join(memory_manager.base_dir, file_name)
+        compressed_path = memory_manager.compress_context(file_path)
+        if compressed_path:
+            logger.info(f"Compressed {file_name} to {compressed_path}")
