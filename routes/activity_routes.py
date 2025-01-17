@@ -89,6 +89,7 @@ def compile_and_run(code, language, input_data=None):
             # Execute code
             cmd = [executable_path] if language == 'cpp' else ['mono', executable_path]
 
+            # Run the program with input if provided
             process = subprocess.run(
                 cmd,
                 input=input_data,
