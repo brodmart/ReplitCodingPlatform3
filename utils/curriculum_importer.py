@@ -14,14 +14,15 @@ class CurriculumImporter:
         self.logger.setLevel(logging.DEBUG)
 
     def clean_text(self, text: str) -> str:
-        """Clean up text by removing OCR artifacts and fixing French text"""
+        """Clean up text by removing artifacts and fixing French formatting"""
         if not text:
             return ""
 
-        # First remove page headers/footers and numbers
-        text = re.sub(r'Introduction au génie informatique\s*\n', '', text)
-        text = re.sub(r'E CURRICULUM DE L\'ONTARIO.*?12 e', '', text, flags=re.DOTALL)
-        text = re.sub(r'\d{2,3}\s*\n', '', text)  # Remove page numbers
+        # Remove page numbers and headers
+        text = re.sub(r'\d{1,3}\s*$', '', text, flags=re.MULTILINE)
+        text = re.sub(r'LE CURRICULUM DE L\'ONTARIO.*?12e ANNÉE', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'Introduction au génie informatique.*?\n', '', text)
+        text = re.sub(r'ICS3U[\s\n]+', '', text)  # Remove course code occurrences
 
         # Fix common OCR patterns for French words
         replacements = {
@@ -50,180 +51,264 @@ class CurriculumImporter:
             'EntinformatiqueE': 'ent informatique',
             'Edetravail': 'e de travail',
             'téchniqu E': 'technique',
-            'progr Amm Ation': 'programmation'
+            'progr Amm Ation': 'programmation',
+            'g nie': 'génie',
+            'pr universitaire': 'préuniversitaire',
+            ' informatique': 'informatique',
+            'e ann e': 'e année',
+            '11e ann e': '11e année',
+            'g nie informatique': 'génie informatique',
+            # Strand-specific fixes
+            'EnvironnEmEnt': 'Environnement',
+            'informAtiquE': 'informatique',
+            'trAvAil': 'travail',
+            'tEchniquEs': 'techniques',
+            'progrAmmAtion': 'programmation',
+            'dévEloppEmEnt': 'développement',
+            'logiciEls': 'logiciels',
+            'sociétAux': 'sociétaux',
+            'EnjEux': 'Enjeux'
         }
 
         for old, new in replacements.items():
             text = text.replace(old, new)
 
-        # Fix spaces between words more carefully
-        text = re.sub(r'(?<=[a-zà-ÿ])([A-ZÀ-Ÿ])', r' \1', text)  # Add space before capital letters
-        text = re.sub(r'([a-zà-ÿ])([A-ZÀ-Ÿ])', r'\1 \2', text)   # Space between lowercase and uppercase
-        text = re.sub(r'(\d)\s*([eE])\s+', r'\1\2 ', text)        # Fix ordinal numbers (e.g., "11e année")
-
-        # Fix French punctuation spacing
+        # Fix spaces around punctuation according to French rules
         text = re.sub(r'\s*([.,:;!?])\s*', r'\1 ', text)
         text = re.sub(r'\s*([()])\s*', r'\1', text)
 
-        # Normalize multiple spaces and clean up
-        text = re.sub(r'\s+', ' ', text).strip()
+        # Fix ordinal numbers
+        text = re.sub(r'(\d+)\s*[eE]\s+', r'\1e ', text)
 
-        return text
-
-    def extract_course_info(self, content: str) -> Dict[str, str]:
-        """Extract course information including title, description and prerequisite"""
-        # Match the header section more precisely
-        header_pattern = r'Introduction au génie\s+.*?(?=Ce cours)'
-        desc_pattern = r'Ce cours.*?(?=Préalable\s*:)'
-        prereq_pattern = r'Préalable\s*:\s*(.*?)(?=\n\n|\n[A-Z]\.|\Z)'
-
-        header_match = re.search(header_pattern, content, re.DOTALL)
-        desc_match = re.search(desc_pattern, content, re.DOTALL)
-        prereq_match = re.search(prereq_pattern, content, re.DOTALL)
-
-        course_info = {
-            "title_fr": self.clean_text(header_match.group() if header_match else ""),
-            "description_fr": self.clean_text(desc_match.group() if desc_match else ""),
-            "prerequisite_fr": self.clean_text(prereq_match.group(1) if prereq_match else "Aucun")
-        }
-
-        self.logger.info(f"Extracted course title: {course_info['title_fr']}")
-        return course_info
+        # Remove multiple spaces and clean up
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
 
     def extract_strand_sections(self, content: str) -> List[Tuple[str, str, str]]:
-        """Extract strand sections with their content"""
-        self.logger.debug("Extracting strand sections")
+        """Extract strand sections from the curriculum content"""
+        self.logger.info("Starting strand extraction...")
 
-        # Clean up the content first
-        content = re.sub(r'Introduction au génie informatique\s*\n', '', content)
-        content = re.sub(r'E CURRICULUM DE L\'ONTARIO.*?12 e', '', content, flags=re.DOTALL)
-        content = re.sub(r'\d{2,3}\s*\n', '', content)
+        # Remove any leading/trailing whitespace and normalize newlines
+        content = content.strip()
+        content = re.sub(r'\r\n', '\n', content)
+
+        # Split content into major sections using strand identifiers
+        strand_pattern = r'([A-D])\.\s*([^\.]+?)(?=ATTENTES|$)(.*?)(?=(?:[A-D]\.\s)|$)'
+        strand_matches = list(re.finditer(strand_pattern, content, re.DOTALL))
+
+        self.logger.debug(f"Found {len(strand_matches)} potential strand matches")
 
         sections = []
-        seen_codes = set()
-
-        # Match sections more precisely
-        section_pattern = r'([A-D])\.\s*(.*?)\s*(?=ATTENTES).*?ATTENTES.*?(?:À la fin du cours[^:]*:)?(.*?)(?=(?:[A-D]\.\s|$))'
-        matches = list(re.finditer(section_pattern, content, re.DOTALL))
-
-        for match in matches:
+        for match in strand_matches:
             code = match.group(1)
-            if code in seen_codes:
-                continue
-
             title = self.clean_text(match.group(2))
             section_content = match.group(3)
 
             if title and section_content:
-                self.logger.info(f"Found strand {code}: {title}")
-                sections.append((code, title, section_content))
-                seen_codes.add(code)
+                if "ATTENTES" in section_content:
+                    self.logger.info(f"Found valid strand {code}: {title}")
+                    sections.append((code, title, section_content))
+                    self.logger.debug(f"Content snippet: {section_content[:200]}...")
+                else:
+                    self.logger.warning(f"Skipping strand {code} - missing ATTENTES section")
 
+        self.logger.info(f"Successfully extracted {len(sections)} strand sections")
         return sections
 
     def parse_overall_expectations(self, content: str, strand_code: str) -> List[Dict[str, str]]:
         """Parse overall expectations from strand content"""
-        self.logger.debug(f"Parsing overall expectations for strand {strand_code}")
-
-        # Extract overall expectations section
-        attentes_pattern = r'(?:À la fin du cours[^:]*:)?\s*(.*?)(?=CONTENUS\s+D\'APPRENTISSAGE|$)'
-        attentes_match = re.search(attentes_pattern, content, re.DOTALL)
-
-        if not attentes_match:
-            self.logger.warning(f"No overall expectations found for strand {strand_code}")
-            return []
+        self.logger.info(f"Parsing overall expectations for strand {strand_code}")
 
         expectations = []
-        section_text = attentes_match.group(1)
 
-        # Match expectations with their codes
-        exp_pattern = rf'{strand_code}(\d+)\.\s*([^{strand_code}\d]+?)(?={strand_code}\d+\.|$)'
-        for match in re.finditer(exp_pattern, section_text, re.DOTALL):
-            number = match.group(1)
-            description = self.clean_text(match.group(2))
+        # Extract the ATTENTES section
+        attentes_pattern = r'ATTENTES.*?(?:À la fin du cours[^:]*:)?\s*(.*?)(?=CONTENUS|$)'
+        attentes_match = re.search(attentes_pattern, content, re.DOTALL | re.IGNORECASE)
 
-            if description:
-                code = f"{strand_code}{number}"
-                self.logger.info(f"Found overall expectation {code}")
-                expectations.append({
-                    'code': code,
-                    'description_fr': description,
-                    'description_en': f"[NEEDS TRANSLATION] {description}"
-                })
+        if attentes_match:
+            expectations_text = attentes_match.group(1)
+            self.logger.debug(f"Found ATTENTES section: {expectations_text[:200]}...")
+
+            # Match individual expectations with their codes
+            exp_pattern = rf'{strand_code}(\d+)\.\s*([^{strand_code}\d]+?)(?={strand_code}\d+\.|$)'
+            matches = list(re.finditer(exp_pattern, expectations_text, re.DOTALL))
+
+            for match in matches:
+                number = match.group(1)
+                description = self.clean_text(match.group(2))
+
+                if description:
+                    code = f"{strand_code}{number}"
+                    self.logger.info(f"Found overall expectation {code}")
+                    expectations.append({
+                        'code': code,
+                        'description_fr': description,
+                        'description_en': ''  # Will be translated later
+                    })
+        else:
+            self.logger.warning(f"No ATTENTES section found for strand {strand_code}")
 
         return expectations
 
     def parse_specific_expectations(self, content: str, strand_code: str) -> Dict[str, List[Dict[str, str]]]:
-        """Parse specific expectations grouped by overall expectations"""
-        self.logger.debug(f"Parsing specific expectations for strand {strand_code}")
-
-        # Split content into sections
-        sections = re.split(r'(?:\n\s*){2,}', content)
-
-        # Find the CONTENUS D'APPRENTISSAGE section
-        contenus_pattern = r'CONTENUS\s+D(?:\'|E)?\s*APPRENTISSAGE'
-        contenus_section = None
-
-        for section in sections:
-            if re.search(contenus_pattern, section, re.IGNORECASE):
-                contenus_section = section
-                break
-
-        if not contenus_section:
-            self.logger.warning(f"No specific expectations section found for strand {strand_code}")
-            self.logger.debug(f"Content sections available:\n" + "\n---\n".join(sections[:3]))
-            return {}
-
-        self.logger.debug(f"Found CONTENUS D'APPRENTISSAGE section:\n{contenus_section[:500]}...")
-
-        # Extract expectations content
-        intro_pattern = r'Pour satisfaire.*?:\s*(.*?)(?=(?:\n\s*){2,}|$)'
-        content_match = re.search(intro_pattern, contenus_section, re.DOTALL | re.IGNORECASE)
-
-        if not content_match:
-            self.logger.warning(f"Could not extract expectations content from section")
-            return {}
+        """Parse specific expectations from strand content"""
+        self.logger.info(f"Parsing specific expectations for strand {strand_code}")
 
         specifics_by_overall = {}
-        content_text = content_match.group(1)
 
-        # Clean and normalize the content text
-        content_text = re.sub(r'\n+', ' ', content_text)
-        content_text = re.sub(r'\s+', ' ', content_text)
-        content_text = self.clean_text(content_text)
+        # Extract the CONTENUS D'APPRENTISSAGE section
+        contenus_pattern = r'CONTENUS\s+D[\'E]\s*APPRENTISSAGE.*?Pour satisfaire.*?:\s*(.*?)(?=\Z|\n\n[A-D]\.)'
+        contenus_match = re.search(contenus_pattern, content, re.DOTALL | re.IGNORECASE)
 
-        self.logger.debug(f"Processing cleaned content:\n{content_text}")
+        if contenus_match:
+            content_text = contenus_match.group(1)
+            self.logger.debug(f"Found CONTENUS section: {content_text[:200]}...")
 
-        # Extract expectations with improved pattern
-        exp_pattern = rf'{strand_code}(\d+)\.(\d+)\s*([^{strand_code}\d]+?)(?={strand_code}\d+\.\d+|$)'
-        matches = list(re.finditer(exp_pattern, content_text))
+            # Extract specific expectations with their codes
+            exp_pattern = rf'{strand_code}(\d+)\.(\d+)\s*([^{strand_code}\d]+?)(?={strand_code}\d+\.\d+|$)'
+            matches = list(re.finditer(exp_pattern, content_text, re.DOTALL))
 
-        self.logger.debug(f"Found {len(matches)} potential expectations")
+            for match in matches:
+                overall_num = match.group(1)
+                specific_num = match.group(2)
+                description = self.clean_text(match.group(3))
 
-        for match in matches:
-            overall_num = match.group(1)
-            specific_num = match.group(2)
-            description = self.clean_specific_expectation(match.group(3))
+                if description:
+                    code = f"{strand_code}{overall_num}.{specific_num}"
+                    overall_code = f"{strand_code}{overall_num}"
 
-            code = f"{strand_code}{overall_num}.{specific_num}"
-            overall_code = f"{strand_code}{overall_num}"
+                    if overall_code not in specifics_by_overall:
+                        specifics_by_overall[overall_code] = []
 
-            if description:
-                if overall_code not in specifics_by_overall:
-                    specifics_by_overall[overall_code] = []
-
-                self.logger.info(f"Found specific expectation {code}: {description[:100]}...")
-                specifics_by_overall[overall_code].append({
-                    'code': code,
-                    'description_fr': description,
-                    'description_en': self.get_english_description(code, description)
-                })
-
-        if not specifics_by_overall:
-            self.logger.warning(f"No specific expectations found in content for strand {strand_code}")
-            self.logger.debug("Content searched:\n" + content_text[:500])
+                    self.logger.info(f"Found specific expectation {code}")
+                    specifics_by_overall[overall_code].append({
+                        'code': code,
+                        'description_fr': description,
+                        'description_en': ''  # Will be translated later
+                    })
+        else:
+            self.logger.warning(f"No CONTENUS section found for strand {strand_code}")
 
         return specifics_by_overall
+
+    def extract_course_info(self, content: str) -> Dict[str, str]:
+        """Extract course information including title and description"""
+        self.logger.info("Extracting course information...")
+
+        info = {}
+
+        # Extract description
+        desc_pattern = r'Ce cours.*?(?=Préalable\s*:)'
+        desc_match = re.search(desc_pattern, content, re.DOTALL)
+        if desc_match:
+            info['description_fr'] = self.clean_text(desc_match.group())
+            self.logger.info("Found course description")
+        else:
+            self.logger.warning("Could not find course description")
+            info['description_fr'] = ''
+
+        # Extract prerequisite
+        prereq_pattern = r'Préalable\s*:\s*(.*?)(?=\n\n|\Z)'
+        prereq_match = re.search(prereq_pattern, content)
+        if prereq_match:
+            info['prerequisite_fr'] = self.clean_text(prereq_match.group(1))
+            self.logger.info(f"Found prerequisite: {info['prerequisite_fr']}")
+        else:
+            info['prerequisite_fr'] = 'Aucun'
+            self.logger.info("No prerequisite found, using default: Aucun")
+
+        return info
+
+    def import_curriculum(self, content: str):
+        """Import curriculum content into database"""
+        self.logger.info("Starting curriculum import process")
+
+        try:
+            # Extract course information
+            course_info = self.extract_course_info(content)
+
+            # Create course
+            course = Course(
+                code='ICS3U',
+                title_fr='Introduction au génie informatique, 11e année cours préuniversitaire',
+                title_en='Introduction to Computer Science, Grade 11 University Preparation',
+                description_fr=course_info['description_fr'],
+                description_en='',  # Will be translated later
+                prerequisite_fr=course_info['prerequisite_fr'],
+                prerequisite_en='None'
+            )
+
+            db.session.add(course)
+            db.session.flush()
+            self.logger.info(f"Created course: {course.code}")
+
+            # Process strands
+            strands = self.extract_strand_sections(content)
+            self.logger.info(f"Processing {len(strands)} strands")
+
+            for strand_code, strand_title, strand_content in strands:
+                # Create strand
+                strand = Strand(
+                    course_id=course.id,
+                    code=strand_code,
+                    title_fr=strand_title,
+                    title_en=''  # Will be translated later
+                )
+
+                db.session.add(strand)
+                db.session.flush()
+                self.logger.info(f"Created strand {strand_code}: {strand_title}")
+
+                # Process overall expectations
+                overall_expectations = self.parse_overall_expectations(strand_content, strand_code)
+                self.logger.info(f"Found {len(overall_expectations)} overall expectations for strand {strand_code}")
+
+                for overall_data in overall_expectations:
+                    overall = OverallExpectation(
+                        strand_id=strand.id,
+                        code=overall_data['code'],
+                        description_fr=overall_data['description_fr'],
+                        description_en=overall_data['description_en']
+                    )
+
+                    db.session.add(overall)
+                    db.session.flush()
+                    self.logger.info(f"Created overall expectation: {overall.code}")
+
+                    # Process specific expectations
+                    specifics = self.parse_specific_expectations(strand_content, strand_code).get(overall_data['code'], [])
+                    self.logger.info(f"Found {len(specifics)} specific expectations for {overall.code}")
+
+                    for specific_data in specifics:
+                        specific = SpecificExpectation(
+                            overall_expectation_id=overall.id,
+                            code=specific_data['code'],
+                            description_fr=specific_data['description_fr'],
+                            description_en=specific_data['description_en']
+                        )
+                        db.session.add(specific)
+
+            db.session.commit()
+            self.logger.info("Successfully completed curriculum import")
+
+        except Exception as e:
+            db.session.rollback()
+            self.logger.error(f"Error during curriculum import: {str(e)}")
+            raise
+
+    def clear_existing_data(self):
+        """Clear existing curriculum data"""
+        self.logger.info("Clearing existing ICS3U curriculum data")
+
+        try:
+            Course.query.filter_by(code='ICS3U').delete()
+            db.session.commit()
+            self.logger.info("Successfully cleared existing data")
+
+        except Exception as e:
+            db.session.rollback()
+            self.logger.error(f"Error clearing existing data: {str(e)}")
+            raise
 
     def clean_specific_expectation(self, text: str) -> str:
         """Clean and format specific expectation text"""
@@ -276,68 +361,6 @@ class CurriculumImporter:
 
         return text
 
-    def import_curriculum(self, content: str):
-        """Import curriculum content into database"""
-        self.logger.info("Starting curriculum import")
-
-        try:
-            # Extract course information
-            course_info = self.extract_course_info(content)
-            self.logger.info("Extracted course information")
-
-            # Create course
-            course = Course(
-                code='ICS3U',
-                title_fr=course_info["title_fr"],
-                title_en="Introduction to Computer Science, Grade 11",
-                description_fr=course_info["description_fr"],
-                description_en="[NEEDS TRANSLATION]",
-                prerequisite_fr=course_info["prerequisite_fr"],
-                prerequisite_en="None"
-            )
-            db.session.add(course)
-            db.session.flush()
-
-            # Process each strand
-            for code, title, content in self.extract_strand_sections(content):
-                # Create strand
-                strand = Strand(
-                    course_id=course.id,
-                    code=code,
-                    title_fr=title,
-                    title_en=f"[NEEDS TRANSLATION] {title}"
-                )
-                db.session.add(strand)
-                db.session.flush()
-
-                # Get specific expectations first
-                specifics_by_overall = self.parse_specific_expectations(content, code)
-
-                # Process overall expectations and their specifics
-                for overall_data in self.parse_overall_expectations(content, code):
-                    overall = OverallExpectation(
-                        strand_id=strand.id,
-                        **overall_data
-                    )
-                    db.session.add(overall)
-                    db.session.flush()
-
-                    # Add associated specific expectations
-                    for spec_data in specifics_by_overall.get(overall_data['code'], []):
-                        specific = SpecificExpectation(
-                            overall_expectation_id=overall.id,
-                            **spec_data
-                        )
-                        db.session.add(specific)
-
-            db.session.commit()
-            self.logger.info("Curriculum import completed successfully")
-
-        except Exception as e:
-            db.session.rollback()
-            self.logger.error(f"Error importing curriculum: {str(e)}")
-            raise
-
     def get_english_description(self, code: str, desc_fr: str) -> str:
         """Generate placeholder English descriptions"""
         return f"[NEEDS TRANSLATION] {desc_fr}"
@@ -347,50 +370,9 @@ class CurriculumImporter:
         self.logger.info("Clearing existing ICS3U curriculum data")
 
         try:
-            with db.session.begin():
-                # Delete specific expectations first
-                specific_subquery = (
-                    db.select(OverallExpectation.id)
-                    .join(Strand)
-                    .join(Course)
-                    .where(Course.code == 'ICS3U')
-                    .scalar_subquery()
-                )
-                db.session.execute(
-                    db.delete(SpecificExpectation)
-                    .where(SpecificExpectation.overall_expectation_id.in_(specific_subquery))
-                )
-
-                # Delete overall expectations
-                overall_subquery = (
-                    db.select(Strand.id)
-                    .join(Course)
-                    .where(Course.code == 'ICS3U')
-                    .scalar_subquery()
-                )
-                db.session.execute(
-                    db.delete(OverallExpectation)
-                    .where(OverallExpectation.strand_id.in_(overall_subquery))
-                )
-
-                # Delete strands
-                strand_subquery = (
-                    db.select(Course.id)
-                    .where(Course.code == 'ICS3U')
-                    .scalar_subquery()
-                )
-                db.session.execute(
-                    db.delete(Strand)
-                    .where(Strand.course_id.in_(strand_subquery))
-                )
-
-                # Finally delete the course
-                db.session.execute(
-                    db.delete(Course)
-                    .where(Course.code == 'ICS3U')
-                )
-
-                self.logger.info("Successfully cleared existing data")
+            Course.query.filter_by(code='ICS3U').delete()
+            db.session.commit()
+            self.logger.info("Successfully cleared existing data")
 
         except Exception as e:
             db.session.rollback()
