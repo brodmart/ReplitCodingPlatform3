@@ -1,7 +1,7 @@
 # AI Session Context Guide
 Last Updated: January 17, 2025
 
-## Quick Start for AI Sessions
+## Quick Start for AI Sessions:
 
 ### Priority Files for Context (Read First):
 1. project_memory.md - Overall project status and architecture
@@ -49,6 +49,30 @@ Last Updated: January 17, 2025
    - Update when modifying integrations
    - Document new connection parameters
    - Track integration status
+
+### Core Educational Requirements:
+
+1. **Curriculum Alignment**:
+   - All lexicon and programming features must align with Ontario's ICS4U (Grade 12) curriculum
+   - ICS4U serves as the baseline for advanced programming concepts
+   - All supported languages (C++, C#, Python, JavaScript) must meet ICS4U standards
+
+2. **Lexicon System Requirements**:
+   - Bilingual support (French/English)
+   - Context-aware syntax highlighting
+   - Support for multiple programming languages
+   - Curriculum-specific content organization
+   - Database-driven architecture for scalability
+   - JSON-based content storage for flexibility
+   - Integration with code editor
+   - Quick search functionality
+   - ICS4U curriculum tags and categorization
+
+3. **Language Support Priority**:
+   - Primary: C++, C#
+   - Secondary: Python
+   - Future consideration: JavaScript
+   - All language features must support ICS4U curriculum requirements
 
 ### Timestamps and Versioning:
 - All updates include timestamps
