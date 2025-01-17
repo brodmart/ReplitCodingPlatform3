@@ -145,42 +145,123 @@
     .card {
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+
+    /* New styles for learning scaffolding */
+    .cognitive-level-indicator {
+        background-color: #2d2d2d;
+        border-left: 4px solid #007bff;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .task-breakdown {
+        background-color: #2d2d2d;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .task-step {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: #363636;
+    }
+
+    .task-step.completed {
+        background-color: #28a745;
+        opacity: 0.8;
+    }
+
+    .reflection-prompt {
+        background-color: #343a40;
+        border-left: 4px solid #ffc107;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .hint-panel {
+        background-color: #2d2d2d;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .hint-content {
+        display: none;
+        padding: 0.5rem;
+        margin-top: 0.5rem;
+        background-color: #363636;
+        border-radius: 4px;
+    }
+
+    .hint-content.visible {
+        display: block;
+    }
+
+    .feedback-panel {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: 300px;
+        background-color: #2d2d2d;
+        border-radius: 4px;
+        padding: 1rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        z-index: 1000;
+        display: none;
+    }
+
+    .feedback-panel.visible {
+        display: block;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="row">
-        <!-- Left Column: Activity Details -->
+        <!-- Left Column: Learning Journey -->
         <div class="col-md-4">
             <div class="card mb-4 bg-dark text-light border-secondary">
                 <div class="card-body">
-                    <h3 class="card-title">{{ activity.title }}</h3>
-                    <p class="card-text">{{ activity.description }}</p>
-                    <div class="difficulty-badge mb-3">
-                        <span class="badge bg-{{ 'success' if activity.difficulty == 'beginner' else 'warning' if activity.difficulty == 'intermediate' else 'danger' }}">
-                            {% if activity.difficulty == 'beginner' %}
-                                {% if lang == 'fr' %}Débutant{% else %}Beginner{% endif %}
-                            {% elif activity.difficulty == 'intermediate' %}
-                                {% if lang == 'fr' %}Intermédiaire{% else %}Intermediate{% endif %}
+                    <!-- Cognitive Level Indicator -->
+                    <div class="cognitive-level-indicator">
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Niveau Cognitif{% else %}Cognitive Level{% endif %}
+                        </h4>
+                        <div class="current-level">
+                            <i class="bi bi-diagram-3"></i>
+                            <span id="cognitiveLevelText">
+                                {% if lang == 'fr' %}Analyse{% else %}Analysis{% endif %}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            {% if lang == 'fr' %}
+                                Basé sur la taxonomie de Bloom
                             {% else %}
-                                {% if lang == 'fr' %}Avancé{% else %}Advanced{% endif %}
+                                Based on Bloom's Taxonomy
                             {% endif %}
-                        </span>
+                        </small>
                     </div>
 
-                    <!-- Enhanced Confidence Prediction Section -->
+                    <!-- Task Breakdown -->
+                    <div class="task-breakdown">
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Étapes de l'Activité{% else %}Task Breakdown{% endif %}
+                        </h4>
+                        <div id="taskSteps">
+                            <!-- Steps will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Confidence Assessment -->
                     <div class="confidence-prediction mb-4">
                         <h4 class="text-primary">
-                            {% if lang == 'fr' %}Prédiction de Confiance{% else %}Confidence Prediction{% endif %}
+                            {% if lang == 'fr' %}Auto-évaluation{% else %}Self-Assessment{% endif %}
                         </h4>
-                        <p class="text-muted">
-                            {% if lang == 'fr' %}
-                                À quel point êtes-vous confiant de pouvoir résoudre ce défi ?
-                            {% else %}
-                                How confident are you in solving this challenge?
-                            {% endif %}
-                        </p>
                         <div class="confidence-buttons d-flex justify-content-between mb-3">
                             {% for i in range(1, 6) %}
                             <button type="button" 
@@ -199,29 +280,28 @@
                         </div>
                     </div>
 
-                    <!-- Enhanced Solution Approaches Section -->
-                    <div class="solution-approaches mb-4">
-                        <h4 class="text-primary">
-                            {% if lang == 'fr' %}Approches de Solution{% else %}Solution Approaches{% endif %}
+                    <!-- Reflection Prompt -->
+                    <div class="reflection-prompt">
+                        <h4 class="text-warning">
+                            {% if lang == 'fr' %}Réflexion{% else %}Reflection{% endif %}
                         </h4>
-                        <div id="solutionApproaches" class="accordion">
-                            <!-- Will be populated dynamically -->
-                        </div>
+                        <p id="reflectionPrompt" class="mb-2"></p>
+                        <textarea class="form-control bg-dark text-light" 
+                                id="reflectionResponse" 
+                                rows="3"
+                                placeholder="{% if lang == 'fr' %}Votre réponse ici...{% else %}Your response here...{% endif %}">
+                        </textarea>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Learning Progress -->
-                    <div class="learning-progress">
-                        <h4 class="text-primary">
-                            {% if lang == 'fr' %}Progression{% else %}Learning Progress{% endif %}
-                        </h4>
-                        <div class="progress mb-2">
-                            <div id="progressBar" 
-                                 class="progress-bar bg-success" 
-                                 role="progressbar" 
-                                 style="width: 0%">
-                            </div>
-                        </div>
-                    </div>
+            <!-- Hint Panel -->
+            <div class="hint-panel">
+                <h4 class="text-primary">
+                    {% if lang == 'fr' %}Indices Adaptatifs{% else %}Adaptive Hints{% endif %}
+                </h4>
+                <div id="hintContainer">
+                    <!-- Hints will be populated dynamically -->
                 </div>
             </div>
         </div>
@@ -271,6 +351,15 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Real-time Feedback Panel -->
+<div class="feedback-panel" id="feedbackPanel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0 text-light">Feedback</h5>
+        <button type="button" class="btn-close btn-close-white" onclick="closeFeedbackPanel()"></button>
+    </div>
+    <div id="feedbackContent" class="text-light"></div>
 </div>
 {% endblock %}
 
@@ -437,8 +526,101 @@ document.addEventListener('DOMContentLoaded', function() {
         progress.style.width = Math.min(currentWidth + 20, 100) + '%';
     }
 
+    // Initialize Task Breakdown
+    const taskSteps = [
+        {
+            id: 1,
+            text: lang === 'fr' ? 'Comprendre le problème' : 'Understand the problem',
+            completed: false
+        },
+        {
+            id: 2,
+            text: lang === 'fr' ? 'Planifier la solution' : 'Plan the solution',
+            completed: false
+        },
+        {
+            id: 3,
+            text: lang === 'fr' ? 'Implémenter le code' : 'Implement the code',
+            completed: false
+        },
+        {
+            id: 4,
+            text: lang === 'fr' ? 'Tester et déboguer' : 'Test and debug',
+            completed: false
+        }
+    ];
+
+    function updateTaskSteps() {
+        const container = document.getElementById('taskSteps');
+        container.innerHTML = taskSteps.map(step => `
+            <div class="task-step ${step.completed ? 'completed' : ''}">
+                <i class="bi ${step.completed ? 'bi-check-circle' : 'bi-circle'} me-2"></i>
+                <span>${step.text}</span>
+            </div>
+        `).join('');
+    }
+
+    // Initialize Reflection Prompts
+    const reflectionPrompts = [
+        lang === 'fr' ? 
+            'Quelle partie du problème trouvez-vous la plus difficile ?' :
+            'Which part of the problem do you find most challenging?',
+        lang === 'fr' ?
+            'Comment avez-vous décomposé ce problème ?' :
+            'How did you break down this problem?',
+        lang === 'fr' ?
+            'Quelle stratégie utilisez-vous pour déboguer votre code ?' :
+            'What strategy are you using to debug your code?'
+    ];
+
+    function updateReflectionPrompt() {
+        const prompt = document.getElementById('reflectionPrompt');
+        prompt.textContent = reflectionPrompts[Math.floor(Math.random() * reflectionPrompts.length)];
+    }
+
+    // Adaptive Hint System
+    function showHint(level) {
+        const hintContainer = document.getElementById('hintContainer');
+        const hints = {
+            1: lang === 'fr' ? 
+                'Commencez par comprendre les entrées et sorties requises.' :
+                'Start by understanding the required inputs and outputs.',
+            2: lang === 'fr' ?
+                'Pensez à décomposer le problème en plus petites étapes.' :
+                'Consider breaking down the problem into smaller steps.',
+            3: lang === 'fr' ?
+                'Vérifiez les cas limites dans votre solution.' :
+                'Check for edge cases in your solution.'
+        };
+
+        const hint = hints[level] || hints[1];
+        const hintElement = document.createElement('div');
+        hintElement.className = 'hint-content visible';
+        hintElement.textContent = hint;
+        hintContainer.appendChild(hintElement);
+    }
+
+    // Real-time Feedback
+    function showFeedback(message, type = 'info') {
+        const panel = document.getElementById('feedbackPanel');
+        const content = document.getElementById('feedbackContent');
+        content.textContent = message;
+        panel.classList.add('visible');
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            panel.classList.remove('visible');
+        }, 5000);
+    }
+
+    function closeFeedbackPanel() {
+        document.getElementById('feedbackPanel').classList.remove('visible');
+    }
+
     // Initial load
     loadSolutionComparisons();
+    updateTaskSteps();
+    updateReflectionPrompt();
 });
 </script>
 {% endblock %}
