@@ -3,7 +3,7 @@ Curriculum Data Importer
 Parses and imports Ontario CS curriculum data into the database
 """
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 from app import db
 
@@ -23,7 +23,7 @@ class CurriculumImporter:
         title_en = "Introduction to Computer Science"
         desc_fr = ""
         desc_en = ""
-        
+
         for i, line in enumerate(lines):
             if "ICS3U" in line:
                 # Extract French title from previous lines
@@ -31,15 +31,15 @@ class CurriculumImporter:
                 # Extract French description
                 desc_fr = self.clean_text(lines[i+2])
                 break
-                
+
         return title_fr, title_en, desc_fr, desc_en
 
-    def parse_strand(self, text: str) -> Dict:
+    def parse_strand(self, text: str) -> Optional[Dict[str, str]]:
         """Parse strand information"""
         parts = text.split('.')
         if len(parts) < 2:
             return None
-            
+
         code = parts[0].strip()
         title_fr = ' '.join(parts[1:]).strip()
         # For now, we'll keep English titles mapped manually
@@ -50,23 +50,23 @@ class CurriculumImporter:
             'D': 'Computer Science Topics'
         }
         title_en = title_map.get(code, title_fr)
-        
+
         return {
             'code': code,
             'title_fr': title_fr,
             'title_en': title_en
         }
 
-    def parse_expectation(self, text: str) -> Dict:
+    def parse_expectation(self, text: str) -> Optional[Dict[str, str]]:
         """Parse expectation codes and descriptions"""
         # Extract code (e.g., A1.1, B2.3)
         code_match = re.match(r'([A-D][0-9]+(\.[0-9]+)?)', text)
         if not code_match:
             return None
-            
+
         code = code_match.group(1)
         description = text[len(code):].strip()
-        
+
         # For now, English descriptions will be placeholders
         # In a real implementation, these would come from a mapping or translation
         return {
@@ -78,7 +78,7 @@ class CurriculumImporter:
     def import_curriculum(self, content: str):
         """Import curriculum content into database"""
         lines = content.split('\n')
-        
+
         # Create course
         title_fr, title_en, desc_fr, desc_en = self.parse_course_info(lines)
         course = Course(
@@ -90,15 +90,15 @@ class CurriculumImporter:
         )
         db.session.add(course)
         db.session.flush()
-        
+
         current_strand = None
         current_overall = None
-        
+
         for line in lines:
             line = line.strip()
             if not line:
                 continue
-                
+
             # Parse strand
             if re.match(r'^[A-D]\.', line):
                 strand_data = self.parse_strand(line)
@@ -109,7 +109,7 @@ class CurriculumImporter:
                     )
                     db.session.add(current_strand)
                     db.session.flush()
-                    
+
             # Parse overall expectation
             elif re.match(r'^[A-D][0-9]+', line):
                 exp_data = self.parse_expectation(line)
@@ -120,7 +120,7 @@ class CurriculumImporter:
                     )
                     db.session.add(current_overall)
                     db.session.flush()
-                    
+
             # Parse specific expectation
             elif re.match(r'^[A-D][0-9]+\.[0-9]+', line):
                 exp_data = self.parse_expectation(line)
@@ -130,5 +130,5 @@ class CurriculumImporter:
                         **exp_data
                     )
                     db.session.add(specific)
-        
+
         db.session.commit()

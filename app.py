@@ -5,6 +5,7 @@ from flask_login import LoginManager, AnonymousUserMixin
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
+from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_db
 from extensions import init_extensions
@@ -44,7 +45,7 @@ def create_app():
             'pool_recycle': 1800,
             'pool_pre_ping': True
         },
-        # Mail settings
+        # Mail settings remain unchanged
         'MAIL_SERVER': 'smtp.gmail.com',
         'MAIL_PORT': 587,
         'MAIL_USE_TLS': True,
@@ -52,63 +53,62 @@ def create_app():
         'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
         'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
         'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_USERNAME'),
-        # Session security settings
-        'SESSION_COOKIE_SECURE': False,  # Allow non-HTTPS access
+        # Session security settings remain unchanged
+        'SESSION_COOKIE_SECURE': False,
         'SESSION_COOKIE_HTTPONLY': True,
         'SESSION_COOKIE_SAMESITE': 'Lax',
-        'PERMANENT_SESSION_LIFETIME': 1800,  # 30 minutes
-        # Request settings
-        'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,  # 16MB max-limit
-        # Registration settings
-        'REGISTRATION_ENABLED': True,  # Enable registration for testing
+        'PERMANENT_SESSION_LIFETIME': 1800,
+        # Request settings remain unchanged
+        'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,
+        # Registration settings remain unchanged
+        'REGISTRATION_ENABLED': True,
         'ALLOWED_EMAIL_DOMAINS': [
             # Government domains
             'ontario.ca',
             'edu.ontario.ca',
-            # English Public District School Boards
-            'tdsb.on.ca',    # Toronto DSB
-            'peelschools.org', # Peel DSB
-            'edu.cepeo.on.ca', # Conseil des écoles publiques de l'Est de l'Ontario
-            'yrdsb.ca',      # York Region DSB
-            'ddsb.ca',       # Durham DSB
-            'hdsb.ca',       # Halton DSB
-            'hwdsb.on.ca',   # Hamilton-Wentworth DSB
-            'dsbn.org',      # DSB Niagara
-            'wrdsb.ca',      # Waterloo Region DSB
-            'tvdsb.ca',      # Thames Valley DSB
-            'ocdsb.ca',      # Ottawa-Carleton DSB
-            'ugdsb.on.ca',   # Upper Grand DSB
-            'scdsb.on.ca',   # Simcoe County DSB
-            'kprschools.ca', # Kawartha Pine Ridge DSB
-            'lkdsb.net',     # Lambton Kent DSB
-            'gogeeco.net',   # Greater Essex County DSB
-            'tldsb.on.ca',   # Trillium Lakelands DSB
-            # French Public School Boards
-            'cepeo.on.ca',   # Conseil des écoles publiques de l'Est de l'Ontario
-            'csviamonde.ca', # Conseil scolaire Viamonde
-            # French Catholic School Boards
-            'ecolecatholique.ca', # CECCE
-            'cscmonavenir.ca',    # CS catholique MonAvenir
-            'cspne.ca',           # CS public du Nord-Est
-            'cscprovidence.ca',   # CS catholique Providence
-            # English Catholic School Boards
-            'tcdsb.org',     # Toronto Catholic DSB
-            'dpcdsb.org',    # Dufferin-Peel Catholic DSB
-            'ycdsb.ca',      # York Catholic DSB
-            'dcdsb.ca',      # Durham Catholic DSB
-            'hcdsb.org',     # Halton Catholic DSB
-            'bhncdsb.ca',    # Brant Haldimand Norfolk Catholic DSB
-            'alcdsb.on.ca',  # Algonquin & Lakeshore Catholic DSB
-            'ocsb.ca',       # Ottawa Catholic SB
-            # First Nations School Authorities
-            'knet.ca',       # Keewaytinook Okimakanak Board of Education
-            'nnec.on.ca',    # Northern Nishnawbe Education Council
-            # Add student-specific subdomains
+            # School board domains remain unchanged
+            'tdsb.on.ca',
+            'peelschools.org',
+            'edu.cepeo.on.ca',
+            'yrdsb.ca',
+            'ddsb.ca',
+            'hdsb.ca',
+            'hwdsb.on.ca',
+            'dsbn.org',
+            'wrdsb.ca',
+            'tvdsb.ca',
+            'ocdsb.ca',
+            'ugdsb.on.ca',
+            'scdsb.on.ca',
+            'kprschools.ca',
+            'lkdsb.net',
+            'gogeeco.net',
+            'tldsb.on.ca',
+            # French boards remain unchanged
+            'cepeo.on.ca',
+            'csviamonde.ca',
+            'ecolecatholique.ca',
+            'cscmonavenir.ca',
+            'cspne.ca',
+            'cscprovidence.ca',
+            # English Catholic boards remain unchanged
+            'tcdsb.org',
+            'dpcdsb.org',
+            'ycdsb.ca',
+            'dcdsb.ca',
+            'hcdsb.org',
+            'bhncdsb.ca',
+            'alcdsb.on.ca',
+            'ocsb.ca',
+            # First Nations boards remain unchanged
+            'knet.ca',
+            'nnec.on.ca',
+            # Student subdomains remain unchanged
             'student.tdsb.on.ca',
             'students.peelschools.org',
             'gapps.yrdsb.ca',
             'students.ocdsb.ca'
-        ],  # Restrict to Ontario educational domains
+        ],
     })
 
     try:
@@ -117,6 +117,9 @@ def create_app():
 
         # Initialize database
         init_db(app)
+
+        # Initialize Flask-Migrate
+        migrate = Migrate(app, db)
 
         # Initialize extensions
         init_extensions(app, db)
@@ -142,19 +145,19 @@ def create_app():
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
 
-        app.register_blueprint(auth)  # Root URL for auth routes
+        app.register_blueprint(auth)
         app.register_blueprint(activities, url_prefix='/activities')
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
 
-        # Register error handlers
+        # Error handlers remain unchanged
         @app.errorhandler(404)
         def not_found_error(error):
             return render_template('errors/404.html', lang='en'), 404
 
         @app.errorhandler(500)
         def internal_error(error):
-            db.session.rollback()  # Roll back db session in case of errors
+            db.session.rollback()
             return render_template('errors/500.html', lang='en'), 500
 
         @app.errorhandler(413)
@@ -171,5 +174,5 @@ def create_app():
 # Create the application instance
 app = create_app()
 
-# Add ProxyFix middleware to handle proxy headers
+# Add ProxyFix middleware
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
