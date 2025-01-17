@@ -3,7 +3,7 @@ Activity routes with curriculum compliance integration
 """
 from flask import Blueprint, jsonify, request, render_template, abort
 from utils.curriculum_checker import CurriculumChecker
-from models import db, Activity, Student
+from models import db, CodingActivity, Student
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ def enhanced_learning(activity_id):
     Enhanced learning interface with curriculum alignment
     """
     try:
-        activity = Activity.query.get_or_404(activity_id)
+        activity = CodingActivity.query.get_or_404(activity_id)
         # Default to English, can be made dynamic based on user preferences
         lang = request.args.get('lang', 'en')
         # Default to ICS4U, can be made dynamic based on student's grade level
@@ -28,7 +28,7 @@ def enhanced_learning(activity_id):
             activity.starter_code = str(activity.starter_code)
 
         return render_template(
-            'activities/view.html',  # Use existing view template
+            'activities/view.html',
             activity=activity,
             lang=lang,
             curriculum=curriculum
