@@ -268,6 +268,25 @@
         font-weight: 500;
         margin-bottom: 4px;
     }
+
+    .curriculum-level-indicator {
+        background-color: #2d2d2d;
+        border-left: 4px solid #007bff; /* Blue border */
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .curriculum-objectives {
+        margin-top: 1rem;
+    }
+    .curriculum-objectives p {
+        margin-bottom: 0.5rem; /* Adjust spacing as needed */
+    }
+    .curriculum-level-indicator .current-level {
+        background-color: #343a40;
+        padding: 15px;
+        border-radius: 4px;
+    }
 </style>
 {% endblock %}
 
@@ -278,6 +297,34 @@
         <div class="col-md-4">
             <div class="card mb-4 bg-dark text-light border-secondary">
                 <div class="card-body">
+                    <!-- Curriculum Level Indicator -->
+                    <div class="curriculum-level-indicator mb-4">
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Niveau du Programme{% else %}Curriculum Level{% endif %}
+                        </h4>
+                        <div class="current-level p-3 bg-secondary rounded">
+                            <h5 class="mb-2">
+                                {% if curriculum == 'ICS4U' %}
+                                    {% if lang == 'fr' %}12e année - C# Avancé (ICS4U){% else %}Grade 12 - Advanced C# (ICS4U){% endif %}
+                                {% elif curriculum == 'ICS3U' %}
+                                    {% if lang == 'fr' %}11e année - C# (ICS3U){% else %}Grade 11 - C# (ICS3U){% endif %}
+                                {% elif curriculum == 'ICS2O' %}
+                                    {% if lang == 'fr' %}10e année - C# (ICS2O){% else %}Grade 10 - C# (ICS2O){% endif %}
+                                {% elif curriculum == 'TEJ2O' %}
+                                    {% if lang == 'fr' %}10e année - C++ (TEJ2O){% else %}Grade 10 - C++ (TEJ2O){% endif %}
+                                {% endif %}
+                            </h5>
+                            <div class="curriculum-objectives">
+                                <p class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    {% if lang == 'fr' %}Adapté à votre niveau{% else %}Adapted to your level{% endif %}
+                                </p>
+                                <p class="mb-0"><i class="bi bi-arrow-up-circle-fill text-info me-2"></i>
+                                    {% if lang == 'fr' %}Progression personnalisée{% else %}Personalized progression{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Cognitive Level Indicator -->
                     <div class="cognitive-level-indicator">
                         <h4 class="text-primary">
@@ -311,17 +358,7 @@
                                 {% if lang == 'fr' %}Progression de la Pensée{% else %}Thinking Progress{% endif %}
                             </h4>
                             <div id="taskSteps">
-                                <div class="task-step">
-                                    <div class="step-content">
-                                        <span class="step-title">{% if lang == 'fr' %}Comprendre{% else %}Understanding{% endif %}</span>
-                                        <div class="step-indicators d-flex mt-1">
-                                            <span class="indicator" data-type="read"></span>
-                                            <span class="indicator" data-type="analyze"></span>
-                                            <span class="indicator" data-type="question"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <!-- Add more process-focused steps -->
+                                <!-- Task steps will be populated dynamically based on curriculum level -->
                             </div>
                         </div>
 
@@ -332,8 +369,8 @@
                             </h4>
                             <div id="reflectionArea">
                                 <div class="reflection-question mb-2" id="currentPrompt"></div>
-                                <textarea class="form-control bg-dark text-light mb-2" 
-                                        id="reflectionResponse" 
+                                <textarea class="form-control bg-dark text-light mb-2"
+                                        id="reflectionResponse"
                                         rows="3"
                                         placeholder="{% if lang == 'fr' %}Votre réflexion ici...{% else %}Your reflection here...{% endif %}">
                                 </textarea>
@@ -360,8 +397,8 @@
                         </h4>
                         <div class="confidence-buttons d-flex justify-content-between mb-3">
                             {% for i in range(1, 6) %}
-                            <button type="button" 
-                                    class="btn btn-outline-primary confidence-btn position-relative" 
+                            <button type="button"
+                                    class="btn btn-outline-primary confidence-btn position-relative"
                                     data-value="{{ i }}">
                                 {{ i }}
                                 <span class="confidence-tooltip">
@@ -398,7 +435,7 @@
                     </h4>
                     <div class="btn-group">
                         <button id="runCode" class="btn btn-primary">
-                            <i class="bi bi-play-fill"></i> 
+                            <i class="bi bi-play-fill"></i>
                             {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
                         </button>
                         <button id="resetCode" class="btn btn-outline-secondary">
@@ -610,42 +647,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Initialize Task Breakdown
-    const taskSteps = [
-        {
-            id: 1,
-            text: lang === 'fr' ? 'Comprendre le problème' : 'Understand the problem',
-            completed: false
-        },
-        {
-            id: 2,
-            text: lang === 'fr' ? 'Planifier la solution' : 'Plan the solution',
-            completed: false
-        },
-        {
-            id: 3,
-            text: lang === 'fr' ? 'Implémenter le code' : 'Implement the code',
-            completed: false
-        },
-        {
-            id: 4,
-            text: lang === 'fr' ? 'Tester et déboguer' : 'Test and debug',
-            completed: false
-        }
-    ];
+    const curriculumLevel = '{{ curriculum }}';
+    const taskSteps = {
+        'ICS4U': [
+            { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
+            { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
+            { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
+            { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
+        ],
+        'ICS3U': [
+            { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
+            { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
+            { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
+            { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
+        ],
+        'ICS2O': [
+            { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
+            { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
+            { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
+        ],
+        'TEJ2O': [
+            { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
+            { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
+            { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
+        ]
+    };
 
     function updateTaskSteps() {
         const container = document.getElementById('taskSteps');
-        container.innerHTML = taskSteps.map(step => `
-            <div class="task-step ${step.completed ? 'completed' : ''}">
-                <i class="bi ${step.completed ? 'bi-check-circle' : 'bi-circle'} me-2"></i>
-                <span>${step.text}</span>
+        const steps = taskSteps[curriculumLevel] || taskSteps['ICS2O']; // Default to ICS2O if level not found
+
+        container.innerHTML = steps.map(step => `
+            <div class="task-step">
+                <div class="step-content">
+                    <span class="step-title">${step.text}</span>
+                    <div class="step-indicators d-flex mt-1">
+                        <span class="indicator" data-type="read"></span>
+                        <span class="indicator" data-type="analyze"></span>
+                        <span class="indicator" data-type="question"></span>
+                    </div>
+                </div>
             </div>
         `).join('');
     }
 
     // Initialize Reflection Prompts
     const reflectionPrompts = [
-        lang === 'fr' ? 
+        lang === 'fr' ?
             'Quelle partie du problème trouvez-vous la plus difficile ?' :
             'Which part of the problem do you find most challenging?',
         lang === 'fr' ?
@@ -657,7 +705,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ];
 
     function updateReflectionPrompt() {
-        const prompt = document.getElementById('reflectionPrompt');
+        const prompt = document.getElementById('currentPrompt');
         prompt.textContent = reflectionPrompts[Math.floor(Math.random() * reflectionPrompts.length)];
     }
 
@@ -665,7 +713,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showHint(level) {
         const hintContainer = document.getElementById('hintContainer');
         const hints = {
-            1: lang === 'fr' ? 
+            1: lang === 'fr' ?
                 'Commencez par comprendre les entrées et sorties requises.' :
                 'Start by understanding the required inputs and outputs.',
             2: lang === 'fr' ?
@@ -708,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize metacognitive components from edited snippet
     const reflectionPrompts2 = {
         understanding: [
-            lang === 'fr' ? 
+            lang === 'fr' ?
                 'Comment approchez-vous ce problème différemment des précédents ?' :
                 'How are you approaching this problem differently from previous ones?',
             lang === 'fr' ?
