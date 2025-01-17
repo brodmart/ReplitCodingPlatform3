@@ -13,8 +13,8 @@ from utils.curriculum_importer import CurriculumImporter
 def main():
     # Initialize database connection within app context
     with app.app_context():
-        # Read ICS3U curriculum content from file
-        with open('attached_assets/Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-1737142253494.txt', 'r', encoding='utf-8') as f:
+        # Read ICS3U curriculum content from file (using the cleaner version)
+        with open('attached_assets/Pasted-Introduction-au-g-nie-e-informatique-11-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initi-1737143859140.txt', 'r', encoding='utf-8') as f:
             content = f.read()
 
         # Import curriculum data
