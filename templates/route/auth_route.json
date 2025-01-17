@@ -1,0 +1,16 @@
+{
+  "name": "auth_route",
+  "description": "Template for route",
+  "context": {
+    "language": "python",
+    "purpose": "route",
+    "complexity": "medium",
+    "metadata": {
+      "auth_required": true
+    }
+  },
+  "content": "\nfrom flask import Blueprint, render_template\nfrom flask_login import login_required\n\nblueprint = Blueprint('{{name}}', __name__)\n\n@blueprint.route('/{{route}}')\n@login_required\ndef {{view_function}}():\n    return render_template('{{template}}.html')\n",
+  "last_used": "2025-01-17T14:49:00.549723",
+  "usage_count": 0,
+  "relevance_score": 0.0
+}

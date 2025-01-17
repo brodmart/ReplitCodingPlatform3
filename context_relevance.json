@@ -1,0 +1,38 @@
+{
+  "project_memory.md": {
+    "score": 0.3610435717280381,
+    "last_accessed": "2025-01-17T14:49:00.597392",
+    "access_count": 14,
+    "importance_weight": 1.0
+  },
+  "security_recommendations.md": {
+    "score": 0.3342326823288718,
+    "last_accessed": "2025-01-17T14:49:00.587830",
+    "access_count": 8,
+    "importance_weight": 1.0
+  },
+  "architectural_decisions.md": {
+    "score": 0.36868837885331246,
+    "last_accessed": "2025-01-17T14:49:00.590087",
+    "access_count": 8,
+    "importance_weight": 1.0
+  },
+  "development_patterns.md": {
+    "score": 0.3377723794912935,
+    "last_accessed": "2025-01-17T14:49:00.592378",
+    "access_count": 8,
+    "importance_weight": 1.0
+  },
+  "integration_notes.md": {
+    "score": 0.324,
+    "last_accessed": "2025-01-17T14:49:00.593883",
+    "access_count": 8,
+    "importance_weight": 1.0
+  },
+  "AI_CONTEXT.md": {
+    "score": 0.3501619366088239,
+    "last_accessed": "2025-01-17T14:49:00.595673",
+    "access_count": 8,
+    "importance_weight": 1.0
+  }
+}

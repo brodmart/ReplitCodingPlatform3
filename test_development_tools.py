@@ -5,6 +5,7 @@ Test module for development speed multipliers and memory system improvements
 import logging
 from utils.template_manager import TemplateManager, TemplateContext
 from utils.memory_manager import memory_manager
+from utils.validation_manager import validation_manager
 import unittest
 from datetime import datetime
 
@@ -15,6 +16,7 @@ class TestDevelopmentTools(unittest.TestCase):
     def setUp(self):
         self.template_manager = TemplateManager()
         self.memory_manager = memory_manager
+        self.validation_manager = validation_manager
 
     def test_template_creation(self):
         """Test template creation and retrieval"""
@@ -24,7 +26,7 @@ class TestDevelopmentTools(unittest.TestCase):
             complexity="medium",
             metadata={"auth_required": True}
         )
-        
+
         template_content = """
 from flask import Blueprint, render_template
 from flask_login import login_required
@@ -36,7 +38,7 @@ blueprint = Blueprint('{{name}}', __name__)
 def {{view_function}}():
     return render_template('{{template}}.html')
 """
-        
+
         # Create template
         success = self.template_manager.create_template(
             "auth_route",
@@ -44,7 +46,7 @@ def {{view_function}}():
             context
         )
         self.assertTrue(success)
-        
+
         # Retrieve template
         template = self.template_manager.get_template(context)
         self.assertIsNotNone(template)
@@ -56,7 +58,7 @@ def {{view_function}}():
         Implementing user authentication system with secure password hashing
         and session management. Adding OAuth support for third-party login.
         """
-        
+
         # Calculate relevance for project memory
         relevance = self.memory_manager.calculate_context_relevance(
             "project_memory.md",
@@ -68,10 +70,37 @@ def {{view_function}}():
         """Test context compression"""
         compressed_path = self.memory_manager.compress_context("project_memory.md")
         self.assertIsNotNone(compressed_path)
-        
+
         with open(compressed_path, 'r') as f:
             compressed_content = f.read()
         self.assertIn("# Compressed Context Summary", compressed_content)
+
+        # Cleanup
+        import os
+        if os.path.exists(compressed_path):
+            os.remove(compressed_path)
+
+    def test_validation_system(self):
+        """Test automated validation system"""
+        # Run full validation suite
+        results = self.validation_manager.run_validation_suite()
+        self.assertTrue(len(results) > 0)
+
+        # Check file integrity validation
+        integrity_result = self.validation_manager.validate_file_integrity()
+        self.assertTrue(integrity_result.passed)
+
+        # Check cross-reference validation
+        xref_result = self.validation_manager.validate_cross_references()
+        self.assertTrue(xref_result.passed)
+
+        # Check context relevance validation
+        relevance_result = self.validation_manager.validate_context_relevance()
+        self.assertTrue(relevance_result.passed)
+
+        # Check compression quality validation
+        compression_result = self.validation_manager.validate_compression_quality()
+        self.assertTrue(compression_result.passed)
 
 def main():
     logger.info("Starting development tools tests...")

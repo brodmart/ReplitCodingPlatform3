@@ -1,0 +1,136 @@
+[
+  {
+    "timestamp": "2025-01-17T14:46:02.577182",
+    "passed": true,
+    "message": "All memory files present and valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:46:02.579455",
+    "passed": true,
+    "message": "All cross-references valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:46:02.597994",
+    "passed": true,
+    "message": "Context relevance scores within acceptable range",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:46:02.606063",
+    "passed": false,
+    "message": "Compression quality issues in: ['security_recommendations.md', 'architectural_decisions.md', 'development_patterns.md', 'integration_notes.md', 'AI_CONTEXT.md', 'project_memory.md']",
+    "context": {
+      "compression_issues": [
+        "security_recommendations.md",
+        "architectural_decisions.md",
+        "development_patterns.md",
+        "integration_notes.md",
+        "AI_CONTEXT.md",
+        "project_memory.md"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-01-17T14:46:58.718897",
+    "passed": true,
+    "message": "All memory files present and valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:46:58.719405",
+    "passed": true,
+    "message": "All cross-references valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:46:58.737024",
+    "passed": true,
+    "message": "Context relevance scores within acceptable range",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:46:58.740207",
+    "passed": false,
+    "message": "Compression quality issues in: ['security_recommendations.md', 'architectural_decisions.md', 'development_patterns.md', 'integration_notes.md', 'AI_CONTEXT.md', 'project_memory.md']",
+    "context": {
+      "compression_issues": [
+        "security_recommendations.md",
+        "architectural_decisions.md",
+        "development_patterns.md",
+        "integration_notes.md",
+        "AI_CONTEXT.md",
+        "project_memory.md"
+      ]
+    }
+  },
+  {
+    "timestamp": "2025-01-17T14:48:10.886847",
+    "passed": true,
+    "message": "All memory files present and valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:48:10.887414",
+    "passed": true,
+    "message": "All cross-references valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:48:10.905493",
+    "passed": true,
+    "message": "Context relevance scores within acceptable range",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:48:10.899449",
+    "passed": false,
+    "message": "Compression quality issues in: ['security_recommendations.md (high ratio: 1.67)', 'architectural_decisions.md (high ratio: 1.73)', 'development_patterns.md (high ratio: 1.47)', 'integration_notes.md (high ratio: 1.63)', 'AI_CONTEXT.md (high ratio: 1.23)', 'project_memory.md (high ratio: 1.49)']",
+    "context": {
+      "compression_issues": [
+        "security_recommendations.md (high ratio: 1.67)",
+        "architectural_decisions.md (high ratio: 1.73)",
+        "development_patterns.md (high ratio: 1.47)",
+        "integration_notes.md (high ratio: 1.63)",
+        "AI_CONTEXT.md (high ratio: 1.23)",
+        "project_memory.md (high ratio: 1.49)"
+      ],
+      "skipped_files": []
+    }
+  },
+  {
+    "timestamp": "2025-01-17T14:49:00.556470",
+    "passed": true,
+    "message": "All memory files present and valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:49:00.559352",
+    "passed": true,
+    "message": "All cross-references valid",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:49:00.584431",
+    "passed": true,
+    "message": "Context relevance scores within acceptable range",
+    "context": {}
+  },
+  {
+    "timestamp": "2025-01-17T14:49:00.577051",
+    "passed": false,
+    "message": "Compression quality issues in: ['security_recommendations.md (high ratio: 1.67)', 'architectural_decisions.md (high ratio: 1.73)', 'development_patterns.md (high ratio: 1.47)', 'integration_notes.md (high ratio: 1.63)', 'AI_CONTEXT.md (high ratio: 1.23)', 'project_memory.md (high ratio: 1.49)']",
+    "context": {
+      "compression_issues": [
+        "security_recommendations.md (high ratio: 1.67)",
+        "architectural_decisions.md (high ratio: 1.73)",
+        "development_patterns.md (high ratio: 1.47)",
+        "integration_notes.md (high ratio: 1.63)",
+        "AI_CONTEXT.md (high ratio: 1.23)",
+        "project_memory.md (high ratio: 1.49)"
+      ],
+      "skipped_files": []
+    }
+  }
+]

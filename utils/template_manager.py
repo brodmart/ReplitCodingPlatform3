@@ -47,9 +47,12 @@ class TemplateManager:
     def _ensure_template_directory(self) -> None:
         """Ensure template directory exists with proper structure"""
         os.makedirs(self.template_dir, exist_ok=True)
-        categories = ['routes', 'models', 'forms', 'tests']
+        # Create all category subdirectories
+        categories = ['routes', 'models', 'forms', 'tests', 'route']  # Added 'route' for auth_route template
         for category in categories:
-            os.makedirs(os.path.join(self.template_dir, category), exist_ok=True)
+            category_dir = os.path.join(self.template_dir, category)
+            os.makedirs(category_dir, exist_ok=True)
+            logger.info(f"Ensured template directory exists: {category_dir}")
 
     def load_templates(self) -> None:
         """Load all templates with parallel processing"""
@@ -63,7 +66,7 @@ class TemplateManager:
             self.executor.submit(self._load_single_template, file)
             for file in template_files
         ]
-        
+
         for future in futures:
             template = future.result()
             if template:
@@ -90,7 +93,7 @@ class TemplateManager:
     def get_template(self, context: TemplateContext) -> Optional[Template]:
         """Get most relevant template based on context"""
         relevant_templates = []
-        
+
         for template in self.template_cache.values():
             score = self._calculate_relevance(template, context)
             template.relevance_score = score
@@ -105,22 +108,22 @@ class TemplateManager:
     def _calculate_relevance(self, template: Template, context: TemplateContext) -> float:
         """Calculate template relevance score based on context"""
         score = 0.0
-        
+
         # Language match
         if template.context.language == context.language:
             score += 0.4
-        
+
         # Purpose match
         if template.context.purpose == context.purpose:
             score += 0.3
-        
+
         # Complexity match
         if template.context.complexity == context.complexity:
             score += 0.2
-        
+
         # Usage frequency bonus
         score += min(0.1, template.usage_count / 100)
-        
+
         return score
 
     def create_template(self, name: str, content: str, context: TemplateContext) -> bool:
@@ -135,13 +138,16 @@ class TemplateManager:
                 usage_count=0,
                 relevance_score=0.0
             )
-            
-            file_path = os.path.join(
+
+            # Ensure category directory exists
+            category_dir = os.path.join(
                 self.template_dir,
-                context.purpose.lower(),
-                f"{name}.json"
+                context.purpose.lower()
             )
-            
+            os.makedirs(category_dir, exist_ok=True)
+
+            file_path = os.path.join(category_dir, f"{name}.json")
+
             template_data = {
                 'name': template.name,
                 'description': template.description,
@@ -156,13 +162,14 @@ class TemplateManager:
                 'usage_count': template.usage_count,
                 'relevance_score': template.relevance_score
             }
-            
+
             with open(file_path, 'w') as f:
                 json.dump(template_data, f, indent=2)
-            
+
             self.template_cache[name] = template
+            logger.info(f"Successfully created template: {name} in {file_path}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Error creating template: {str(e)}")
             return False
@@ -173,11 +180,11 @@ class TemplateManager:
             template = self.template_cache[template_name]
             template.usage_count += 1
             template.last_used = datetime.now()
-            
+
             # Update template file
             category = template.context.purpose.lower()
             file_path = os.path.join(self.template_dir, category, f"{template_name}.json")
-            
+
             if os.path.exists(file_path):
                 with open(file_path, 'r+') as f:
                     data = json.load(f)

@@ -374,35 +374,65 @@ class MemoryManager:
             return []
 
     def compress_context(self, file_path: str) -> Optional[str]:
+        """Compress and summarize context while maintaining key information"""
         try:
             with open(file_path, 'r') as f:
                 content = f.read()
 
+            # Skip compression for small files
+            if len(content) < 1000:
+                logger.info(f"File too small to compress: {file_path}")
+                return None
+
+            # Extract headers with importance levels (1-3)
             headers = re.findall(r'^#{1,3}\s+.*$', content, re.MULTILINE)
+
+            # Extract key points (bullet points)
             key_points = re.findall(r'^\s*[-*]\s+.*$', content, re.MULTILINE)
 
+            # Score and extract important sentences
             sentences = re.split(r'[.!?]+', content)
             sentence_scores = []
 
+            # Improved scoring system
             for sentence in sentences:
                 score = 0
-                if any(term in sentence.lower() for term in ['important', 'critical', 'key', 'must']):
+                # Keywords that indicate importance
+                importance_keywords = ['important', 'critical', 'key', 'must', 'essential', 'required']
+                technical_keywords = ['implement', 'system', 'architecture', 'database', 'security']
+
+                # Score based on keywords
+                if any(term in sentence.lower() for term in importance_keywords):
                     score += 2
+                if any(term in sentence.lower() for term in technical_keywords):
+                    score += 1
+
+                # Prefer sentences of reasonable length (not too short, not too long)
                 if 10 <= len(sentence.split()) <= 30:
                     score += 1
+
+                # Additional score for sentences that appear near headers
+                if any(header in sentence for header in headers):
+                    score += 1
+
                 sentence_scores.append((sentence, score))
 
+            # Select top-scoring sentences
             important_sentences = [s[0] for s in sorted(sentence_scores, key=lambda x: x[1], reverse=True)[:10]]
 
-            compressed_content = "# Compressed Context Summary\n\n"
-            compressed_content += "## Key Headers\n" + '\n'.join(headers) + "\n\n"
-            compressed_content += "## Important Points\n" + '\n'.join(key_points) + "\n\n"
-            compressed_content += "## Key Content\n" + '\n'.join(important_sentences)
+            # Create compressed content with clear structure
+            compressed_content = [
+                "# Compressed Context Summary\n",
+                "## Key Headers\n" + '\n'.join(headers) + "\n",
+                "## Important Points\n" + '\n'.join(key_points) + "\n",
+                "## Key Content\n" + '\n'.join(f"- {s.strip()}" for s in important_sentences)
+            ]
 
             compressed_path = file_path + '.compressed'
             with open(compressed_path, 'w') as f:
-                f.write(compressed_content)
+                f.write('\n\n'.join(compressed_content))
 
+            logger.info(f"Successfully compressed {file_path} to {compressed_path}")
             return compressed_path
 
         except Exception as e:
