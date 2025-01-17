@@ -106,6 +106,30 @@
         justify-content: space-between;
         align-items: center;
     }
+    .editor-console-row {
+        display: flex;
+        gap: 20px;
+    }
+    .editor-column, .console-column {
+        flex: 1;
+        min-width: 0; /* Allow columns to shrink */
+    }
+    .bottom-bar {
+        background-color: #333;
+        padding: 10px 0;
+        margin-top: 20px;
+    }
+    .status-indicators, .action-buttons {
+        display: flex;
+        align-items: center;
+    }
+    .status-indicators span {
+        margin-right: 10px;
+    }
+    .action-buttons button {
+        margin-left: 10px;
+    }
+
 </style>
 {% endblock %}
 
@@ -124,8 +148,8 @@
         </div>
     </div>
 
-    <div class="editor-row">
-        <div class="editor-container">
+    <div class="editor-console-row">
+        <div class="editor-column">
             <div class="card">
                 <div class="card-header">
                     <span class="header-title">{% if lang == 'fr' %}Code{% else %}Code{% endif %}</span>
@@ -136,11 +160,13 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <textarea id="editor"></textarea>
+                    <div class="editor-container">
+                        <textarea id="editor"></textarea>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="output-container">
+        <div class="console-column">
             <div class="card">
                 <div class="card-header">
                     <span class="header-title">{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
@@ -158,6 +184,26 @@
                                    autocomplete="off"
                                    spellcheck="false">
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Added Bottom Bar -->
+    <div class="bottom-bar">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col d-flex justify-content-between align-items-center">
+                    <div class="status-indicators">
+                        <span class="text-muted">{% if lang == 'fr' %}État{% else %}Status{% endif %}: </span>
+                        <span class="text-success">Ready</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline-light">
+                            <i class="bi bi-gear"></i>
+                            {% if lang == 'fr' %}Paramètres{% else %}Settings{% endif %}
+                        </button>
                     </div>
                 </div>
             </div>
