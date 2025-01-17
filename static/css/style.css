@@ -251,7 +251,8 @@ html, body {
     flex-direction: column;
     gap: 20px;
     width: 100%;
-    margin: 0;
+    max-width: 95%; /* Add max-width constraint */
+    margin: 0 auto; /* Center the container */
     padding: 0 20px;
 }
 
@@ -267,7 +268,6 @@ html, body {
     width: 100%;
     height: 400px;
 }
-
 
 /* Console Container */
 .console-container {
@@ -288,6 +288,7 @@ html, body {
 @media (max-width: 768px) {
     .editor-console-row {
         flex-direction: column;
+        max-width: 100%; /* Full width on mobile */
     }
 
     .editor-column,
@@ -301,8 +302,16 @@ html, body {
         height: 400px;
     }
 }
+
 .console-container,
 .output-container {
     width: 100%;
     max-width: none;
+}
+
+/* Add container width control */
+.container-fluid {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 0 15px;
 }
