@@ -22,8 +22,13 @@ def enhanced_learning(activity_id):
         # Default to ICS4U, can be made dynamic based on student's grade level
         curriculum = request.args.get('curriculum', 'ICS4U')
 
+        if activity.starter_code is None:
+            activity.starter_code = ''
+        elif not isinstance(activity.starter_code, str):
+            activity.starter_code = str(activity.starter_code)
+
         return render_template(
-            'activities/enhanced_learning.html',
+            'activities/view.html',  # Use existing view template
             activity=activity,
             lang=lang,
             curriculum=curriculum
