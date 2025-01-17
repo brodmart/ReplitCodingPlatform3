@@ -150,14 +150,20 @@ class CodeSubmission(db.Model):
     """Model for storing student code submissions"""
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
     language = db.Column(db.String(20), nullable=False)
     code = db.Column(db.Text, nullable=False)
     success = db.Column(db.Boolean, default=False)
     output = db.Column(db.Text)
     error = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    solution_pattern = db.Column(db.String(100))  # Added for solution comparison
+    efficiency_score = db.Column(db.Float)  # Added for performance metrics
+    memory_usage = db.Column(db.Float)  # Added for resource usage tracking
+    approach_description = db.Column(db.Text)  # Added for solution explanation
 
     student = db.relationship('Student', back_populates='submissions', lazy=True)
+    activity = db.relationship('CodingActivity', backref='submissions', lazy=True)
 
 
 class SharedCode(db.Model):
@@ -199,6 +205,7 @@ class CodingActivity(SoftDeleteMixin, db.Model):
 
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
 
+
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""
     id = db.Column(db.Integer, primary_key=True)
@@ -209,8 +216,10 @@ class StudentProgress(db.Model):
     completed = db.Column(db.Boolean, default=False)
     attempts = db.Column(db.Integer, default=0)
     last_submission = db.Column(db.Text)
+    confidence_level = db.Column(db.Integer)  # Added for Hattie's self-reported grades feature
 
     activity = db.relationship('CodingActivity', back_populates='student_progress', lazy=True)
+
 
 def create_audit_log(mapper, connection, target):
     if hasattr(target, '__table__'):
