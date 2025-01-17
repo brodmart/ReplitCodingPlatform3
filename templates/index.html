@@ -11,48 +11,46 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid px-0">
-    <div class="editor-console-row">
-        <div class="editor-column">
-            <div class="card h-100">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <select id="languageSelect" class="form-select w-auto">
-                            <option value="cpp" {% if not language or language == 'cpp' %}selected{% endif %}>C++</option>
-                            <option value="csharp" {% if language == 'csharp' %}selected{% endif %}>C#</option>
-                        </select>
-                        <button id="runButton" class="btn btn-primary">
-                            {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-                        </button>
-                    </div>
+<div class="editor-console-row">
+    <div class="editor-column">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <select id="languageSelect" class="form-select w-auto">
+                        <option value="cpp" {% if not language or language == 'cpp' %}selected{% endif %}>C++</option>
+                        <option value="csharp" {% if language == 'csharp' %}selected{% endif %}>C#</option>
+                    </select>
+                    <button id="runButton" class="btn btn-primary">
+                        {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+                    </button>
                 </div>
-                <div class="card-body p-0">
-                    <div class="editor-container">
-                        <textarea id="editor"></textarea>
-                    </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="editor-container">
+                    <textarea id="editor"></textarea>
                 </div>
             </div>
         </div>
-        <div class="console-column">
-            <div class="card h-100">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
-                        <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
+    </div>
+    <div class="console-column">
+        <div class="card h-100">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
+                    <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-trash"></i>
+                    </button>
                 </div>
-                <div class="card-body p-0">
-                    <div class="console-container">
-                        <div id="consoleOutput" class="console-output"></div>
-                        <div class="console-input-line">
-                            <span class="console-prompt">&gt;</span>
-                            <input type="text" id="consoleInput" 
-                                   placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
-                                   autocomplete="off"
-                                   spellcheck="false">
-                        </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="console-container">
+                    <div id="consoleOutput" class="console-output"></div>
+                    <div class="console-input-line">
+                        <span class="console-prompt">&gt;</span>
+                        <input type="text" id="consoleInput" 
+                               placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
+                               autocomplete="off"
+                               spellcheck="false">
                     </div>
                 </div>
             </div>

@@ -248,66 +248,35 @@ html, body {
 /* Editor and Console Layout */
 .editor-console-row {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 20px;
-    width: 100%;
-    padding: 0; /* Remove padding completely */
+    margin: 0;
+    padding: 0;
+    min-height: calc(100vh - 160px);
 }
 
 .editor-column,
 .console-column {
-    flex: 1;
-    width: 100%;
+    width: 50%;
     min-width: 0;
+    padding: 0 10px;
 }
 
 .editor-container,
 .console-container {
     width: 100%;
-    height: 400px;
+    height: 100%;
 }
 
-/* Console Container */
-.console-container {
-    width: 100%;
-    height: 500px;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 14px;
-    display: flex;
-    flex-direction: column;
-    border-radius: 4px;
-    border: 1px solid #2d2d2d;
-    overflow: hidden;
-}
-
-/* Responsive Layout */
-@media (max-width: 768px) {
-    .editor-console-row {
-        flex-direction: column;
-        padding: 0; /* Remove padding on mobile too */
-    }
-
-    .editor-column,
-    .console-column {
-        width: 100%;
-        flex: none;
-    }
-
-    .editor-container,
-    .console-container {
-        height: 400px;
-    }
+/* Container width control */
+.container-fluid {
+    width: 100vw;
+    max-width: 100vw;
+    padding: 0;
+    margin: 0;
 }
 
 .console-container,
 .output-container {
     width: 100%;
-}
-
-/* Container width control */
-.container-fluid {
-    width: 100%;
-    padding: 0; /* Remove padding to maximize width */
 }
