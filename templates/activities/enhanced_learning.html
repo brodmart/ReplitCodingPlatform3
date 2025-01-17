@@ -16,6 +16,8 @@
         width: 100%;
         height: 400px;
         position: relative;
+        margin: 0;
+        padding: 0;
     }
 
     .CodeMirror {
@@ -291,10 +293,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="row">
+<div class="container-fluid p-0">
+    <div class="row g-0">
         <!-- Left Column: Learning Journey -->
-        <div class="col-md-4">
+        <div class="col-md-4 px-3">
             <div class="card mb-4 bg-dark text-light border-secondary">
                 <div class="card-body">
                     <!-- Curriculum Level Indicator -->
@@ -370,9 +372,9 @@
                             <div id="reflectionArea">
                                 <div class="reflection-question mb-2" id="currentPrompt"></div>
                                 <textarea class="form-control bg-dark text-light mb-2"
-                                        id="reflectionResponse"
-                                        rows="3"
-                                        placeholder="{% if lang == 'fr' %}Votre réflexion ici...{% else %}Your reflection here...{% endif %}">
+                                          id="reflectionResponse"
+                                          rows="3"
+                                          placeholder="{% if lang == 'fr' %}Votre réflexion ici...{% else %}Your reflection here...{% endif %}">
                                 </textarea>
                                 <div class="reflection-feedback mt-2 d-none" id="reflectionFeedback"></div>
                             </div>
@@ -427,7 +429,7 @@
         </div>
 
         <!-- Right Column: Code Editor and Console -->
-        <div class="col-md-8">
+        <div class="col-md-8 px-3">
             <div class="card mb-4 bg-dark text-light border-secondary">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h4 class="mb-0">
