@@ -1,5 +1,5 @@
 """
-Script to import ICS3U curriculum data into the database from the provided French curriculum document
+Script to import ICS3U curriculum data from the provided French curriculum document
 """
 import os
 import sys
@@ -22,6 +22,13 @@ def main():
 
         # Initialize database connection within app context
         with app.app_context():
+            # Create importer instance
+            importer = CurriculumImporter()
+
+            # Clear existing data first
+            logger.info("Clearing existing ICS3U curriculum data...")
+            importer.clear_existing_data()
+
             # Read ICS3U curriculum content from file
             curriculum_file = 'attached_assets/Pasted-Introduction-au-g-nie-e-informatique-11-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initi-1737143859140.txt'
             logger.info(f"Reading curriculum from {curriculum_file}")
@@ -31,7 +38,6 @@ def main():
                 logger.info(f"Successfully read {len(content)} characters from file")
 
             # Import curriculum data
-            importer = CurriculumImporter()
             importer.import_curriculum(content)
 
             # Verify import by checking database

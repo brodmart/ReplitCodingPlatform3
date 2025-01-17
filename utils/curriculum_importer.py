@@ -46,16 +46,20 @@ class CurriculumImporter:
             'émE': 'ème',
             'génie e': 'génie',
             'au génie e': 'au génie',
-            ' ann e ': ' année '
+            ' ann e ': ' année ',
+            'EntinformatiqueE': 'ent informatique',
+            'Edetravail': 'e de travail',
+            'téchniqu E': 'technique',
+            'progr Amm Ation': 'programmation'
         }
 
         for old, new in replacements.items():
             text = text.replace(old, new)
 
-        # Carefully join split words while preserving intentional spaces
-        text = re.sub(r'(?<=[a-zà-ÿ])\s+(?=[a-zà-ÿ])', '', text)  # Join lowercase splits
-        text = re.sub(r'(?<=[A-ZÀ-Ÿ])\s+(?=[a-zà-ÿ])', '', text)  # Join camelCase splits
-        text = re.sub(r'(\d)\s+(\d)', r'\1\2', text)  # Join split numbers
+        # Fix spaces between words more carefully
+        text = re.sub(r'(?<=[a-zà-ÿ])([A-ZÀ-Ÿ])', r' \1', text)  # Add space before capital letters
+        text = re.sub(r'([a-zà-ÿ])([A-ZÀ-Ÿ])', r'\1 \2', text)   # Space between lowercase and uppercase
+        text = re.sub(r'(\d)\s*([eE])\s+', r'\1\2 ', text)        # Fix ordinal numbers (e.g., "11e année")
 
         # Fix French punctuation spacing
         text = re.sub(r'\s*([.,:;!?])\s*', r'\1 ', text)
@@ -63,11 +67,6 @@ class CurriculumImporter:
 
         # Normalize multiple spaces and clean up
         text = re.sub(r'\s+', ' ', text).strip()
-
-        # Fix common spacing issues in course title/headers
-        text = re.sub(r'Introduction au génie', 'Introduction au génie ', text)
-        text = re.sub(r'informatique(\d)', r'informatique \1', text)
-        text = re.sub(r'(\d)année', r'\1 année', text)
 
         return text
 
@@ -158,39 +157,90 @@ class CurriculumImporter:
         """Parse specific expectations grouped by overall expectations"""
         self.logger.debug(f"Parsing specific expectations for strand {strand_code}")
 
-        # Extract CONTENUS D'APPRENTISSAGE section
-        contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE.*?Pour satisfaire aux attentes.*?:(.*?)(?=(?:[A-D]\.\s|$))'
-        contenus_match = re.search(contenus_pattern, content, re.DOTALL)
+        # Extract CONTENUS D'APPRENTISSAGE section with simpler pattern
+        contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE.*?Pour satisfaire.*?:(.*?)(?=[A-D]\.|$)'
+        contenus_match = re.search(contenus_pattern, content, re.DOTALL | re.IGNORECASE)
 
         if not contenus_match:
             self.logger.warning(f"No specific expectations found for strand {strand_code}")
+            self.logger.debug(f"Content being searched: {content[:200]}...")  # Log first 200 chars for debugging
             return {}
 
         specifics_by_overall = {}
         section_text = contenus_match.group(1)
 
-        # Match specific expectations using lookahead for better boundary detection
-        spec_pattern = rf'{strand_code}(\d+)\.(\d+)\s*([^{strand_code}0-9]+?)(?={strand_code}\d+\.\d+|$)'
-        for match in re.finditer(spec_pattern, section_text, re.DOTALL):
+        # Pre-process the section text
+        section_text = self.clean_text(section_text)  # Use the main clean_text first
+        section_text = re.sub(r'\n+', '\n', section_text)  # Normalize newlines
+        section_text = re.sub(r'\s+', ' ', section_text)   # Normalize spaces
+
+        self.logger.debug(f"Processing section text: {section_text[:200]}...")
+
+        # More lenient pattern for expectation codes
+        code_pattern = rf'{strand_code}\s*(\d+)\s*\.\s*(\d+)'
+        matches = list(re.finditer(code_pattern, section_text))
+
+        self.logger.debug(f"Found {len(matches)} potential specific expectations")
+
+        for i, match in enumerate(matches):
+            code = re.sub(r'\s+', '', match.group(0))  # Full code without spaces
             overall_num = match.group(1)
             specific_num = match.group(2)
-            description = self.clean_text(match.group(3))
+            overall_code = f"{strand_code}{overall_num}"
+
+            # Get description text until next match or end
+            start_pos = match.end()
+            end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(section_text)
+            description = section_text[start_pos:end_pos].strip()
+
+            # Clean and format the description
+            description = self.clean_specific_expectation(description)
 
             if description:
-                overall_code = f"{strand_code}{overall_num}"
-                specific_code = f"{overall_code}.{specific_num}"
-
                 if overall_code not in specifics_by_overall:
                     specifics_by_overall[overall_code] = []
 
-                self.logger.info(f"Found specific expectation {specific_code}")
+                self.logger.info(f"Found specific expectation {code}: {description[:50]}...")
                 specifics_by_overall[overall_code].append({
-                    'code': specific_code,
+                    'code': code,
                     'description_fr': description,
                     'description_en': f"[NEEDS TRANSLATION] {description}"
                 })
 
         return specifics_by_overall
+
+    def clean_specific_expectation(self, text: str) -> str:
+        """Clean and format specific expectation text"""
+        if not text:
+            return ""
+
+        # Initial cleaning
+        text = text.strip()
+
+        # Handle examples in parentheses
+        text = re.sub(r'\(\s*p\.\s*ex\.,([^)]+)\)', r'(p. ex., \1)', text)
+
+        # Clean up bullet points and sub-lists
+        text = re.sub(r'[•●⚫⬤]\s*', '• ', text)
+        text = re.sub(r'^\s*[–-]\s*', '- ', text, flags=re.MULTILINE)
+
+        # Normalize spaces and newlines
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'\s*([.,:;])\s*', r'\1 ', text)
+
+        # Fix common OCR artifacts in specific expectations
+        replacements = {
+            ' e année': 'e année',
+            'p.ex.': 'p. ex.',
+            '( p. ex.,': '(p. ex.,',
+            'etc...)': 'etc.)',
+            '...)': '.)',
+        }
+
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+
+        return text.strip()
 
     def import_curriculum(self, content: str):
         """Import curriculum content into database"""
@@ -263,16 +313,51 @@ class CurriculumImporter:
         self.logger.info("Clearing existing ICS3U curriculum data")
 
         try:
-            course = Course.query.filter_by(code='ICS3U').first()
-            if course:
-                # Delete in correct order to respect foreign key constraints
-                SpecificExpectation.query.join(OverallExpectation).join(Strand).filter(Strand.course_id == course.id).delete(synchronize_session=False)
-                OverallExpectation.query.join(Strand).filter(Strand.course_id == course.id).delete(synchronize_session=False)
-                Strand.query.filter_by(course_id=course.id).delete(synchronize_session=False)
-                Course.query.filter_by(code='ICS3U').delete()
+            with db.session.begin():
+                # Delete specific expectations first
+                specific_subquery = (
+                    db.select(OverallExpectation.id)
+                    .join(Strand)
+                    .join(Course)
+                    .where(Course.code == 'ICS3U')
+                    .scalar_subquery()
+                )
+                db.session.execute(
+                    db.delete(SpecificExpectation)
+                    .where(SpecificExpectation.overall_expectation_id.in_(specific_subquery))
+                )
 
-                db.session.commit()
+                # Delete overall expectations
+                overall_subquery = (
+                    db.select(Strand.id)
+                    .join(Course)
+                    .where(Course.code == 'ICS3U')
+                    .scalar_subquery()
+                )
+                db.session.execute(
+                    db.delete(OverallExpectation)
+                    .where(OverallExpectation.strand_id.in_(overall_subquery))
+                )
+
+                # Delete strands
+                strand_subquery = (
+                    db.select(Course.id)
+                    .where(Course.code == 'ICS3U')
+                    .scalar_subquery()
+                )
+                db.session.execute(
+                    db.delete(Strand)
+                    .where(Strand.course_id.in_(strand_subquery))
+                )
+
+                # Finally delete the course
+                db.session.execute(
+                    db.delete(Course)
+                    .where(Course.code == 'ICS3U')
+                )
+
                 self.logger.info("Successfully cleared existing data")
+
         except Exception as e:
             db.session.rollback()
             self.logger.error(f"Error clearing existing data: {str(e)}")
