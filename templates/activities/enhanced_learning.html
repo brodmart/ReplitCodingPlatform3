@@ -5,7 +5,7 @@
     <div class="row">
         <!-- Left Column: Activity Details -->
         <div class="col-md-4">
-            <div class="card mb-4">
+            <div class="card mb-4 bg-dark text-light border-secondary">
                 <div class="card-body">
                     <h3 class="card-title">{{ activity.title }}</h3>
                     <p class="card-text">{{ activity.description }}</p>
@@ -21,103 +21,260 @@
                         </span>
                     </div>
 
-                    <!-- Confidence Prediction (Hattie Effect Size 1.44) -->
+                    <!-- Enhanced Confidence Prediction Section -->
                     <div class="confidence-prediction mb-4">
-                        <h4>{% if lang == 'fr' %}Prédiction de Confiance{% else %}Confidence Prediction{% endif %}</h4>
-                        <p>{% if lang == 'fr' %}À quel point êtes-vous confiant de pouvoir résoudre ce défi ?{% else %}How confident are you in solving this challenge?{% endif %}</p>
-                        <div class="btn-group w-100" role="group" id="confidenceButtons">
-                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="1">1</button>
-                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="2">2</button>
-                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="3">3</button>
-                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="4">4</button>
-                            <button type="button" class="btn btn-outline-primary confidence-btn" data-value="5">5</button>
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Prédiction de Confiance{% else %}Confidence Prediction{% endif %}
+                        </h4>
+                        <p class="text-muted">
+                            {% if lang == 'fr' %}
+                                À quel point êtes-vous confiant de pouvoir résoudre ce défi ?
+                            {% else %}
+                                How confident are you in solving this challenge?
+                            {% endif %}
+                        </p>
+                        <div class="confidence-buttons d-flex justify-content-between mb-3">
+                            {% for i in range(1, 6) %}
+                            <button type="button" 
+                                    class="btn btn-outline-primary confidence-btn position-relative" 
+                                    data-value="{{ i }}">
+                                {{ i }}
+                                <span class="confidence-tooltip">
+                                    {% if lang == 'fr' %}
+                                        {{ 'Pas du tout confiant' if i == 1 else 'Peu confiant' if i == 2 else 'Moyennement confiant' if i == 3 else 'Assez confiant' if i == 4 else 'Très confiant' }}
+                                    {% else %}
+                                        {{ 'Not at all confident' if i == 1 else 'Slightly confident' if i == 2 else 'Moderately confident' if i == 3 else 'Quite confident' if i == 4 else 'Very confident' }}
+                                    {% endif %}
+                                </span>
+                            </button>
+                            {% endfor %}
                         </div>
-                        <small class="text-muted">
-                            {% if lang == 'fr' %}1 = Pas confiant, 5 = Très confiant{% else %}1 = Not confident, 5 = Very confident{% endif %}
-                        </small>
                     </div>
 
-                    <!-- Solution Comparison Section -->
-                    <div class="solution-comparison mb-4">
-                        <h4>{% if lang == 'fr' %}Approches de Solution{% else %}Solution Approaches{% endif %}</h4>
-                        <div class="accordion" id="solutionApproaches">
-                            <!-- Will be populated dynamically based on previous solutions -->
+                    <!-- Enhanced Solution Approaches Section -->
+                    <div class="solution-approaches mb-4">
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Approches de Solution{% else %}Solution Approaches{% endif %}
+                        </h4>
+                        <div id="solutionApproaches" class="accordion">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Learning Progress -->
+                    <div class="learning-progress">
+                        <h4 class="text-primary">
+                            {% if lang == 'fr' %}Progression{% else %}Learning Progress{% endif %}
+                        </h4>
+                        <div class="progress mb-2">
+                            <div id="progressBar" 
+                                 class="progress-bar bg-success" 
+                                 role="progressbar" 
+                                 style="width: 0%">
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column: Code Editor and Output -->
+        <!-- Right Column: Code Editor and Console -->
         <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="code-editor-container">
-                        <div id="editor" class="mb-3">{{ activity.starter_code }}</div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <button class="btn btn-primary" id="runCode">
-                                {% if lang == 'fr' %}Exécuter{% else %}Run Code{% endif %}
-                            </button>
-                            <button class="btn btn-secondary" id="showHint" disabled>
-                                {% if lang == 'fr' %}Indice{% else %}Hint{% endif %}
-                            </button>
-                        </div>
-                        <div id="output" class="bg-dark text-light p-3 rounded"></div>
+            <div class="card mb-4 bg-dark text-light border-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        {% if lang == 'fr' %}Éditeur de Code{% else %}Code Editor{% endif %}
+                    </h4>
+                    <div class="btn-group">
+                        <button id="runCode" class="btn btn-primary">
+                            <i class="bi bi-play-fill"></i> 
+                            {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
+                        </button>
+                        <button id="resetCode" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            {% if lang == 'fr' %}Réinitialiser{% else %}Reset{% endif %}
+                        </button>
                     </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="editor" class="code-editor">{{ activity.starter_code }}</div>
                 </div>
             </div>
 
-            <!-- Feedback Section -->
-            <div class="card">
-                <div class="card-body">
-                    <h4>{% if lang == 'fr' %}Rétroaction{% else %}Feedback{% endif %}</h4>
-                    <div id="feedbackArea">
-                        <!-- Will be populated with multi-level feedback -->
-                    </div>
+            <!-- Console Output -->
+            <div class="card bg-dark text-light border-secondary">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        {% if lang == 'fr' %}Console{% else %}Console{% endif %}
+                    </h4>
+                    <button id="clearConsole" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div id="console" class="console-output"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- JavaScript for Enhanced Features -->
+<!-- Custom Styles -->
+<style>
+.confidence-btn {
+    width: 18%;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.confidence-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,123,255,0.2);
+}
+
+.confidence-btn.selected {
+    background-color: #007bff;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.confidence-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background-color: #343a40;
+    color: white;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.confidence-btn:hover .confidence-tooltip {
+    opacity: 1;
+    visibility: visible;
+    bottom: 120%;
+}
+
+.code-editor {
+    height: 400px;
+    border: 1px solid #2d2d2d;
+}
+
+.console-output {
+    height: 200px;
+    padding: 1rem;
+    background-color: #1a1a1a;
+    font-family: monospace;
+    overflow-y: auto;
+}
+
+.solution-card {
+    background-color: #2d2d2d;
+    border: 1px solid #3d3d3d;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.solution-card .card-header {
+    background-color: #343a40;
+    border-bottom: 1px solid #3d3d3d;
+}
+
+.progress {
+    height: 8px;
+    background-color: #2d2d2d;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+</style>
+
+<!-- Enhanced JavaScript -->
+{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Confidence Prediction Handling
+    // Confidence Button Handling
     const confidenceButtons = document.querySelectorAll('.confidence-btn');
     confidenceButtons.forEach(button => {
         button.addEventListener('click', function() {
             const confidence = this.dataset.value;
+
+            // Visual feedback
+            confidenceButtons.forEach(btn => btn.classList.remove('selected'));
+            this.classList.add('selected');
+
             // Store confidence level
             fetch('/activities/store_confidence', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
                 },
                 body: JSON.stringify({
                     activity_id: '{{ activity.id }}',
                     confidence_level: confidence
                 })
-            });
-            
-            // Visual feedback
-            confidenceButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
+            }).then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      // Update progress bar
+                      updateProgress();
+                  }
+              });
         });
     });
 
     // Solution Comparison Loading
     function loadSolutionComparisons() {
-        fetch(`/activities/get_solutions/${activity.id}`)
+        fetch(`/activities/get_solutions/{{ activity.id }}`)
             .then(response => response.json())
             .then(solutions => {
                 const container = document.getElementById('solutionApproaches');
+                container.innerHTML = ''; // Clear existing solutions
+
                 solutions.forEach((solution, index) => {
-                    // Create comparison card for each solution
-                    // Implementation details here
+                    const card = document.createElement('div');
+                    card.className = 'solution-card mb-3';
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                ${lang === 'fr' ? 'Solution ' : 'Solution '} ${index + 1}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p>${solution.approach_description}</p>
+                            <div class="d-flex justify-content-between text-muted">
+                                <span>
+                                    ${lang === 'fr' ? 'Efficacité' : 'Efficiency'}: ${solution.efficiency_score}
+                                </span>
+                                <span>
+                                    ${lang === 'fr' ? 'Mémoire' : 'Memory'}: ${solution.memory_usage}MB
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
                 });
             });
     }
+
+    // Update progress bar
+    function updateProgress() {
+        // This is a placeholder for progress calculation
+        const progress = document.getElementById('progressBar');
+        let currentWidth = parseInt(progress.style.width) || 0;
+        progress.style.width = Math.min(currentWidth + 20, 100) + '%';
+    }
+
+    // Initial load
+    loadSolutionComparisons();
 });
 </script>
+{% endblock %}
 {% endblock %}
