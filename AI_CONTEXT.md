@@ -12,13 +12,24 @@ Last Updated: January 18, 2025
 ### Database Information:
 The project uses a PostgreSQL database for curriculum storage:
 - Database Name: ICS3U Curriculum Database
+- Connection: Managed through DATABASE_URL environment variable
+- Access: Via SQLAlchemy ORM with Flask-SQLAlchemy integration
 - Main Tables:
   * courses: Stores course information (e.g., ICS3U)
+    - Bilingual fields: title_en/fr, description_en/fr, prerequisite_en/fr
   * strands: Stores curriculum strands (A, B, C, D)
+    - Bilingual fields: title_en/fr
   * overall_expectations: Stores overall expectations for each strand
+    - Bilingual fields: description_en/fr
   * specific_expectations: Stores specific expectations linked to overall expectations
-- Location: Managed through DATABASE_URL environment variable
-- Access: Via SQLAlchemy ORM with Flask-SQLAlchemy integration
+    - Bilingual fields: description_en/fr
+- Current Status (as of Jan 18, 2025):
+  * 1 course (ICS3U)
+  * 4 strands
+  * 11 overall expectations
+  * 55 specific expectations
+  * French content imported
+  * English content fields ready for population
 
 ### How to Use These Files:
 

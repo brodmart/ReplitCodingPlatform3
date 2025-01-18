@@ -40,6 +40,10 @@ args = "Test Import Section"
 task = "workflow.run"
 args = "Import Curriculum"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Import ICS3U Curriculum"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -99,6 +103,20 @@ args = "python scripts/test_import_section.py"
 
 [[workflows.workflow]]
 name = "Import Curriculum"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scripts/import_ics3u_curriculum.py"
+
+[[workflows.workflow]]
+name = "Import ICS3U Curriculum"
 author = "agent"
 
 [workflows.workflow.metadata]
