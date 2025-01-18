@@ -16,7 +16,8 @@ from utils.curriculum_importer import CurriculumImporter
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
 def detect_encoding(file_path):
-    """Detect the file encoding using chardet"""
+    """Detect the file encoding using chardet with improved error handling"""
+    encoding = None
     try:
         with open(file_path, 'rb') as file:
             raw_data = file.read()
@@ -25,10 +26,19 @@ def detect_encoding(file_path):
             result = chardet.detect(raw_data)
             if not result or not result['encoding']:
                 raise ValueError(f"Could not detect encoding for file: {file_path}")
-            return result['encoding']
+            encoding = result['encoding']
+            logging.info(f"Detected encoding: {encoding} with confidence: {result['confidence']}")
+            return encoding
+    except (IOError, OSError) as e:
+        logging.error(f"Error reading file {file_path}: {str(e)}")
+        raise
     except Exception as e:
         logging.error(f"Error detecting encoding for {file_path}: {str(e)}")
         raise
+    finally:
+        if not encoding:
+            logging.warning(f"Falling back to UTF-8 encoding for {file_path}")
+            return 'utf-8'
 
 def main():
     # Set up logging with more detail
@@ -59,22 +69,21 @@ def main():
             importer = CurriculumImporter()
 
             # Use only the latest curriculum file
-            curriculum_file = 'attached_assets/Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-l--1737160312256.txt'
-            file_full_path = project_root / curriculum_file
+            curriculum_file = project_root / 'attached_assets' / 'Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-l--1737160312256.txt'
 
-            if not file_full_path.exists():
-                logger.error(f"Curriculum file not found: {file_full_path}")
-                raise FileNotFoundError(f"No curriculum file found at {file_full_path}")
+            if not curriculum_file.exists():
+                logger.error(f"Curriculum file not found: {curriculum_file}")
+                raise FileNotFoundError(f"No curriculum file found at {curriculum_file}")
 
-            logger.info(f"Found curriculum file: {file_full_path}")
-            logger.info(f"File size: {file_full_path.stat().st_size} bytes")
+            logger.info(f"Found curriculum file: {curriculum_file}")
+            logger.info(f"File size: {curriculum_file.stat().st_size} bytes")
 
             try:
-                # Detect file encoding
-                encoding = detect_encoding(file_full_path)
-                logger.info(f"Detected encoding: {encoding}")
+                # Detect file encoding with fallback
+                encoding = detect_encoding(curriculum_file)
+                logger.info(f"Using encoding: {encoding}")
 
-                with open(file_full_path, 'r', encoding=encoding) as f:
+                with open(curriculum_file, 'r', encoding=encoding) as f:
                     content = f.read()
                     if not content.strip():
                         raise ValueError(f"File {curriculum_file} is empty after stripping whitespace")
@@ -118,10 +127,10 @@ def main():
                         raise
 
             except UnicodeDecodeError as e:
-                logger.error(f"Unicode decode error for {curriculum_file} with {encoding} encoding: {str(e)}")
+                logger.error(f"Unicode decode error with {encoding} encoding: {str(e)}")
                 raise
             except Exception as e:
-                logger.error(f"Error reading file {curriculum_file}: {str(e)}")
+                logger.error(f"Error reading file: {str(e)}")
                 raise
 
             logger.info("ICS3U curriculum import completed successfully!")

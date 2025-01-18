@@ -13,10 +13,10 @@ class CurriculumImporter:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
-        # Define more flexible patterns based on actual file structure
-        self._section_start_pattern = r'(?:^|\n)\s*([A-D])\s*\.\s*([^\n]+?)(?=\s*(?:ATTENTES|$))'
-        self._attentes_pattern = r'(?:^|\n)\s*ATTENTES\s*(?:À la fin[^:]*:|$)\s*(.*?)(?=\s*(?:CONTENUS|[A-D]\s*\.|$))'
-        self._contenus_pattern = r'(?:^|\n)\s*CONTENUS.*?(?:Pour satisfaire[^:]*:)\s*(.*?)(?=\s*(?:[A-D]\s*\.|$))'
+        # Updated patterns to match the actual French curriculum structure
+        self._section_start_pattern = r'(?:^|\n)\s*([A-D])\s*\.\s*([^\n]+?)(?=\s*ATTENTES|\s*$)'
+        self._attentes_pattern = r'(?:^|\n)\s*ATTENTES\s*(?:À la fin[^:]*:|$)\s*(.*?)(?=\s*CONTENUS)'
+        self._contenus_pattern = r'(?:^|\n)\s*CONTENUS\s*D[\''"'"']+APPRENTISSAGE\s*(?:Pour satisfaire[^:]*:)\s*(.*?)(?=\s*(?:[A-D]\s*\.|$))'
         self._overall_exp_pattern = r'(?m)^\s*{}\s*(\d+)\s*\.\s*([^\n]+(?:\n(?!\s*{}\s*\d+\.|CONTENUS|\s*[A-D]\.).+)*)'
         self._specific_exp_pattern = r'(?m)^\s*{}\s*(\d+)\s*\.\s*(\d+)\s*([^\n]+(?:\n(?!\s*{}\s*\d+\.|ATTENTES|\s*[A-D]\.).+)*)'
 
@@ -48,12 +48,21 @@ class CurriculumImporter:
                 ('...', '…'), ('..', '.'),
                 ('\u2019', "'"), ('\u2018', "'"),
                 ('\u201C', '"'), ('\u201D', '"'),
-                ('\u00A0', ' ')  # non-breaking space
+                ('\u00A0', ' '),  # non-breaking space
+                ('´', "'")  # Acute accent
             ]
             for old, new in replacements:
                 text = text.replace(old, new)
 
-            return text.strip()
+            # Normalize multiple newlines and spaces
+            text = re.sub(r'\n\s*\n', '\n\n', text)
+            text = text.strip()
+
+            # Validate the cleaned text
+            if not text:
+                raise ValueError("Text is empty after cleaning")
+
+            return text
         except Exception as e:
             self.logger.error(f"Error in clean_text: {str(e)}")
             raise
@@ -64,10 +73,23 @@ class CurriculumImporter:
         try:
             # Clean initial content
             content = self.clean_text(content)
+            if not content:
+                raise ValueError("Content is empty after cleaning")
+
             self.logger.debug(f"Content length after cleaning: {len(content)} characters")
+            self.logger.debug(f"Content preview: {content[:500]}")
+
+            # Skip the introduction part and find the first section
+            content = re.sub(r'^.*?(?=[A-D]\s*\.)', '', content, flags=re.DOTALL)
+            if not content:
+                raise ValueError("No sections found after skipping introduction")
 
             # Find all section matches
             matches = list(re.finditer(self._section_start_pattern, content, re.MULTILINE | re.DOTALL))
+            if not matches:
+                self.logger.error("No section matches found in content")
+                self.logger.debug(f"Content preview: {content[:500]}")
+                raise ValueError("No curriculum sections found in content")
 
             for i, match in enumerate(matches):
                 code = match.group(1)
@@ -78,14 +100,16 @@ class CurriculumImporter:
                 end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(content)
                 section_content = content[start_pos:end_pos].strip()
 
-                if title and section_content:
-                    sections.append((code, title, section_content))
-                    self.logger.debug(f"Found section {code}: {title}")
+                if not title or not section_content:
+                    self.logger.warning(f"Section {code} has empty title or content")
+                    continue
+
+                sections.append((code, title, section_content))
+                self.logger.debug(f"Found section {code}: {title}")
+                self.logger.debug(f"Section content preview: {section_content[:200]}")
 
             if not sections:
-                self.logger.error("No valid sections found after parsing")
-                self.logger.debug(f"Content preview: {content[:500]}")
-                raise ValueError("No curriculum sections found in content")
+                raise ValueError("No valid sections found after parsing")
 
             return sections
         except Exception as e:
@@ -95,6 +119,9 @@ class CurriculumImporter:
     def _parse_section_content(self, section_content: str) -> Dict:
         """Parse section content into ATTENTES and CONTENUS"""
         try:
+            if not section_content:
+                raise ValueError("Empty section content")
+
             # Extract ATTENTES and CONTENUS with more flexible patterns
             attentes_match = re.search(self._attentes_pattern, section_content, re.MULTILINE | re.DOTALL | re.IGNORECASE)
             contenus_match = re.search(self._contenus_pattern, section_content, re.MULTILINE | re.DOTALL | re.IGNORECASE)
@@ -104,9 +131,18 @@ class CurriculumImporter:
                 self.logger.debug(f"Section content preview: {section_content[:200]}")
                 raise ValueError("Missing required sections in content")
 
+            attentes_content = self.clean_text(attentes_match.group(1))
+            contenus_content = self.clean_text(contenus_match.group(1))
+
+            if not attentes_content or not contenus_content:
+                raise ValueError("Empty ATTENTES or CONTENUS content after cleaning")
+
+            self.logger.debug(f"Found ATTENTES content (preview): {attentes_content[:100]}")
+            self.logger.debug(f"Found CONTENUS content (preview): {contenus_content[:100]}")
+
             return {
-                "attentes": self.clean_text(attentes_match.group(1)),
-                "contenus": self.clean_text(contenus_match.group(1))
+                "attentes": attentes_content,
+                "contenus": contenus_content
             }
         except Exception as e:
             self.logger.error(f"Error parsing section content: {str(e)}")
@@ -118,30 +154,40 @@ class CurriculumImporter:
         specific_expectations = []
 
         try:
+            if not content["attentes"] or not content["contenus"]:
+                raise ValueError("Missing ATTENTES or CONTENUS content")
+
             # Extract overall expectations
-            if content["attentes"]:
-                pattern = self._overall_exp_pattern.format(section_code, section_code)
-                matches = re.finditer(pattern, content["attentes"], re.MULTILINE)
-                for match in matches:
-                    exp = {
-                        "number": match.group(1),
-                        "description": self.clean_text(match.group(2))
-                    }
-                    overall_expectations.append(exp)
-                    self.logger.debug(f"Found overall {section_code}{exp['number']}")
+            pattern = self._overall_exp_pattern.format(section_code, section_code)
+            matches = re.finditer(pattern, content["attentes"], re.MULTILINE)
+            for match in matches:
+                exp = {
+                    "number": match.group(1),
+                    "description": self.clean_text(match.group(2))
+                }
+                if not exp["description"]:
+                    self.logger.warning(f"Empty description for overall expectation {section_code}{exp['number']}")
+                    continue
+                overall_expectations.append(exp)
+                self.logger.debug(f"Found overall {section_code}{exp['number']}")
 
             # Extract specific expectations
-            if content["contenus"]:
-                pattern = self._specific_exp_pattern.format(section_code, section_code)
-                matches = re.finditer(pattern, content["contenus"], re.MULTILINE)
-                for match in matches:
-                    exp = {
-                        "overall_num": match.group(1),
-                        "specific_num": match.group(2),
-                        "description": self.clean_text(match.group(3))
-                    }
-                    specific_expectations.append(exp)
-                    self.logger.debug(f"Found specific {section_code}{exp['overall_num']}.{exp['specific_num']}")
+            pattern = self._specific_exp_pattern.format(section_code, section_code)
+            matches = re.finditer(pattern, content["contenus"], re.MULTILINE)
+            for match in matches:
+                exp = {
+                    "overall_num": match.group(1),
+                    "specific_num": match.group(2),
+                    "description": self.clean_text(match.group(3))
+                }
+                if not exp["description"]:
+                    self.logger.warning(f"Empty description for specific expectation {section_code}{exp['overall_num']}.{exp['specific_num']}")
+                    continue
+                specific_expectations.append(exp)
+                self.logger.debug(f"Found specific {section_code}{exp['overall_num']}.{exp['specific_num']}")
+
+            if not overall_expectations or not specific_expectations:
+                raise ValueError(f"No expectations found for section {section_code}")
 
             return overall_expectations, specific_expectations
         except Exception as e:
@@ -149,10 +195,17 @@ class CurriculumImporter:
             raise
 
     def import_curriculum(self, content: str):
-        """Import curriculum content into database"""
+        """Import curriculum content into database with improved transaction handling"""
         self.logger.info("Starting curriculum import process...")
 
         try:
+            # Validate input
+            if not content:
+                raise ValueError("Empty curriculum content")
+
+            # Start transaction
+            db.session.begin_nested()
+
             # Clear existing data to avoid duplicates
             self.clear_existing_data()
 
@@ -178,7 +231,7 @@ class CurriculumImporter:
             for code, title, section_content in sections:
                 self.logger.info(f"Processing section {code}: {title}")
 
-                # Create strand
+                # Create strand with session flush after each addition
                 strand = Strand(
                     course_id=course.id,
                     code=code,
@@ -214,14 +267,52 @@ class CurriculumImporter:
                             )
                             db.session.add(spec_exp)
 
-                # Commit after each section
-                db.session.commit()
+                    # Flush after each group of specific expectations
+                    db.session.flush()
 
+            # Verify data before committing
+            self._verify_imported_data(course.id)
+
+            # Commit the transaction
+            db.session.commit()
             self.logger.info("Curriculum import completed successfully")
 
         except Exception as e:
             self.logger.error(f"Import failed: {str(e)}")
             db.session.rollback()
+            raise
+
+    def _verify_imported_data(self, course_id: int) -> None:
+        """Verify imported data integrity"""
+        try:
+            # Verify course
+            course = Course.query.get(course_id)
+            if not course:
+                raise ValueError("Course not found after import")
+
+            # Verify strands
+            strands = Strand.query.filter_by(course_id=course_id).all()
+            if not strands:
+                raise ValueError("No strands found after import")
+
+            # Verify expectations
+            for strand in strands:
+                overall_exps = OverallExpectation.query.filter_by(strand_id=strand.id).all()
+                if not overall_exps:
+                    raise ValueError(f"No overall expectations found for strand {strand.code}")
+
+                for overall_exp in overall_exps:
+                    specific_exps = SpecificExpectation.query.filter_by(
+                        overall_expectation_id=overall_exp.id
+                    ).all()
+                    if not specific_exps:
+                        raise ValueError(
+                            f"No specific expectations found for overall expectation {overall_exp.code}"
+                        )
+
+            self.logger.info("Data verification completed successfully")
+        except Exception as e:
+            self.logger.error(f"Data verification failed: {str(e)}")
             raise
 
     def clear_existing_data(self):
