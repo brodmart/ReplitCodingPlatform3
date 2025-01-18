@@ -4,7 +4,7 @@ Parses and imports Ontario CS curriculum data into the database
 """
 import re
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 from app import db
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
@@ -13,39 +13,16 @@ class CurriculumImporter:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
-        # Define regex patterns for curriculum structure
-        self._section_pattern = r'(?:^|\n)\s*([A-D])\s*\.\s*([^.\n]+?)(?=\s*(?:ATTENTES|\n\s*[A-D]\.|$))'
+        # More flexible pattern for finding sections
+        self._section_pattern = r'(?:^|\n)\s*([A-D])\s*\.\s*([^\n]+?)(?=\s*(?:ATTENTES|$))'
 
-        # Updated patterns for French text with more precise boundaries
-        self._attentes_pattern = (
-            r'(?:^|\n)\s*'           # Start of line or newline
-            r'ATTENTES\s*'           # ATTENTES header
-            r'(?:À la fin[^:]*:)?\s*' # Optional intro text
-            r'((?:(?!\bCONTENUS\b).)*)'  # Content until CONTENUS (negative lookahead)
-            r'(?=\s*CONTENUS)'       # Positive lookahead for CONTENUS
-        )
+        # Simplified patterns for expectations sections
+        self._attentes_pattern = r'ATTENTES.*?(?:pouvoir|:)\s*(.*?)(?=\s*CONTENUS)'
+        self._contenus_pattern = r'CONTENUS.*?(?:pouvoir|:)\s*(.*?)(?=\s*(?:[A-D]\.|$))'
 
-        self._contenus_pattern = (
-            r'(?:^|\n)\s*'           # Start of line or newline
-            r'CONTENUS\s*D\'APPRENTISSAGE\s*'  # CONTENUS D'APPRENTISSAGE header
-            r'(?:Pour satisfaire[^:]*:)?\s*'   # Optional intro text
-            r'((?:(?!\n\s*[A-D]\.).)*)'        # Content until next section or end
-            r'(?=\s*(?:[A-D]\.|$))'            # Look ahead for next section or end
-        )
-
-        # Patterns for expectations
-        self._overall_exp_pattern = (
-            r'{}\s*'           # Section code (e.g., A, B)
-            r'(\d+)\s*\.\s*'   # Overall expectation number with dot
-            r'([^.\n]+(?:\.[^.]+)*)'  # Description (allowing multiple sentences)
-        )
-
-        self._specific_exp_pattern = (
-            r'{}\s*'           # Section code
-            r'(\d+)\s*\.\s*'   # Overall number
-            r'(\d+)\s*'        # Specific number
-            r'([^.\n]+(?:\.[^.]+)*)'  # Description (allowing multiple sentences)
-        )
+        # Patterns for individual expectations
+        self._overall_exp_pattern = r'{}\s*(\d+)\.\s*([^.]+(?:\.[^.]+)*)'
+        self._specific_exp_pattern = r'{}\s*(\d+)\.(\d+)\s*([^.]+(?:\.[^.]+)*)'
 
     def clean_text(self, text: str) -> str:
         """Clean and normalize French text"""
@@ -53,43 +30,41 @@ class CurriculumImporter:
             return ""
 
         try:
-            # Remove headers and page numbers first
-            text = re.sub(r'(?:^|\n)\s*(?:Curriculum\s+de\s+l\'Ontario|\d+e\s+année|ICS[234]U).*?\n', '\n', text, flags=re.IGNORECASE)
-            text = re.sub(r'\s*\d+\s*$', '', text, flags=re.MULTILINE)
+            # Remove headers and formatting
+            text = re.sub(r'(?m)^\s*\d+\s*$', '', text)
+            text = re.sub(r'(?i)curriculum\s+de\s+l\'ontario.*?\n', '\n', text)
+            text = re.sub(r'(?i)cours\s+préuniversitaire.*?\n', '\n', text)
 
-            # Handle French characters and special symbols
+            # Handle French characters
             replacements = [
-                ('"', '"'),  # Smart quotes
-                ('"', '"'),
-                ("'", "'"),  # Smart apostrophes
-                ("'", "'"),
-                ('e´', 'é'),  # Common OCR errors with accents
-                ('e`', 'è'),
-                ('a`', 'à'),
-                ('e^', 'ê'),
-                ('–', '-'),  # Dashes and hyphens
-                ('—', '-'),
-                ('...', '…'),  # Ellipsis
+                ('"', '"'), ('"', '"'),
+                ("'", "'"), ("'", "'"),
+                ('e´', 'é'), ('e`', 'è'),
+                ('a`', 'à'), ('e^', 'ê'),
+                ('–', '-'), ('—', '-'),
+                ('...', '…')
             ]
-
             for old, new in replacements:
                 text = text.replace(old, new)
 
-            # Clean up whitespace
+            # Clean whitespace
             text = re.sub(r'\s+', ' ', text)
             text = text.strip()
 
             return text
-
         except Exception as e:
             self.logger.error(f"Error in clean_text: {str(e)}")
             raise
 
     def _extract_sections(self, content: str) -> List[Tuple[str, str, str]]:
-        """Extract main curriculum sections with improved French text handling"""
+        """Extract main curriculum sections"""
         sections = []
         try:
-            # Split content by main section headers (A., B., C., D.)
+            # Clean content for better parsing
+            content = content.replace('\r\n', '\n').replace('\r', '\n')
+            content = re.sub(r'\n{3,}', '\n\n', content)
+
+            # Find sections
             matches = list(re.finditer(self._section_pattern, content, re.MULTILINE | re.DOTALL))
             self.logger.debug(f"Found {len(matches)} potential sections")
 
@@ -97,108 +72,98 @@ class CurriculumImporter:
                 code = match.group(1)
                 title = self.clean_text(match.group(2))
 
-                # Get content until next section or end
-                start_pos = match.end()
-                end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(content)
-                section_content = content[start_pos:end_pos].strip()
+                # Get content until next section
+                start = match.end()
+                end = matches[i + 1].start() if i < len(matches) - 1 else len(content)
+                section_content = content[start:end].strip()
 
-                if section_content:
+                if title and section_content:
                     sections.append((code, title, section_content))
-                    self.logger.debug(f"Found section {code}: {title}")
-                    self.logger.debug(f"Content preview (first 200 chars): {section_content[:200]}")
-                    self.logger.debug("-" * 50)
+                    self.logger.debug(f"\nProcessed section {code}:")
+                    self.logger.debug(f"Title: {title}")
+                    self.logger.debug(f"Content preview: {section_content[:200]}")
 
             return sections
-
         except Exception as e:
-            self.logger.error(f"Error in _extract_sections: {str(e)}")
-            self.logger.debug("Content structure:")
-            self.logger.debug(content[:1000].replace('\n', '[NL]'))
+            self.logger.error(f"Error extracting sections: {str(e)}")
+            self.logger.debug(f"Content preview:\n{content[:1000]}")
             raise
 
     def _parse_section_content(self, section_content: str) -> Dict:
-        """Parse section content with improved French text handling"""
+        """Parse section content into ATTENTES and CONTENUS"""
         try:
-            # Extract sections with proper flags
+            # Extract subsections
             attentes_match = re.search(self._attentes_pattern, section_content, re.MULTILINE | re.DOTALL)
             contenus_match = re.search(self._contenus_pattern, section_content, re.MULTILINE | re.DOTALL)
 
-            if not attentes_match:
-                self.logger.warning("No ATTENTES section found")
-                self.logger.debug("Section content preview:")
-                self.logger.debug(section_content[:500])
-
-            if not contenus_match:
-                self.logger.warning("No CONTENUS section found")
-                self.logger.debug("Section content preview:")
-                self.logger.debug(section_content[:500])
+            self.logger.debug("\nMatched sections:")
+            self.logger.debug(f"ATTENTES found: {bool(attentes_match)}")
+            self.logger.debug(f"CONTENUS found: {bool(contenus_match)}")
 
             result = {
-                "attentes": self.clean_text(attentes_match.group(1)) if attentes_match else "",
-                "contenus": self.clean_text(contenus_match.group(1)) if contenus_match else ""
+                "attentes": self.clean_text(attentes_match.group(1) if attentes_match else ""),
+                "contenus": self.clean_text(contenus_match.group(1) if contenus_match else "")
             }
 
-            return result
+            self.logger.debug("\nProcessed content:")
+            self.logger.debug(f"ATTENTES: {result['attentes'][:200]}")
+            self.logger.debug(f"CONTENUS: {result['contenus'][:200]}")
 
+            return result
         except Exception as e:
-            self.logger.error(f"Error in _parse_section_content: {str(e)}")
-            self.logger.debug("Section content:")
-            self.logger.debug(section_content[:1000])
+            self.logger.error(f"Error parsing section: {str(e)}")
             raise
 
     def _extract_expectations(self, section_code: str, content: Dict) -> Tuple[List[Dict], List[Dict]]:
-        """Extract expectations from section content"""
+        """Extract expectations from content"""
         overall_expectations = []
         specific_expectations = []
 
         try:
-            # Extract overall expectations
+            # Process overall expectations
             if content["attentes"]:
                 pattern = self._overall_exp_pattern.format(section_code)
-                for match in re.finditer(pattern, content["attentes"], re.MULTILINE):
+                matches = list(re.finditer(pattern, content["attentes"], re.MULTILINE))
+
+                for match in matches:
                     exp = {
                         "number": match.group(1),
                         "description": self.clean_text(match.group(2))
                     }
                     overall_expectations.append(exp)
-                    self.logger.debug(f"Found overall expectation {section_code}{exp['number']}: {exp['description'][:100]}...")
+                    self.logger.debug(f"Found overall {section_code}{exp['number']}")
 
-            # Extract specific expectations
+            # Process specific expectations
             if content["contenus"]:
                 pattern = self._specific_exp_pattern.format(section_code)
-                for match in re.finditer(pattern, content["contenus"], re.MULTILINE):
+                matches = list(re.finditer(pattern, content["contenus"], re.MULTILINE))
+
+                for match in matches:
                     exp = {
                         "overall_num": match.group(1),
                         "specific_num": match.group(2),
                         "description": self.clean_text(match.group(3))
                     }
                     specific_expectations.append(exp)
-                    self.logger.debug(f"Found specific expectation {section_code}{exp['overall_num']}.{exp['specific_num']}: {exp['description'][:100]}...")
+                    self.logger.debug(f"Found specific {section_code}{exp['overall_num']}.{exp['specific_num']}")
 
             return overall_expectations, specific_expectations
-
         except Exception as e:
             self.logger.error(f"Error extracting expectations: {str(e)}")
             raise
 
     def import_curriculum(self, content: str):
         """Import curriculum content into database"""
-        self.logger.info("Starting curriculum import...")
+        self.logger.info("Starting curriculum import process...")
 
         try:
-            # Log raw content structure for debugging
-            self.logger.debug("Raw content structure:")
-            self.logger.debug("=" * 50)
-            self.logger.debug(content[:1000].replace('\n', '\n[NEWLINE] '))
-            self.logger.debug("=" * 50)
+            # Extract sections
+            sections = self._extract_sections(content)
+            if not sections:
+                raise ValueError("No curriculum sections found in content")
 
             # Clear existing data
             self.clear_existing_data()
-
-            # Clean and validate content
-            content = self.clean_text(content)
-            if not content:
-                raise ValueError("Empty curriculum content after cleaning")
 
             # Create course
             course = Course(
@@ -213,12 +178,7 @@ class CurriculumImporter:
             db.session.add(course)
             db.session.commit()
 
-            # Extract and process sections
-            sections = self._extract_sections(content)
-            if not sections:
-                raise ValueError("No curriculum sections found")
-
-            # Process each section
+            # Process sections
             for code, title, section_content in sections:
                 self.logger.info(f"Processing section {code}: {title}")
 
@@ -227,42 +187,42 @@ class CurriculumImporter:
                     course_id=course.id,
                     code=code,
                     title_fr=title,
-                    title_en=''  # English title will be added later
+                    title_en=''
                 )
                 db.session.add(strand)
                 db.session.commit()
 
-                # Parse section content
-                parsed_content = self._parse_section_content(section_content)
-                overall_exps, specific_exps = self._extract_expectations(code, parsed_content)
+                # Parse expectations
+                parsed = self._parse_section_content(section_content)
+                overall_exps, specific_exps = self._extract_expectations(code, parsed)
 
                 # Add overall expectations
                 for overall in overall_exps:
-                    exp = OverallExpectation(
+                    overall_exp = OverallExpectation(
                         strand_id=strand.id,
                         code=f"{code}{overall['number']}",
                         description_fr=overall['description'],
-                        description_en=''  # English description will be added later
+                        description_en=''
                     )
-                    db.session.add(exp)
+                    db.session.add(overall_exp)
                     db.session.commit()
 
                     # Add specific expectations
-                    matching_specifics = [s for s in specific_exps if s['overall_num'] == overall['number']]
-                    for specific in matching_specifics:
-                        spec = SpecificExpectation(
-                            overall_expectation_id=exp.id,
-                            code=f"{code}{specific['overall_num']}.{specific['specific_num']}",
-                            description_fr=specific['description'],
-                            description_en=''  # English description will be added later
-                        )
-                        db.session.add(spec)
-                        db.session.commit()
+                    for specific in specific_exps:
+                        if specific['overall_num'] == overall['number']:
+                            spec_exp = SpecificExpectation(
+                                overall_expectation_id=overall_exp.id,
+                                code=f"{code}{specific['overall_num']}.{specific['specific_num']}",
+                                description_fr=specific['description'],
+                                description_en=''
+                            )
+                            db.session.add(spec_exp)
+                    db.session.commit()
 
             self.logger.info("Curriculum import completed successfully")
 
         except Exception as e:
-            self.logger.error(f"Error during import: {str(e)}")
+            self.logger.error(f"Import failed: {str(e)}")
             db.session.rollback()
             raise
 
