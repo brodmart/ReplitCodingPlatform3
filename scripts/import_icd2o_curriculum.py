@@ -59,6 +59,257 @@ def clear_existing_data(course_code: str):
         logger.error(f"Error clearing existing data: {str(e)}")
         raise
 
+def create_strands(course_id: int):
+    """Create strands for ICD2O course"""
+    logger = logging.getLogger(__name__)
+    strands_data = [
+        {
+            'code': 'A',
+            'title_en': 'Digital Citizenship and Technologies',
+            'title_fr': 'Citoyenneté numérique et technologies'
+        },
+        {
+            'code': 'B',
+            'title_en': 'Data and Information',
+            'title_fr': 'Données et information'
+        },
+        {
+            'code': 'C',
+            'title_en': 'Problem Solving and Programming',
+            'title_fr': 'Résolution de problèmes et programmation'
+        },
+        {
+            'code': 'D',
+            'title_en': 'Technology and Innovation',
+            'title_fr': 'Technologie et innovation'
+        }
+    ]
+
+    created_strands = {}
+    try:
+        for strand_data in strands_data:
+            logger.info(f"Creating strand {strand_data['code']}")
+            strand = Strand(
+                course_id=course_id,
+                code=strand_data['code'],
+                title_en=strand_data['title_en'],
+                title_fr=strand_data['title_fr']
+            )
+            db.session.add(strand)
+            db.session.flush()
+            created_strands[strand.code] = strand
+            logger.info(f"Created strand {strand_data['code']}: {strand_data['title_en']}")
+
+        # Verify strands were created
+        for code, strand in created_strands.items():
+            if not strand.id:
+                raise ValueError(f"Strand {code} was not properly created (no ID assigned)")
+
+    except Exception as e:
+        logger.error(f"Error creating strands: {str(e)}")
+        raise
+
+    return created_strands
+
+def create_expectations(strands: dict):
+    """Create overall and specific expectations for ICD2O course"""
+    logger = logging.getLogger(__name__)
+
+    # Define expectations data
+    expectations_data = {
+        'A': {
+            'A1': {
+                'description_en': 'Use responsible practices, security strategies, and privacy principles to protect themselves and others',
+                'description_fr': "Utiliser des pratiques responsables, des stratégies de sécurité et des principes de confidentialité pour se protéger et protéger les autres",
+                'specifics': {
+                    'A1.1': {
+                        'description_en': 'Identify potential security threats and risks in digital environments',
+                        'description_fr': "Identifier les menaces et les risques potentiels pour la sécurité dans les environnements numériques"
+                    },
+                    'A1.2': {
+                        'description_en': 'Apply appropriate security strategies to protect personal data and digital devices',
+                        'description_fr': "Appliquer des stratégies de sécurité appropriées pour protéger les données personnelles et les appareils numériques"
+                    },
+                    'A1.3': {
+                        'description_en': 'Follow ethical guidelines and legal requirements when accessing and using digital resources',
+                        'description_fr': "Suivre les directives éthiques et les exigences légales lors de l'accès et de l'utilisation des ressources numériques"
+                    }
+                }
+            },
+            'A2': {
+                'description_en': 'Demonstrate an understanding of social and ethical responsibilities in a digital world',
+                'description_fr': "Démontrer une compréhension des responsabilités sociales et éthiques dans un monde numérique",
+                'specifics': {
+                    'A2.1': {
+                        'description_en': 'Explain the impact of digital technologies on society and personal well-being',
+                        'description_fr': "Expliquer l'impact des technologies numériques sur la société et le bien-être personnel"
+                    },
+                    'A2.2': {
+                        'description_en': 'Practice responsible digital citizenship in online communities',
+                        'description_fr': "Pratiquer une citoyenneté numérique responsable dans les communautés en ligne"
+                    }
+                }
+            }
+        },
+        'B': {
+            'B1': {
+                'description_en': 'Analyze and manage various types of data using appropriate tools and strategies',
+                'description_fr': "Analyser et gérer différents types de données à l'aide d'outils et de stratégies appropriés",
+                'specifics': {
+                    'B1.1': {
+                        'description_en': 'Use appropriate tools to collect and organize data from various sources',
+                        'description_fr': "Utiliser des outils appropriés pour collecter et organiser des données de diverses sources"
+                    },
+                    'B1.2': {
+                        'description_en': 'Process and analyze data to draw meaningful conclusions',
+                        'description_fr': "Traiter et analyser des données pour tirer des conclusions significatives"
+                    },
+                    'B1.3': {
+                        'description_en': 'Present data effectively using various visualization techniques',
+                        'description_fr': "Présenter efficacement des données en utilisant diverses techniques de visualisation"
+                    }
+                }
+            },
+            'B2': {
+                'description_en': 'Apply critical thinking skills to evaluate information and media content',
+                'description_fr': "Appliquer des compétences de pensée critique pour évaluer l'information et le contenu médiatique",
+                'specifics': {
+                    'B2.1': {
+                        'description_en': 'Assess the reliability and credibility of digital information sources',
+                        'description_fr': "Évaluer la fiabilité et la crédibilité des sources d'information numérique"
+                    },
+                    'B2.2': {
+                        'description_en': 'Identify bias and perspective in digital media content',
+                        'description_fr': "Identifier les préjugés et les perspectives dans le contenu des médias numériques"
+                    }
+                }
+            }
+        },
+        'C': {
+            'C1': {
+                'description_en': 'Apply computational thinking concepts and practices to solve problems',
+                'description_fr': "Appliquer les concepts et les pratiques de la pensée informatique pour résoudre des problèmes",
+                'specifics': {
+                    'C1.1': {
+                        'description_en': 'Decompose complex problems into smaller, manageable parts',
+                        'description_fr': "Décomposer des problèmes complexes en parties plus petites et gérables"
+                    },
+                    'C1.2': {
+                        'description_en': 'Develop algorithms to solve computational problems',
+                        'description_fr': "Développer des algorithmes pour résoudre des problèmes informatiques"
+                    },
+                    'C1.3': {
+                        'description_en': 'Test and debug algorithms and programs systematically',
+                        'description_fr': "Tester et déboguer systématiquement les algorithmes et les programmes"
+                    }
+                }
+            },
+            'C2': {
+                'description_en': 'Create and modify computer programs to solve problems',
+                'description_fr': "Créer et modifier des programmes informatiques pour résoudre des problèmes",
+                'specifics': {
+                    'C2.1': {
+                        'description_en': 'Write and modify program code using fundamental programming concepts',
+                        'description_fr': "Écrire et modifier du code de programme en utilisant des concepts de programmation fondamentaux"
+                    },
+                    'C2.2': {
+                        'description_en': 'Create programs that respond to user input and produce desired output',
+                        'description_fr': "Créer des programmes qui répondent aux entrées utilisateur et produisent la sortie souhaitée"
+                    }
+                }
+            }
+        },
+        'D': {
+            'D1': {
+                'description_en': 'Explore emerging technologies and their impact on society',
+                'description_fr': "Explorer les technologies émergentes et leur impact sur la société",
+                'specifics': {
+                    'D1.1': {
+                        'description_en': 'Investigate current and emerging digital technologies',
+                        'description_fr': "Étudier les technologies numériques actuelles et émergentes"
+                    },
+                    'D1.2': {
+                        'description_en': 'Assess the impact of emerging technologies on various career paths',
+                        'description_fr': "Évaluer l'impact des technologies émergentes sur diverses carrières"
+                    }
+                }
+            },
+            'D2': {
+                'description_en': 'Apply design thinking principles to create innovative solutions',
+                'description_fr': "Appliquer les principes de la pensée design pour créer des solutions innovantes",
+                'specifics': {
+                    'D2.1': {
+                        'description_en': 'Use a design thinking process to develop solutions to real-world problems',
+                        'description_fr': "Utiliser un processus de pensée design pour développer des solutions à des problèmes réels"
+                    },
+                    'D2.2': {
+                        'description_en': 'Create innovative digital solutions through prototyping and iteration',
+                        'description_fr': "Créer des solutions numériques innovantes par le prototypage et l'itération"
+                    }
+                }
+            }
+        }
+    }
+
+    try:
+        created_overall_expectations = {}
+
+        for strand_code, overall_exps in expectations_data.items():
+            if strand_code not in strands:
+                raise ValueError(f"Strand {strand_code} not found in provided strands dictionary")
+
+            strand = strands[strand_code]
+            logger.info(f"Processing expectations for strand {strand_code}")
+
+            for overall_code, overall_data in overall_exps.items():
+                logger.info(f"Creating overall expectation {overall_code}")
+
+                # Create overall expectation
+                overall = OverallExpectation(
+                    strand_id=strand.id,
+                    code=overall_code,
+                    description_en=overall_data['description_en'],
+                    description_fr=overall_data['description_fr']
+                )
+                db.session.add(overall)
+                db.session.flush()
+
+                if not overall.id:
+                    raise ValueError(f"Overall expectation {overall_code} was not properly created (no ID assigned)")
+
+                created_overall_expectations[overall_code] = overall
+
+                # Create specific expectations
+                for specific_code, specific_data in overall_data['specifics'].items():
+                    logger.debug(f"Creating specific expectation {specific_code}")
+                    specific = SpecificExpectation(
+                        overall_expectation_id=overall.id,
+                        code=specific_code,
+                        description_en=specific_data['description_en'],
+                        description_fr=specific_data['description_fr']
+                    )
+                    db.session.add(specific)
+                    db.session.flush()
+
+                    if not specific.id:
+                        raise ValueError(f"Specific expectation {specific_code} was not properly created (no ID assigned)")
+
+                logger.info(f"Created overall expectation {overall_code} with its specific expectations")
+
+            logger.info(f"Completed processing expectations for strand {strand_code}")
+
+        # Verify expectations were created
+        logger.info("Verifying created expectations...")
+        for overall_code, overall in created_overall_expectations.items():
+            specific_count = SpecificExpectation.query.filter_by(
+                overall_expectation_id=overall.id
+            ).count()
+            logger.info(f"Overall expectation {overall_code} has {specific_count} specific expectations")
+
+    except Exception as e:
+        logger.error(f"Error creating expectations: {str(e)}")
+        raise
+
 def main():
     # Set up logging
     logging.basicConfig(
@@ -79,17 +330,55 @@ def main():
             course = Course(
                 code='ICD2O',
                 title_en='Digital Technology and Innovations in the Changing World',
-                title_fr='Technologies numériques et innovations dans un monde en évolution'
+                title_fr='Technologies numériques et innovations dans un monde en évolution',
+                description_en='This course helps students develop digital literacy and problem-solving skills while exploring emerging technologies.',
+                description_fr='Ce cours aide les élèves à développer leurs compétences en littératie numérique et en résolution de problèmes tout en explorant les technologies émergentes.',
             )
             db.session.add(course)
-            db.session.commit()
+            db.session.flush()  # Get the course ID
+
+            if not course.id:
+                raise ValueError("Course was not properly created (no ID assigned)")
+
             logger.info(f"Created course: {course.code}")
 
-            # Wait for user input to continue with strands, expectations, etc.
-            logger.info("Ready to receive curriculum data")
+            # Create strands
+            strands = create_strands(course.id)
+
+            # Create expectations
+            create_expectations(strands)
+
+            # Commit all changes
+            db.session.commit()
+            logger.info("All changes committed successfully")
+
+            # Verify the complete data structure
+            course_check = Course.query.filter_by(code='ICD2O').first()
+            if course_check:
+                strand_count = Strand.query.filter_by(course_id=course_check.id).count()
+                overall_count = OverallExpectation.query.join(Strand).filter(
+                    Strand.course_id == course_check.id
+                ).count()
+                specific_count = SpecificExpectation.query.join(
+                    OverallExpectation
+                ).join(
+                    Strand
+                ).filter(
+                    Strand.course_id == course_check.id
+                ).count()
+
+                logger.info(f"Final verification:")
+                logger.info(f"- Course: {course_check.code}")
+                logger.info(f"- Strands: {strand_count}")
+                logger.info(f"- Overall Expectations: {overall_count}")
+                logger.info(f"- Specific Expectations: {specific_count}")
+            else:
+                logger.error("Verification failed: Course not found after creation")
+                raise ValueError("Course verification failed")
 
     except Exception as e:
         logger.error(f"Import failed: {str(e)}")
+        db.session.rollback()
         raise
 
 if __name__ == '__main__':
