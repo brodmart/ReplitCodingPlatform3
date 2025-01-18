@@ -1,5 +1,5 @@
 # AI Session Context Guide
-Last Updated: January 17, 2025
+Last Updated: January 18, 2025
 
 ## Quick Start for AI Sessions:
 
@@ -8,6 +8,17 @@ Last Updated: January 17, 2025
 2. architectural_decisions.md - Key technical decisions
 3. development_patterns.md - Common patterns and practices
 4. integration_notes.md - System integration details
+
+### Database Information:
+The project uses a PostgreSQL database for curriculum storage:
+- Database Name: ICS3U Curriculum Database
+- Main Tables:
+  * courses: Stores course information (e.g., ICS3U)
+  * strands: Stores curriculum strands (A, B, C, D)
+  * overall_expectations: Stores overall expectations for each strand
+  * specific_expectations: Stores specific expectations linked to overall expectations
+- Location: Managed through DATABASE_URL environment variable
+- Access: Via SQLAlchemy ORM with Flask-SQLAlchemy integration
 
 ### How to Use These Files:
 
