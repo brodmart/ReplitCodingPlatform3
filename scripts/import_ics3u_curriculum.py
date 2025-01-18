@@ -17,7 +17,6 @@ from models.curriculum import Course, Strand, OverallExpectation, SpecificExpect
 
 def detect_encoding(file_path):
     """Detect the file encoding using chardet with improved error handling"""
-    encoding = None
     try:
         with open(file_path, 'rb') as file:
             raw_data = file.read()
@@ -26,19 +25,10 @@ def detect_encoding(file_path):
             result = chardet.detect(raw_data)
             if not result or not result['encoding']:
                 raise ValueError(f"Could not detect encoding for file: {file_path}")
-            encoding = result['encoding']
-            logging.info(f"Detected encoding: {encoding} with confidence: {result['confidence']}")
-            return encoding
-    except (IOError, OSError) as e:
-        logging.error(f"Error reading file {file_path}: {str(e)}")
-        raise
+            return result['encoding']
     except Exception as e:
         logging.error(f"Error detecting encoding for {file_path}: {str(e)}")
-        raise
-    finally:
-        if not encoding:
-            logging.warning(f"Falling back to UTF-8 encoding for {file_path}")
-            return 'utf-8'
+        return 'utf-8'  # Default to UTF-8 if detection fails
 
 def main():
     # Set up logging with more detail
@@ -69,17 +59,16 @@ def main():
             importer = CurriculumImporter()
 
             # Use the specified curriculum file
-            curriculum_file = project_root / 'attached_assets' / 'Le-curriculum-de-lOntario-de-la-10e-a-la-12e-annee-Etudes-informatiques-2008-revise.txt'
+            curriculum_file = project_root / 'attached_assets' / 'ics3u curriculum.txt'
 
             if not curriculum_file.exists():
                 logger.error(f"Curriculum file not found: {curriculum_file}")
                 raise FileNotFoundError(f"No curriculum file found at {curriculum_file}")
 
             logger.info(f"Found curriculum file: {curriculum_file}")
-            logger.info(f"File size: {curriculum_file.stat().st_size} bytes")
 
             try:
-                # Detect file encoding with fallback
+                # Detect file encoding
                 encoding = detect_encoding(curriculum_file)
                 logger.info(f"Using encoding: {encoding}")
 
@@ -91,49 +80,44 @@ def main():
                     logger.info(f"Successfully read file using {encoding} encoding")
                     logger.debug(f"Content preview (first 500 chars): {content[:500]}")
 
-                    try:
-                        logger.info(f"Starting import from file: {curriculum_file}")
-                        importer.import_curriculum(content)
+                    # Clear existing data before import
+                    importer.clear_existing_data()
 
-                        # Verify import by checking database
-                        course = Course.query.filter_by(code='ICS3U').first()
-                        if course:
-                            logger.info(f"Successfully imported course {course.code}: {course.title_fr}")
+                    # Perform the import
+                    importer.import_curriculum(content)
 
-                            # Log strand details
-                            strands = Strand.query.filter_by(course_id=course.id).all()
-                            logger.info(f"Imported {len(strands)} strands:")
+                    # Verify import
+                    course = Course.query.filter_by(code='ICS3U').first()
+                    if course:
+                        logger.info(f"Successfully imported course {course.code}: {course.title_fr}")
 
-                            for strand in strands:
-                                logger.info(f"  Strand {strand.code}: {strand.title_fr}")
+                        # Log curriculum structure
+                        strands = Strand.query.filter_by(course_id=course.id).all()
+                        logger.info(f"Imported {len(strands)} strands")
 
-                                # Count expectations
-                                overall_count = OverallExpectation.query.filter_by(strand_id=strand.id).count()
-                                specific_count = (
-                                    db.session.query(SpecificExpectation)
-                                    .join(OverallExpectation)
-                                    .filter(OverallExpectation.strand_id == strand.id)
-                                    .count()
-                                )
-                                logger.info(f"    Overall expectations: {overall_count}")
-                                logger.info(f"    Specific expectations: {specific_count}")
-                        else:
-                            logger.error("Failed to find imported course in database")
-                            raise Exception("Course import verification failed")
+                        for strand in strands:
+                            logger.info(f"  Strand {strand.code}: {strand.title_fr}")
 
-                    except Exception as e:
-                        logger.error(f"Error during import process: {str(e)}", exc_info=True)
-                        db.session.rollback()
-                        raise
+                            # Count expectations
+                            overall_count = OverallExpectation.query.filter_by(strand_id=strand.id).count()
+                            specific_count = (
+                                db.session.query(SpecificExpectation)
+                                .join(OverallExpectation)
+                                .filter(OverallExpectation.strand_id == strand.id)
+                                .count()
+                            )
+                            logger.info(f"    Overall expectations: {overall_count}")
+                            logger.info(f"    Specific expectations: {specific_count}")
+                    else:
+                        logger.error("Failed to find imported course in database")
+                        raise Exception("Course import verification failed")
 
             except UnicodeDecodeError as e:
                 logger.error(f"Unicode decode error with {encoding} encoding: {str(e)}")
                 raise
             except Exception as e:
-                logger.error(f"Error reading file: {str(e)}")
+                logger.error(f"Error during import: {str(e)}")
                 raise
-
-            logger.info("ICS3U curriculum import completed successfully!")
 
     except Exception as e:
         logger.error(f"Error during curriculum import: {str(e)}", exc_info=True)
