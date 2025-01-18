@@ -2,9 +2,6 @@
 
 
 
-A1. expliquer le fonctionnement d’un ordinateur personnel en utilisant les termes justes en français.
-A2. appliquer des techniques de gestion de fichiers.
-A3. utiliser des outils appropriés pour développer des programmes.
 
 A1.1 expliquer les fonctions des composants matériels internes d’un ordinateur personnel. 
 A1.2 expliquer les fonctions des périphériques externes qui sont couramment utilisés.
@@ -22,11 +19,6 @@ A3.2 expliquer les caractéristiques et les avantages de divers environnements d
 A3.3 utiliser les fonctions respectives d’un compilateur ou d’un interpréteur.
 A3.4 utiliser l’aide disponible pour développer des programmes.
 
-
-
-B1. appliquer les principales règles de syntaxe et de sémantique d’un langage de programmation.
-B2. expliquer des algorithmes et des structures de données élémentaires.
-B3. appliquer des techniques d’assurance-qualité logicielle.
 
 	
 B1.1 décrire les types de données primitifs définis par un langage de programmation donné. 
