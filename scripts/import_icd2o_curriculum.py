@@ -11,7 +11,6 @@ sys.path.append(str(project_root))
 
 from app import app, db
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
-from sqlalchemy import select
 
 def clear_existing_data(course_code: str):
     """Clear existing curriculum data for a given course code"""
@@ -65,23 +64,23 @@ def create_strands(course_id: int):
     strands_data = [
         {
             'code': 'A',
-            'title_en': 'Digital Citizenship and Technologies',
-            'title_fr': 'Citoyenneté numérique et technologies'
+            'title_en': 'Computational Thinking and Making Connections',
+            'title_fr': 'Pensée computationnelle et établissement de liens'
         },
         {
             'code': 'B',
-            'title_en': 'Data and Information',
-            'title_fr': 'Données et information'
+            'title_en': 'Hardware, Software, and Innovations',
+            'title_fr': 'Matériel, logiciels et innovations'
         },
         {
             'code': 'C',
-            'title_en': 'Problem Solving and Programming',
-            'title_fr': 'Résolution de problèmes et programmation'
+            'title_en': 'Software Development and Project Management',
+            'title_fr': 'Développement de logiciels et gestion de projets'
         },
         {
             'code': 'D',
-            'title_en': 'Technology and Innovation',
-            'title_fr': 'Technologie et innovation'
+            'title_en': 'Computers, Networks, and Society',
+            'title_fr': 'Ordinateurs, réseaux et société'
         }
     ]
 
@@ -119,34 +118,34 @@ def create_expectations(strands: dict):
     expectations_data = {
         'A': {
             'A1': {
-                'description_en': 'Use responsible practices, security strategies, and privacy principles to protect themselves and others',
-                'description_fr': "Utiliser des pratiques responsables, des stratégies de sécurité et des principes de confidentialité pour se protéger et protéger les autres",
+                'description_en': 'Apply computational thinking concepts and practices to solve problems',
+                'description_fr': 'Appliquer les concepts et les pratiques de la pensée computationnelle pour résoudre des problèmes',
                 'specifics': {
                     'A1.1': {
-                        'description_en': 'Identify potential security threats and risks in digital environments',
-                        'description_fr': "Identifier les menaces et les risques potentiels pour la sécurité dans les environnements numériques"
+                        'description_en': 'Use computational thinking strategies to decompose problems into smaller, more manageable subproblems',
+                        'description_fr': 'Utiliser des stratégies de pensée computationnelle pour décomposer des problèmes en sous-problèmes plus petits et plus gérables'
                     },
                     'A1.2': {
-                        'description_en': 'Apply appropriate security strategies to protect personal data and digital devices',
-                        'description_fr': "Appliquer des stratégies de sécurité appropriées pour protéger les données personnelles et les appareils numériques"
+                        'description_en': 'Create computational representations of mathematical and other real-world problems',
+                        'description_fr': 'Créer des représentations computationnelles de problèmes mathématiques et autres problèmes réels'
                     },
                     'A1.3': {
-                        'description_en': 'Follow ethical guidelines and legal requirements when accessing and using digital resources',
-                        'description_fr': "Suivre les directives éthiques et les exigences légales lors de l'accès et de l'utilisation des ressources numériques"
+                        'description_en': 'Develop algorithms to solve problems using sequence, selection, and repetition',
+                        'description_fr': 'Développer des algorithmes pour résoudre des problèmes en utilisant la séquence, la sélection et la répétition'
                     }
                 }
             },
             'A2': {
-                'description_en': 'Demonstrate an understanding of social and ethical responsibilities in a digital world',
-                'description_fr': "Démontrer une compréhension des responsabilités sociales et éthiques dans un monde numérique",
+                'description_en': 'Make connections between computer science concepts and skills and their applications',
+                'description_fr': 'Établir des liens entre les concepts et les compétences en informatique et leurs applications',
                 'specifics': {
                     'A2.1': {
-                        'description_en': 'Explain the impact of digital technologies on society and personal well-being',
-                        'description_fr': "Expliquer l'impact des technologies numériques sur la société et le bien-être personnel"
+                        'description_en': 'Identify computer science concepts in various fields and contexts',
+                        'description_fr': 'Identifier les concepts informatiques dans divers domaines et contextes'
                     },
                     'A2.2': {
-                        'description_en': 'Practice responsible digital citizenship in online communities',
-                        'description_fr': "Pratiquer une citoyenneté numérique responsable dans les communautés en ligne"
+                        'description_en': 'Apply computer science concepts to solve problems in other subject areas',
+                        'description_fr': 'Appliquer les concepts informatiques pour résoudre des problèmes dans d\'autres domaines'
                     }
                 }
             }
@@ -298,14 +297,6 @@ def create_expectations(strands: dict):
 
             logger.info(f"Completed processing expectations for strand {strand_code}")
 
-        # Verify expectations were created
-        logger.info("Verifying created expectations...")
-        for overall_code, overall in created_overall_expectations.items():
-            specific_count = SpecificExpectation.query.filter_by(
-                overall_expectation_id=overall.id
-            ).count()
-            logger.info(f"Overall expectation {overall_code} has {specific_count} specific expectations")
-
     except Exception as e:
         logger.error(f"Error creating expectations: {str(e)}")
         raise
@@ -331,11 +322,11 @@ def main():
                 code='ICD2O',
                 title_en='Digital Technology and Innovations in the Changing World',
                 title_fr='Technologies numériques et innovations dans un monde en évolution',
-                description_en='This course helps students develop digital literacy and problem-solving skills while exploring emerging technologies.',
-                description_fr='Ce cours aide les élèves à développer leurs compétences en littératie numérique et en résolution de problèmes tout en explorant les technologies émergentes.',
+                description_en='This course helps students develop digital literacy and computational thinking skills while exploring computer science concepts.',
+                description_fr='Ce cours aide les élèves à développer leurs compétences en littératie numérique et en pensée computationnelle tout en explorant les concepts de l\'informatique.',
             )
             db.session.add(course)
-            db.session.flush()  # Get the course ID
+            db.session.flush()
 
             if not course.id:
                 raise ValueError("Course was not properly created (no ID assigned)")
@@ -367,7 +358,7 @@ def main():
                     Strand.course_id == course_check.id
                 ).count()
 
-                logger.info(f"Final verification:")
+                logger.info("Final verification:")
                 logger.info(f"- Course: {course_check.code}")
                 logger.info(f"- Strands: {strand_count}")
                 logger.info(f"- Overall Expectations: {overall_count}")
