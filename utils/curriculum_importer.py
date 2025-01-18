@@ -127,56 +127,86 @@ class CurriculumImporter:
         return 'Aucun'
 
     def extract_strand_sections(self, content: str) -> List[Tuple[str, str, str]]:
-        """Extract strand sections from curriculum content with improved French parsing"""
+        """Extract strand sections from curriculum content"""
         self.logger.info("Starting strand extraction...")
         self.logger.debug(f"Content length: {len(content)}")
 
         sections = []
 
-        # Updated pattern to better match French curriculum structure
-        # Split on major section headers (A. B. C. D.) but not on subsections (A1. A2. etc)
-        parts = re.split(r'(?m)^([A-D])\s*\.\s*(?=[A-Z])', content)
+        # First find all major section markers with French patterns
+        section_markers = re.finditer(
+            r'(?m)^\s*([A-D])\s*\.\s*(?![\d\.])\s*(?:((?:Environn?[Ee]m[Ee]nt|[Tt][Ee]chniqu[Ee]s|[Dd][Ee]v[Ee]lopp[Ee]m[Ee]nt|[Ee]nj[Ee]ux)\s+[^\n]+)|([^\n]+))',
+            content
+        )
 
-        # Skip the first element as it's content before first strand
-        for i in range(1, len(parts)-1, 2):
+        # Collect all section starts
+        section_starts = []
+        for match in section_markers:
+            start_pos = match.start()
+            code = match.group(1)
+            # Take the first non-None group as title
+            title = next(g for g in match.groups()[1:] if g is not None)
+            section_starts.append((start_pos, code, title.strip()))
+            self.logger.debug(f"Found section marker: {code} - {title}")
+
+        if not section_starts:
+            self.logger.warning("No section markers found - checking content structure")
+            self.logger.debug(f"Content preview:\n{content[:1000]}")
+            return sections
+
+        # Process each section
+        for i, (start_pos, code, title) in enumerate(section_starts):
             try:
-                code = parts[i].strip()
-                section_content = parts[i+1].strip()
-
-                # Extract the strand title with improved pattern
-                title_match = re.match(r'^([^\.]+?)(?=\s*ATTENTES|CONTENUS)', section_content, re.DOTALL)
-
-                if title_match:
-                    title = self.clean_text(title_match.group(1))
-                    remaining_content = section_content[title_match.end():].strip()
-
-                    # Verify section has both ATTENTES and CONTENUS D'APPRENTISSAGE
-                    if ('ATTENTES' in remaining_content and 
-                        'CONTENUS D\'APPRENTISSAGE' in remaining_content):
-                        self.logger.info(f"Found valid strand {code}: {title}")
-                        self.logger.debug(f"Content length for strand {code}: {len(remaining_content)}")
-                        sections.append((code, title, remaining_content))
-                    else:
-                        self.logger.warning(
-                            f"Strand {code} missing required sections. "
-                            f"ATTENTES present: {'ATTENTES' in remaining_content}, "
-                            f"CONTENUS present: {'CONTENUS' in remaining_content}"
-                        )
+                # Get section content up to next section or end of content
+                if i < len(section_starts) - 1:
+                    end_pos = section_starts[i + 1][0]
                 else:
-                    self.logger.warning(f"Could not extract title for strand {code}")
+                    end_pos = len(content)
+
+                section_content = content[start_pos:end_pos].strip()
+
+                # Clean up title
+                title = self.clean_text(title)
+
+                self.logger.debug(f"Processing section {code}:")
+                self.logger.debug(f"Title: {title}")
+                self.logger.debug(f"Content length: {len(section_content)}")
+                self.logger.debug(f"Content preview: {section_content[:200]}...")
+
+                # Check for required components with flexible matching
+                has_attentes = bool(re.search(r'(?:^|\s)ATTENTES(?:\s|$)', section_content, re.IGNORECASE | re.MULTILINE))
+                has_contenus = bool(re.search(r'(?:^|\s)CONTENUS\s+D[\'']APPRENTISSAGE(?:\s|$)', section_content, re.IGNORECASE | re.MULTILINE))
+
+                if has_attentes and has_contenus:
+                    self.logger.info(f"Found valid strand {code}: {title}")
+                    sections.append((code, title, section_content))
+                else:
+                    self.logger.warning(
+                        f"Strand {code} missing required sections - "
+                        f"ATTENTES: {has_attentes}, "
+                        f"CONTENUS: {has_contenus}"
+                    )
+                    self.logger.debug("Markers not found in content:")
+                    self.logger.debug(section_content[:500])
 
             except Exception as e:
-                self.logger.error(f"Error processing strand section: {str(e)}")
+                self.logger.error(f"Error processing section {code}: {str(e)}")
                 continue
 
-        self.logger.info(f"Successfully extracted {len(sections)} strands")
-        for code, title, _ in sections:
-            self.logger.debug(f"Strand: {code} - {title}")
+        self.logger.info(f"Found {len(sections)} valid strands")
 
         if not sections:
-            self.logger.warning("No valid strands were extracted. This might indicate an issue with the content format.")
-            # Log a sample of the content for debugging
-            self.logger.debug(f"Content sample:\n{content[:1000]}...")
+            self.logger.warning("No strands extracted - checking content structure")
+            # Analyze content markers
+            attentes_matches = re.finditer(r'ATTENTES', content, re.IGNORECASE)
+            contenus_matches = re.finditer(r'CONTENUS\s+D[\'']APPRENTISSAGE', content, re.IGNORECASE)
+
+            attentes_positions = [m.start() for m in attentes_matches]
+            contenus_positions = [m.start() for m in contenus_matches]
+
+            self.logger.debug(f"Content analysis:")
+            self.logger.debug(f"- Found {len(attentes_positions)} ATTENTES sections at positions: {attentes_positions}")
+            self.logger.debug(f"- Found {len(contenus_positions)} CONTENUS sections at positions: {contenus_positions}")
 
         return sections
 
