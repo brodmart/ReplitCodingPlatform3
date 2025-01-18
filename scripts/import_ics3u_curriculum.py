@@ -68,8 +68,8 @@ def main():
             # Create importer instance
             importer = CurriculumImporter()
 
-            # Use only the latest curriculum file
-            curriculum_file = project_root / 'attached_assets' / 'Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-l--1737160312256.txt'
+            # Use the specified curriculum file
+            curriculum_file = project_root / 'attached_assets' / 'Le-curriculum-de-lOntario-de-la-10e-a-la-12e-annee-Etudes-informatiques-2008-revise.txt'
 
             if not curriculum_file.exists():
                 logger.error(f"Curriculum file not found: {curriculum_file}")

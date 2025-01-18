@@ -1,0 +1,551 @@
+
+Introduction au génie informatique, 11e année
+cours préuniversitaire	ICS3U
+
+
+
+
+
+Ce cours initie l’élève aux concepts fondamentaux de l’informatique et aux techniques de développement de logiciels. Dans le cadre de divers projets illustrant le cycle de vie
+d’un logiciel, l’élève développe des habiletés et une compréhension solide d’un langage de programmation en se familiarisant avec les outils et les techniques de développement de logiciels, notamment la résolution de problèmes, la conception d’algorithmes et l’assurance-qualité. Le cours amène également l’élève à explorer l’impact de l’industrie de l’informatique sur l’environnement et la santé publique ainsi que les possibilités de carrière et de formation professionnelle dans ce secteur.
+Préalable : Aucun
+Environnement informatique de travail
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+
+A1.1 expliquer les fonctions des composants matériels internes d’un ordinateur personnel (p. ex., carte mère, microprocesseur, mémoire vive, carte vidéo, carte son).
+A1.2 expliquer les fonctions des périphériques externes qui sont couramment utilisés (p. ex., souris, clavier, moniteur, imprimante, appareil photo numérique, caméra, clé de mémoire).
+A1.3 comparer les performances du matériel informatique de divers ordinateurs person- nels en utilisant des mesures objectives (p. ex., fréquence du microprocesseur [en gigahertz], capacité de la mémoire vive [en gigaoctets], consommation électrique [en watts]).
+A1.4 expliquer la relation fonctionnelle entre un langage de programmation et les composants essentiels d’un ordinateur (p. ex., enregistrement et transfert de données, opération arithmétique, calcul géométrique).
+
+ Gestion de fichiers	
+A2.1 répertorier les fichiers d’un programme en utilisant les fonctions du système d’exploitation.
+A2.2 appliquer une procédure systématique de sauvegarde des fichiers (p. ex., archivage programmé de fichiers, copie manuelle sur une clé de mémoire ou en ligne, utilisation d’un système de contrôle de versions).
+
+
+A2.3 décrire plusieurs types de virus (p. ex., attaque du système d’amorçage, macro dans un document de bureautique) et autres programmes malveillants (p. ex., cheval de Troie, logiciel espion), leur cycle de vie ainsi que les contre- mesures de sécurité informatique connues
+(p. ex., antivirus, coupe-feu, blocage des fenêtres, filtre antipourriel).
+A2.4 utiliser les services du réseau local
+(p. ex., partage de fichier et d’imprimante, centralisation du code et de l’échéancier) pour faciliter la gestion et la sauvegarde des fichiers lors du développement d’un programme.
+
+ Outils de développement	
+A3.1 comparer les principales fonctions des systèmes d’exploitation (p. ex., exécution de programmes, archivage de fichiers, contrôle d’accès) et des logiciels d’application (p. ex., traitement de texte, lecture de courriels), notamment des outils de développement (p. ex., compilateur, interpréteur).
+A3.2 expliquer les caractéristiques et les avantages de divers environnements de développement (p. ex., environnement de développement intégré [EDI]; éditeur de texte spécialisé et interpréteur) pour développer des programmes.
+A3.3 utiliser les fonctions respectives d’un compilateur ou d’un interpréteur.
+A3.4 utiliser l’aide disponible (p. ex., fonction d’aide de l’EDI, tutoriel, aide en ligne) pour développer des programmes.
+
+
+
+48
+techniques  dE  progrAmmAtion
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Syntaxe et sémantique	
+B1.1 décrire les types de données primitifs définis par un langage de programmation donné (p. ex., nombre entier, nombre décimal, caractère alphanumérique).
+B1.2 décrire la représentation interne (p. ex., code binaire, code ASCII, Unicode) de divers types de données (p. ex., nombre entier, caractère, chaîne de caractères).
+B1.3 définir les termes suivants : valeur littérale, constante et variable.
+B1.4 définir les concepts de portée et de durée de vie des variables.
+B1.5 décrire différents types de fonctions (p. ex., fonction avec ou sans paramètres, avec ou sans valeur de retour [procédure]; fonction récursive).
+B1.6 appliquer les règles de syntaxe fondamen- tales (p. ex., déclaration de variables, usage des opérateurs, appel de fonction) d’un langage de programmation.
+B1.7 rédiger des expressions utilisant des opérateurs (p. ex., opérateur booléen, opérateur de comparaison, opérateur arithmétique).
+
+
+B2.1 définir les caractéristiques d’un tableau à une dimension telles que les éléments, l’indice et la taille.
+B2.2 expliquer des algorithmes qui permettent de lire ou de modifier les éléments d’un tableau à une dimension.
+
+
+B2.3 expliquer le fonctionnement des structures de contrôle – séquentielle, décisionnelle et itérative – d’un programme.
+B2.4 expliquer des algorithmes qui permettent de traiter l’information entrée par une utilisatrice ou un utilisateur et d’afficher le résultat
+à l’écran.
+
+ Assurance-qualité logicielle	
+B3.1 expliquer la différence entre les erreurs de logique, les erreurs de syntaxe et les erreurs d’exécution d’un programme.
+B3.2 interpréter les messages d’erreur émis par les environnements de développement et d’exécution (p. ex., compilateur, outil de débogage, machine virtuelle).
+B3.3 corriger des erreurs de logique, des erreurs de syntaxe et des erreurs d’exécution d’un programme.
+B3.4 déterminer un ensemble de valeurs appro- priées pour tester l’exactitude d’un programme.
+B3.5 déboguer des programmes à l’aide de différentes méthodes (p. ex., traçage, exécution pas à pas, utilisation de points d’interruption, observation des variables, insertion d’instructions dans le programme).
+B3.6 appliquer des règles de mise en page (p. ex., tabulation), de rédaction (p. ex., commentaire) et de nomenclature (p. ex., nom de variable) au programme afin d’en assurer sa maintenance et sa documentation.
+c. dévEloppEmEnt dE logiciEls
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+
+c1.1 décrire les problèmes en termes de données d’entrée, de traitement de données et de données de sortie.
+c1.2 utiliser différentes approches pour résoudre des problèmes (p. ex., méthode de la dichotomie, méthode empirique, représentation graphique).
+c1.3 décrire les activités principales du dévelop- pement de logiciels (p. ex., définition des besoins, conception, codage, vérification et validation) et leurs produits livrables (p. ex., cahier des charges, code source, résultats des tests).
+c1.4 interpréter des échéanciers (p. ex., calendrier des tâches, diagramme de Gantt, graphique PERT).
+c1.5 appliquer un plan de test (p. ex., identifica- tion des scénarios possibles, entrée des données, prédiction des résultats, comparaison avec les données de sortie).
+c1.6 présenter à l’oral comme à l’écrit les produits livrables (p. ex., cahier des charges, algorithme, résultat des tests) en utilisant les termes justes en français.
+
+ Conception d’algorithmes	
+c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés
+(p. ex., calcul de la longueur du troisième côté d’un triangle rectangle lorsque les deux premiers côtés sont connus, affichage des nombres premiers inférieurs à 100).
+
+
+c2.2 concevoir des algorithmes de traitement des données (p. ex., validation des données entrées par l’utilisatrice ou l’utilisateur, manipulation des éléments d’un tableau).
+c2.3 concevoir des imbrications de structures de contrôle (p. ex., structures décisionnelles imbriquées, utilisation d’une valeur sentinelle dans une structure itérative pour effectuer une sortie exceptionnelle).
+c2.4 concevoir des algorithmes traitant des exceptions (p. ex., division par zéro, racine carrée d’un nombre négatif, 0° [zéro exposant zéro]).
+c2.5 comparer qualitativement et quantitative- ment les performances de deux algorithmes qui répondent au même problème (p. ex., type de données, nombre de lignes, usage de
+la mémoire).
+
+ Développement de programmes	
+c3.1 concevoir des fonctions répondant à des besoins donnés (p. ex., calcul de formule, encapsulation d’un bloc de code, répétition d’un bloc d’instructions).
+c3.2 modéliser un problème de programmation en utilisant diverses techniques (p. ex., organi- gramme, langage de modélisation UML, dia- gramme de flux, pseudocode).
+c3.3 appliquer le principe de modularisation au développement de programmes (p. ex., en créant des fonctions pour éviter la duplication de blocs de code, en créant des classes, en séparant au besoin le code en plusieurs fichiers).
+
+
+
+
+50
+
+c3.4 concevoir des interfaces utilisateurs conviviales (p. ex., interface d’une console, interface d’une page Web, interface graphique) qui répondent aux besoins des utilisatrices et utilisateurs.
+c3.5 développer des programmes répondant à des problèmes donnés en utilisant des modules
+préalablement conçus à cet effet (p. ex., fonction, interface utilisateur, documentation) et des fonctions prédéfinies (p. ex., générateur de nombres aléatoires, gestionnaire d’événements, convertisseur de chaînes de caractères).
+d. EnjEux sociétAux Et pErspEctivEs profEssionnEllEs
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Environnement et santé	
+d1.1 analyser l’impact de l’industrie de l’infor- matique sur l’environnement et la santé publi- que en identifiant les facteurs bénéfiques
+(p. ex., modélisation des forces environnementales et de leur impact au niveau planétaire, séquençage du génome humain, repliement des protéines) et les facteurs nuisibles (p. ex., volume et toxicité
+des déchets, consommation électrique, utilisation du papier).
+d1.2 évaluer l’impact des mesures prises par les organismes publics (p. ex., création de normes environnementales, mesure fiscale, subvention) et privés (p. ex., initiative des fabricants de matériel informatique, action d’une association proenvironnementale, initiative individuelle) sur l’empreinte environnementale de l’informatique.
+d1.3 déterminer des stratégies pour réduire la consommation des systèmes informatiques, et pour réutiliser et recycler du matériel informatique (p. ex., éteindre le moniteur en
+fin de journée, réaffecter des ordinateurs obsolètes à des tâches plus appropriées, recycler les cartouches d’encre).
+d1.4 décrire des moyens pour prévenir (p. ex., poste de travail ergonomique, exercice muscu- laire) des problèmes de santé liés à l’usage des ordinateurs (p. ex., trouble musculosquelettique, trouble de la vue).
+
+
+ Carrière et formation	
+d2.1 comparer des choix de carrière possibles en informatique (p. ex., programmation, architecture d’entreprise, recherche), notamment en ce qui
+a trait aux tâches à accomplir, aux conditions salariales et aux possibilités d’avancement.
+d2.2 répertorier les programmes de formation offerts en informatique en identifiant les préalables et les options éducatives qui existent en français.
+d2.3 identifier des occasions et des moyens d’obtenir de l’expérience en informatique (p. ex., bénévolat, éducation coopérative, salon de l’emploi, mentorat).
+d2.4 décrire des services de soutien qui favorisent l’orientation vers des métiers non traditionnels en informatique (p. ex., programme de mentorat, groupe de soutien virtuel, programme postsecon- daire spécialisé, association syndicale).
+d2.5 décrire les compétences essentielles (p. ex., communication verbale, prise de décisions, réso- lution de problèmes) ainsi que les habitudes de travail (p. ex., habitudes associées à la sécurité au travail, à la capacité de travailler en équipe et de façon autonome, à la fiabilité, au service
+à la clientèle) du Passeport-compétences de l’Ontario (PCO) qui sont indispensables pour réussir dans l’industrie de l’informatique.
+d2.6 créer un portfolio en sélectionnant les travaux ou les réalisations (p. ex., logiciel, code source, diagramme) qui témoignent de ses
+habiletés, de ses compétences, de ses expériences et des certifications acquises en informatique.
+
+
+52
+
+Introduction à la programmation informatique, 11e année
+cours précollégial	ICS3C
+
+
+
+
+
+Ce cours initie l’élève aux techniques de programmation qui lui permettent de développer des programmes répondant aux besoins des utilisatrices et utilisateurs, notamment en ce qui a trait à l’interface utilisateur et à la présentation des données. Dans le cadre de divers projets illustrant le cycle de vie d’un logiciel, l’élève se familiarise avec l’environnement informatique de travail, et développe et débogue des programmes. Le cours amène aussi l’élève à explorer l’impact de l’industrie de l’informatique sur l’environnement et la santé publique ainsi que les diverses possibilités de carrière et de formation dans ce secteur.
+Préalable : Aucun
+EnvironnEmEnt informAtiquE dE trAvAil
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+A1.1 expliquer les fonctions des composants matériels internes d’un ordinateur personnel (p. ex., carte mère, microprocesseur, mémoire vive, carte vidéo, carte son).
+A1.2 expliquer les fonctions des périphériques externes qui sont couramment utilisés (p. ex., souris, clavier, moniteur, imprimante, appareil photo numérique, caméra, clé de mémoire).
+A1.3 comparer les performances du matériel infor- matique de divers ordinateurs personnels en utilisant des mesures objectives (p. ex., fréquence du microprocesseur [en gigahertz], capacité de
+la mémoire vive [en gigaoctets], consommation électrique [en watts]).
+A1.4 comparer les caractéristiques majeures des différents types d’accès à Internet (p. ex., câble de radiotélévision, ligne d’abonné numérique, ligne commutée, accès sans fil).
+
+ Gestion de fichiers	
+A2.1 répertorier les fichiers d’un programme en utilisant les fonctions du système d’exploitation.
+A2.2 appliquer une procédure systématique de sauvegarde des fichiers (p. ex., archivage pro- grammé de fichiers, copie manuelle sur une clé de mémoire ou en ligne, utilisation d’un système de contrôle de versions).
+
+
+
+
+54
+
+
+
+A2.3 décrire plusieurs types de virus (p. ex., attaque du système d’amorçage, macro dans un document de bureautique) et autres programmes malveillants (p. ex., cheval de Troie, logiciel espion), leur cycle de vie ainsi que les contre- mesures de sécurité informatique connues
+(p. ex., antivirus, coupe-feu, blocage de fenêtres, filtre antipourriel).
+A2.4 expliquer des raisons motivant l’adoption d’une politique d’utilisation des ordinateurs et du réseau local (p. ex., respect de la vie privée, équité, maintenance informatique).
+A2.5 utiliser les services du réseau local (p. ex., partage de fichier et d’imprimante, centralisation du code et de l’échéancier) pour faciliter la gestion et la sauvegarde des fichiers lors du développe- ment d’un programme.
+
+ Outils de développement	
+A3.1 expliquer les fonctions respectives des systèmes d’exploitation (p. ex., exécution de programmes, archivage de fichiers, contrôle d’accès) et des logiciels d’application (p. ex., traitement de texte, lecture de courriels), notamment des outils de développement (p. ex., compilateur, interpréteur).
+A3.2 expliquer les caractéristiques et les avantages de divers environnements de développement intégrés (EDI) pour développer des programmes.
+A3.3 utiliser les commandes d’un EDI requises pour éditer, exécuter et déboguer des programmes.
+A3.4 utiliser l’aide disponible (p. ex., fonction d’aide de l’EDI, tutoriel, aide en ligne) pour développer des programmes.
+tEchniquEs  dE  progrAmmAtion
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Traitement des données	
+B1.1 décrire les types de données primitifs définis par un langage de programmation donné
+(p. ex., nombre entier, nombre décimal, caractère alphanumérique).
+B1.2 expliquer les règles (p. ex., portée, durée de vie) qui s’appliquent à la gestion de la mémoire (p. ex., variable locale ou globale, paramètre d’une fonction).
+B1.3 utiliser différents types de données (p. ex., nombre entier, valeur booléenne, chaîne de caractères) dans un programme.
+B1.4 manipuler des données dans un programme en utilisant des constantes et des variables.
+B1.5 appliquer des techniques de manipulation des chaînes de caractères (p. ex., échange de caractères, dénombrement).
+B1.6 rédiger des expressions utilisant des opéra- teurs (p. ex., opérateur booléen, opérateur de comparaison, opérateur arithmétique).
+
+ Structures de contrôle	
+B2.1 développer un programme qui traite l’infor- mation entrée par l’utilisatrice ou l’utilisateur pour répondre à un problème donné (p. ex., déterminer si une année donnée est bissextile) en utilisant une ou plusieurs structures de contrôle.
+B2.2 utiliser les structures de contrôle – séquen- tielle, alternative et itérative – dans un programme pour résoudre des problèmes
+(p. ex., minuterie, détermination de la valeur minimale).
+
+
+B2.3 intégrer une imbrication de structures de contrôle (p. ex., une structure itérative contenant une structure décisionnelle) dans un programme.
+
+ Assurance-qualité logicielle	
+B3.1 expliquer la différence entre les erreurs de logique, les erreurs de syntaxe et les erreurs d’exécution d’un programme.
+B3.2 interpréter les messages d’erreur émis par les environnements de développement et d’exécution (p. ex., compilateur, outil de débogage, machine virtuelle).
+B3.3 corriger des erreurs de logique, des erreurs de syntaxe et des erreurs d’exécution d’un programme.
+B3.4 déterminer un ensemble de valeurs appro- priées pour tester l’exactitude d’un programme.
+B3.5 déboguer des programmes à l’aide de différentes méthodes (p. ex., traçage, exécution pas à pas, utilisation de points d’interruption, observation des variables, insertion d’instructions dans le programme).
+B3.6 appliquer des règles de mise en page (p. ex., tabulation), de rédaction (p. ex., commentaire) et de nomenclature (p. ex., nom de variable) au programme afin d’en
+assurer sa maintenance et sa documentation.
+c. dévEloppEmEnt dE logiciEls
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+c1.1 décrire des problèmes en termes de données d’entrée, de traitement de données et de données de sortie.
+c1.2 utiliser différentes approches pour résoudre des problèmes (p. ex., méthode de la dichotomie, méthode empirique, représentation graphique).
+c1.3 décrire les activités principales du développe- ment de logiciels (p. ex., définition des besoins, conception, codage, vérification et validation)
+et leurs produits livrables (p. ex., cahier des charges, code source, résultats des tests).
+c1.4 interpréter des échéanciers (p. ex., calendrier des tâches, diagramme de Gantt, graphique PERT).
+c1.5 appliquer un plan de test (p. ex., identifica- tion des scénarios possibles, entrée des données, prédiction des résultats, comparaison avec les données de sortie).
+c1.6 présenter à l’oral comme à l’écrit les produits livrables (p. ex., cahier des charges, algorithme, résultat des tests) en utilisant les termes justes en français.
+
+ Conception d’algorithmes	
+c2.1 concevoir des algorithmes employant des structures de contrôle (p. ex., utilisation
+d’un compteur ou d’une valeur sentinelle dans une structure itérative) pour répondre à des problèmes donnés (p. ex., entrée de données, contrainte de temps dans un jeu, interaction avec l’utilisatrice ou l’utilisateur).
+
+
+
+56
+
+
+
+c2.2 concevoir des algorithmes répondant à des problèmes de mathématiques tirés de la vie courante ou à des applications scientifiques (p. ex., calcul de salaire brut, de la trajectoire d’un missile, de la consommation d’essence).
+c2.3 concevoir des algorithmes traitant des exceptions (p. ex., division par zéro, racine carrée d’un nombre négatif, 0° [zéro exposant zéro]).
+c2.4 comparer différents algorithmes qui répondent au même problème.
+
+ Développement de programmes	
+c3.1 modéliser un problème de programmation en utilisant diverses techniques (p. ex., organi- gramme, langage de modélisation UML, dia- gramme de flux, pseudocode).
+c3.2 développer des sous-programmes (p. ex., procé- dure, fonction, macro) qui répondent à un problème donné (p. ex., calcul de puissance, affichage d’un élément visuel, manipulation d’une donnée).
+c3.3 appliquer le principe de modularisation au développement de programmes (p. ex., en créant des sous-programmes pour éviter la duplication de blocs de code, en séparant au besoin le code en plusieurs fichiers).
+c3.4 concevoir des interfaces utilisateurs convi- viales (p. ex., interface d’une console, interface d’une page Web, interface graphique) qui répon- dent aux besoins des utilisatrices et utilisateurs.
+c3.5 développer des programmes répondant à des problèmes donnés en utilisant des modules préalablement conçus à cet effet (p. ex., fonction, interface utilisateur, documentation) et des fonc- tions prédéfinies (p. ex., générateur de nombres
+aléatoires, gestionnaire d’événements, convertisseur de chaînes de caractères).
+d. EnjEux sociétAux Et pErspEctivEs profEssionnEllEs
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Environnement et santé	
+d1.1 expliquer l’impact de l’industrie de l’infor- matique sur l’environnement et la santé publi- que en identifiant les facteurs bénéfiques
+(p. ex., modélisation des forces environnementales et de leur impact au niveau planétaire, séquençage du génome humain, repliement des protéines) et les facteurs nuisibles (p. ex., volume et toxicité des déchets, consommation électrique, utilisation du papier).
+d1.2 décrire des initiatives dans le domaine technologique (p. ex., projets et programmes gouvernementaux, privés ou communautaires) qui font la promotion d’une gestion durable et de la protection de l’environnement.
+d1.3 déterminer des stratégies pour réduire la consommation des systèmes informatiques, et pour réutiliser et recycler du matériel
+informatique (p. ex., éteindre le moniteur en fin de journée, réaffecter des ordinateurs obsolètes
+à des tâches mieux appropriées, recycler les cartouches d’encre).
+d1.4 décrire des moyens pour prévenir (p. ex., poste de travail ergonomique, exercice muscu- laire) des problèmes de santé liés à l’usage des ordinateurs (p. ex., trouble musculosquelettique, trouble de la vue).
+
+ Carrière et formation	
+d2.1 comparer des choix de carrière possibles en informatique (p. ex., programmation, développe- ment de sites Web, administration de systèmes),
+
+
+notamment en ce qui a trait aux tâches à accomplir, aux conditions salariales et aux possibilités d’avancement.
+d2.2 répertorier les programmes de formation offerts en informatique en identifiant les préalables et les options éducatives qui existent en français.
+d2.3 identifier des occasions et des moyens d’obtenir de l’expérience en informatique (p. ex., bénévolat, éducation coopérative, salon de l’emploi, mentorat).
+d2.4 décrire des services de soutien qui favorisent l’orientation vers des métiers non traditionnels en informatique (p. ex., programme de mentorat, groupe de soutien virtuel, programme postsecon- daire spécialisé, association syndicale).
+d2.5 décrire les compétences essentielles (p. ex., communication verbale, prise de décisions, réso- lution de problèmes) ainsi que les habitudes de travail (p. ex., habitudes associées à la sécurité au travail, à la capacité de travailler en équipe et de façon autonome, à la fiabilité, au service
+à la clientèle) du Passeport-compétences de l’Ontario (PCO) qui sont indispensables pour réussir dans l’industrie de l’informatique.
+d2.6 créer un portfolio en sélectionnant les travaux ou les réalisations (p. ex., logiciel, code source, diagramme) qui témoignent de ses habiletés,
+de ses compétences, de ses expériences et des certifications acquises en informatique.
+
+
+57
+
+
+Génie informatique, 12e année
+
+cours préuniversitaire	ICS4U
+
+
+
+
+
+Dans ce cours, l’élève approfondit ses connaissances théoriques liées au développement de logiciels, aux algorithmes et aux structures de données élémentaires, ainsi que ses habiletés pratiques en concevant des fonctions récursives et en développant des programmes de recherche et de tri. Dans le cadre d’un projet d’envergure en équipe, l’élève applique des techniques de développement et de gestion du cycle de vie du logiciel. Le cours amène aussi l’élève à explorer les enjeux sociétaux, les progrès en informatique ainsi que les possibilités de carrière et de formation professionnelle dans ce secteur.
+Préalable : Introduction à l’informatique, 11e année, cours préuniversitaire
+tEchniquEs  dE  progrAmmAtion
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Syntaxe et sémantique	
+A1.1 dégager les principes de la conception modulaire (p. ex., découpage en sous-problèmes simples, utilisation du code existant, travail à partir d’interfaces définies).
+A1.2 appliquer les règles de syntaxe d’un langage de programmation.
+A1.3 appliquer des stratégies de décomposition du code d’un logiciel en plusieurs fichiers (p. ex., classe, constante, fonction).
+A1.4 appliquer les règles de syntaxe et de sémantique d’un langage de programmation telles que celles gouvernant les opérateurs arithmétiques et logiques (p. ex., division euclidienne, arithmétique des nombres réels, expression logique composée).
+
+
+A2.1 décrire des structures de données avancées et les règles de transtypage qui y sont associées (p. ex., structure définie par la programmeuse ou
+le programmeur, conversion d’une chaîne de caractères en nombre).
+A2.2 définir le concept de type de données abstrait et ses avantages en programmation.
+A2.3 définir le concept de récursivité et ses applications (p. ex., calcul des éléments de la suite de Fibonacci).
+A2.4 analyser des algorithmes qui permettent de manipuler des tableaux à une ou à deux dimensions (p. ex., tableau de coordonnées de géopositionnement, tableau de structures).
+
+
+A2.5 manipuler des fichiers en lecture et en écriture (p. ex., base de données, fichier binaire, fichier XML) à l’aide d’un programme.
+A2.6 analyser des algorithmes qui permettent de rechercher et de trier des données (p. ex.,
+recherche linéaire, tri à bulles, tri par insertion).
+A2.7 comparer l’efficacité et la complexité d’algorithmes donnés (p. ex., recherche linéaire, recherche dichotomique).
+
+ Documentation d’un logiciel	
+A3.1 comparer des ressources documentaires (p. ex., bloc de code partagé sur Internet, interface de programmation [API], tutoriel) servant à développer et à déboguer des programmes.
+A3.2 documenter le code source d’un programme en suivant les normes de l’industrie (p. ex., nom et signification des variables, brève explication de l’algorithme principal) et en utilisant des outils du langage de programmation (p. ex., générateur automatique de documentation).
+A3.3 documenter un protocole de vérification et de validation d’un programme (p. ex., essai unitaire, test d’intégration, test de non-régression).
+A3.4 rédiger, en utilisant les termes justes en français, une documentation externe appropriée (p. ex., fichier d’aide, guide d’installation, manuel de l’utilisateur, foire aux questions [FAQ]) qui
+est destinée à l’utilisatrice ou l’utilisateur d’un logiciel donné.
+
+
+60
+dévEloppEmEnt dE logiciEls
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+
+B1.1 élaborer un cahier des charges détaillé (p. ex., analyse fonctionnelle, analyse non fonctionnelle, domaine) présentant les conclusions de l’analyse des besoins de la cliente ou du client.
+B1.2 élaborer un plan de projet en identifiant clairement les étapes du cycle de développe- ment du logiciel, les produits livrables et les stratégies de travail (p. ex., rôles et responsabilités, tâches à réaliser, protocole de communication).
+B1.3 tenir à jour un calendrier des tâches (p. ex., indiquer ce qui est fait, ce qui reste à faire, comment, par qui).
+B1.4 utiliser les outils de développement de logiciels et de gestion de projets appropriés (p. ex., système de contrôle de versions, tableur, calendrier, forum, wiki, outil graphique).
+B1.5 appliquer des techniques de vérification de logiciels (p. ex., relecture du code par ses pairs, essai unitaire, test d’acceptation).
+B1.6 comparer des stratégies de distribution d’un logiciel (p. ex., logiciel payant ou gratuit, licence propriétaire ou libre, format des fichiers) et de suivi (p. ex., mise à jour, soutien technique, développement futur) en tenant compte des objectifs du cahier des charges.
+
+ Conception d’algorithmes	
+B2.1 concevoir des algorithmes pour comparer des types de données non primitifs (p. ex., chaîne de caractères, tableau, type de données défini par la programmeuse ou le programmeur).
+
+
+B2.2 concevoir des algorithmes pour manipuler, rechercher et trier les éléments d’un tableau
+à deux dimensions (p. ex., multiplication de matrices par un nombre entier, permutation des éléments, recherche linéaire, tri à bulle).
+B2.3 concevoir des algorithmes récursifs (p. ex., calcul de factorielle, conversion d’un nombre entier en chaîne de caractères, tri par fusion, programmation de fractales, traitement de fichier XML).
+
+ Développement de logiciels	
+B3.1 modéliser un problème à l’aide d’une hiérarchie de classes ou d’un catalogue de fonctions.
+B3.2 concevoir l’architecture d’un logiciel (p. ex., définition de classes, utilisation du langage de modélisation UML) en respectant son cahier des charges.
+B3.3 appliquer le principe de modularisation lors de la conception d’un logiciel (p. ex., réutiliser des fonctions ou des objets, utiliser des interfaces, utiliser un modèle de conception adaptateur).
+B3.4 appliquer des techniques professionnelles
+(p. ex., travail en équipe, réusinage, relecture du code par ses pairs, rédaction de commentaires) pour développer des logiciels.
+B3.5 développer chaque module d’un logiciel en respectant les critères du design (p. ex., élaborer des interfaces utilisateurs, concevoir des algo- rithmes, rédiger un code source gérant l’entrée
+et la sortie).
+c. EnjEux sociétAux Et pErspEctivEs profEssionnEllEs
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Enjeux sociétaux	
+c1.1 expliquer les implications éthiques de diverses activités informatiques (p. ex., respect de la nétiquette, contribution au développement de gratuiciels, monopolisation de la bande passante du réseau, consultation de documents privés).
+c1.2 analyser les enjeux sociaux et économiques posés par les technologies de l’information
+et des communications (p. ex., application du droit d’auteur, respect des libertés individuelles, adaptation des modèles d’entreprise, sécurité des systèmes informatiques).
+c1.3 expliquer certains procédés malhonnêtes (p. ex., plagiat, porte dérobée, virus) et la perti- nence de se munir d’un code de déontologie en informatique tel que ceux suggérés par des associations professionnelles reconnues.
+
+ Progrès en informatique	
+c2.1 expliquer le rôle de l’informatique dans le développement de nouveaux produits et dans le développement de la connaissance dans d’autres disciplines (p. ex., radio cognitive, authentification universelle des personnes, nanotechnologie, économie, exploration spatiale, production artistique).
+
+
+c2.2 décrire divers progrès réalisés en infor- matique (p. ex., sécurité des réseaux, interface homme-machine, Web, système d’exploitation, informatique mobile, bio-informatique).
+c2.3 évaluer (p. ex., à partir d’une recherche) les retombées des progrès en informatique (p. ex., architecture des microprocesseurs, théorie de la complexité, intelligence artificielle, robotique).
+c2.4 présenter son projet à un auditoire cible, oralement ou par écrit, en utilisant un mode de présentation approprié (p. ex., présentation multimédia, rapport) et les termes justes en français.
+
+ Carrière et formation	
+c3.1 évaluer ses champs d’intérêt, ses caractéris- tiques et ses habiletés en fonction de diverses options de carrière en informatique (p. ex., programmeuse ou programmeur, analyste en informatique de gestion, gestionnaire de projet).
+c3.2 expliquer pourquoi la maîtrise du français constitue un atout sur le marché du travail.
+c3.3 expliquer les raisons pour lesquelles les entreprises valorisent l’apprentissage autonome et continu en informatique (p. ex., apprentissage électronique, implication dans des projets de développement de logiciels libres, contribution
+au développement de normes techniques).
+
+
+
+
+
+
+62
+
+c3.4 évaluer ses compétences essentielles et ses habitudes de travail en fonction de celles qui sont répertoriées dans le Passeport- compétences de l’Ontario (PCO).
+c3.5 maintenir à jour le contenu de son portfolio (p. ex., logiciel produit, extrait de code source, rapport de stage) afin de mettre en évidence
+le développement de ses apprentissages, de
+ses compétences et de ses habiletés en informa- tique ainsi que toutes certifications et forma- tions reconnues.
+
+
+Programmation informatique, 12e année
+cours précollégial	ICS4C
+
+
+
+
+
+Dans ce cours, l’élève développe un logiciel muni d’une interface utilisateur graphique en utilisant un langage de programmation orientée objet. Dans le cadre d’un projet d’envergure réalisé en équipe, l’élève utilise les outils mis à sa disposition pour déve- lopper le logiciel et gérer des tâches diverses. Le cours amène aussi l’élève à explorer les enjeux sociétaux, les progrès en informatique ainsi que les possibilités de carrière
+et de formation professionnelle dans ce secteur.
+Préalable : Introduction à la programmation informatique, 11e année, cours précollégial
+tEchniquEs  dE  progrAmmAtion
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Programmation orientée objet	
+A1.1 définir les concepts clés de la programma- tion orientée objet (p. ex., classe, objet, champ, méthode).
+A1.2 dégager les avantages de la conception modulaire (p. ex., débogage, maintenance informatique).
+A1.3 définir les concepts de portée et de visibilité dans un programme orienté objet.
+A1.4 expliquer des principes de la programmation événementielle (p. ex., Modèle-Vue-Contrôleur, écouteur d’événement).
+
+ Traitement des données	
+A2.1 rédiger des expressions constituées d’expressions imbriquées (p. ex., liées par des opérateurs logiques ou arithmétiques).
+A2.2 résoudre des problèmes concrets en utilisant divers formats (p. ex., de date, de prix) et divers types de données (p. ex., nombre décimal, chaîne de caractères).
+A2.3 appliquer des techniques de manipulation des chaînes de caractères (p. ex., validation de l’entrée des données, conversion numérique) dans un programme.
+A2.4 définir les caractéristiques d’un tableau telles que les éléments, l’indice, la taille et la dimension.
+A2.5 concevoir une méthode pour manipuler le contenu d’un tableau à une ou à deux dimen- sions (p. ex., insertion, suppression, modification).
+
+
+A2.6 appliquer des techniques de manipulation des données externes (p. ex., base de données, fichier séquentiel, fichier XML) dans un programme.
+
+ Documentation d’un logiciel	
+A3.1 identifier des ressources documentaires
+(p. ex., bloc de code partagé sur Internet, interface de programmation [API], tutoriel) servant à développer et à déboguer des programmes.
+A3.2 documenter le code source d’un programme en suivant les normes de l’industrie (p. ex., nom et signification des variables, valeur de retour d’une fonction, brève explication de l’algorithme principal) et en utilisant des outils du langage de programmation.
+A3.3 documenter un protocole de vérification et de validation d’un programme (p. ex., essai unitaire, test d’intégration, test de non-régression).
+A3.4 rédiger, en utilisant les termes justes en français, une documentation externe appro- priée (p. ex., fichier d’aide, guide d’installation, manuel de l’utilisateur, foire aux questions [FAQ]) qui est destinée à l’utilisatrice ou l’utilisateur d’un logiciel donné.
+dévEloppEmEnt dE logiciEls
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+
+B1.1 définir les étapes du développement d’un logiciel selon la méthodologie adoptée.
+B1.2 élaborer un cahier des charges présentant les conclusions de l’analyse des besoins des clientes et clients.
+B1.3 élaborer un calendrier de soumission des produits livrables en utilisant des outils de gestion de projet (p. ex., logiciel de gestion de projet, diagramme de Gantt, graphique PERT).
+B1.4 tenir à jour un calendrier des tâches (p. ex., indiquer ce qui est fait, ce qui reste à faire, comment, par qui) en utilisant des outils de travail collaboratif appropriés (p. ex., courriel, blogue, babillard électronique, calendrier partagé en ligne).
+B1.5 appliquer un protocole de vérification et de validation d’un programme.
+
+ Conception d’algorithmes	
+B2.1 expliquer un algorithme (p. ex., recherche linéaire) dans un tableau à une dimension.
+B2.2 concevoir des algorithmes pour résoudre divers problèmes concrets impliquant des calculs mathématiques (p. ex., calculer la quantité de peinture nécessaire pour décorer un appartement, estimer les coûts de la consommation énergétique d’un foyer, calculer le volume d’eau contenu dans un aquarium).
+
+
+B2.3 concevoir des algorithmes pour arrondir des quantités avec une précision donnée (p. ex., calcul de la monnaie à rendre, amortissement du matériel informatique de l’école, conversion de volumes pour une recette de cuisine).
+B2.4 concevoir des algorithmes pour valider les données entrées par l’utilisatrice ou l’utilisateur (p. ex., majuscule manquante, texte trop long, nombre trop grand, code postal ou numéro de téléphone incorrect).
+
+ Développement de logiciels	
+B3.1 modéliser un problème en utilisant diverses techniques (p. ex., diagramme UML, pseudocode, diagramme de Gantt) propres à la programma- tion orientée objet.
+B3.2 définir des classes qui modélisent les objets conceptuels du problème à résoudre.
+B3.3 définir des méthodes (p. ex., accesseur, mutateur, méthode d’instance, méthode de classe) avec ou sans arguments pour répondre à divers problèmes donnés.
+B3.4 concevoir des interfaces graphiques adaptées aux besoins des utilisatrices et utilisateurs
+en respectant les règles de design d’un environnement graphique fenêtré et en appliquant des normes régissant l’accessibilité.
+B3.5 identifier les éléments d’une interface utilisateur graphique qui ne se conforment pas aux critères prédéfinis (p. ex., norme
+régissant l’accessibilité, norme élaborée en classe).
+B3.6 intégrer dans un programme des méthodes d’un objet (p. ex., recherche, triage, conversion numérique) et des structures de données (p. ex., tableau, vecteur, table de hachage) prédéfinies dans le langage de programmation utilisé
+ou faisant partie d’une bibliothèque externe (p. ex., interface de programmation AJAX).
+B3.7 développer un logiciel qui répond aux événements générés par l’utilisatrice ou l’utilisateur au moyen de l’interface utilisateur graphique.
+c. EnjEux sociétAux Et pErspEctivEs profEssionnEllEs
+
+
+ATTENTES
+À la fin du cours, l’élève doit pouvoir :
+
+
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+ Enjeux sociétaux	
+c1.1 expliquer les implications éthiques de diverses activités informatiques (p. ex., respect de la nétiquette, contribution au développement de gratuiciels, monopolisation de la bande passante du réseau, consultation de documents privés).
+c1.2 analyser les enjeux sociaux et économiques posés par les technologies de l’information
+et des communications (p. ex., application du droit d’auteur, respect des libertés individuelles, adaptation des modèles d’entreprise, sécurité des systèmes informatiques).
+c1.3 expliquer, en décrivant certains procédés malhonnêtes (p. ex., plagiat, porte dérobée, virus), la pertinence de se munir d’un code de déonto- logie en informatique tel que ceux suggérés par des associations professionnelles reconnues.
+
+ Progrès en informatique	
+c2.1 décrire l’évolution des langages de programmation.
+c2.2 citer des innovations récentes dans le domaine de l’informatique (p. ex., baladodiffu- sion, téléphonie sur IP, jeu en ligne massivement multijoueurs, jeu vidéo publicitaire).
+c2.3 décrire des plateformes technologiques et des environnements de programmation novateurs (p. ex., Web 2.0, téléphone intelligent, environ- nement sémantique).
+
+
+ Carrière et formation	
+c3.1 déterminer parmi diverses options de carrière en informatique (p. ex., programmation, analyse en informatique de gestion, administration de sys- tèmes), celles qui correspondent à ses champs d’intérêt, ses caractéristiques et ses habiletés.
+c3.2 identifier des emplois et des possibilités de travail autonome en informatique (p. ex., dévelop- peuse ou développeur d’applications pour des réseaux sociaux, développeuse ou développeur de sites Web, expert-conseil spécialisé dans une ligne de produits commerciaux ou de logiciels libres), où la maîtrise du français constitue un atout.
+c3.3 décrire des modes de prestation du perfec- tionnement professionnel en cours d’emploi (p. ex., éducation continue, apprentissage en ligne, mentorat, conférence, atelier) en informatique.
+c3.4 décrire des services de soutien qui favorisent l’orientation vers des métiers non traditionnels en informatique (p. ex., programme de mentorat, groupe de soutien virtuel, programme postsecon- daire spécialisé, association syndicale).
+c3.5 évaluer ses compétences essentielles et ses habitudes de travail en fonction de celles qui sont répertoriées dans le Passeport-compétences de l’Ontario (PCO).
+c3.6 maintenir à jour le contenu de son portfolio (p. ex., logiciel produit, extrait de code source, rapport de stage) afin de mettre en évidence le développe- ment de ses apprentissages, de ses compétences et de ses habiletés en informatique ainsi que toutes certifications et formations reconnues.
+
+
+
+69
