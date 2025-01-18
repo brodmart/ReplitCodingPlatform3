@@ -17,45 +17,46 @@ def clear_existing_data(course_code: str):
     logger = logging.getLogger(__name__)
 
     try:
-        with db.session.begin():
-            # Get course ID first
-            course = Course.query.filter_by(code=course_code).first()
-            if not course:
-                logger.info(f"No existing data found for course {course_code}")
-                return
+        # Get course ID first
+        course = Course.query.filter_by(code=course_code).first()
+        if not course:
+            logger.info(f"No existing data found for course {course_code}")
+            return
 
-            # Get strand IDs for this course
-            strand_ids = [row[0] for row in db.session.query(Strand.id).filter_by(course_id=course.id).all()]
+        # Get strand IDs for this course
+        strand_ids = [row[0] for row in db.session.query(Strand.id).filter_by(course_id=course.id).all()]
 
-            # Get overall expectation IDs for these strands
-            overall_ids = [
-                row[0] for row in 
-                db.session.query(OverallExpectation.id)
-                .filter(OverallExpectation.strand_id.in_(strand_ids))
-                .all()
-            ]
+        # Get overall expectation IDs for these strands
+        overall_ids = [
+            row[0] for row in 
+            db.session.query(OverallExpectation.id)
+            .filter(OverallExpectation.strand_id.in_(strand_ids))
+            .all()
+        ] if strand_ids else []
 
-            # Delete in reverse order (child to parent)
-            if overall_ids:
-                db.session.query(SpecificExpectation).filter(
-                    SpecificExpectation.overall_expectation_id.in_(overall_ids)
-                ).delete(synchronize_session=False)
+        # Delete in reverse order (child to parent)
+        if overall_ids:
+            SpecificExpectation.query.filter(
+                SpecificExpectation.overall_expectation_id.in_(overall_ids)
+            ).delete(synchronize_session='fetch')
 
-            if strand_ids:
-                db.session.query(OverallExpectation).filter(
-                    OverallExpectation.strand_id.in_(strand_ids)
-                ).delete(synchronize_session=False)
+        if strand_ids:
+            OverallExpectation.query.filter(
+                OverallExpectation.strand_id.in_(strand_ids)
+            ).delete(synchronize_session='fetch')
 
-            db.session.query(Strand).filter(
-                Strand.course_id == course.id
-            ).delete(synchronize_session=False)
+        Strand.query.filter(
+            Strand.course_id == course.id
+        ).delete(synchronize_session='fetch')
 
-            db.session.query(Course).filter_by(code=course_code).delete()
+        Course.query.filter_by(code=course_code).delete(synchronize_session='fetch')
 
-            logger.info(f"Successfully cleared existing data for course {course_code}")
+        db.session.commit()
+        logger.info(f"Successfully cleared existing data for course {course_code}")
 
     except Exception as e:
         logger.error(f"Error clearing existing data: {str(e)}")
+        db.session.rollback()
         raise
 
 def create_strands(course_id: int):
@@ -94,6 +95,8 @@ def create_strands(course_id: int):
             created_strands[strand.code] = strand
             logger.info(f"Created strand {strand_data['code']}: {strand_data['title_en']}")
 
+        db.session.commit()
+
         # Verify strands were created
         for code, strand in created_strands.items():
             if not strand.id:
@@ -101,6 +104,7 @@ def create_strands(course_id: int):
 
     except Exception as e:
         logger.error(f"Error creating strands: {str(e)}")
+        db.session.rollback()
         raise
 
     return created_strands
@@ -143,72 +147,124 @@ def create_expectations(strands: dict):
                         'description_fr': 'Appliquer les concepts informatiques pour résoudre des problèmes dans d\'autres domaines'
                     }
                 }
+            },
+            'A3': {
+                'description_en': 'Applications, Careers, and Connections',
+                'description_fr': 'Applications, carrières et connexions',
+                'specifics': {
+                    'A3.1': {
+                        'description_en': 'Investigate various careers related to computer technology and digital applications',
+                        'description_fr': 'Explorer diverses carrières liées à la technologie informatique et aux applications numériques'
+                    },
+                    'A3.2': {
+                        'description_en': 'Identify connections between computer science skills and various career opportunities',
+                        'description_fr': 'Identifier les liens entre les compétences en informatique et diverses opportunités de carrière'
+                    }
+                }
             }
         },
         'B': {
             'B1': {
-                'description_en': 'Analyze and manage various types of data using appropriate tools and strategies',
-                'description_fr': "Analyser et gérer différents types de données à l'aide d'outils et de stratégies appropriés",
+                'description_en': 'Understanding Hardware and Software',
+                'description_fr': 'Comprendre le matériel et les logiciels',
                 'specifics': {
                     'B1.1': {
-                        'description_en': 'Use appropriate tools to collect and organize data from various sources',
-                        'description_fr': "Utiliser des outils appropriés pour collecter et organiser des données de diverses sources"
+                        'description_en': 'Identify and describe the functions of various computer hardware components',
+                        'description_fr': 'Identifier et décrire les fonctions de divers composants matériels informatiques'
                     },
                     'B1.2': {
-                        'description_en': 'Process and analyze data to draw meaningful conclusions',
-                        'description_fr': "Traiter et analyser des données pour tirer des conclusions significatives"
-                    },
-                    'B1.3': {
-                        'description_en': 'Present data effectively using various visualization techniques',
-                        'description_fr': "Présenter efficacement des données en utilisant diverses techniques de visualisation"
+                        'description_en': 'Explain the role of different types of software in computer systems',
+                        'description_fr': 'Expliquer le rôle des différents types de logiciels dans les systèmes informatiques'
                     }
                 }
             },
             'B2': {
-                'description_en': 'Apply critical thinking skills to evaluate information and media content',
-                'description_fr': "Appliquer des compétences de pensée critique pour évaluer l'information et le contenu médiatique",
+                'description_en': 'Using Hardware and Software',
+                'description_fr': 'Utiliser le matériel et les logiciels',
                 'specifics': {
                     'B2.1': {
-                        'description_en': 'Assess the reliability and credibility of digital information sources',
-                        'description_fr': "Évaluer la fiabilité et la crédibilité des sources d'information numérique"
+                        'description_en': 'Use various hardware devices effectively and safely',
+                        'description_fr': 'Utiliser efficacement et en toute sécurité divers périphériques'
                     },
                     'B2.2': {
-                        'description_en': 'Identify bias and perspective in digital media content',
-                        'description_fr': "Identifier les préjugés et les perspectives dans le contenu des médias numériques"
+                        'description_en': 'Apply appropriate software tools for specific tasks',
+                        'description_fr': 'Appliquer les outils logiciels appropriés pour des tâches spécifiques'
+                    }
+                }
+            },
+            'B3': {
+                'description_en': 'Cybersecurity and Data',
+                'description_fr': 'Cybersécurité et données',
+                'specifics': {
+                    'B3.1': {
+                        'description_en': 'Apply cybersecurity best practices to protect digital information',
+                        'description_fr': 'Appliquer les meilleures pratiques de cybersécurité pour protéger les informations numériques'
+                    },
+                    'B3.2': {
+                        'description_en': 'Manage and protect personal data in digital environments',
+                        'description_fr': 'Gérer et protéger les données personnelles dans les environnements numériques'
+                    }
+                }
+            },
+            'B4': {
+                'description_en': 'Innovations in Digital Technology',
+                'description_fr': 'Innovations en technologie numérique',
+                'specifics': {
+                    'B4.1': {
+                        'description_en': 'Explore emerging trends in digital technology',
+                        'description_fr': 'Explorer les tendances émergentes en technologie numérique'
+                    },
+                    'B4.2': {
+                        'description_en': 'Analyze the impact of technological innovations on society',
+                        'description_fr': 'Analyser l\'impact des innovations technologiques sur la société'
                     }
                 }
             }
         },
         'C': {
             'C1': {
-                'description_en': 'Apply computational thinking concepts and practices to solve problems',
-                'description_fr': "Appliquer les concepts et les pratiques de la pensée informatique pour résoudre des problèmes",
+                'description_en': 'Programming Concepts and Algorithms',
+                'description_fr': 'Concepts de programmation et algorithmes',
                 'specifics': {
                     'C1.1': {
-                        'description_en': 'Decompose complex problems into smaller, manageable parts',
-                        'description_fr': "Décomposer des problèmes complexes en parties plus petites et gérables"
+                        'description_en': 'Use fundamental programming concepts and constructs',
+                        'description_fr': 'Utiliser des concepts et des constructions de programmation fondamentaux'
                     },
                     'C1.2': {
-                        'description_en': 'Develop algorithms to solve computational problems',
-                        'description_fr': "Développer des algorithmes pour résoudre des problèmes informatiques"
+                        'description_en': 'Create and use algorithms to solve problems',
+                        'description_fr': 'Créer et utiliser des algorithmes pour résoudre des problèmes'
                     },
                     'C1.3': {
-                        'description_en': 'Test and debug algorithms and programs systematically',
-                        'description_fr': "Tester et déboguer systématiquement les algorithmes et les programmes"
+                        'description_en': 'Apply computational thinking concepts in algorithm development',
+                        'description_fr': 'Appliquer les concepts de pensée computationnelle dans le développement d\'algorithmes'
                     }
                 }
             },
             'C2': {
-                'description_en': 'Create and modify computer programs to solve problems',
-                'description_fr': "Créer et modifier des programmes informatiques pour résoudre des problèmes",
+                'description_en': 'Writing',
+                'description_fr': 'Écriture',
                 'specifics': {
                     'C2.1': {
-                        'description_en': 'Write and modify program code using fundamental programming concepts',
-                        'description_fr': "Écrire et modifier du code de programme en utilisant des concepts de programmation fondamentaux"
+                        'description_en': 'Write clear and maintainable code using proper conventions',
+                        'description_fr': 'Écrire du code clair et maintenable en utilisant les conventions appropriées'
                     },
                     'C2.2': {
-                        'description_en': 'Create programs that respond to user input and produce desired output',
-                        'description_fr': "Créer des programmes qui répondent aux entrées utilisateur et produisent la sortie souhaitée"
+                        'description_en': 'Document code effectively using comments and documentation',
+                        'description_fr': 'Documenter efficacement le code en utilisant des commentaires et de la documentation'
+                    }
+                }
+            },
+            'C3': {
+                'description_en': 'Modularity and Modification',
+                'description_fr': 'Modularité et modification',
+                'specifics': {
+                    'C3.1': {
+                        'description_en': 'Create modular code using functions and procedures',
+                        'description_fr': 'Créer du code modulaire en utilisant des fonctions et des procédures'
+                    },
+                    'C3.2': {
+                        'description_en': 'Modify existing code to improve functionality and efficiency',
+                        'description_fr': 'Modifier le code existant pour améliorer la fonctionnalité et l\'efficacité'
                     }
                 }
             }
@@ -236,7 +292,7 @@ def create_expectations(strands: dict):
                     description_fr=overall_data['description_fr']
                 )
                 db.session.add(overall)
-                db.session.flush()
+                db.session.flush()  # Flush to get the ID
 
                 if not overall.id:
                     raise ValueError(f"Overall expectation {overall_code} was not properly created (no ID assigned)")
@@ -253,17 +309,16 @@ def create_expectations(strands: dict):
                         description_fr=specific_data['description_fr']
                     )
                     db.session.add(specific)
-                    db.session.flush()
 
-                    if not specific.id:
-                        raise ValueError(f"Specific expectation {specific_code} was not properly created (no ID assigned)")
-
+                db.session.flush()  # Flush after each set of specific expectations
                 logger.info(f"Created overall expectation {overall_code} with its specific expectations")
 
             logger.info(f"Completed processing expectations for strand {strand_code}")
+            db.session.commit()  # Commit after each strand's expectations
 
     except Exception as e:
         logger.error(f"Error creating expectations: {str(e)}")
+        db.session.rollback()
         raise
 
 def main():
@@ -291,7 +346,7 @@ def main():
                 description_fr='Ce cours aide les élèves à développer leurs compétences en littératie numérique et en pensée computationnelle tout en explorant les concepts de l\'informatique.',
             )
             db.session.add(course)
-            db.session.flush()
+            db.session.commit()  # Commit course creation immediately
 
             if not course.id:
                 raise ValueError("Course was not properly created (no ID assigned)")
@@ -304,11 +359,7 @@ def main():
             # Create expectations
             create_expectations(strands)
 
-            # Commit all changes
-            db.session.commit()
-            logger.info("All changes committed successfully")
-
-            # Verify the complete data structure
+            # Final verification
             course_check = Course.query.filter_by(code='ICD2O').first()
             if course_check:
                 strand_count = Strand.query.filter_by(course_id=course_check.id).count()
