@@ -50,8 +50,8 @@ def main():
                 db.session.delete(existing_course)
                 db.session.commit()
 
-            # Read ICS3U curriculum content from file
-            curriculum_file = 'attached_assets/Pasted--Cours-pr-universitaire-11e-ann-eIntroduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitai-1737151455616.txt'
+            # Read ICS3U curriculum content from new file
+            curriculum_file = 'attached_assets/Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-l--1737160312256.txt'
             logger.info(f"Reading curriculum from {curriculum_file}")
 
             try:
