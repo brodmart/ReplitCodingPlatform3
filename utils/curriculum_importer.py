@@ -20,8 +20,9 @@ class CurriculumImporter:
         if not text:
             return ""
 
-        # Fix OCR artifacts in French text
+        # Enhanced French text cleaning patterns
         replacements = {
+            # Standard OCR corrections
             'EnvironnEmEnt': 'Environnement',
             'informAtiquE': 'informatique',
             'trAvAil': 'travail',
@@ -32,68 +33,158 @@ class CurriculumImporter:
             'sociétAux': 'sociétaux',
             'EnjEux': 'Enjeux',
             'pErspEctivEs': 'perspectives',
-            'profEssionnEllEs': 'professionnelles'
+            'profEssionnEllEs': 'professionnelles',
+
+            # Additional French-specific corrections
+            'InformAtiquE': 'Informatique',
+            'ProgrammAtion': 'Programmation',
+            'DévEloppEmEnt': 'Développement',
+            'SystEmE': 'Système',
+            'StructurEs': 'Structures',
+            'DonnéEs': 'Données',
+            'ModElEs': 'Modèles',
+            'AlgorithmEs': 'Algorithmes',
+            'ContrOlE': 'Contrôle',
+            'SécuritE': 'Sécurité',
+            'IntErfacE': 'Interface',
+
+            # Fix common OCR errors with accents
+            'e\x60': 'è',
+            'e\^': 'ê',
+            'a\`': 'à',
+            'e\´': 'é',
+
+            # Clean up spacing around punctuation
+            ' ,': ',',
+            ' .': '.',
+            ' ;': ';',
+            ' :': ':',
+            '( ': '(',
+            ' )': ')',
         }
 
         # Apply text replacements
         for old, new in replacements.items():
-            text = text.replace(old, new)
+            if old in text:
+                self.logger.debug(f"Replacing '{old}' with '{new}'")
+                text = text.replace(old, new)
 
-        # Remove headers and page numbers
+        # Remove headers and page numbers with improved patterns
         text = re.sub(r'ICS3U\s*$', '', text, flags=re.MULTILINE)
         text = re.sub(r'Introduction au génie informatique.*?\n', '', text)
         text = re.sub(r'LE CURRICULUM DE L\'ONTARIO.*?12e ANNÉE', '', text, flags=re.DOTALL | re.IGNORECASE)
         text = re.sub(r'\d{1,3}\s*$', '', text, flags=re.MULTILINE)
         text = re.sub(r'\s*Cours préuniversitaire.*?$', '', text, flags=re.MULTILINE)
-        text = re.sub(r'\s+', ' ', text)
 
-        return text.strip()
+        # Fix multiple spaces and newlines
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'\n\s*\n', '\n', text)
+
+        # Clean up whitespace
+        text = text.strip()
+
+        self.logger.debug(f"Text cleaning completed. Original length: {len(text)}")
+        return text
+
+    def extract_course_description(self, content: str) -> str:
+        """Extract course description with improved pattern matching"""
+        # Updated pattern to better match French course description
+        desc_patterns = [
+            r'Ce cours\s+([^.]*(?:[^P]\.)+)(?=\s*Préalable\s*:)',
+            r'Ce cours\s+(.*?)(?=\s*Préalable\s*:)',
+            r'Ce cours\s+(.*?)(?=\s*[A-D]\s*\.)'
+        ]
+
+        for pattern in desc_patterns:
+            desc_match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            if desc_match:
+                desc = self.clean_text(desc_match.group(1))
+                if desc:
+                    self.logger.info(f"Successfully extracted course description ({len(desc)} chars)")
+                    self.logger.debug(f"Description preview: {desc[:200]}...")
+                    return desc
+
+        self.logger.warning("Failed to extract course description")
+        return ""
+
+    def extract_prerequisite(self, content: str) -> str:
+        """Extract prerequisite with improved pattern matching"""
+        prereq_patterns = [
+            r'Préalable\s*:\s*([^A-D][^\n]*)',
+            r'Préalable\s*:\s*(.*?)(?=\s*[A-D]\s*\.)',
+            r'Préalable\s*:\s*(.*?)(?=\s*$)'
+        ]
+
+        for pattern in prereq_patterns:
+            prereq_match = re.search(pattern, content, re.DOTALL | re.IGNORECASE)
+            if prereq_match:
+                prereq = self.clean_text(prereq_match.group(1))
+                if prereq:
+                    self.logger.info(f"Successfully extracted prerequisite: {prereq}")
+                    return prereq
+
+        self.logger.warning("Failed to extract prerequisite, using default")
+        return 'Aucun'
 
     def extract_strand_sections(self, content: str) -> List[Tuple[str, str, str]]:
-        """Extract strand sections from curriculum content"""
+        """Extract strand sections from curriculum content with improved French parsing"""
         self.logger.info("Starting strand extraction...")
+        self.logger.debug(f"Content length: {len(content)}")
 
-        # Log initial content for debugging
-        self.logger.debug(f"Initial content length: {len(content)}")
-        self.logger.debug(f"Content preview:\n{content[:1000]}...")
-
-        # Split content into sections
         sections = []
-        current_section = None
-        current_content = []
 
-        # Find strand sections using regex pattern
-        strand_pattern = r'([A-D])\s*\.\s*([^\.]+?)\s*(?=ATTENTES|CONTENUS)'
-        content_pattern = r'(?:ATTENTES|CONTENUS D\'APPRENTISSAGE).*?(?=(?:[A-D]\s*\.)|$)'
+        # Updated pattern to better match French curriculum structure
+        # Split on major section headers (A. B. C. D.) but not on subsections (A1. A2. etc)
+        parts = re.split(r'(?m)^([A-D])\s*\.\s*(?=[A-Z])', content)
 
-        matches = re.finditer(strand_pattern, content, re.DOTALL)
+        # Skip the first element as it's content before first strand
+        for i in range(1, len(parts)-1, 2):
+            try:
+                code = parts[i].strip()
+                section_content = parts[i+1].strip()
 
-        last_end = 0
-        for match in matches:
-            code = match.group(1)
-            title = self.clean_text(match.group(2))
-            start_pos = match.end()
+                # Extract the strand title with improved pattern
+                title_match = re.match(r'^([^\.]+?)(?=\s*ATTENTES|CONTENUS)', section_content, re.DOTALL)
 
-            # Find the next strand or end of content
-            next_match = re.search(r'[A-D]\s*\.', content[start_pos:])
-            end_pos = start_pos + next_match.start() if next_match else len(content)
+                if title_match:
+                    title = self.clean_text(title_match.group(1))
+                    remaining_content = section_content[title_match.end():].strip()
 
-            # Extract and clean the content
-            section_content = content[start_pos:end_pos].strip()
-            if 'ATTENTES' in section_content or 'CONTENUS D\'APPRENTISSAGE' in section_content:
-                self.logger.info(f"Found strand {code}: {title}")
-                sections.append((code, title, section_content))
+                    # Verify section has both ATTENTES and CONTENUS D'APPRENTISSAGE
+                    if ('ATTENTES' in remaining_content and 
+                        'CONTENUS D\'APPRENTISSAGE' in remaining_content):
+                        self.logger.info(f"Found valid strand {code}: {title}")
+                        self.logger.debug(f"Content length for strand {code}: {len(remaining_content)}")
+                        sections.append((code, title, remaining_content))
+                    else:
+                        self.logger.warning(
+                            f"Strand {code} missing required sections. "
+                            f"ATTENTES present: {'ATTENTES' in remaining_content}, "
+                            f"CONTENUS present: {'CONTENUS' in remaining_content}"
+                        )
+                else:
+                    self.logger.warning(f"Could not extract title for strand {code}")
 
-            last_end = end_pos
+            except Exception as e:
+                self.logger.error(f"Error processing strand section: {str(e)}")
+                continue
 
-        self.logger.info(f"Found {len(sections)} strands")
+        self.logger.info(f"Successfully extracted {len(sections)} strands")
+        for code, title, _ in sections:
+            self.logger.debug(f"Strand: {code} - {title}")
+
+        if not sections:
+            self.logger.warning("No valid strands were extracted. This might indicate an issue with the content format.")
+            # Log a sample of the content for debugging
+            self.logger.debug(f"Content sample:\n{content[:1000]}...")
+
         return sections
 
     def parse_overall_expectations(self, content: str, strand_code: str) -> List[Dict[str, str]]:
-        """Parse overall expectations from strand content"""
+        """Parse overall expectations from strand content with improved French support"""
         expectations = []
 
-        # Extract ATTENTES section with improved pattern
+        # Extract ATTENTES section with improved pattern for French
         attentes_pattern = r'ATTENTES.*?(?:À la fin du cours[^:]*:)?\s*(.*?)(?=CONTENUS\s+D\'APPRENTISSAGE|$)'
         attentes_match = re.search(attentes_pattern, content, re.DOTALL | re.IGNORECASE)
 
@@ -102,11 +193,14 @@ class CurriculumImporter:
             return expectations
 
         expectations_text = attentes_match.group(1).strip()
+        self.logger.debug(f"Found ATTENTES section for strand {strand_code}, length: {len(expectations_text)}")
+        self.logger.debug(f"Content preview: {expectations_text[:200]}...")
 
-        # Extract individual expectations
+        # Extract individual expectations with improved French pattern
         exp_pattern = rf'{strand_code}(\d+)\s*\.\s*(.*?)(?={strand_code}\d+\s*\.|\s*$)'
         matches = re.finditer(exp_pattern, expectations_text, re.DOTALL)
 
+        match_count = 0
         for match in matches:
             number = match.group(1)
             description = self.clean_text(match.group(2))
@@ -114,20 +208,24 @@ class CurriculumImporter:
             if description:
                 code = f"{strand_code}{number}"
                 self.logger.info(f"Found overall expectation {code}")
+                self.logger.debug(f"Description: {description[:100]}...")
+
                 expectations.append({
                     'code': code,
                     'description_fr': description,
                     'description_en': ''  # English version to be added later
                 })
+                match_count += 1
 
+        self.logger.info(f"Total overall expectations found for strand {strand_code}: {match_count}")
         return expectations
 
     def parse_specific_expectations(self, content: str, strand_code: str) -> Dict[str, List[Dict[str, str]]]:
-        """Parse specific expectations grouped by overall expectations"""
+        """Parse specific expectations grouped by overall expectations with enhanced French support"""
         specifics_by_overall = {}
 
-        # Extract CONTENUS D'APPRENTISSAGE section
-        contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE.*?(?:Pour satisfaire.*?:)?\s*(.*?)(?=(?:\n\s*[A-D]|\s*$))'
+        # Extract CONTENUS D'APPRENTISSAGE section with improved French pattern
+        contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE.*?(?:Pour satisfaire.*?:)?\s*(.*?)(?=(?:[A-D]\s*\.(?!\d))|$)'
         contenus_match = re.search(contenus_pattern, content, re.DOTALL | re.IGNORECASE)
 
         if not contenus_match:
@@ -135,29 +233,62 @@ class CurriculumImporter:
             return specifics_by_overall
 
         content_text = contenus_match.group(1).strip()
+        self.logger.debug(f"Found CONTENUS section for strand {strand_code}, length: {len(content_text)}")
+        self.logger.debug(f"Content preview: {content_text[:200]}...")
 
-        # Extract specific expectations with improved pattern
-        exp_pattern = rf'{strand_code}(\d+)\.(\d+)\s*(.*?)(?={strand_code}\d+\.\d+|$)'
-        matches = re.finditer(exp_pattern, content_text, re.DOTALL)
+        # Improved pattern for French specific expectations
+        # Handle potential variations in formatting
+        exp_patterns = [
+            rf'{strand_code}(\d+)\.(\d+)\s*(.*?)(?={strand_code}\d+\.\d+|$)',  # Standard format
+            rf'{strand_code}\s*(\d+)\s*\.\s*(\d+)\s*(.*?)(?={strand_code}\s*\d+\s*\.\s*\d+|$)',  # Spaced format
+            rf'{strand_code}(\d+)[\.,](\d+)\s*(.*?)(?={strand_code}\d+[\.,]\d+|$)'  # Handle period/comma variation
+        ]
 
-        for match in matches:
-            overall_num = match.group(1)
-            specific_num = match.group(2)
-            description = self.clean_text(match.group(3))
+        total_matches = 0
+        for pattern in exp_patterns:
+            matches = re.finditer(pattern, content_text, re.DOTALL)
 
-            if description:
-                overall_code = f"{strand_code}{overall_num}"
-                specific_code = f"{strand_code}{overall_num}.{specific_num}"
+            for match in matches:
+                try:
+                    overall_num = match.group(1)
+                    specific_num = match.group(2)
+                    description = self.clean_text(match.group(3))
 
-                if overall_code not in specifics_by_overall:
-                    specifics_by_overall[overall_code] = []
+                    if description:
+                        overall_code = f"{strand_code}{overall_num}"
+                        specific_code = f"{strand_code}{overall_num}.{specific_num}"
 
-                self.logger.info(f"Found specific expectation {specific_code}")
-                specifics_by_overall[overall_code].append({
-                    'code': specific_code,
-                    'description_fr': description,
-                    'description_en': ''  # English version to be added later
-                })
+                        if overall_code not in specifics_by_overall:
+                            specifics_by_overall[overall_code] = []
+                            self.logger.debug(f"Created new group for overall expectation {overall_code}")
+
+                        # Check if this specific expectation already exists
+                        exists = any(s['code'] == specific_code for s in specifics_by_overall[overall_code])
+
+                        if not exists:
+                            self.logger.info(f"Found specific expectation {specific_code}")
+                            self.logger.debug(f"Description: {description[:100]}...")
+
+                            specifics_by_overall[overall_code].append({
+                                'code': specific_code,
+                                'description_fr': description,
+                                'description_en': ''  # English version to be added later
+                            })
+                            total_matches += 1
+                        else:
+                            self.logger.debug(f"Skipping duplicate specific expectation {specific_code}")
+
+                except Exception as e:
+                    self.logger.error(f"Error processing specific expectation match: {str(e)}")
+                    continue
+
+        self.logger.info(f"Total unique specific expectations found for strand {strand_code}: {total_matches}")
+        for overall_code, specifics in specifics_by_overall.items():
+            self.logger.info(f"Overall {overall_code} has {len(specifics)} specific expectations")
+
+        if total_matches == 0:
+            self.logger.warning(f"No specific expectations found for strand {strand_code}. Content might be malformed.")
+            self.logger.debug(f"Content sample:\n{content_text[:500]}...")
 
         return specifics_by_overall
 
@@ -256,19 +387,3 @@ class CurriculumImporter:
             db.session.rollback()
             self.logger.error(f"Error during curriculum import: {str(e)}")
             raise
-
-    def extract_course_description(self, content: str) -> str:
-        """Extract course description"""
-        desc_pattern = r'Ce cours[^P]*?(?=Préalable\s*:)'
-        desc_match = re.search(desc_pattern, content, re.DOTALL)
-        desc = self.clean_text(desc_match.group()) if desc_match else ''
-        self.logger.debug(f"Extracted course description: {desc[:200]}...")
-        return desc
-
-    def extract_prerequisite(self, content: str) -> str:
-        """Extract prerequisite"""
-        prereq_pattern = r'Préalable\s*:\s*([^A-D][^\n]*)'
-        prereq_match = re.search(prereq_pattern, content, re.DOTALL)
-        prereq = self.clean_text(prereq_match.group(1)) if prereq_match else 'Aucun'
-        self.logger.debug(f"Extracted prerequisite: {prereq}")
-        return prereq
