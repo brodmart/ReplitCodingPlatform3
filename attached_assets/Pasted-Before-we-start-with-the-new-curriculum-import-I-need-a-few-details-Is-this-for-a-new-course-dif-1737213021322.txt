@@ -1,0 +1,279 @@
+Before we start with the new curriculum import, I need a few details:
+
+Is this for a new course (different from ICS3U), or should we update the existing ICS3U data?
+Do you have the course code and title ready?
+This will help me prepare the right database structure and queries for the import process.
+
+23 minutes ago
+its another course, so different file yes im ready (almost)
+
+21 minutes ago
+•
+Read
+MB
+
+codingmountains
+
+AI
+
+AI
+I understand you want to add a new course to the curriculum database. To get started with the direct import approach, could you please provide:
+
+The course code (e.g., ICS4U)
+The course title in English
+The course title in French
+Once you provide these basic details, we'll create the course entry and then move on to adding the strands and their content step by step.
+
+20 minutes ago
+Digital Technology and
+Innovations in the
+Changing World
+
+20 minutes ago
+•
+Read
+MB
+
+codingmountains
+ICD2O
+
+20 minutes ago
+•
+Read
+MB
+
+codingmountains
+
+AI
+
+AI
+I see you've provided the course details:
+
+Course Code: ICD2O
+English Title: "Digital Technology and Innovations in the Changing World"
+Could you please provide the French title for the course? Once we have that, we can create the course entry and then move on to adding the strands systematically.
+
+19 minutes ago
+Technologies numériques et innovations dans un monde en évolution
+
+19 minutes ago
+•
+Read
+MB
+
+codingmountains
+
+AI
+
+AI
+Great! I've successfully created the course entry for ICD2O. Now we can proceed with adding the strands.
+
+To make this process smoother, could you provide the strands information first? For each strand (A, B, C, D), I'll need:
+
+The strand title in English
+The strand title in French
+You can provide them one by one or all at once, whichever is more convenient for you.
+
+18 minutes ago
+
+AI
+I see I've successfully created the ICD2O course entry. Let's continue with adding the strands. I showed you the current strands from ICS3U for reference, but for ICD2O, we'll need your new strand information.
+
+Could you please provide the strand titles for ICD2O? For each strand (A, B, C, D if applicable), please share:
+
+The strand code (e.g., A, B, C, D)
+The English title
+The French title
+You can provide them one at a time or all at once, whichever you prefer.
+
+18 minutes ago
+well translate from english if you dont mind for each item
+
+17 minutes ago
+•
+Read
+MB
+
+codingmountains
+Checkpoint made
+17 minutes ago
+•
+
+AI
+I'll help translate each item into French once you provide the English titles for the strands. Could you please share the English titles for each strand (A, B, C, D) of the ICD2O course?
+
+17 minutes ago
+A. Computational Thinking and Making Connections B. Hardware, Software, and Innovations C. Programming
+
+16 minutes ago
+•
+Read
+MB
+
+codingmountains
+
+AI
+
+AI
+
+AI
+Great! I've successfully added the three strands for ICD2O with their French translations:
+
+A. Computational Thinking and Making Connections / Pensée computationnelle et établissement de liens
+B. Hardware, Software, and Innovations / Matériel, logiciels et innovations
+C. Programming / Programmation
+
+Now, we need the overall expectations for each strand. Could you provide the overall expectations for Strand A (Computational Thinking and Making Connections)? For each overall expectation, I'll need:
+
+The code (e.g., A1, A2, etc.)
+The description in English
+And I'll help translate them to French.
+15 minutes ago
+A1. Computational Thinking, Planning, and Purpose A2. Digital Technology and Society A3. Applications, Careers, and Connections B1. Understanding Hardware and Software B2. Using Hardware and Software B3. Cybersecurity and Data B4. Innovations in Digital Technology C1. Programming Concepts and Algorithms C2. Writing Programs C3. Modularity and Modification
+
+14 minutes ago
+•
+Read
+MB
+
+codingmountains
+
+AI
+
+AI
+I've successfully added all the overall expectations. Now we need to add the specific expectations for each overall expectation. Let's start with Strand A's overall expectation A1 (Computational Thinking, Planning, and Purpose).
+
+Could you please provide the specific expectations for A1? For each specific expectation, I'll need:
+
+The code (e.g., A1.1, A1.2, etc.)
+The description in English
+And I'll help translate them to French.
+
+14 minutes ago
+A1.1 apply computational thinking concepts and practices when planning and designing computational
+artifacts
+A1.2 use a variety of tools and processes to plan, design, and share algorithms and computational
+artifacts
+A1.3 develop computational artifacts for a variety of contexts and purposes that support the needs of
+diverse users and audiences
+
+13 minutes ago
+•
+Read
+MB
+
+codingmountains
+A2.1 investigate current social, cultural, economic, environmental, and ethical issues related to digital
+technology that have personal, local, and global impacts, taking various perspectives into account
+A2.2 analyze personal and societal safety and cybersecurity issues related to digital technology, and
+identify measures and technologies that can help mitigate related concerns for individuals and
+communities
+A2.3 investigate contributions to innovations in digital technology and computing by people from
+diverse local, Canadian, and global communities, including Indigenous communities in Canada and
+around the world
+A2.4 investigate how to identify and address bias involving digital technology
+A2.5 analyze accessibility issues involving digital technology, and identify measures that can improve
+accessibility
+
+13 minutes ago
+•
+Read
+MB
+
+codingmountains
+A3.1 investigate how digital technology and programming skills can be used within a variety of
+disciplines in real-world applications
+A3.2 investigate ways in which various industries, including those that involve skilled trades, are
+changing as a result of digital technology and programming innovations
+A3.3 investigate various career options related to digital technology and programming, and ways to
+continue their learning in these areas
+
+13 minutes ago
+•
+Read
+MB
+
+codingmountains
+B1.1 describe the functions and features of various core components of hardware associated with digital
+technologies they encounter in their everyday life
+B1.2 describe the functions and features of various connected devices associated with digital
+technologies they encounter in their everyday life
+B1.3 describe the functions of various types of software they encounter in their everyday life
+
+13 minutes ago
+•
+Read
+MB
+
+codingmountains
+B2.1 use file management techniques, including those related to local and cloud storage, to organize,
+edit, and share files
+B2.2 identify and use effective research practices and supports when learning to use new hardware or
+software
+B2.3 assess the hardware and software requirements for various users, contexts, and purposes in order
+to make recommendations for devices and programs
+
+13 minutes ago
+•
+Read
+MB
+
+codingmountains
+B3.1 apply safe and effective data practices when using digital technology in various contexts
+B3.2 apply safe and effective security practices, including practices to protect their privacy, when using
+digital technology in various contexts
+
+12 minutes ago
+•
+Read
+MB
+
+codingmountains
+B4.1 investigate current innovations, including automation and artificial intelligence systems, and assess
+the impacts of these technologies on everyday life
+B4.2 investigate hardware and methods used to establish networks and connectivity, and assess the
+benefits and limitations of increased connectivity with reference to everyday life
+B4.3 investigate emerging innovations related to hardware and software and their possible benefits and
+limitations with reference to everyday life in the future
+
+12 minutes ago
+•
+Read
+MB
+
+codingmountains
+C1.1 use appropriate terminology to describe programming concepts and algorithms
+C1.2 describe simple algorithms that are encountered in everyday situations
+C1.3 identify various types of data and explain how they are used within programs
+C1.4 determine the appropriate expressions and instructions to use in a programming statement, taking
+into account the order of operations
+C1.5 identify and explain situations in which conditional and repeating structures are required
+
+12 minutes ago
+•
+Read
+MB
+
+codingmountains
+C2.1 use variables, constants, expressions, and assignment statements to store and manipulate numbers
+and text in a program
+C2.2 write programs that use and generate data involving various sources and formats
+C2.3 write programs that include single and nested conditional statements
+C2.4 write programs that include sequential, selection, and repeating events
+C2.5 write programs that include the use of Boolean operators, comparison operators, text operators,
+and arithmetic operators
+C2.6 interpret program errors and implement strategies to resolve them
+C2.7 write clear internal documentation and use coding standards to improve code readability
+
+12 minutes ago
+•
+Read
+MB
+
+codingmountains
+C3.1 analyze existing code to understand the components and outcomes of the code
+C3.2 modify an existing program, or components of a program, to enable it to complete a different task
+C3.3 write subprograms, and use existing subprograms, to complete program components
+C3.4 write programs that make use of external or add-on modules or libraries
+C3.5 explain the components of a computational artifact they have created, including considerations for
+reuse by others
