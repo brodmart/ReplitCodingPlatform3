@@ -48,6 +48,10 @@ args = "Import ICS3U Curriculum"
 task = "workflow.run"
 args = "Verify C2.1"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Import ICD2O Curriculum"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -146,6 +150,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python scripts/verify_c21.py"
+
+[[workflows.workflow]]
+name = "Import ICD2O Curriculum"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scripts/import_icd2o_curriculum.py"
 
 [[ports]]
 localPort = 5000
