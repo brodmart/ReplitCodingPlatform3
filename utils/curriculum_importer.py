@@ -17,22 +17,22 @@ class CurriculumImporter:
 
         # Define regex patterns for curriculum structure
         self._section_pattern = (
-            r'(?:^|\n)\s*'           # Start of line or after newline
-            r'([A-D])\s*\.\s*'       # Section letter with optional whitespace
-            r'([^.]+?)'              # Section title (non-greedy)
-            r'(?=\s*(?:[A-D]\s*\.|$))'  # Look ahead for next section or end
+            r'(?:^|\n)\s*'           # Start of line or newline
+            r'([A-D])\s*\.'          # Section letter with dot
+            r'\s*([^\n]+?)\s*'       # Section title, non-greedy
+            r'(?=\n|$)'              # Look ahead for newline or end
         )
 
         self._attentes_pattern = (
-            r'ATTENTES\s*'           # Match ATTENTES header
-            r'(?:À la fin[^:]*:)?\s*'  # Optional intro text
+            r'(?:^|\n)\s*ATTENTES\s*'  # Match ATTENTES header
+            r'(?:À la fin[^:]*:)?\s*'   # Optional intro text
             r'((?:(?!\s*CONTENUS\s+D).)*)'  # Capture until CONTENUS
         )
 
         self._contenus_pattern = (
-            r'CONTENUS\s+D[\'']?APPRENTISSAGE\s*'  # Match CONTENUS with optional quote
+            r'CONTENUS\s+D[\'"]?APPRENTISSAGE\s*'  # Match CONTENUS with simple quote options
             r'(?:Pour satisfaire[^:]*:)?\s*'       # Optional intro text
-            r'((?:(?!\s*[A-D]\s*\.).)*)'          # Capture until next major section
+            r'((?:(?!\s*[A-D]\s*\.).)*)'          # Capture until next section
         )
 
         # Patterns for expectations
@@ -88,19 +88,28 @@ class CurriculumImporter:
             return text
 
         except Exception as e:
-            self.logger.error(f"Error in clean_text: {str(e)}", exc_info=True)
+            self.logger.error(f"Error in clean_text: {str(e)}")
             raise
 
     def extract_strand_sections(self, content: str) -> List[Tuple[str, str, str]]:
         """Extract strand sections with better error handling"""
         try:
+            # Add debug logging for content
+            self.logger.debug(f"Content length before extraction: {len(content)}")
+            self.logger.debug(f"First 200 characters: {content[:200]}")
+
             sections = []
-            matches = re.finditer(self._section_pattern, content, re.MULTILINE)
+            matches = re.finditer(self._section_pattern, content, re.MULTILINE | re.DOTALL)
 
             current_section = None
             current_text = ""
 
+            # Log each match found
+            match_count = 0
             for match in matches:
+                match_count += 1
+                self.logger.debug(f"Found match {match_count}: {match.group(0)[:50]}...")
+
                 if current_section:
                     sections.append((
                         current_section[0],  # code
@@ -110,7 +119,7 @@ class CurriculumImporter:
                 current_section = (
                     match.group(1),  # code
                     self.clean_text(match.group(2)),  # title
-                    match.start()  # start position
+                    match.end()  # start position
                 )
 
             if current_section:
@@ -124,10 +133,18 @@ class CurriculumImporter:
             for code, title, _ in sections:
                 self.logger.debug(f"Section {code}: {title}")
 
+            if not sections:
+                # Log a sample of the content to help debug
+                self.logger.error("No sections found in the content")
+                self.logger.debug("Content sample for debugging:")
+                self.logger.debug("-" * 50)
+                self.logger.debug(content[:500])
+                self.logger.debug("-" * 50)
+
             return sections
 
         except Exception as e:
-            self.logger.error(f"Error extracting sections: {str(e)}", exc_info=True)
+            self.logger.error(f"Error extracting sections: {str(e)}")
             raise
 
     def import_curriculum(self, content: str):
@@ -251,6 +268,6 @@ class CurriculumImporter:
             db.session.commit()
             self.logger.info("Cleared existing ICS3U data")
         except Exception as e:
-            self.logger.error(f"Error clearing data: {str(e)}", exc_info=True)
+            self.logger.error(f"Error clearing data: {str(e)}")
             db.session.rollback()
             raise
