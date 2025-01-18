@@ -4,7 +4,7 @@ Parses and imports Ontario CS curriculum data into the database
 """
 import re
 import logging
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple
 from app import db
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
@@ -13,47 +13,62 @@ class CurriculumImporter:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
-    def clean_text(self, text: str) -> str:
-        """Clean and normalize text content"""
-        if not text:
-            return ""
-        # Normalize apostrophes and quotes
-        text = text.replace('''', "'")
-        text = text.replace('"', '"').replace('"', '"')
-        # Clean up whitespace and line endings
-        text = re.sub(r'\r\n|\r', '\n', text)
-        text = re.sub(r'\n{3,}', '\n\n', text)
-        text = re.sub(r'[ \t]+', ' ', text)
-        return text.strip()
-
     def _extract_sections(self, content: str) -> List[Dict[str, str]]:
         """Extract curriculum sections from content"""
         sections = []
-        # Split at ATTENTES markers
-        raw_sections = re.split(r'(?:\n|^)\s*ATTENTES\s*:', content)[1:]  # Skip header
 
-        for raw_section in raw_sections:
-            # Split section into ATTENTES and CONTENUS parts
-            parts = re.split(r"CONTENUS\s+D'APPRENTISSAGE", raw_section, flags=re.IGNORECASE)
+        # Find all section boundaries
+        section_markers = list(re.finditer(r'(?:^|\n)\s*ATTENTES\s*:', content, re.MULTILINE))
+
+        for i, match in enumerate(section_markers):
+            start_pos = match.start()
+            end_pos = section_markers[i + 1].start() if i + 1 < len(section_markers) else len(content)
+            section_text = content[start_pos:end_pos].strip()
+
+            # Split into ATTENTES and CONTENUS using flexible pattern
+            parts = re.split(r'CONTENUS', section_text, flags=re.IGNORECASE)
+
             if len(parts) != 2:
-                self.logger.warning(f"Invalid section format, found {len(parts)} parts instead of 2")
+                self.logger.warning(f"Section {i+1} invalid format - found {len(parts)} parts instead of 2")
+                self.logger.debug(f"Section content preview:\n{section_text[:200]}")
                 continue
 
-            attentes_text, contenus_text = parts
+            attentes_text, contenus_text = parts[0], parts[1]
+
+            # Clean up the texts
+            attentes_text = self._clean_section_text(attentes_text)
+            contenus_text = self._clean_section_text(contenus_text)
 
             # Extract strand code from first expectation
             strand_match = re.search(r'([A-Za-z])\d+\.', attentes_text)
             if not strand_match:
-                self.logger.warning("Could not find strand code")
+                self.logger.warning(f"Could not find strand code in section {i+1}")
                 continue
 
             sections.append({
                 'code': strand_match.group(1).upper(),
-                'attentes': attentes_text.strip(),
-                'contenus': contenus_text.strip()
+                'attentes': attentes_text,
+                'contenus': contenus_text
             })
 
         return sections
+
+    def _clean_section_text(self, text: str) -> str:
+        """Clean up section text content"""
+        # Skip 'pour satisfaire aux attentes' line
+        text = re.sub(r'^.*?Pour satisfaire aux attentes.*?\n', '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+        # Remove any "D'APPRENTISSAGE" header text
+        text = re.sub(r"D[''']APPRENTISSAGE.*?\n", '', text, flags=re.MULTILINE | re.IGNORECASE)
+
+        # Join hyphenated line breaks
+        text = re.sub(r'-\s*\n\s*', '', text)
+
+        # Clean up whitespace
+        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r'^\s+|\s+$', '', text, flags=re.MULTILINE)
+
+        return text.strip()
 
     def _parse_expectations(self, section: Dict[str, str]) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
         """Extract overall and specific expectations from a section"""
@@ -64,49 +79,49 @@ class CurriculumImporter:
             # Extract overall expectations (e.g., "B1. analyser...")
             for match in re.finditer(r'([A-Za-z]\d+)\s*\.\s*([^\n]+)', section['attentes']):
                 code, desc = match.groups()
-                if desc.strip():
-                    overall_exp.append((code.upper(), desc.strip()))
+                overall_exp.append((code.upper(), desc.strip()))
 
-            # Extract specific expectations (e.g., "B1.1 décrire...")
-            current_exp = None
-            current_lines = []
+            # Process specific expectations
+            current_code = None
+            current_text = []
 
             for line in section['contenus'].split('\n'):
                 line = line.strip()
-                if not line or 'pour satisfaire aux attentes' in line.lower():
-                    if current_exp and current_lines:
-                        specific_exp.append((current_exp, ' '.join(current_lines)))
-                    current_exp = None
-                    current_lines = []
+
+                # Skip empty lines and section titles
+                if not line or line.lower().startswith(('fonctionnement', 'gestion', 'outils', 'syntaxe', 'assurance')):
+                    if current_code and current_text:
+                        specific_exp.append((current_code, ' '.join(current_text)))
+                        current_code = None
+                        current_text = []
                     continue
 
-                # Check for new expectation
+                # Try to match new expectation
                 exp_match = re.match(r'([A-Za-z]\d+\.\d+)\s+(.+)', line)
                 if exp_match:
-                    # Save previous expectation if exists
-                    if current_exp and current_lines:
-                        specific_exp.append((current_exp, ' '.join(current_lines)))
-                    # Start new expectation
-                    current_exp = exp_match.group(1).upper()
-                    current_lines = [exp_match.group(2)]
-                elif current_exp:
-                    # Continue previous expectation description
-                    current_lines.append(line)
+                    # Save previous if exists
+                    if current_code and current_text:
+                        specific_exp.append((current_code, ' '.join(current_text)))
 
-            # Add last expectation if exists
-            if current_exp and current_lines:
-                specific_exp.append((current_exp, ' '.join(current_lines)))
+                    # Start new expectation
+                    current_code = exp_match.group(1).upper()
+                    current_text = [exp_match.group(2)]
+                elif current_code:
+                    current_text.append(line)
+
+            # Save final expectation if exists
+            if current_code and current_text:
+                specific_exp.append((current_code, ' '.join(current_text)))
 
         except Exception as e:
-            self.logger.error(f"Error extracting expectations: {str(e)}")
+            self.logger.error(f"Error parsing expectations: {str(e)}")
+            raise
 
         return overall_exp, specific_exp
 
     def import_curriculum(self, content: str) -> None:
         """Import curriculum content into database"""
         try:
-            content = self.clean_text(content)
-
             # Extract and validate sections
             sections = self._extract_sections(content)
             if not sections:
@@ -127,6 +142,8 @@ class CurriculumImporter:
 
                 # Process each section
                 for section in sections:
+                    self.logger.debug(f"Processing section {section['code']}")
+
                     # Create strand
                     strand = Strand(
                         course_id=course.id,
@@ -139,8 +156,9 @@ class CurriculumImporter:
 
                     # Extract and create expectations
                     overall_exp, specific_exp = self._parse_expectations(section)
+                    self.logger.debug(f"Found {len(overall_exp)} overall and {len(specific_exp)} specific expectations")
 
-                    # Create overall expectations
+                    # Create expectations
                     for code, desc in overall_exp:
                         overall = OverallExpectation(
                             strand_id=strand.id,
@@ -178,7 +196,8 @@ class CurriculumImporter:
     def clear_existing_data(self) -> None:
         """Clear existing curriculum data"""
         try:
-            Course.query.filter_by(code='ICS3U').delete()
+            with db.session.begin():
+                Course.query.filter_by(code='ICS3U').delete()
             db.session.commit()
         except Exception as e:
             self.logger.error(f"Error clearing data: {str(e)}")
