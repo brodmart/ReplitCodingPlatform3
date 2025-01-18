@@ -13,13 +13,13 @@ class CurriculumImporter:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
 
-        # Updated patterns to match the French curriculum structure
-        self._attentes_pattern = r'(?:^|\n)\s*ATTENTES\s*:\s*(.*?)(?=\s*CONTENUS)'
-        self._contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE(?:[^\n]*\n[^\n]*:)?\s*(.*?)(?=\s*(?:ATTENTES|\Z))'
+        # Updated patterns to better match the French curriculum format
+        self._section_pattern = r'(?:^|\n)\s*([^:\n]+?)(?=\s*ATTENTES\s*:)'
+        self._attentes_pattern = r'ATTENTES\s*:\s*(.*?)(?=\s*CONTENUS\s+D\'APPRENTISSAGE|$)'
+        self._contenus_pattern = r'CONTENUS\s+D\'APPRENTISSAGE(?:\s*Pour[^:]*:)?\s*(.*?)(?=\s*(?:ATTENTES|\Z))'
         self._overall_exp_pattern = r'([A-D]\d+)\s*\.\s*([^\n]+)'
         self._specific_exp_pattern = r'([A-D]\d+\.\d+)\s*([^\n]+)'
-        self._section_title_pattern = r'(?:^|\n)\s*([^\n]+?)(?=\s*ATTENTES\s*:)'
-        self._strand_code_pattern = r'([A-D])\d+\.'  # Pattern to extract strand code from expectations
+        self._strand_code_pattern = r'([A-D])'
 
     def clean_text(self, text: str) -> str:
         """Clean and normalize text content"""
@@ -37,21 +37,30 @@ class CurriculumImporter:
     def _validate_content_structure(self, content: str) -> bool:
         """Pre-validate content structure before parsing"""
         try:
-            # Find ATTENTES and CONTENUS sections
-            attentes = re.findall(r'ATTENTES\s*:', content)
-            contenus = re.findall(r'CONTENUS\s+D\'APPRENTISSAGE', content)
+            self.logger.debug("Starting content validation...")
 
-            if not attentes or not contenus:
-                self.logger.error(f"Missing sections: ATTENTES ({len(attentes)}) or CONTENUS ({len(contenus)})")
+            # Find all ATTENTES and CONTENUS sections
+            attentes_matches = re.findall(r'ATTENTES\s*:', content)
+            contenus_matches = re.findall(r'CONTENUS\s+D\'APPRENTISSAGE', content)
+
+            self.logger.debug(f"Found {len(attentes_matches)} ATTENTES sections")
+            self.logger.debug(f"Found {len(contenus_matches)} CONTENUS sections")
+
+            if not attentes_matches or not contenus_matches:
+                self.logger.error(f"Missing required sections: ATTENTES ({len(attentes_matches)}) or CONTENUS ({len(contenus_matches)})")
                 return False
 
             # Verify expectations format
-            expectations = re.findall(r'[A-D]\d+\.\d+', content)
-            if not expectations:
-                self.logger.error("No expectations found in content")
+            overall_exp = re.findall(r'[A-D]\d+\.', content)
+            specific_exp = re.findall(r'[A-D]\d+\.\d+', content)
+
+            self.logger.debug(f"Found {len(overall_exp)} overall expectations")
+            self.logger.debug(f"Found {len(specific_exp)} specific expectations")
+
+            if not overall_exp or not specific_exp:
+                self.logger.error("No valid expectations found")
                 return False
 
-            self.logger.info(f"Found {len(attentes)} ATTENTES, {len(contenus)} CONTENUS, {len(expectations)} expectations")
             return True
 
         except Exception as e:
@@ -62,37 +71,49 @@ class CurriculumImporter:
         """Extract curriculum sections"""
         sections = []
         try:
-            # Split content into sections using ATTENTES as delimiter
-            raw_sections = re.split(r'(?=\n\s*ATTENTES\s*:)', content)[1:]  # Skip intro text
+            # Split content into major sections
+            major_sections = re.split(r'\n\s*ATTENTES\s*:', content)[1:]
+            self.logger.debug(f"Found {len(major_sections)} major sections to process")
 
-            for section in raw_sections:
-                # Extract section title
-                title_match = re.search(self._section_title_pattern, section)
-                if not title_match:
+            for section_content in major_sections:
+                # Extract section title from previous content
+                section_match = re.search(self._section_pattern, content, re.MULTILINE)
+                if not section_match:
+                    self.logger.warning("Could not find section title, skipping...")
                     continue
 
-                title = self.clean_text(title_match.group(1))
+                title = self.clean_text(section_match.group(1))
+                self.logger.debug(f"Processing section: {title}")
 
                 # Extract ATTENTES content
-                attentes_match = re.search(self._attentes_pattern, section, re.DOTALL)
+                attentes_match = re.search(self._attentes_pattern, section_content, re.DOTALL)
                 if not attentes_match:
+                    self.logger.warning(f"No ATTENTES found for section: {title}")
                     continue
 
                 attentes = self.clean_text(attentes_match.group(1))
 
                 # Extract CONTENUS content
-                contenus_match = re.search(self._contenus_pattern, section, re.DOTALL)
+                contenus_match = re.search(self._contenus_pattern, section_content, re.DOTALL)
                 if not contenus_match:
+                    self.logger.warning(f"No CONTENUS found for section: {title}")
                     continue
 
                 contenus = self.clean_text(contenus_match.group(1))
 
-                # Extract strand code from first expectation in ATTENTES
+                # Extract strand code from first expectation
                 strand_code = None
-                first_exp = re.search(self._strand_code_pattern, attentes)
+                first_exp = re.search(self._overall_exp_pattern, attentes)
                 if first_exp:
-                    strand_code = first_exp.group(1)
+                    code_match = re.match(self._strand_code_pattern, first_exp.group(1))
+                    if code_match:
+                        strand_code = code_match.group(1)
 
+                if not strand_code:
+                    self.logger.warning(f"Could not determine strand code for section: {title}")
+                    continue
+
+                self.logger.debug(f"Successfully extracted section {strand_code}")
                 sections.append({
                     'title': title,
                     'code': strand_code,
@@ -121,6 +142,8 @@ class CurriculumImporter:
             if not sections:
                 raise ValueError("No valid sections found")
 
+            self.logger.info(f"Found {len(sections)} valid sections to import")
+
             # Start database transaction
             with db.session.begin_nested():
                 # Create course
@@ -134,10 +157,6 @@ class CurriculumImporter:
 
                 # Process each section
                 for section_data in sections:
-                    if not section_data.get('code'):
-                        self.logger.warning(f"Skipping section with no code: {section_data.get('title', 'Unknown')}")
-                        continue
-
                     # Create strand
                     strand = Strand(
                         course_id=course.id,
@@ -164,7 +183,7 @@ class CurriculumImporter:
                         db.session.flush()
                         overall_exp_count += 1
 
-                        # Extract and create specific expectations for this overall expectation
+                        # Extract and create specific expectations
                         base_code = f"{code}\\."
                         spec_pattern = f"{base_code}\\d+\\s*([^\\n]+)"
                         spec_matches = list(re.finditer(spec_pattern, section_data['contenus'], re.MULTILINE))
