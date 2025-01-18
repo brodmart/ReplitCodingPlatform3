@@ -1,5 +1,5 @@
 """
-Script to update French descriptions for strand C and overall expectation C2
+Script to update French descriptions for strand B and overall expectation B1
 """
 import sys
 import logging
@@ -13,7 +13,7 @@ from app import app, db
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
 def update_french_descriptions():
-    """Update French descriptions for strand C and overall expectation C2"""
+    """Update French descriptions for strand B and overall expectation B1"""
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s'
@@ -22,29 +22,29 @@ def update_french_descriptions():
 
     try:
         with app.app_context():
-            # Update strand C title
-            strand = Strand.query.filter_by(code='c').first()
+            # Update strand B title
+            strand = Strand.query.filter_by(code='B').first()
             if strand:
-                strand.title_fr = "Développement de logiciels"
-                logger.info(f"Updated strand C title to: {strand.title_fr}")
+                strand.title_fr = "Concepts de programmation"
+                logger.info(f"Updated strand B title to: {strand.title_fr}")
 
-            # Update overall expectation C2 description
-            overall = OverallExpectation.query.filter_by(code='c2').first()
+            # Update overall expectation B1 description
+            overall = OverallExpectation.query.filter_by(code='B1').first()
             if overall:
-                overall.description_fr = "concevoir des algorithmes répondant aux problèmes donnés"
-                logger.info(f"Updated C2 description to: {overall.description_fr}")
+                overall.description_fr = "comprendre et appliquer les concepts fondamentaux de la programmation"
+                logger.info(f"Updated B1 description to: {overall.description_fr}")
 
             db.session.commit()
             logger.info("Database updates completed successfully")
 
             # Verify updates
-            strand_check = Strand.query.filter_by(code='c').first()
-            overall_check = OverallExpectation.query.filter_by(code='c2').first()
+            strand_check = Strand.query.filter_by(code='B').first()
+            overall_check = OverallExpectation.query.filter_by(code='B1').first()
 
             if strand_check and overall_check:
                 logger.info("\nVerification Results:")
-                logger.info(f"Strand C title (FR): {strand_check.title_fr}")
-                logger.info(f"Overall C2 description (FR): {overall_check.description_fr}")
+                logger.info(f"Strand B title (FR): {strand_check.title_fr}")
+                logger.info(f"Overall B1 description (FR): {overall_check.description_fr}")
 
             return True
 

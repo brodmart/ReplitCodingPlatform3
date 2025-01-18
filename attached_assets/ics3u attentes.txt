@@ -1,0 +1,17 @@
+
+A1. expliquer le fonctionnement d’un ordinateur personnel en utilisant les termes justes en français.
+A2. appliquer des techniques de gestion de fichiers.
+A3. utiliser des outils appropriés pour développer des programmes.
+
+B1. appliquer les principales règles de syntaxe et de sémantique d’un langage de programmation.
+B2. expliquer des algorithmes et des structures de données élémentaires.
+B3. appliquer des techniques d’assurance-qualité logicielle.
+
+
+c1. appliquer des techniques de développement de logiciels.
+c2. concevoir des algorithmes répondant aux problèmes donnés.
+c3. développer des programmes répondant aux problèmes donnés.
+
+
+d1. analyser des mesures favorables pour l’environnement et la santé publique concernant l’utilisation du matériel informatique.
+d2. analyser diverses possibilités de carrière et de formation professionnelle en informatique.
