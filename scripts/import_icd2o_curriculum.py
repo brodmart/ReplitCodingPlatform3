@@ -74,13 +74,8 @@ def create_strands(course_id: int):
         },
         {
             'code': 'C',
-            'title_en': 'Software Development and Project Management',
-            'title_fr': 'Développement de logiciels et gestion de projets'
-        },
-        {
-            'code': 'D',
-            'title_en': 'Computers, Networks, and Society',
-            'title_fr': 'Ordinateurs, réseaux et société'
+            'title_en': 'Programming',
+            'title_fr': 'Programmation'
         }
     ]
 
@@ -118,8 +113,8 @@ def create_expectations(strands: dict):
     expectations_data = {
         'A': {
             'A1': {
-                'description_en': 'Apply computational thinking concepts and practices to solve problems',
-                'description_fr': 'Appliquer les concepts et les pratiques de la pensée computationnelle pour résoudre des problèmes',
+                'description_en': 'Computational Thinking, Planning, and Purpose',
+                'description_fr': 'Pensée computationnelle, planification et objectif',
                 'specifics': {
                     'A1.1': {
                         'description_en': 'Use computational thinking strategies to decompose problems into smaller, more manageable subproblems',
@@ -136,8 +131,8 @@ def create_expectations(strands: dict):
                 }
             },
             'A2': {
-                'description_en': 'Make connections between computer science concepts and skills and their applications',
-                'description_fr': 'Établir des liens entre les concepts et les compétences en informatique et leurs applications',
+                'description_en': 'Digital Technology and Society',
+                'description_fr': 'Technologie numérique et société',
                 'specifics': {
                     'A2.1': {
                         'description_en': 'Identify computer science concepts in various fields and contexts',
@@ -214,36 +209,6 @@ def create_expectations(strands: dict):
                     'C2.2': {
                         'description_en': 'Create programs that respond to user input and produce desired output',
                         'description_fr': "Créer des programmes qui répondent aux entrées utilisateur et produisent la sortie souhaitée"
-                    }
-                }
-            }
-        },
-        'D': {
-            'D1': {
-                'description_en': 'Explore emerging technologies and their impact on society',
-                'description_fr': "Explorer les technologies émergentes et leur impact sur la société",
-                'specifics': {
-                    'D1.1': {
-                        'description_en': 'Investigate current and emerging digital technologies',
-                        'description_fr': "Étudier les technologies numériques actuelles et émergentes"
-                    },
-                    'D1.2': {
-                        'description_en': 'Assess the impact of emerging technologies on various career paths',
-                        'description_fr': "Évaluer l'impact des technologies émergentes sur diverses carrières"
-                    }
-                }
-            },
-            'D2': {
-                'description_en': 'Apply design thinking principles to create innovative solutions',
-                'description_fr': "Appliquer les principes de la pensée design pour créer des solutions innovantes",
-                'specifics': {
-                    'D2.1': {
-                        'description_en': 'Use a design thinking process to develop solutions to real-world problems',
-                        'description_fr': "Utiliser un processus de pensée design pour développer des solutions à des problèmes réels"
-                    },
-                    'D2.2': {
-                        'description_en': 'Create innovative digital solutions through prototyping and iteration',
-                        'description_fr': "Créer des solutions numériques innovantes par le prototypage et l'itération"
                     }
                 }
             }
