@@ -10,7 +10,7 @@ def main():
         db.create_all()
 
         # Read ICS3U curriculum content from file
-        with open('curriculum/ICS3U_curriculum.txt', 'r') as f:
+        with open('attached_assets/ics3u curriculum.txt', 'r', encoding='utf-8') as f:
             content = f.read()
 
         # Import curriculum data

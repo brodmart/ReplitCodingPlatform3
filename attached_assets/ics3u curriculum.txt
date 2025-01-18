@@ -1,0 +1,122 @@
+
+Introduction au génie informatique, 11e année cours préuniversitaire ICS3U
+
+ATTENTES:
+A1. expliquer le fonctionnement d’un ordinateur personnel en utilisant les termes justes en français.
+A2. appliquer des techniques de gestion de fichiers.
+A3. utiliser des outils appropriés pour développer des programmes.
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+Fonctionnement d’un ordinateur personnel
+
+A1.1 expliquer les fonctions des composants matériels internes d’un ordinateur personnel (p. ex., carte mère, microprocesseur, mémoire vive, carte vidéo, carte son).
+A1.2 expliquer les fonctions des périphériques externes qui sont couramment utilisés (p. ex., souris, clavier, moniteur, imprimante, appareil photo numérique, caméra, clé de mémoire).
+A1.3 comparer les performances du matériel informatique de divers ordinateurs person- nels en utilisant des mesures objectives (p. ex., fréquence du microprocesseur [en gigahertz], capacité de la mémoire vive [en gigaoctets], consommation électrique [en watts]).
+A1.4 expliquer la relation fonctionnelle entre un langage de programmation et les composants essentiels d’un ordinateur (p. ex., enregistrement et transfert de données, opération arithmétique, calcul géométrique).
+
+ Gestion de fichiers	
+A2.1 répertorier les fichiers d’un programme en utilisant les fonctions du système d’exploitation.
+A2.2 appliquer une procédure systématique de sauvegarde des fichiers (p. ex., archivage programmé de fichiers, copie manuelle sur une clé de mémoire ou en ligne, utilisation d’un système de contrôle de versions).
+A2.3 décrire plusieurs types de virus (p. ex., attaque du système d’amorçage, macro dans un document de bureautique) et autres programmes malveillants (p. ex., cheval de Troie, logiciel espion), leur cycle de vie ainsi que les contre- mesures de sécurité informatique connues (p. ex., antivirus, coupe-feu, blocage des fenêtres, filtre antipourriel).
+A2.4 utiliser les services du réseau local (p. ex., partage de fichier et d’imprimante, centralisation du code et de l’échéancier) pour faciliter la gestion et la sauvegarde des fichiers lors du développement d’un programme.
+
+ Outils de développement	
+A3.1 comparer les principales fonctions des systèmes d’exploitation (p. ex., exécution de programmes, archivage de fichiers, contrôle d’accès) et des logiciels d’application (p. ex., traitement de texte, lecture de courriels), notamment des outils de développement (p. ex., compilateur, interpréteur).
+A3.2 expliquer les caractéristiques et les avantages de divers environnements de développement (p. ex., environnement de développement intégré [EDI]; éditeur de texte spécialisé et interpréteur) pour développer des programmes.
+A3.3 utiliser les fonctions respectives d’un compilateur ou d’un interpréteur.
+A3.4 utiliser l’aide disponible (p. ex., fonction d’aide de l’EDI, tutoriel, aide en ligne) pour développer des programmes.
+
+
+ATTENTES:
+B1. appliquer les principales règles de syntaxe et de sémantique d’un langage de programmation.
+B2. expliquer des algorithmes et des structures de données élémentaires.
+B3. appliquer des techniques d’assurance-qualité logicielle.
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+ Syntaxe et sémantique	
+B1.1 décrire les types de données primitifs définis par un langage de programmation donné (p. ex., nombre entier, nombre décimal, caractère alphanumérique).
+B1.2 décrire la représentation interne (p. ex., code binaire, code ASCII, Unicode) de divers types de données (p. ex., nombre entier, caractère, chaîne de caractères).
+B1.3 définir les termes suivants : valeur littérale, constante et variable.
+B1.4 définir les concepts de portée et de durée de vie des variables.
+B1.5 décrire différents types de fonctions (p. ex., fonction avec ou sans paramètres, avec ou sans valeur de retour [procédure]; fonction récursive).
+B1.6 appliquer les règles de syntaxe fondamen- tales (p. ex., déclaration de variables, usage des opérateurs, appel de fonction) d’un langage de programmation.
+B1.7 rédiger des expressions utilisant des opérateurs (p. ex., opérateur booléen, opérateur de comparaison, opérateur arithmétique).
+B2.1 définir les caractéristiques d’un tableau à une dimension telles que les éléments, l’indice et la taille.
+B2.2 expliquer des algorithmes qui permettent de lire ou de modifier les éléments d’un tableau à une dimension.
+B2.3 expliquer le fonctionnement des structures de contrôle – séquentielle, décisionnelle et itérative – d’un programme.
+B2.4 expliquer des algorithmes qui permettent de traiter l’information entrée par une utilisatrice ou un utilisateur et d’afficher le résultat
+à l’écran.
+
+ Assurance-qualité logicielle	
+B3.1 expliquer la différence entre les erreurs de logique, les erreurs de syntaxe et les erreurs d’exécution d’un programme.
+B3.2 interpréter les messages d’erreur émis par les environnements de développement et d’exécution (p. ex., compilateur, outil de débogage, machine virtuelle).
+B3.3 corriger des erreurs de logique, des erreurs de syntaxe et des erreurs d’exécution d’un programme.
+B3.4 déterminer un ensemble de valeurs appro- priées pour tester l’exactitude d’un programme.
+B3.5 déboguer des programmes à l’aide de différentes méthodes (p. ex., traçage, exécution pas à pas, utilisation de points d’interruption, observation des variables, insertion d’instructions dans le programme).
+B3.6 appliquer des règles de mise en page (p. ex., tabulation), de rédaction (p. ex., commentaire) et de nomenclature (p. ex., nom de variable) au programme afin d’en assurer sa maintenance et sa documentation.
+
+
+
+ATTENTES:
+c1. appliquer des techniques de développement de logiciels.
+c2. concevoir des algorithmes répondant aux problèmes donnés.
+c3. développer des programmes répondant aux problèmes donnés.
+
+CONTENUS D’APPRENTISSAGE
+Pour satisfaire aux attentes, l’élève doit pouvoir :
+
+Techniques de développement de logiciels
+c1.1 décrire les problèmes en termes de données d’entrée, de traitement de données et de données de sortie.
+c1.2 utiliser différentes approches pour résoudre des problèmes (p. ex., méthode de la dichotomie, méthode empirique, représentation graphique).
+c1.3 décrire les activités principales du dévelop- pement de logiciels (p. ex., définition des besoins, conception, codage, vérification et validation) et leurs produits livrables (p. ex., cahier des charges, code source, résultats des tests).
+c1.4 interpréter des échéanciers (p. ex., calendrier des tâches, diagramme de Gantt, graphique PERT).
+c1.5 appliquer un plan de test (p. ex., identifica- tion des scénarios possibles, entrée des données, prédiction des résultats, comparaison avec les données de sortie).
+c1.6 présenter à l’oral comme à l’écrit les produits livrables (p. ex., cahier des charges, algorithme, résultat des tests) en utilisant les termes justes en français.
+
+ Conception d’algorithmes	
+c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés (p. ex., calcul de la longueur du troisième côté d’un triangle rectangle lorsque les deux premiers côtés sont connus, affichage des nombres premiers inférieurs à 100).
+c2.2 concevoir des algorithmes de traitement des données (p. ex., validation des données entrées par l’utilisatrice ou l’utilisateur, manipulation des éléments d’un tableau).
+c2.3 concevoir des imbrications de structures de contrôle (p. ex., structures décisionnelles imbriquées, utilisation d’une valeur sentinelle dans une structure itérative pour effectuer une sortie exceptionnelle).
+c2.4 concevoir des algorithmes traitant des exceptions (p. ex., division par zéro, racine carrée d’un nombre négatif, 0° [zéro exposant zéro]).
+c2.5 comparer qualitativement et quantitative- ment les performances de deux algorithmes qui répondent au même problème (p. ex., type de données, nombre de lignes, usage de
+la mémoire).
+
+ Développement de programmes	
+c3.1 concevoir des fonctions répondant à des besoins donnés (p. ex., calcul de formule, encapsulation d’un bloc de code, répétition d’un bloc d’instructions).
+c3.2 modéliser un problème de programmation en utilisant diverses techniques (p. ex., organi- gramme, langage de modélisation UML, dia- gramme de flux, pseudocode).
+c3.3 appliquer le principe de modularisation au développement de programmes (p. ex., en créant des fonctions pour éviter la duplication de blocs de code, en créant des classes, en séparant au besoin le code en plusieurs fichiers).
+c3.4 concevoir des interfaces utilisateurs conviviales (p. ex., interface d’une console, interface d’une page Web, interface graphique) qui répondent aux besoins des utilisatrices et utilisateurs.
+c3.5 développer des programmes répondant à des problèmes donnés en utilisant des modules
+préalablement conçus à cet effet (p. ex., fonction, interface utilisateur, documentation) et des fonctions prédéfinies (p. ex., générateur de nombres aléatoires, gestionnaire d’événements, convertisseur de chaînes de caractères).
+
+
+
+ATTENTES:
+d1. analyser des mesures favorables pour l’environnement et la santé publique concernant l’utilisation du matériel informatique.
+d2. analyser diverses possibilités de carrière et de formation professionnelle en informatique.
+
+CONTENUS D’APPRENTISSAGE
+
+ Environnement et santé	
+d1.1 analyser l’impact de l’industrie de l’infor- matique sur l’environnement et la santé publi- que en identifiant les facteurs bénéfiques
+(p. ex., modélisation des forces environnementales et de leur impact au niveau planétaire, séquençage du génome humain, repliement des protéines) et les facteurs nuisibles (p. ex., volume et toxicité
+des déchets, consommation électrique, utilisation du papier).
+d1.2 évaluer l’impact des mesures prises par les organismes publics (p. ex., création de normes environnementales, mesure fiscale, subvention) et privés (p. ex., initiative des fabricants de matériel informatique, action d’une association proenvironnementale, initiative individuelle) sur l’empreinte environnementale de l’informatique.
+d1.3 déterminer des stratégies pour réduire la consommation des systèmes informatiques, et pour réutiliser et recycler du matériel informatique (p. ex., éteindre le moniteur en
+fin de journée, réaffecter des ordinateurs obsolètes à des tâches plus appropriées, recycler les cartouches d’encre).
+d1.4 décrire des moyens pour prévenir (p. ex., poste de travail ergonomique, exercice muscu- laire) des problèmes de santé liés à l’usage des ordinateurs (p. ex., trouble musculosquelettique, trouble de la vue).
+
+
+ Carrière et formation	
+d2.1 comparer des choix de carrière possibles en informatique (p. ex., programmation, architecture d’entreprise, recherche), notamment en ce qui a trait aux tâches à accomplir, aux conditions salariales et aux possibilités d’avancement.
+d2.2 répertorier les programmes de formation offerts en informatique en identifiant les préalables et les options éducatives qui existent en français.
+d2.3 identifier des occasions et des moyens d’obtenir de l’expérience en informatique (p. ex., bénévolat, éducation coopérative, salon de l’emploi, mentorat).
+d2.4 décrire des services de soutien qui favorisent l’orientation vers des métiers non traditionnels en informatique (p. ex., programme de mentorat, groupe de soutien virtuel, programme postsecon- daire spécialisé, association syndicale).
+d2.5 décrire les compétences essentielles (p. ex., communication verbale, prise de décisions, réso- lution de problèmes) ainsi que les habitudes de travail (p. ex., habitudes associées à la sécurité au travail, à la capacité de travailler en équipe et de façon autonome, à la fiabilité, au service à la clientèle) du Passeport-compétences de l’Ontario (PCO) qui sont indispensables pour réussir dans l’industrie de l’informatique.
+d2.6 créer un portfolio en sélectionnant les travaux ou les réalisations (p. ex., logiciel, code source, diagramme) qui témoignent de ses
+habiletés, de ses compétences, de ses expériences et des certifications acquises en informatique.
+
