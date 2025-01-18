@@ -42,26 +42,32 @@ def main():
             # Create importer instance
             importer = CurriculumImporter()
 
-            # Clear existing data first
-            logger.info("Clearing existing ICS3U curriculum data...")
-            existing_course = Course.query.filter_by(code='ICS3U').first()
-            if existing_course:
-                logger.info(f"Found existing course {existing_course.code} - clearing data...")
-                db.session.delete(existing_course)
-                db.session.commit()
+            # Read ICS3U curriculum content from file
+            curriculum_files = [
+                'attached_assets/Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-l--1737160312256.txt',
+                'curriculum/ICS3U_curriculum.txt',
+                'attached_assets/ICS3U_curriculum.txt'
+            ]
 
-            # Read ICS3U curriculum content from new file
-            curriculum_file = 'attached_assets/Pasted--Introduction-au-g-nie-informatique-11e-ann-e-cours-pr-universitaire-ICS3U-Ce-cours-initie-l--1737160312256.txt'
-            logger.info(f"Reading curriculum from {curriculum_file}")
+            content = None
+            for file_path in curriculum_files:
+                try:
+                    full_path = Path(project_root / file_path)
+                    if full_path.exists():
+                        logger.info(f"Found curriculum file at: {full_path}")
+                        with open(full_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                            logger.info(f"Successfully read {len(content)} characters from {file_path}")
+                            logger.debug(f"First 500 characters of content: {content[:500]}")
+                            break
+                except Exception as e:
+                    logger.warning(f"Could not read file {file_path}: {str(e)}")
+                    continue
 
-            try:
-                with open(curriculum_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    logger.info(f"Successfully read {len(content)} characters from file")
-                    logger.debug(f"First 500 characters of content: {content[:500]}")
-            except Exception as e:
-                logger.error(f"Error reading curriculum file: {str(e)}")
-                raise
+            if content is None:
+                logger.error("Could not find or read any curriculum file")
+                logger.error(f"Searched in: {', '.join(str(Path(project_root / f)) for f in curriculum_files)}")
+                raise FileNotFoundError("No curriculum file found")
 
             # Import curriculum data
             try:
@@ -96,7 +102,7 @@ def main():
             logger.info("ICS3U curriculum import completed successfully!")
 
     except Exception as e:
-        logger.error(f"Error during curriculum import: {str(e)}")
+        logger.error(f"Error during curriculum import: {str(e)}", exc_info=True)
         sys.exit(1)
 
 if __name__ == '__main__':
