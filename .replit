@@ -30,15 +30,15 @@ args = "Create Tables"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Import Curriculum"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Analyze Curriculum"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Test Import Section"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Import Curriculum"
 
 [[workflows.workflow]]
 name = "Flask Server"
@@ -70,20 +70,6 @@ task = "shell.exec"
 args = "python scripts/create_tables.py"
 
 [[workflows.workflow]]
-name = "Import Curriculum"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python scripts/import_ics3u_curriculum.py"
-
-[[workflows.workflow]]
 name = "Analyze Curriculum"
 author = "agent"
 
@@ -110,6 +96,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python scripts/test_import_section.py"
+
+[[workflows.workflow]]
+name = "Import Curriculum"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scripts/import_ics3u_curriculum.py"
 
 [[ports]]
 localPort = 5000
