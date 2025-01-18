@@ -13,7 +13,7 @@ sys.path.append(str(project_root))
 from app import app, db
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
-def parse_curriculum_line(line: str) -> tuple:
+def parse_curriculum_line(line: str, next_line: str = None) -> tuple:
     """Parse a curriculum line into code and description."""
     line = line.strip()
 
@@ -28,6 +28,14 @@ def parse_curriculum_line(line: str) -> tuple:
 
     code = parts[0].strip()
     description = parts[1].strip()
+
+    # If there's a next line and current description doesn't end with a period
+    # and the next line doesn't start with a code pattern, append it
+    if next_line and not description.endswith('.') and not (
+        next_line.strip() and 
+        any(next_line.strip().startswith(f"{l}") for l in ['A', 'B', 'C', 'D', 'a', 'b', 'c', 'd'])
+    ):
+        description += ' ' + next_line.strip()
 
     # Validate code format (should be like A1.1)
     if not (code[0].isalpha() and '.' in code and any(c.isdigit() for c in code)):
@@ -84,7 +92,10 @@ def main():
 
             # Process each line
             for line_num, line in enumerate(content, 1):
-                code, description = parse_curriculum_line(line)
+                # Get next line if available
+                next_line = content[line_num] if line_num < len(content) else None
+
+                code, description = parse_curriculum_line(line, next_line)
                 if not code or not description:
                     continue
 
