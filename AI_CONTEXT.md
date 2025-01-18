@@ -19,6 +19,11 @@ The project uses a PostgreSQL database for curriculum storage:
     - Bilingual fields: title_en/fr, description_en/fr, prerequisite_en/fr
   * strands: Stores curriculum strands (A, B, C, D)
     - Bilingual fields: title_en/fr
+    - Current Strands:
+      A: Computing Environment and Tools / Environnement informatique de travail
+      B: Programming Concepts / Concepts de programmation
+      C: Software Development / Développement de logiciels
+      D: Computing and Society / Enjeux sociétaux et perspectives professionnelles
   * overall_expectations: Stores overall expectations for each strand
     - Bilingual fields: description_en/fr
   * specific_expectations: Stores specific expectations linked to overall expectations
@@ -28,8 +33,8 @@ The project uses a PostgreSQL database for curriculum storage:
   * 4 strands
   * 11 overall expectations
   * 55 specific expectations
-  * French content imported
-  * English content fields ready for population
+  * Complete bilingual content (French and English)
+  * Verified data integrity and alignment
 
 ### How to Use These Files:
 
