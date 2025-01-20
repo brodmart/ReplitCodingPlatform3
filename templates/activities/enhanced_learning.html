@@ -516,6 +516,32 @@
 // Initialize lang variable from meta tag
 const lang = document.querySelector('meta[name="interface-lang"]').content;
 
+// Define taskSteps globally before DOM content loaded
+const taskSteps = {
+    'ICS4U': [
+        { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
+        { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
+        { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
+        { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
+    ],
+    'ICS3U': [
+        { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
+        { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
+        { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
+        { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
+    ],
+    'ICS2O': [
+        { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
+        { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
+        { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
+    ],
+    'TEJ2O': [
+        { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
+        { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
+        { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
+    ]
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize CodeMirror
     const editorTextArea = document.getElementById('editor');
@@ -643,53 +669,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize Task Breakdown with error handling
     function updateTaskSteps() {
         const container = document.getElementById('taskSteps');
-        if (!container) return;
+        if (!container) {
+            console.warn('Task steps container not found');
+            return;
+        }
 
         const curriculumLevel = '{{ curriculum }}';
         const steps = taskSteps[curriculumLevel] || taskSteps['ICS2O']; // Default to ICS2O if level not found
 
-        container.innerHTML = steps.map(step => `
-            <div class="task-step">
-                <div class="step-content">
-                    <span class="step-title">${step.text}</span>
-                    <div class="step-indicators d-flex mt-1">
-                        <span class="indicator" data-type="read"></span>
-                        <span class="indicator" data-type="analyze"></span>
-                        <span class="indicator" data-type="question"></span>
+        if (!steps) {
+            console.warn('No steps found for curriculum level:', curriculumLevel);
+            return;
+        }
+
+        try {
+            container.innerHTML = steps.map(step => `
+                <div class="task-step">
+                    <div class="step-content">
+                        <span class="step-title">${step.text}</span>
+                        <div class="step-indicators d-flex mt-1">
+                            <span class="indicator" data-type="read"></span>
+                            <span class="indicator" data-type="analyze"></span>
+                            <span class="indicator" data-type="question"></span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
-    }
-
-    // Initialize the task steps if the container exists
-    const taskStepsContainer = document.getElementById('taskSteps');
-    if (taskStepsContainer) {
-        const taskSteps = {
-            'ICS4U': [
-                { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
-                { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
-                { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
-                { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
-            ],
-            'ICS3U': [
-                { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
-                { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
-                { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
-                { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
-            ],
-            'ICS2O': [
-                { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
-                { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
-                { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
-            ],
-            'TEJ2O': [
-                { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
-                { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
-                { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
-            ]
-        };
-        updateTaskSteps();
+            `).join('');
+        } catch (error) {
+            console.error('Error updating task steps:', error);
+            container.innerHTML = '<div class="alert alert-danger">Error loading task steps</div>';
+        }
     }
 
     // Update reflection prompt with error handling
