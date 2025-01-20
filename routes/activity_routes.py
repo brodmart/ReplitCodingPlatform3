@@ -16,6 +16,7 @@ from sqlalchemy import text
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.backup import DatabaseBackup
+from routes.static_routes import get_user_language  # Import the centralized language function
 
 # Initialize scheduler for backups
 scheduler = BackgroundScheduler()
@@ -303,7 +304,7 @@ def list_activities(grade=None):
                 'activities/list.html',
                 activities=activities_list,
                 curriculum=curriculum,
-                lang=session.get('lang', 'fr'),
+                lang=get_user_language(),  # Use the centralized function
                 grade=grade
             )
 
@@ -345,7 +346,7 @@ def view_activity(activity_id):
         return render_template(
             'activities/view.html',
             activity=activity,
-            lang=session.get('lang', 'fr')
+            lang=get_user_language()  # Use the centralized function
         )
 
     except Exception as e:
@@ -373,7 +374,7 @@ def view_enhanced_activity(activity_id):
         return render_template(
             'activity.html',
             activity=activity,
-            lang=session.get('lang', 'fr'),
+            lang=get_user_language(),  # Use the centralized function
             enhanced=True
         )
     except Exception as e:
@@ -382,7 +383,6 @@ def view_enhanced_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
-
 
 
 @activities.route('/start_session', methods=['POST'])
