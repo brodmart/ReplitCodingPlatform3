@@ -60,6 +60,10 @@ args = "Update English Translations"
 task = "workflow.run"
 args = "Apply Migrations"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Seed Database"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -200,6 +204,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "flask db upgrade"
+
+[[workflows.workflow]]
+name = "Seed Database"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scripts/seed_activities.py"
 
 [[ports]]
 localPort = 5000
