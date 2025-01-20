@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.dotnet-sdk
     pkgs.iana-etc
     pkgs.glibcLocales
     pkgs.lsof

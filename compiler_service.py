@@ -6,8 +6,10 @@ import tempfile
 import os
 import logging
 import traceback
+import signal
+import psutil
+from pathlib import Path
 from typing import Dict, Optional, Any
-#from compiler_service import compile_and_run as service_compile_and_run #This line is removed because it causes circular import error.
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -39,11 +41,17 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         logger.debug(f"Code length: {len(code)} characters")
 
         # For C#, ensure required namespaces are present
-        if language.lower() == 'csharp' and 'using System.IO;' not in code:
-            # Add System.IO namespace if not present
-            code = "using System.IO;\n" + code
+        if language.lower() == 'csharp':
+            required_namespaces = [
+                "using System;",
+                "using System.IO;",
+                "using System.Collections.Generic;",
+                "using System.Linq;"
+            ]
+            for namespace in required_namespaces:
+                if namespace not in code:
+                    code = namespace + "\n" + code
 
-        #This part is moved from the original code and is now called from here.
         try:
             # Normalize language
             language = language.lower()
@@ -52,12 +60,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'success': False,
                     'error': f"Unsupported language: {language}"
                 }
-
-            # Auto-detect interactive mode if not specified
-            #This part is commented out because the function is not used here.
-            #if interactive is None:
-            #    interactive = is_interactive_code(code, language)
-            #    logger.debug(f"Auto-detected interactive mode: {interactive}")
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
@@ -71,8 +73,15 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 else:  # csharp
                     source_file = temp_path / "program.cs"
                     executable = temp_path / "program.exe"
-                    compile_cmd = ['mcs', str(source_file), '-out:' + str(executable)]
-                    run_cmd = ['mono', str(executable)]
+                    # Optimized C# compilation settings
+                    compile_cmd = [
+                        'mcs',
+                        '-optimize+',  # Enable optimizations
+                        '-debug-',     # Disable debug symbols
+                        str(source_file),
+                        '-out:' + str(executable)
+                    ]
+                    run_cmd = ['mono', '--gc=sgen', str(executable)]  # Use better GC
 
                 # Write code to file
                 with open(source_file, 'w') as f:
@@ -84,7 +93,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         compile_cmd,
                         capture_output=True,
                         text=True,
-                        timeout=30 #compile_timeout
+                        timeout=30  # Reduced compile timeout
                     )
                 except subprocess.TimeoutExpired:
                     return {
@@ -98,12 +107,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'error': compile_process.stderr
                     }
 
-
                 # Make executable
                 os.chmod(executable, 0o755)
 
                 try:
-                    # Execute the program
+                    # Execute the program with resource limits
                     process = subprocess.Popen(
                         run_cmd,
                         stdin=subprocess.PIPE if input_data else None,
@@ -115,9 +123,22 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     )
 
                     try:
+                        # Monitor process resources
+                        pid = process.pid
+                        def check_resources():
+                            try:
+                                proc = psutil.Process(pid)
+                                cpu_percent = proc.cpu_percent()
+                                memory_percent = proc.memory_percent()
+                                if cpu_percent > 90 or memory_percent > 90:
+                                    return True
+                                return False
+                            except:
+                                return False
+
                         stdout, stderr = process.communicate(
                             input=input_data,
-                            timeout=60 #execution_timeout
+                            timeout=30  # Reduced execution timeout
                         )
 
                         if process.returncode == 0:
@@ -134,10 +155,14 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             }
 
                     except subprocess.TimeoutExpired:
-                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                        # Kill the process group
+                        try:
+                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                        except:
+                            pass
                         return {
                             'success': False,
-                            'error': f"Execution timeout after 60 seconds"
+                            'error': f"Execution timeout after 30 seconds"
                         }
 
                 except Exception as e:
@@ -154,20 +179,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 'error': f"Service error: {str(e)}"
             }
 
-    except subprocess.TimeoutExpired as e:
-        logger.error(f"Execution timeout: {str(e)}")
-        return {
-            'success': False,
-            'output': '',
-            'error': "Code execution timed out. Check for infinite loops."
-        }
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Process error: {str(e)}, Output: {e.output}")
-        return {
-            'success': False,
-            'output': '',
-            'error': f"Process error: {str(e)}"
-        }
     except Exception as e:
         logger.error(f"Unexpected error in compile_and_run: {str(e)}")
         logger.error(traceback.format_exc())
