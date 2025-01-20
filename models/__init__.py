@@ -5,7 +5,9 @@ from .student import (
     Student,
     CodeSubmission,
     CodingActivity,
-    StudentProgress
+    StudentProgress,
+    SharedCode,
+    AuditLog
 )
 from .curriculum import (
     Course,
@@ -16,11 +18,13 @@ from .curriculum import (
 
 __all__ = [
     'Student',
-    'CodeSubmission',
+    'CodeSubmission', 
     'CodingActivity',
     'StudentProgress',
+    'SharedCode',
+    'AuditLog',
     'Course',
-    'Strand',
+    'Strand', 
     'OverallExpectation',
     'SpecificExpectation'
 ]

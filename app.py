@@ -7,10 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
-from database import db, init_db
-from extensions import init_extensions
-from utils.logger import setup_logging
-from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
+from database import db
 
 # Configure logging
 logging.basicConfig(
@@ -44,71 +41,7 @@ def create_app():
             'pool_timeout': 60,
             'pool_recycle': 1800,
             'pool_pre_ping': True
-        },
-        # Mail settings 
-        'MAIL_SERVER': 'smtp.gmail.com',
-        'MAIL_PORT': 587,
-        'MAIL_USE_TLS': True,
-        'MAIL_USE_SSL': False,
-        'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
-        'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
-        'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_USERNAME'),
-        # Session security settings 
-        'SESSION_COOKIE_SECURE': False,
-        'SESSION_COOKIE_HTTPONLY': True,
-        'SESSION_COOKIE_SAMESITE': 'Lax',
-        'PERMANENT_SESSION_LIFETIME': 1800,
-        # Request settings 
-        'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,
-        # Registration settings 
-        'REGISTRATION_ENABLED': True,
-        'ALLOWED_EMAIL_DOMAINS': [
-            # Government domains
-            'ontario.ca',
-            'edu.ontario.ca',
-            # School board domains
-            'tdsb.on.ca',
-            'peelschools.org',
-            'edu.cepeo.on.ca',
-            'yrdsb.ca',
-            'ddsb.ca',
-            'hdsb.ca',
-            'hwdsb.on.ca',
-            'dsbn.org',
-            'wrdsb.ca',
-            'tvdsb.ca',
-            'ocdsb.ca',
-            'ugdsb.on.ca',
-            'scdsb.on.ca',
-            'kprschools.ca',
-            'lkdsb.net',
-            'gogeeco.net',
-            'tldsb.on.ca',
-            # French boards
-            'cepeo.on.ca',
-            'csviamonde.ca',
-            'ecolecatholique.ca',
-            'cscmonavenir.ca',
-            'cspne.ca',
-            'cscprovidence.ca',
-            # English Catholic boards
-            'tcdsb.org',
-            'dpcdsb.org',
-            'ycdsb.ca',
-            'dcdsb.ca',
-            'hcdsb.org',
-            'bhncdsb.ca',
-            'alcdsb.on.ca',
-            'ocsb.ca',
-            # First Nations boards
-            'knet.ca',
-            'nnec.on.ca',
-            # Student subdomains
-            'student.tdsb.on.ca',
-            'students.peelschools.org',
-            'gapps.yrdsb.ca',
-            'students.ocdsb.ca'
-        ],
+        }
     })
 
     try:
@@ -116,13 +49,15 @@ def create_app():
         os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
 
         # Initialize database
-        init_db(app)
+        db.init_app(app)
 
         # Initialize Flask-Migrate
-        migrate = Migrate(app, db)
+        migrate = Migrate(app, db, directory='migrations')
 
         # Initialize extensions
-        init_extensions(app, db)
+        CORS(app)
+        CSRFProtect(app)
+        Session(app)
 
         # Setup Login Manager
         login_manager = LoginManager()
@@ -135,8 +70,7 @@ def create_app():
         @login_manager.user_loader
         def load_user(user_id):
             try:
-                #Import model here to avoid circular import.
-                from models import Student
+                from models.student import Student
                 return Student.query.get(int(user_id))
             except:
                 return None

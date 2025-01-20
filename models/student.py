@@ -37,7 +37,6 @@ class Student(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    achievements = db.relationship('StudentAchievement', backref='student', lazy=True)
     submissions = db.relationship('CodeSubmission', back_populates='student', lazy=True)
     progress = db.relationship('StudentProgress', backref='student', lazy=True)
     shared_codes = db.relationship('SharedCode', back_populates='student', lazy=True)
@@ -123,5 +122,20 @@ class StudentProgress(db.Model):
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Add relationship to Student model
-Student.progress = db.relationship('StudentProgress', backref='student', lazy=True)
+class SharedCode(db.Model):
+    """Model for sharing code snippets"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    code = db.Column(db.Text, nullable=False)
+    title = db.Column(db.String(255))
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    student = db.relationship('Student', back_populates='shared_codes')
+
+class AuditLog(db.Model):
+    """Model for tracking changes to student records"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('student.id'))
+    action = db.Column(db.String(50), nullable=False)
+    details = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

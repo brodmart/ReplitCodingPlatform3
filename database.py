@@ -1,16 +1,15 @@
 import os
 import logging
-from contextlib import contextmanager
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.exc import SQLAlchemyError, OperationalError
-from typing import Optional
-from sqlalchemy import text, event
-from datetime import datetime
+from contextlib import contextmanager
+from sqlalchemy import text
 from utils.logger import log_error, get_logger
 
+
 # Configure logging
-logger = get_logger('database')
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
@@ -18,16 +17,17 @@ class Base(DeclarativeBase):
 # Initialize SQLAlchemy with the custom base class
 db = SQLAlchemy(model_class=Base)
 
-def init_db(app):
+def init_app(app):
     """Initialize database with application context"""
     try:
-        # Configure database
-        database_url = os.environ.get("DATABASE_URL")
-        if not database_url:
+        # Configure database URL
+        if not app.config.get('SQLALCHEMY_DATABASE_URI'):
+            app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+
+        if not app.config['SQLALCHEMY_DATABASE_URI']:
             raise ValueError("DATABASE_URL environment variable is not set")
 
         # Configure SQLAlchemy
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'pool_size': 5,
@@ -41,24 +41,12 @@ def init_db(app):
         db.init_app(app)
 
         with app.app_context():
-            # Setup event listeners for connection handling
-            @event.listens_for(db.engine, 'connect')
-            def receive_connect(dbapi_connection, connection_record):
-                try:
-                    cursor = dbapi_connection.cursor()
-                    cursor.execute("SELECT 1")
-                    cursor.close()
-                    logger.info("Database connection established successfully")
-                except Exception as e:
-                    logger.error(f"Failed to establish database connection: {str(e)}")
-                    raise
-
             # Create all tables
             db.create_all()
             logger.info("Database tables created successfully")
 
             # Test connection
-            db.session.execute(text("SELECT 1"))
+            db.session.execute("SELECT 1")
             db.session.commit()
             logger.info("Database connection test successful")
 

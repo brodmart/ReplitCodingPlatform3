@@ -56,6 +56,10 @@ args = "Import ICD2O Curriculum"
 task = "workflow.run"
 args = "Update English Translations"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Apply Migrations"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -182,6 +186,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python scripts/update_specific_expectations.py"
+
+[[workflows.workflow]]
+name = "Apply Migrations"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "flask db upgrade"
 
 [[ports]]
 localPort = 5000
