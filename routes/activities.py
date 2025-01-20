@@ -19,6 +19,7 @@ def execute_code():
     """Execute submitted code"""
     try:
         if not request.is_json:
+            logger.error("Invalid request format - not JSON")
             return jsonify({
                 'success': False,
                 'error': 'Invalid request format'
@@ -29,19 +30,23 @@ def execute_code():
         language = data.get('language', 'cpp').lower()
 
         if not code:
+            logger.error("Empty code submitted")
             return jsonify({
                 'success': False,
                 'error': 'Code cannot be empty'
             }), 400
 
         if language not in ['cpp', 'csharp']:
+            logger.error(f"Unsupported language: {language}")
             return jsonify({
                 'success': False,
                 'error': 'Unsupported language'
             }), 400
 
+        logger.debug(f"Executing {language} code of length {len(code)}")
         # Execute the code using the compiler service
         result = compile_and_run(code, language)
+        logger.debug(f"Execution result: {result}")
 
         if not result.get('success', False):
             error_msg = result.get('error', 'An error occurred')
@@ -50,6 +55,7 @@ def execute_code():
             elif 'timeout' in error_msg.lower():
                 error_msg += ". Check for infinite loops."
             result['error'] = error_msg
+            logger.error(f"Execution failed: {error_msg}")
 
         return jsonify(result)
 
@@ -58,6 +64,59 @@ def execute_code():
         return jsonify({
             'success': False,
             'error': "An error occurred while executing your code."
+        }), 500
+
+@activities_bp.route('/activities/run_code', methods=['POST'])
+@login_required
+def run_code():
+    """Execute student code submission with activity tracking"""
+    try:
+        data = request.get_json()
+        if not data:
+            logger.error("No JSON data in request")
+            return jsonify({'success': False, 'error': 'Missing request data'}), 400
+
+        code = data.get('code')
+        activity_id = data.get('activity_id')
+        language = data.get('language', 'cpp')
+
+        if not code:
+            logger.error("No code provided in request")
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+
+        # Execute the code
+        logger.debug(f"Executing {language} code for activity {activity_id}")
+        result = compile_and_run(code, language)
+        logger.debug(f"Execution result: {result}")
+
+        # Only store submission if activity_id is provided
+        if activity_id:
+            try:
+                submission = CodeSubmission(
+                    student_id=current_user.id,
+                    activity_id=activity_id,
+                    code=code,
+                    language=language,
+                    success=result.get('success', False),
+                    output=result.get('output', ''),
+                    error=result.get('error', ''),
+                    submitted_at=datetime.utcnow()
+                )
+                db.session.add(submission)
+                db.session.commit()
+                logger.info(f"Stored submission for activity {activity_id}")
+            except Exception as e:
+                logger.error(f"Failed to store submission: {str(e)}")
+                # Continue with execution result even if storage fails
+                pass
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error running code: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 def get_user_language():
@@ -124,39 +183,6 @@ def get_solutions(activity_id):
         logger.error(f"Error fetching solutions: {str(e)}", exc_info=True)
         return jsonify({'error': 'Failed to fetch solutions'}), 500
 
-@activities_bp.route('/activities/run_code', methods=['POST'])
-@login_required
-def run_code():
-    """Execute student code submission"""
-    try:
-        data = request.get_json()
-        code = data.get('code')
-        activity_id = data.get('activity_id')
-        language = data.get('language', 'cpp')
-
-        if not code or not activity_id:
-            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
-
-        # Store code submission
-        submission = CodeSubmission(
-            student_id=current_user.id,
-            activity_id=activity_id,
-            code=code,
-            submitted_at=datetime.utcnow()
-        )
-        db.session.add(submission)
-        db.session.commit()
-
-        # Mock execution result for now
-        result = {
-            'success': True,
-            'output': 'Program executed successfully.\nOutput: Hello, World!'
-        }
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error running code: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 @activities_bp.route('/activities')
 @activities_bp.route('/activities/<grade>')

@@ -5,9 +5,12 @@ import subprocess
 import tempfile
 import os
 import logging
+import traceback
 from typing import Dict, Optional, Any
 from compiler_service import compile_and_run as service_compile_and_run
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class CompilerError(Exception):
@@ -23,12 +26,44 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     Compile and run code for testing purposes.
     This is a wrapper around the more detailed compiler_service implementation.
     """
-    try:
-        return service_compile_and_run(code, language, input_data)
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
+    if not code or not language:
+        logger.error("Invalid input parameters: code or language is missing")
         return {
             'success': False,
             'output': '',
-            'error': f"Une erreur s'est produite lors de l'exécution: {str(e)}"
+            'error': "Code and language are required"
+        }
+
+    try:
+        logger.debug(f"Attempting to compile and run {language} code")
+        logger.debug(f"Code length: {len(code)} characters")
+
+        result = service_compile_and_run(code, language, input_data)
+
+        if not result.get('success', False):
+            logger.error(f"Compilation/execution failed: {result.get('error', 'Unknown error')}")
+
+        return result
+
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"Execution timeout: {str(e)}")
+        return {
+            'success': False,
+            'output': '',
+            'error': "Code execution timed out. Check for infinite loops."
+        }
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Process error: {str(e)}, Output: {e.output}")
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Process error: {str(e)}"
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error in compile_and_run: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {
+            'success': False,
+            'output': '',
+            'error': "Code execution service encountered an error. Please try again."
         }
