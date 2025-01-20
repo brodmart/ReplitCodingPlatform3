@@ -8,11 +8,12 @@ import logging
 import traceback
 import signal
 import psutil
+import shutil
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
 import uuid
 import time
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -211,19 +212,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'error': "Code execution service encountered an error. Please try again."
         }
 
-import subprocess
-import tempfile
-import os
-import logging
-import shutil
-import signal
-import psutil
-from typing import Dict, Any, Optional, Tuple
-from pathlib import Path
-from threading import Lock
-
-logger = logging.getLogger(__name__)
-
 # Global session management
 active_sessions = {}
 session_lock = Lock()
@@ -248,6 +236,40 @@ def is_interactive_code(code: str, language: str) -> bool:
         return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
     return False
 
+def monitor_process_resources(pid: int) -> Tuple[float, float]:
+    """Monitor CPU and memory usage of a process"""
+    try:
+        process = psutil.Process(pid)
+        cpu_percent = process.cpu_percent(interval=0.1)
+        memory_percent = process.memory_percent()
+        return cpu_percent, memory_percent
+    except:
+        return 0.0, 0.0
+
+def cleanup_session(session_id: str) -> None:
+    """Clean up resources for a session"""
+    if session_id in active_sessions:
+        session = active_sessions[session_id]
+        try:
+            if session.process and session.process.poll() is None:
+                try:
+                    group_id = os.getpgid(session.process.pid)
+                    os.killpg(group_id, signal.SIGTERM)
+                except:
+                    session.process.terminate()
+                try:
+                    session.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    session.process.kill()
+                    session.process.wait()
+
+            if os.path.exists(session.temp_dir):
+                shutil.rmtree(session.temp_dir, ignore_errors=True)
+        except Exception as e:
+            logger.error(f"Error cleaning up session {session_id}: {e}")
+        finally:
+            with session_lock:
+                del active_sessions[session_id]
 
 def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
     """Send input to an interactive session"""
@@ -312,38 +334,3 @@ def get_output(session_id: str) -> Dict[str, Any]:
 
     except Exception as e:
         return {'success': False, 'error': str(e)}
-
-def monitor_process_resources(pid: int) -> Tuple[float, float]:
-    """Monitor CPU and memory usage of a process"""
-    try:
-        process = psutil.Process(pid)
-        cpu_percent = process.cpu_percent(interval=0.1)
-        memory_percent = process.memory_percent()
-        return cpu_percent, memory_percent
-    except:
-        return 0.0, 0.0
-
-def cleanup_session(session_id: str) -> None:
-    """Clean up resources for a session"""
-    if session_id in active_sessions:
-        session = active_sessions[session_id]
-        try:
-            if session.process and session.process.poll() is None:
-                try:
-                    group_id = os.getpgid(session.process.pid)
-                    os.killpg(group_id, signal.SIGTERM)
-                except:
-                    session.process.terminate()
-                try:
-                    session.process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    session.process.kill()
-                    session.process.wait()
-
-            if os.path.exists(session.temp_dir):
-                shutil.rmtree(session.temp_dir, ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Error cleaning up session {session_id}: {e}")
-        finally:
-            with session_lock:
-                del active_sessions[session_id]
