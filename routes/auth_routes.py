@@ -12,6 +12,7 @@ from extensions import limiter
 from urllib.parse import urlparse, urljoin
 import logging
 from functools import wraps
+from routes.static_routes import get_user_language  # Import the centralized language function
 
 auth = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)
@@ -33,11 +34,20 @@ def login():
                 if user.check_password(form.password.data):
                     if user.is_account_locked():
                         flash('Account temporarily locked. Try again later.', 'danger')
-                        return render_template('auth/login.html', form=form)
+                        return render_template('auth/login.html', form=form, lang=get_user_language())
 
                     user.reset_failed_login()
                     db.session.commit()
+
+                    # Preserve the current language setting before login
+                    current_lang = get_user_language()
+
                     login_user(user, remember=form.remember_me.data)
+
+                    # Restore language preference after login
+                    session['lang'] = current_lang
+                    session.modified = True
+
                     logger.info(f"Successful login for user: {user.username}")
 
                     next_page = request.args.get('next')
@@ -64,7 +74,22 @@ def login():
             db.session.rollback()
             flash('A server error occurred. Please try again.', 'danger')
 
-    return render_template('auth/login.html', form=form)
+    return render_template('auth/login.html', form=form, lang=get_user_language())
+
+@auth.route('/logout')
+@login_required
+def logout():
+    username = current_user.username
+    # Preserve language preference before logout
+    current_lang = get_user_language()
+    # Clear session but preserve language
+    session.clear()
+    session['lang'] = current_lang
+    session.modified = True
+    logout_user()
+    logger.info(f"User logged out: {username}")
+    flash('You have been logged out successfully', 'success')
+    return redirect(url_for('auth.login'))
 
 def admin_required(f):
     @wraps(f)
@@ -114,16 +139,6 @@ def register():
             flash('An error occurred during registration. Please try again.', 'danger')
 
     return render_template('auth/register.html', form=form)
-
-@auth.route('/logout')
-@login_required
-def logout():
-    username = current_user.username
-    session.clear()
-    logout_user()
-    logger.info(f"User logged out: {username}")
-    flash('You have been logged out successfully', 'success')
-    return redirect(url_for('auth.login'))
 
 @auth.route('/admin/console', methods=['GET', 'POST'])
 @login_required
