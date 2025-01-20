@@ -518,186 +518,134 @@ const lang = document.querySelector('meta[name="interface-lang"]').content;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize CodeMirror
-    const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-        mode: 'text/x-c++src',
-        theme: 'dracula',
-        lineNumbers: true,
-        autoCloseBrackets: true,
-        matchBrackets: true,
-        indentUnit: 4,
-        tabSize: 4,
-        lineWrapping: true,
-        viewportMargin: Infinity,
-        extraKeys: {
-            "Tab": function(cm) {
-                if (cm.somethingSelected()) {
-                    cm.indentSelection("add");
-                } else {
-                    cm.replaceSelection("    ", "end");
+    const editorTextArea = document.getElementById('editor');
+    if (editorTextArea) {
+        const editor = CodeMirror.fromTextArea(editorTextArea, {
+            mode: 'text/x-c++src',
+            theme: 'dracula',
+            lineNumbers: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: true,
+            viewportMargin: Infinity,
+            extraKeys: {
+                "Tab": function(cm) {
+                    if (cm.somethingSelected()) {
+                        cm.indentSelection("add");
+                    } else {
+                        cm.replaceSelection("    ", "end");
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 
-    // Initialize Console
+    // Initialize Console with error handling
     const consoleOutput = document.getElementById('consoleOutput');
     const consoleInput = document.getElementById('consoleInput');
+    if (consoleOutput && consoleInput) {
+        function appendToConsole(text, className = '') {
+            const div = document.createElement('div');
+            div.className = className;
+            div.textContent = text;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
 
-    function appendToConsole(text, className = '') {
-        const div = document.createElement('div');
-        div.className = className;
-        div.textContent = text;
-        consoleOutput.appendChild(div);
-        consoleOutput.scrollTop = consoleOutput.scrollHeight;
-    }
+        // Run Code Handler
+        const runButton = document.getElementById('runCode');
+        if (runButton) {
+            runButton.addEventListener('click', function() {
+                if (!editor) return;
+                const code = editor.getValue();
+                if (consoleInput) consoleInput.disabled = true;
+                appendToConsole('Running code...', 'console-info');
 
-    // Run Code Handler
-    document.getElementById('runCode').addEventListener('click', function() {
-        const code = editor.getValue();
-        consoleInput.disabled = true;
-        appendToConsole('Running code...', 'console-info');
-
-        fetch('/activities/run_code', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                code: code,
-                activity_id: '{{ activity.id }}',
-                language: '{{ activity.language }}'
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                if (data.output) {
-                    appendToConsole(data.output, 'console-output');
-                }
-            } else {
-                appendToConsole('Error: ' + (data.error || 'Unknown error'), 'console-error');
-            }
-            consoleInput.disabled = false;
-        })
-        .catch(error => {
-            appendToConsole('Error executing code: ' + error.message, 'console-error');
-            consoleInput.disabled = false;
-        });
-    });
-
-    // Clear Console Handler
-    document.getElementById('clearConsole').addEventListener('click', function() {
-        consoleOutput.innerHTML = '';
-    });
-
-    // Confidence Button Handling
-    const confidenceButtons = document.querySelectorAll('.confidence-btn');
-    confidenceButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const confidence = this.dataset.value;
-
-            // Visual feedback
-            confidenceButtons.forEach(btn => btn.classList.remove('selected'));
-            this.classList.add('selected');
-
-            // Store confidence level
-            fetch('/activities/store_confidence', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    activity_id: '{{ activity.id }}',
-                    confidence_level: confidence
+                fetch('/activities/run_code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        activity_id: '{{ activity.id }}',
+                        language: '{{ activity.language }}'
+                    })
                 })
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      // Update progress bar
-                      updateProgress();
-                  }
-              });
-        });
-    });
-
-    // Solution Comparison Loading
-    function loadSolutionComparisons() {
-        fetch(`/activities/get_solutions/{{ activity.id }}`)
-            .then(response => response.json())
-            .then(solutions => {
-                const container = document.getElementById('solutionApproaches');
-                container.innerHTML = ''; // Clear existing solutions
-
-                solutions.forEach((solution, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'solution-card mb-3';
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <h5 class="mb-0">
-                                ${lang === 'fr' ? 'Solution ' : 'Solution '} ${index + 1}
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <p>${solution.approach_description}</p>
-                            <div class="d-flex justify-content-between text-muted">
-                                <span>
-                                    ${lang === 'fr' ? 'Efficacité' : 'Efficiency'}: ${solution.efficiency_score}
-                                </span>
-                                <span>
-                                    ${lang === 'fr' ? 'Mémoire' : 'Memory'}: ${solution.memory_usage}MB
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(card);
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (data.output) {
+                            appendToConsole(data.output, 'console-output');
+                        }
+                    } else {
+                        appendToConsole('Error: ' + (data.error || 'Unknown error'), 'console-error');
+                    }
+                    if (consoleInput) consoleInput.disabled = false;
+                })
+                .catch(error => {
+                    appendToConsole('Error executing code: ' + error.message, 'console-error');
+                    if (consoleInput) consoleInput.disabled = false;
                 });
             });
+        }
+
+        // Clear Console Handler
+        const clearButton = document.getElementById('clearConsole');
+        if (clearButton) {
+            clearButton.addEventListener('click', function() {
+                if (consoleOutput) consoleOutput.innerHTML = '';
+            });
+        }
     }
 
-    // Update progress bar
-    function updateProgress() {
-        // This is a placeholder for progress calculation
-        const progress = document.getElementById('progressBar');
-        let currentWidth = parseInt(progress.style.width) || 0;
-        progress.style.width = Math.min(currentWidth + 20, 100) + '%';
+    // Confidence Button Handling with error checking
+    const confidenceButtons = document.querySelectorAll('.confidence-btn');
+    if (confidenceButtons.length > 0) {
+        confidenceButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const confidence = this.dataset.value;
+
+                // Visual feedback
+                confidenceButtons.forEach(btn => btn.classList.remove('selected'));
+                this.classList.add('selected');
+
+                // Store confidence level
+                fetch('/activities/store_confidence', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        activity_id: '{{ activity.id }}',
+                        confidence_level: confidence
+                    })
+                }).then(response => response.json())
+                  .then(data => {
+                      if (data.success) {
+                          // Update progress bar
+                          updateProgress();
+                      }
+                  });
+            });
+        });
     }
 
-    // Initialize Task Breakdown
-    const curriculumLevel = '{{ curriculum }}';
-    const taskSteps = {
-        'ICS4U': [
-            { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
-            { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
-            { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
-            { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
-        ],
-        'ICS3U': [
-            { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
-            { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
-            { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
-            { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
-        ],
-        'ICS2O': [
-            { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
-            { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
-            { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
-        ],
-        'TEJ2O': [
-            { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
-            { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
-            { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
-        ]
-    };
-
+    // Initialize Task Breakdown with error handling
     function updateTaskSteps() {
         const container = document.getElementById('taskSteps');
+        if (!container) return;
+
+        const curriculumLevel = '{{ curriculum }}';
         const steps = taskSteps[curriculumLevel] || taskSteps['ICS2O']; // Default to ICS2O if level not found
 
         container.innerHTML = steps.map(step => `
@@ -714,27 +662,67 @@ document.addEventListener('DOMContentLoaded', function() {
         `).join('');
     }
 
-    // Initialize Reflection Prompts
-    const reflectionPrompts = [
-        lang === 'fr' ?
-            'Quelle partie du problème trouvez-vous la plus difficile ?' :
-            'Which part of the problem do you find most challenging?',
-        lang === 'fr' ?
-            'Comment avez-vous décomposé ce problème ?' :
-            'How did you break down this problem?',
-        lang === 'fr' ?
-            'Quelle stratégie utilisez-vous pour déboguer votre code ?' :
-            'What strategy are you using to debug your code?'
-    ];
-
-    function updateReflectionPrompt() {
-        const prompt = document.getElementById('currentPrompt');
-        prompt.textContent = reflectionPrompts[Math.floor(Math.random() * reflectionPrompts.length)];
+    // Initialize the task steps if the container exists
+    const taskStepsContainer = document.getElementById('taskSteps');
+    if (taskStepsContainer) {
+        const taskSteps = {
+            'ICS4U': [
+                { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
+                { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
+                { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
+                { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
+            ],
+            'ICS3U': [
+                { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
+                { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
+                { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
+                { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
+            ],
+            'ICS2O': [
+                { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
+                { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
+                { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
+            ],
+            'TEJ2O': [
+                { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
+                { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
+                { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
+            ]
+        };
+        updateTaskSteps();
     }
 
-    // Adaptive Hint System
+    // Update reflection prompt with error handling
+    function updateReflectionPrompt() {
+        const promptElement = document.getElementById('currentPrompt');
+        if (!promptElement) return;
+
+        const reflectionPrompts = [
+            lang === 'fr' ?
+                'Quelle partie du problème trouvez-vous la plus difficile ?' :
+                'Which part of the problem do you find most challenging?',
+            lang === 'fr' ?
+                'Comment avez-vous décomposé ce problème ?' :
+                'How did you break down this problem?',
+            lang === 'fr' ?
+                'Quelle stratégie utilisez-vous pour déboguer votre code ?' :
+                'What strategy are you using to debug your code?'
+        ];
+
+        promptElement.textContent = reflectionPrompts[Math.floor(Math.random() * reflectionPrompts.length)];
+    }
+
+    // Initialize reflection prompt if element exists
+    const promptElement = document.getElementById('currentPrompt');
+    if (promptElement) {
+        updateReflectionPrompt();
+    }
+
+    // Adaptive Hint System with error handling
     function showHint(level) {
         const hintContainer = document.getElementById('hintContainer');
+        if (!hintContainer) return;
+
         const hints = {
             1: lang === 'fr' ?
                 'Commencez par comprendre les entrées et sorties requises.' :
@@ -754,10 +742,12 @@ document.addEventListener('DOMContentLoaded', function() {
         hintContainer.appendChild(hintElement);
     }
 
-    // Real-time Feedback
+    // Real-time Feedback with error handling
     function showFeedback(message, type = 'info') {
         const panel = document.getElementById('feedbackPanel');
         const content = document.getElementById('feedbackContent');
+        if (!panel || !content) return;
+
         content.textContent = message;
         panel.classList.add('visible');
 
@@ -767,63 +757,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
 
-    function closeFeedbackPanel() {
-        document.getElementById('feedbackPanel').classList.remove('visible');
-    }
-
-    // Initial load
-    loadSolutionComparisons();
-    updateTaskSteps();
-    updateReflectionPrompt();
-
-    // Initialize metacognitive components from edited snippet
-    const reflectionPrompts2 = {
-        understanding: [
-            lang === 'fr' ?
-                'Comment approchez-vous ce problème différemment des précédents ?' :
-                'How are you approaching this problem differently from previous ones?',
-            lang === 'fr' ?
-                'Quelles connexions faites-vous avec des concepts déjà appris ?' :
-                'What connections are you making with previously learned concepts?'
-        ],
-        planning: [
-            lang === 'fr' ?
-                'Quelle est votre stratégie pour décomposer ce problème ?' :
-                'What is your strategy for breaking down this problem?',
-            lang === 'fr' ?
-                'Comment savez-vous si votre approche est efficace ?' :
-                'How do you know if your approach is effective?'
-        ],
-        reflection: [
-            lang === 'fr' ?
-                'Quels aspects de votre solution pourraient être améliorés ?' :
-                'Which aspects of your solution could be improved?',
-            lang === 'fr' ?
-                'Comment cette activité a-t-elle changé votre compréhension ?' :
-                'How has this activity changed your understanding?'
-        ]
+    // Close feedback panel with error handling
+    window.closeFeedbackPanel = function() {
+        const panel = document.getElementById('feedbackPanel');
+        if (panel) {
+            panel.classList.remove('visible');
+        }
     };
 
-    function updateReflectionPrompt2(stage) {
-        const prompts = reflectionPrompts2[stage];
-        const promptEl = document.getElementById('currentPrompt');
-        promptEl.textContent = prompts[Math.floor(Math.random() * prompts.length)];
+    // Update progress bar
+    function updateProgress() {
+        // This is a placeholder for progress calculation
+        const progress = document.getElementById('cognitionProgress');
+        if (progress) {
+            let currentWidth = parseInt(progress.style.width) || 0;
+            progress.style.width = Math.min(currentWidth + 20, 100) + '%';
+        }
     }
 
-    // Initialize with understanding prompts
-    updateReflectionPrompt2('understanding');
+    // Initialize all components
+    const strategySelect = document.getElementById('strategySelect');
+    if (strategySelect) {
+        strategySelect.addEventListener('change', function(e) {
+            adaptInterface(e.target.value);
+        });
+    }
 
+    // Monitor reflection responses with error handling
+    const reflectionResponse = document.getElementById('reflectionResponse');
+    if (reflectionResponse) {
+        reflectionResponse.addEventListener('input', function(e) {
+            const response = e.target.value;
+            if (response.length > 50) {
+                provideFeedback(response);
+            }
+        });
+    }
 
-    // Handle strategy selection
-    document.getElementById('strategySelect').addEventListener('change', function(e) {
-        const strategy = e.target.value;
-        // Adapt interface based on learning strategy
-        adaptInterface(strategy);
-    });
-
+    // Initialize interface adaptation
     function adaptInterface(strategy) {
-        // Modify interface elements based on learning strategy
         const hintContainer = document.getElementById('hintContainer');
+        if (!hintContainer) return;
+
         switch(strategy) {
             case 'visual':
                 // Show more diagrams, flowcharts
@@ -837,23 +812,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Monitor reflection responses
-    document.getElementById('reflectionResponse').addEventListener('input', function(e) {
-        const response = e.target.value;
-        if (response.length > 50) {
-            // Provide feedback based on response content
-            provideFeedback(response);
-        }
-    });
-
+    // Initialize feedback system
     function provideFeedback(response) {
         const feedbackEl = document.getElementById('reflectionFeedback');
+        if (!feedbackEl) return;
+
         feedbackEl.classList.remove('d-none');
-        // Analyze response and provide appropriate feedback
         feedbackEl.textContent = lang === 'fr' ?
             'Bonne réflexion ! Pensez aussi à...' :
             'Good reflection! Consider also...';
     }
+
+    // Call initial setup functions
+    updateTaskSteps();
+    updateReflectionPrompt();
 });
 </script>
 {% endblock %}
