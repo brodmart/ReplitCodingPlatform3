@@ -5,7 +5,9 @@ static_pages = Blueprint('static_pages', __name__)
 
 def get_user_language():
     """Get user's current language preference"""
-    return session.get('lang', current_app.config.get('DEFAULT_LANGUAGE', 'fr'))
+    current_lang = session.get('lang', current_app.config.get('DEFAULT_LANGUAGE', 'fr'))
+    print(f"[DEBUG] get_user_language called - current_lang: {current_lang}, session id: {id(session)}")
+    return current_lang
 
 @static_pages.route('/switch-language')
 def switch_language():
@@ -13,6 +15,7 @@ def switch_language():
     current_lang = get_user_language()
     # Store the new language preference in session
     session['lang'] = 'en' if current_lang == 'fr' else 'fr'
+    print(f"[DEBUG] Language switched to: {session['lang']}, session id: {id(session)}")
     session.modified = True  # Ensure session is marked as modified
     return redirect(request.referrer or url_for('static_pages.index'))
 

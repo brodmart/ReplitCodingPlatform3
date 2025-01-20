@@ -82,9 +82,12 @@ def create_app():
         # Initialize session with default language if not set
         @app.before_request
         def before_request():
+            logger.debug(f"Before request - Session ID: {id(session)}")
+            logger.debug(f"Current session data: {dict(session)}")
             if 'lang' not in session:
                 session['lang'] = app.config['DEFAULT_LANGUAGE']
                 session.modified = True
+                logger.debug(f"Set default language: {session['lang']}")
 
         # Register blueprints
         from routes.auth_routes import auth
