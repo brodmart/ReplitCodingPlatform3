@@ -1,10 +1,26 @@
 """
 Initialize models package and expose models
 """
-from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
-from models.student import Student, CodeSubmission, CodingActivity, StudentProgress
+from .student import (
+    Student,
+    CodeSubmission,
+    CodingActivity,
+    StudentProgress
+)
+from .curriculum import (
+    Course,
+    Strand,
+    OverallExpectation,
+    SpecificExpectation
+)
 
 __all__ = [
-    'Course', 'Strand', 'OverallExpectation', 'SpecificExpectation',
-    'Student', 'CodeSubmission', 'CodingActivity', 'StudentProgress'
+    'Student',
+    'CodeSubmission',
+    'CodingActivity',
+    'StudentProgress',
+    'Course',
+    'Strand',
+    'OverallExpectation',
+    'SpecificExpectation'
 ]
