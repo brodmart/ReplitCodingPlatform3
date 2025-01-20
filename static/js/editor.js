@@ -38,8 +38,7 @@ async function executeCode() {
         // Prepare request payload
         const payload = {
             code: code,
-            language: language,
-            csrf_token: csrfToken
+            language: language
         };
 
         // Only add activity_id if we're in an activity context
@@ -94,7 +93,7 @@ async function executeCode() {
         if (consoleOutput) {
             let displayError = error.message;
             if (error.message.includes('HTTP error!')) {
-                displayError = 'Server is temporarily unavailable. Please try again in a moment.';
+                displayError = 'Unable to connect to code execution service. Please try again in a moment.';
             }
             consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(displayError)}</div>`;
         }
@@ -125,8 +124,7 @@ using namespace std;
 int main() {
     cout << "Hello World!" << endl;
     return 0;
-}
-`;
+}`;
     } else {
         return `using System;
 
@@ -136,8 +134,7 @@ class Program
     {
         Console.WriteLine("Hello World!");
     }
-}
-`;
+}`;
     }
 }
 
@@ -179,7 +176,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!currentCode) {
         const language = languageSelect ? languageSelect.value : 'cpp';
         editor.setValue(getTemplateForLanguage(language));
-        editor.refresh();
     }
 
     // Language change handler
@@ -188,7 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const language = languageSelect.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
             editor.setValue(getTemplateForLanguage(language));
-            editor.refresh();
         });
     }
 
