@@ -2,7 +2,7 @@
 Script to seed initial coding activities
 """
 from app import app, db
-from models.student import CodingActivity
+from models import CodingActivity
 from datetime import datetime
 import logging
 
@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 
 def seed_activities():
     """Seed initial coding activities"""
-    activities = [
+    # Activities for Grade 10 (TEJ2O)
+    tej2o_activities = [
         {
-            'title': 'Introduction to Variables',
-            'description': 'Learn about variables and how to use them in programming',
+            'title': 'Introduction to Variables in C++',
+            'description': 'Learn about variables and data types in C++',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'difficulty': 'beginner',
@@ -23,11 +24,11 @@ def seed_activities():
             'instructions': 'Create variables of different types and print their values',
             'starter_code': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}',
             'points': 100,
-            'deleted_at': None  # Explicitly set deleted_at to None
+            'deleted_at': None
         },
         {
-            'title': 'Basic Input/Output',
-            'description': 'Learn how to get input from users and display output',
+            'title': 'Basic Input/Output in C++',
+            'description': 'Learn to handle user input and output in C++',
             'curriculum': 'TEJ2O',
             'language': 'cpp',
             'difficulty': 'beginner',
@@ -35,11 +36,15 @@ def seed_activities():
             'instructions': 'Write a program that asks for user\'s name and age, then displays a greeting',
             'starter_code': '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}',
             'points': 100,
-            'deleted_at': None  # Explicitly set deleted_at to None
+            'deleted_at': None
         },
+    ]
+
+    # Activities for Grade 11 (ICS3U)
+    ics3u_activities = [
         {
-            'title': 'C# Variables and Types',
-            'description': 'Introduction to C# variables and basic data types',
+            'title': 'Introduction to C# Variables',
+            'description': 'Learn about variables and data types in C#',
             'curriculum': 'ICS3U',
             'language': 'csharp',
             'difficulty': 'beginner',
@@ -47,10 +52,10 @@ def seed_activities():
             'instructions': 'Create variables of different types and print their values',
             'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}',
             'points': 100,
-            'deleted_at': None  # Explicitly set deleted_at to None
+            'deleted_at': None
         },
         {
-            'title': 'C# Console Input/Output',
+            'title': 'Basic Input/Output in C#',
             'description': 'Learn to handle user input and output in C#',
             'curriculum': 'ICS3U',
             'language': 'csharp',
@@ -59,9 +64,11 @@ def seed_activities():
             'instructions': 'Write a program that asks for user\'s name and age, then displays a greeting',
             'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}',
             'points': 100,
-            'deleted_at': None  # Explicitly set deleted_at to None
-        }
+            'deleted_at': None
+        },
     ]
+
+    all_activities = tej2o_activities + ics3u_activities
 
     logger.info("Starting to seed activities...")
 
@@ -73,16 +80,16 @@ def seed_activities():
         logger.info("Cleared existing activities")
 
         # Add new activities
-        for activity_data in activities:
+        for activity_data in all_activities:
             activity = CodingActivity(**activity_data)
             db.session.add(activity)
-            logger.debug(f"Added activity: {activity_data['title']}")
+            logger.debug(f"Added activity: {activity_data['title']} for curriculum {activity_data['curriculum']}")
 
         db.session.commit()
-        logger.info(f"Successfully seeded {len(activities)} activities")
+        logger.info(f"Successfully seeded {len(all_activities)} activities")
 
     except Exception as e:
-        logger.error(f"Error seeding activities: {str(e)}")
+        logger.error(f"Error seeding activities: {str(e)}", exc_info=True)
         db.session.rollback()
         raise
 
