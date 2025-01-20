@@ -183,6 +183,8 @@ class SharedCode(db.Model):
 
 class CodingActivity(SoftDeleteMixin, db.Model):
     """Model for coding exercises and activities"""
+    __tablename__ = 'coding_activity'
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
@@ -196,8 +198,6 @@ class CodingActivity(SoftDeleteMixin, db.Model):
     test_cases = db.Column(db.JSON, nullable=False)
     hints = db.Column(db.JSON)
     common_errors = db.Column(db.JSON)
-    incorrect_examples = db.Column(db.JSON)
-    syntax_help = db.Column(db.Text)
     points = db.Column(db.Integer, default=10)
     max_attempts = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
