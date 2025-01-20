@@ -51,7 +51,7 @@ async function executeCode() {
         console.log('Executing code with payload:', JSON.stringify(payload, null, 2));
 
         // Make a POST request to execute the code
-        const response = await fetch('/run_code', {  // Changed from /activities/run_code
+        const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -60,10 +60,15 @@ async function executeCode() {
             body: JSON.stringify(payload)
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         // Check if response is JSON
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-            throw new Error('Server returned an invalid response. Please try again.');
+            console.error('Invalid content type:', contentType);
+            throw new Error('Server response was not in the expected format. Please try again.');
         }
 
         const result = await response.json();
@@ -80,14 +85,18 @@ async function executeCode() {
             let errorMessage = result.error;
             if (errorMessage === 'Missing required fields') {
                 console.error('Missing fields in request. Payload:', payload);
-                errorMessage = 'An error occurred while executing the code. Please try again.';
+                errorMessage = 'Error: Required information is missing. Please check your code and try again.';
             }
             throw new Error(errorMessage || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
+            let displayError = error.message;
+            if (error.message.includes('HTTP error!')) {
+                displayError = 'Server is temporarily unavailable. Please try again in a moment.';
+            }
+            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(displayError)}</div>`;
         }
     } finally {
         isExecuting = false;
@@ -132,8 +141,7 @@ class Program
     }
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('DOM Content Loaded');
+document.addEventListener('DOMContentLoaded', function() {
     const editorElement = document.getElementById('editor');
     const languageSelect = document.getElementById('languageSelect');
     const consoleOutput = document.getElementById('consoleOutput');
