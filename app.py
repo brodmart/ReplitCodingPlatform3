@@ -8,6 +8,7 @@ from flask_session import Session
 from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db
+from utils.validation_utils import BlueprintValidator, validate_app_configuration
 
 # Configure logging
 logging.basicConfig(
@@ -42,22 +43,20 @@ def create_app():
             'pool_recycle': 1800,
             'pool_pre_ping': True
         },
-        'DEFAULT_LANGUAGE': 'fr',  # Set default language
-        'SESSION_PERMANENT': True,  # Make sessions permanent
-        'PERMANENT_SESSION_LIFETIME': 31536000,  # Set session lifetime to 1 year
+        'DEFAULT_LANGUAGE': 'fr',
+        'SESSION_PERMANENT': True,
+        'PERMANENT_SESSION_LIFETIME': 31536000,
     })
 
     try:
-        # Create session directory if it does not exist
+        # Validate application configuration
+        if not validate_app_configuration(app):
+            raise RuntimeError("Application configuration validation failed")
+
+        # Initialize extensions and create session directory
         os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
-
-        # Initialize database
         db.init_app(app)
-
-        # Initialize Flask-Migrate
         migrate = Migrate(app, db)
-
-        # Initialize extensions
         CORS(app)
         CSRFProtect(app)
         Session(app)
@@ -79,16 +78,6 @@ def create_app():
                 logger.error(f"Error loading user: {str(e)}")
                 return None
 
-        # Initialize session with default language if not set
-        @app.before_request
-        def before_request():
-            logger.debug(f"Before request - Session ID: {id(session)}")
-            logger.debug(f"Current session data: {dict(session)}")
-            if 'lang' not in session:
-                session['lang'] = app.config['DEFAULT_LANGUAGE']
-                session.modified = True
-                logger.debug(f"Set default language: {session['lang']}")
-
         # Register blueprints
         from routes.auth_routes import auth
         from routes.activities import activities_bp
@@ -102,18 +91,39 @@ def create_app():
         app.register_blueprint(static_pages)
         app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
 
+        # Validate blueprint registration and essential routes
+        validator = BlueprintValidator(app)
+        blueprint_validation = validator.validate_blueprints()
+        route_validation = validator.validate_essential_routes()
+
+        if not all(blueprint_validation.values()) or not all(route_validation.values()):
+            raise RuntimeError("Blueprint or route validation failed")
+
+        # Initialize session with default language if not set
+        @app.before_request
+        def before_request():
+            logger.debug(f"Before request - Session ID: {id(session)}")
+            logger.debug(f"Current session data: {dict(session)}")
+            if 'lang' not in session:
+                session['lang'] = app.config['DEFAULT_LANGUAGE']
+                session.modified = True
+                logger.debug(f"Set default language: {session['lang']}")
+
         # Error handlers
         @app.errorhandler(404)
         def not_found_error(error):
+            logger.warning(f"404 error: {error}")
             return render_template('errors/404.html'), 404
 
         @app.errorhandler(500)
         def internal_error(error):
+            logger.error(f"500 error: {error}")
             db.session.rollback()
             return render_template('errors/500.html'), 500
 
         @app.errorhandler(413)
         def request_entity_too_large(error):
+            logger.warning(f"413 error: {error}")
             return render_template('errors/413.html'), 413
 
         logger.info("Application initialized successfully")
