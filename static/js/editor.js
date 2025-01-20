@@ -37,7 +37,7 @@ async function executeCode() {
         console.log('Starting execution with:', { language, codeLength: code.length });
 
         // Make a POST request to execute the code
-        const response = await fetch('/activities/execute', {
+        const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -49,16 +49,26 @@ async function executeCode() {
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        let result;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            result = await response.json();
+        } else {
+            const textResponse = await response.text();
+            throw new Error(
+                `Server returned non-JSON response. Status: ${response.status}. ` +
+                `Please try again or check if the server is running.`
+            );
         }
 
-        const result = await response.json();
         console.log('Execution result:', result);
 
         if (result.success) {
             if (consoleOutput) {
-                consoleOutput.innerHTML = `<pre class="console-output">${result.output || ''}</pre>`;
+                // Handle both string and object outputs
+                let outputText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+                outputText = outputText || 'Program executed successfully with no output.';
+                consoleOutput.innerHTML = `<pre class="console-output">${outputText}</pre>`;
             }
         } else {
             throw new Error(result.error || 'Failed to execute code');
