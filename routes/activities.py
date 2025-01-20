@@ -7,10 +7,58 @@ from utils.curriculum_checker import CurriculumChecker
 from models import db, CodingActivity, Student, StudentProgress, CodeSubmission
 import logging
 from datetime import datetime
+from compiler import compile_and_run
 
 logger = logging.getLogger(__name__)
 activities_bp = Blueprint('activities', __name__)
 curriculum_checker = CurriculumChecker()
+
+@activities_bp.route('/activities/execute', methods=['POST'])
+@login_required
+def execute_code():
+    """Execute submitted code"""
+    try:
+        if not request.is_json:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid request format'
+            }), 400
+
+        data = request.get_json()
+        code = data.get('code', '').strip()
+        language = data.get('language', 'cpp').lower()
+
+        if not code:
+            return jsonify({
+                'success': False,
+                'error': 'Code cannot be empty'
+            }), 400
+
+        if language not in ['cpp', 'csharp']:
+            return jsonify({
+                'success': False,
+                'error': 'Unsupported language'
+            }), 400
+
+        # Execute the code using the compiler service
+        result = compile_and_run(code, language)
+
+        if not result.get('success', False):
+            error_msg = result.get('error', 'An error occurred')
+            if 'memory' in error_msg.lower():
+                error_msg += ". Try reducing the size of variables or arrays."
+            elif 'timeout' in error_msg.lower():
+                error_msg += ". Check for infinite loops."
+            result['error'] = error_msg
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error executing code: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': "An error occurred while executing your code."
+        }), 500
 
 def get_user_language():
     """Get user's current language preference"""
