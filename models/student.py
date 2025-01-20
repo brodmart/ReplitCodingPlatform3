@@ -42,6 +42,34 @@ class Student(UserMixin, db.Model):
     shared_codes = db.relationship('SharedCode', back_populates='student', lazy=True)
     audit_logs = db.relationship('AuditLog', backref='user', lazy=True)
 
+    # Constants for account locking
+    MAX_LOGIN_ATTEMPTS = 5
+    LOCKOUT_DURATION = timedelta(minutes=15)
+
+    def is_account_locked(self):
+        """Check if the account is currently locked"""
+        if self.account_locked_until and self.account_locked_until > datetime.utcnow():
+            return True
+        return False
+
+    def record_failed_login(self):
+        """Record a failed login attempt and lock account if necessary"""
+        self.failed_login_attempts += 1
+        self.last_failed_login = datetime.utcnow()
+
+        if self.failed_login_attempts >= self.MAX_LOGIN_ATTEMPTS:
+            self.account_locked_until = datetime.utcnow() + self.LOCKOUT_DURATION
+            logger.warning(f"Account locked for user {self.username} due to too many failed attempts")
+
+        db.session.commit()
+
+    def reset_failed_login_attempts(self):
+        """Reset the failed login attempts counter after successful login"""
+        self.failed_login_attempts = 0
+        self.last_failed_login = None
+        self.account_locked_until = None
+        db.session.commit()
+
     def set_password(self, password):
         """Hash password using werkzeug's built-in method"""
         if len(password) < 6:
