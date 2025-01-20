@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, session, request
 from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
 curriculum_bp = Blueprint('curriculum', __name__)
@@ -6,22 +6,24 @@ curriculum_bp = Blueprint('curriculum', __name__)
 @curriculum_bp.route('/')
 def view_curriculum():
     """Display the curriculum visualization page"""
+    # Get the current language from session or default to English
+    lang = session.get('lang', request.args.get('lang', 'en'))
     # Get all courses
     courses = Course.query.all()
-    return render_template('curriculum/view.html', courses=courses)
+    return render_template('curriculum/view.html', courses=courses, lang=lang)
 
 @curriculum_bp.route('/get_course_data/<course_code>')
 def get_course_data(course_code):
     """Get curriculum data for a specific course"""
     course = Course.query.filter_by(code=course_code).first_or_404()
+    # Get the current language from session or default to English
+    lang = session.get('lang', request.args.get('lang', 'en'))
 
     # Build curriculum structure
     curriculum_data = {
         'code': course.code,
-        'title_en': course.title_en,
-        'title_fr': course.title_fr,
-        'description_en': course.description_en,
-        'description_fr': course.description_fr,
+        'title': course.title_fr if lang == 'fr' else course.title_en,
+        'description': course.description_fr if lang == 'fr' else course.description_en,
         'strands': []
     }
 
@@ -33,8 +35,7 @@ def get_course_data(course_code):
         strand_code = strand.code.upper()
         strand_data = {
             'code': strand_code,
-            'title_en': strand.title_en,
-            'title_fr': strand.title_fr,
+            'title': strand.title_fr if lang == 'fr' else strand.title_en,
             'overall_expectations': []
         }
 
@@ -45,8 +46,7 @@ def get_course_data(course_code):
         for overall in sorted_overall:
             overall_data = {
                 'code': overall.code,
-                'description_en': overall.description_en,
-                'description_fr': overall.description_fr,
+                'description': overall.description_fr if lang == 'fr' else overall.description_en,
                 'specific_expectations': []
             }
 
@@ -57,8 +57,7 @@ def get_course_data(course_code):
             for specific in sorted_specific:
                 specific_data = {
                     'code': specific.code,
-                    'description_en': specific.description_en,
-                    'description_fr': specific.description_fr
+                    'description': specific.description_fr if lang == 'fr' else specific.description_en
                 }
                 overall_data['specific_expectations'].append(specific_data)
 

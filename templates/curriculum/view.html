@@ -1,18 +1,28 @@
 {% extends "base.html" %}
 
-{% block title %}Curriculum Visualization{% endblock %}
+{% block title %}
+{% if lang == 'fr' %}Visualisation du programme-cadre{% else %}Curriculum Visualization{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="mb-4">Curriculum for Classes</h1>
+    <h1 class="mb-4">
+        {% if lang == 'fr' %}Programme-cadre des cours{% else %}Curriculum for Classes{% endif %}
+    </h1>
 
     <!-- Course Selection -->
     <div class="mb-4">
-        <label for="courseSelect" class="form-label">Select Course:</label>
+        <label for="courseSelect" class="form-label">
+            {% if lang == 'fr' %}Sélectionner un cours :{% else %}Select Course:{% endif %}
+        </label>
         <select class="form-select" id="courseSelect">
-            <option value="">Choose a course...</option>
+            <option value="">
+                {% if lang == 'fr' %}Choisir un cours...{% else %}Choose a course...{% endif %}
+            </option>
             {% for course in courses %}
-            <option value="{{ course.code }}">{{ course.code }} - {{ course.title_en or course.title_fr }}</option>
+            <option value="{{ course.code }}">
+                {{ course.code }} - {{ course.title_fr if lang == 'fr' else course.title_en }}
+            </option>
             {% endfor %}
         </select>
     </div>
@@ -57,7 +67,6 @@
         </div>
     </div>
 </template>
-
 {% endblock %}
 
 {% block scripts %}
@@ -84,17 +93,16 @@ document.addEventListener('DOMContentLoaded', function() {
             strandTabs.innerHTML = '';
             strandContent.innerHTML = '';
 
-            // Update course title - use French if English is not available
-            courseTitle.textContent = `${data.code} - ${data.title_en || data.title_fr}`;
+            // Update course title
+            courseTitle.textContent = `${data.code} - ${data.title}`;
 
             // Create tabs and content for each strand
             data.strands.forEach((strand, index) => {
-                // Create tab - use French title if English is not available
+                // Create tab
                 const tabTemplate = document.getElementById('strandTabTemplate');
                 const tab = tabTemplate.content.cloneNode(true).querySelector('.nav-item');
                 const button = tab.querySelector('button');
-                const strandTitle = strand.title_en || strand.title_fr || `Strand ${strand.code}`;
-                button.textContent = `${strand.code} - ${strandTitle}`;
+                button.textContent = `${strand.code} - ${strand.title}`;
                 button.id = `strand-${strand.code}-tab`;
                 button.setAttribute('data-bs-target', `#strand-${strand.code}`);
                 button.setAttribute('aria-controls', `strand-${strand.code}`);
@@ -120,9 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const collapse = expectation.querySelector('.accordion-collapse');
                     const body = expectation.querySelector('.accordion-body');
 
-                    // Use French description if English is not available
-                    const overallDesc = overall.description_en || overall.description_fr || 'No description available';
-                    button.textContent = `${overall.code} - ${overallDesc}`;
+                    button.textContent = `${overall.code} - ${overall.description}`;
                     button.setAttribute('data-bs-target', `#${strand.code}-${overall.code}`);
 
                     collapse.id = `${strand.code}-${overall.code}`;
@@ -133,9 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     overall.specific_expectations.forEach(specific => {
                         const item = document.createElement('li');
                         item.className = 'list-group-item';
-                        // Use French description if English is not available
-                        const specificDesc = specific.description_en || specific.description_fr || 'No description available';
-                        item.textContent = `${specific.code} - ${specificDesc}`;
+                        item.textContent = `${specific.code} - ${specific.description}`;
                         specificList.appendChild(item);
                     });
                     body.appendChild(specificList);
@@ -149,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
             curriculumDisplay.classList.remove('d-none');
         } catch (error) {
             console.error('Error loading curriculum data:', error);
-            alert('Error loading curriculum data. Please try again.');
+            alert('{% if lang == "fr" %}Erreur lors du chargement des données du programme-cadre. Veuillez réessayer.{% else %}Error loading curriculum data. Please try again.{% endif %}');
         }
     });
 });
