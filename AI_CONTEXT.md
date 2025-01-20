@@ -1,5 +1,5 @@
 # AI Session Context Guide
-Last Updated: January 18, 2025
+Last Updated: January 20, 2025
 
 ## Quick Start for AI Sessions:
 
@@ -28,7 +28,7 @@ The project uses a PostgreSQL database for curriculum storage:
     - Bilingual fields: description_en/fr
   * specific_expectations: Stores specific expectations linked to overall expectations
     - Bilingual fields: description_en/fr
-- Current Status (as of Jan 18, 2025):
+- Current Status (as of Jan 20, 2025):
   * 1 course (ICS3U)
   * 4 strands
   * 11 overall expectations
@@ -66,6 +66,19 @@ The project uses a PostgreSQL database for curriculum storage:
    - Document new architectural choices
    - Record reasons for technical decisions
    - Track changes in system design
+
+   Latest Decision (January 20, 2025):
+   Database-Driven Development Approach
+   - Decision: Adapt models to match existing database schema
+   - Rationale:
+     * Database contains existing production data and activities
+     * Current schema is well-designed and consistent
+     * Lower risk than database migrations
+     * Changes primarily involve nullable constraints
+   - Impact:
+     * Models will be updated to match database constraints
+     * Affects Student, Progress tracking, and Achievement models
+     * Maintains data integrity while reducing migration risks
 
 3. development_patterns.md:
    - Add new coding patterns
