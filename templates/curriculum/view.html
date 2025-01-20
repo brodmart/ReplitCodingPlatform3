@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Curriculum Visualization{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Curriculum for Classes</h1>
+    
+    <!-- Course Selection -->
+    <div class="mb-4">
+        <label for="courseSelect" class="form-label">Select Course:</label>
+        <select class="form-select" id="courseSelect">
+            <option value="">Choose a course...</option>
+            {% for course in courses %}
+            <option value="{{ course.code }}">{{ course.code }} - {{ course.title_en }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Curriculum Display -->
+    <div id="curriculumDisplay" class="d-none">
+        <h2 id="courseTitle" class="mb-3"></h2>
+        
+        <!-- Strand Navigation -->
+        <ul class="nav nav-tabs mb-3" id="strandTabs" role="tablist">
+        </ul>
+        
+        <!-- Strand Content -->
+        <div class="tab-content" id="strandContent">
+        </div>
+    </div>
+</div>
+
+<!-- Templates for dynamic content -->
+<template id="strandTabTemplate">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" role="tab" aria-selected="false"></button>
+    </li>
+</template>
+
+<template id="strandPanelTemplate">
+    <div class="tab-pane fade" role="tabpanel">
+        <div class="accordion mt-3">
+        </div>
+    </div>
+</template>
+
+<template id="expectationTemplate">
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse">
+            </button>
+        </h2>
+        <div class="accordion-collapse collapse">
+            <div class="accordion-body">
+            </div>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const courseSelect = document.getElementById('courseSelect');
+    const curriculumDisplay = document.getElementById('curriculumDisplay');
+    const courseTitle = document.getElementById('courseTitle');
+    const strandTabs = document.getElementById('strandTabs');
+    const strandContent = document.getElementById('strandContent');
+
+    courseSelect.addEventListener('change', async function() {
+        const courseCode = this.value;
+        if (!courseCode) {
+            curriculumDisplay.classList.add('d-none');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/curriculum/get_course_data/${courseCode}`);
+            const data = await response.json();
+            
+            // Clear previous content
+            strandTabs.innerHTML = '';
+            strandContent.innerHTML = '';
+            
+            // Update course title
+            courseTitle.textContent = `${data.code} - ${data.title_en}`;
+            
+            // Create tabs and content for each strand
+            data.strands.forEach((strand, index) => {
+                // Create tab
+                const tabTemplate = document.getElementById('strandTabTemplate');
+                const tab = tabTemplate.content.cloneNode(true).querySelector('.nav-item');
+                const button = tab.querySelector('button');
+                button.textContent = `${strand.code} - ${strand.title_en}`;
+                button.id = `strand-${strand.code}-tab`;
+                button.setAttribute('data-bs-target', `#strand-${strand.code}`);
+                button.setAttribute('aria-controls', `strand-${strand.code}`);
+                if (index === 0) button.classList.add('active');
+                strandTabs.appendChild(tab);
+                
+                // Create content panel
+                const panelTemplate = document.getElementById('strandPanelTemplate');
+                const panel = panelTemplate.content.cloneNode(true).querySelector('.tab-pane');
+                panel.id = `strand-${strand.code}`;
+                if (index === 0) {
+                    panel.classList.add('show', 'active');
+                }
+                
+                const accordion = panel.querySelector('.accordion');
+                
+                // Add overall expectations
+                strand.overall_expectations.forEach((overall, oIndex) => {
+                    const expectationTemplate = document.getElementById('expectationTemplate');
+                    const expectation = expectationTemplate.content.cloneNode(true);
+                    
+                    const button = expectation.querySelector('.accordion-button');
+                    const collapse = expectation.querySelector('.accordion-collapse');
+                    const body = expectation.querySelector('.accordion-body');
+                    
+                    button.textContent = `${overall.code} - ${overall.description_en}`;
+                    button.setAttribute('data-bs-target', `#${strand.code}-${overall.code}`);
+                    
+                    collapse.id = `${strand.code}-${overall.code}`;
+                    
+                    // Add specific expectations
+                    const specificList = document.createElement('ul');
+                    specificList.className = 'list-group list-group-flush';
+                    overall.specific_expectations.forEach(specific => {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item';
+                        item.textContent = `${specific.code} - ${specific.description_en}`;
+                        specificList.appendChild(item);
+                    });
+                    body.appendChild(specificList);
+                    
+                    accordion.appendChild(expectation);
+                });
+                
+                strandContent.appendChild(panel);
+            });
+            
+            curriculumDisplay.classList.remove('d-none');
+        } catch (error) {
+            console.error('Error loading curriculum data:', error);
+            alert('Error loading curriculum data. Please try again.');
+        }
+    });
+});
+</script>
+{% endblock %}

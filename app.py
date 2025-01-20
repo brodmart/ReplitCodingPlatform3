@@ -10,9 +10,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_db
 from extensions import init_extensions
 from utils.logger import setup_logging
-
-# Remove the Student import since it's not needed in the main app file
-# The models will be imported in their respective routes
+from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
 # Configure logging
 logging.basicConfig(
@@ -47,7 +45,7 @@ def create_app():
             'pool_recycle': 1800,
             'pool_pre_ping': True
         },
-        # Mail settings remain unchanged
+        # Mail settings 
         'MAIL_SERVER': 'smtp.gmail.com',
         'MAIL_PORT': 587,
         'MAIL_USE_TLS': True,
@@ -55,20 +53,20 @@ def create_app():
         'MAIL_USERNAME': os.environ.get('MAIL_USERNAME'),
         'MAIL_PASSWORD': os.environ.get('MAIL_PASSWORD'),
         'MAIL_DEFAULT_SENDER': os.environ.get('MAIL_USERNAME'),
-        # Session security settings remain unchanged
+        # Session security settings 
         'SESSION_COOKIE_SECURE': False,
         'SESSION_COOKIE_HTTPONLY': True,
         'SESSION_COOKIE_SAMESITE': 'Lax',
         'PERMANENT_SESSION_LIFETIME': 1800,
-        # Request settings remain unchanged
+        # Request settings 
         'MAX_CONTENT_LENGTH': 16 * 1024 * 1024,
-        # Registration settings remain unchanged
+        # Registration settings 
         'REGISTRATION_ENABLED': True,
         'ALLOWED_EMAIL_DOMAINS': [
             # Government domains
             'ontario.ca',
             'edu.ontario.ca',
-            # School board domains remain unchanged
+            # School board domains
             'tdsb.on.ca',
             'peelschools.org',
             'edu.cepeo.on.ca',
@@ -86,14 +84,14 @@ def create_app():
             'lkdsb.net',
             'gogeeco.net',
             'tldsb.on.ca',
-            # French boards remain unchanged
+            # French boards
             'cepeo.on.ca',
             'csviamonde.ca',
             'ecolecatholique.ca',
             'cscmonavenir.ca',
             'cspne.ca',
             'cscprovidence.ca',
-            # English Catholic boards remain unchanged
+            # English Catholic boards
             'tcdsb.org',
             'dpcdsb.org',
             'ycdsb.ca',
@@ -102,10 +100,10 @@ def create_app():
             'bhncdsb.ca',
             'alcdsb.on.ca',
             'ocsb.ca',
-            # First Nations boards remain unchanged
+            # First Nations boards
             'knet.ca',
             'nnec.on.ca',
-            # Student subdomains remain unchanged
+            # Student subdomains
             'student.tdsb.on.ca',
             'students.peelschools.org',
             'gapps.yrdsb.ca',
@@ -148,13 +146,15 @@ def create_app():
         from routes.activity_routes import activities
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
+        from routes.curriculum_routes import curriculum_bp
 
         app.register_blueprint(auth)
         app.register_blueprint(activities, url_prefix='/activities')
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
+        app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
 
-        # Error handlers remain unchanged
+        # Error handlers 
         @app.errorhandler(404)
         def not_found_error(error):
             return render_template('errors/404.html', lang='en'), 404
