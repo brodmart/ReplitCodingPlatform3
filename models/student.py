@@ -101,6 +101,8 @@ class CodingActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    title_fr = db.Column(db.String(255), nullable=True)  # Added French title
+    description_fr = db.Column(db.Text, nullable=True)   # Added French description
     curriculum = db.Column(db.String(255), nullable=False, default='ICS3U')
     language = db.Column(db.String(50), nullable=True)
     difficulty = db.Column(db.String(50), nullable=True)
