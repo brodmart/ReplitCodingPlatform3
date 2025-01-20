@@ -189,7 +189,7 @@ class CodingActivity(SoftDeleteMixin, db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     difficulty = db.Column(db.String(20), nullable=True)
-    curriculum = db.Column(db.String(20), nullable=False, default='ICS3U')
+    curriculum = db.Column(db.String(20), nullable=False)
     language = db.Column(db.String(20), nullable=True)
     sequence = db.Column(db.Integer, nullable=True)
     instructions = db.Column(db.Text, nullable=True)
