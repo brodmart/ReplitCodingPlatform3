@@ -78,13 +78,13 @@ def create_app():
 
         # Register blueprints
         from routes.auth_routes import auth
-        from routes.activity_routes import activities
+        from routes.activities import activities_bp  # Use the consolidated activities blueprint
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
         from routes.curriculum_routes import curriculum_bp
 
         app.register_blueprint(auth)
-        app.register_blueprint(activities)
+        app.register_blueprint(activities_bp)  # Register the consolidated blueprint
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
         app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
