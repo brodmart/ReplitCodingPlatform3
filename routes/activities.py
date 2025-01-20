@@ -1,7 +1,7 @@
 """
 Activity routes with curriculum compliance integration and enhanced learning features
 """
-from flask import Blueprint, jsonify, request, render_template, abort
+from flask import Blueprint, jsonify, request, render_template, abort, session, current_app
 from flask_login import login_required, current_user
 from utils.curriculum_checker import CurriculumChecker
 from models import db, CodingActivity, Student, StudentProgress, CodeSubmission
@@ -11,6 +11,12 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 activities_bp = Blueprint('activities', __name__)
 curriculum_checker = CurriculumChecker()
+
+def get_user_language():
+    """Get user's current language preference"""
+    current_lang = session.get('lang', current_app.config.get('DEFAULT_LANGUAGE', 'fr'))
+    logger.debug(f"Activities - get_user_language called - current_lang: {current_lang}, session id: {id(session)}")
+    return current_lang
 
 @activities_bp.route('/activities/store_confidence', methods=['POST'])
 @login_required
@@ -112,6 +118,7 @@ def list_activities(grade=None):
     try:
         logger.debug(f"Listing activities for grade: {grade}")
         logger.debug(f"Current user: {current_user.id if current_user.is_authenticated else 'Not authenticated'}")
+        logger.debug(f"Current session lang: {session.get('lang')}")
 
         if grade == '11':
             curriculum = 'ICS3U'
@@ -129,10 +136,6 @@ def list_activities(grade=None):
             CodingActivity.deleted_at.is_(None)  # Explicitly check for null deleted_at
         ).order_by(CodingActivity.sequence).all()
 
-        logger.debug(f"Found {len(activities_list)} active activities")
-        for activity in activities_list:
-            logger.debug(f"Activity: {activity.id} - {activity.title} - {activity.curriculum}")
-
         # Get student progress if available
         progress_data = {}
         if current_user.is_authenticated:
@@ -141,11 +144,14 @@ def list_activities(grade=None):
             ).all()
             progress_data = {p.activity_id: p for p in progress}
 
+        current_lang = get_user_language()
+        logger.debug(f"Rendering activities list with language: {current_lang}")
+
         return render_template(
             'activities/list.html',
             activities=activities_list,
             curriculum=curriculum,
-            lang=request.args.get('lang', 'fr'),
+            lang=current_lang,
             grade=grade,
             progress=progress_data
         )
@@ -163,6 +169,8 @@ def view_activity(activity_id):
     """View a specific coding activity"""
     try:
         logger.debug(f"Viewing activity with ID: {activity_id}")
+        current_lang = get_user_language()
+        logger.debug(f"Current language for activity view: {current_lang}")
 
         activity = CodingActivity.query.get_or_404(activity_id)
         logger.debug(f"Found activity: {activity.title}")
@@ -190,7 +198,7 @@ def view_activity(activity_id):
         return render_template(
             'activities/view.html',
             activity=activity,
-            lang=request.args.get('lang', 'fr'),
+            lang=current_lang,
             progress=progress
         )
 
@@ -207,6 +215,8 @@ def view_enhanced_activity(activity_id):
     """View an activity with enhanced learning features"""
     try:
         logger.debug(f"Viewing enhanced activity with ID: {activity_id}")
+        current_lang = get_user_language()
+        logger.debug(f"Current language for enhanced activity view: {current_lang}")
 
         activity = CodingActivity.query.get_or_404(activity_id)
         logger.debug(f"Found activity: {activity.title}")
@@ -232,9 +242,9 @@ def view_enhanced_activity(activity_id):
                 db.session.commit()
 
         return render_template(
-            'activities/enhanced_learning.html',  # Using the enhanced template
+            'activities/enhanced_learning.html',
             activity=activity,
-            lang=request.args.get('lang', 'fr'),
+            lang=current_lang,
             progress=progress,
             enhanced=True
         )
