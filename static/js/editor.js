@@ -48,10 +48,10 @@ async function executeCode() {
             payload.activity_id = activityIdInput.value;
         }
 
-        console.log('Executing code with payload:', payload);
+        console.log('Executing code with payload:', JSON.stringify(payload, null, 2));
 
         // Make a POST request to execute the code
-        const response = await fetch('/activities/run_code', {
+        const response = await fetch('/run_code', {  // Changed from /activities/run_code
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ async function executeCode() {
             let errorMessage = result.error;
             if (errorMessage === 'Missing required fields') {
                 console.error('Missing fields in request. Payload:', payload);
-                errorMessage = 'Server configuration error. Please try refreshing the page.';
+                errorMessage = 'An error occurred while executing the code. Please try again.';
             }
             throw new Error(errorMessage || 'Failed to execute code');
         }
@@ -153,7 +153,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         matchBrackets: true,
         indentUnit: 4,
         tabSize: 4,
-        lineWrapping: true
+        lineWrapping: true,
+        viewportMargin: Infinity,
+        extraKeys: {
+            "Tab": function(cm) {
+                if (cm.somethingSelected()) {
+                    cm.indentSelection("add");
+                } else {
+                    cm.replaceSelection("    ", "end");
+                }
+            }
+        }
     });
 
     // Only set template if editor is empty
@@ -174,14 +184,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // Keyboard shortcut
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
-            e.preventDefault();
-            executeCode();
-        }
-    });
-
     // Run button handler
     if (runButton) {
         runButton.addEventListener('click', async function(e) {
@@ -191,6 +193,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         });
     }
+
+    // Keyboard shortcut
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
+            e.preventDefault();
+            executeCode();
+        }
+    });
 
     isConsoleReady = true;
 });
