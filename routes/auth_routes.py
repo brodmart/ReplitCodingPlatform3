@@ -36,7 +36,7 @@ def login():
                         flash('Account temporarily locked. Try again later.', 'danger')
                         return render_template('auth/login.html', form=form, lang=get_user_language())
 
-                    user.reset_failed_login()
+                    user.reset_failed_login_attempts()
                     db.session.commit()
 
                     # Preserve the current language setting before login
@@ -58,7 +58,7 @@ def login():
                     return redirect(next_page)
                 else:
                     logger.warning(f"Invalid password for user: {user.username}")
-                    user.increment_failed_login()
+                    user.record_failed_login()
                     db.session.commit()
             else:
                 logger.warning(f"Login attempt failed - user not found: {form.username.data}")
