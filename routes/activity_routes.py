@@ -290,9 +290,10 @@ def list_activities(grade=None):
 
         try:
             # Query activities for the specified grade level, excluding soft-deleted ones
-            activities_list = CodingActivity.get_active().filter_by(
+            activities_list = CodingActivity.query.filter_by(
                 curriculum=curriculum,
-                language=language
+                language=language,
+                deleted_at=None
             ).order_by(CodingActivity.sequence).all()
 
             logger.debug(f"Found {len(activities_list)} active activities")

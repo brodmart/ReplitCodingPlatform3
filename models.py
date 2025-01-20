@@ -201,7 +201,7 @@ class CodingActivity(SoftDeleteMixin, db.Model):
     points = db.Column(db.Integer, default=10)
     max_attempts = db.Column(db.Integer, default=10)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    version = db.Column(db.Integer, default=1)  # Add version control
+    version = db.Column(db.Integer, default=1)
 
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
 
