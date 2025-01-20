@@ -289,19 +289,14 @@ def list_activities(grade=None):
         logger.debug(f"Using curriculum: {curriculum}, language: {language}")
 
         try:
-            # Query activities for the specified grade level, excluding soft-deleted ones
+            # Query activities without filtering by curriculum first
             activities_list = CodingActivity.query.filter_by(
-                curriculum=curriculum,
                 language=language,
                 deleted_at=None
             ).order_by(CodingActivity.sequence).all()
 
             logger.debug(f"Found {len(activities_list)} active activities")
 
-        except Exception as db_error:
-            logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
-            raise
-        try:
             return render_template(
                 'activities/list.html',
                 activities=activities_list,
@@ -309,8 +304,9 @@ def list_activities(grade=None):
                 lang=session.get('lang', 'fr'),
                 grade=grade
             )
-        except Exception as template_error:
-            logger.error(f"Template rendering error: {str(template_error)}", exc_info=True)
+
+        except Exception as db_error:
+            logger.error(f"Database error in list_activities: {str(db_error)}", exc_info=True)
             raise
 
     except Exception as e:
