@@ -87,7 +87,19 @@ async function executeCode() {
         if (result.success) {
             if (consoleOutput) {
                 let outputText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
-                outputText = outputText || 'Program executed successfully with no output.';
+
+                // If output is empty or undefined, show a message
+                if (!outputText || outputText.trim() === '') {
+                    outputText = 'Program executed successfully with no output.';
+                }
+
+                // For C# programs, ensure output is visible
+                if (language === 'csharp' && outputText.includes('Program executed successfully with no output')) {
+                    // Check if there's any actual output in the result
+                    const actualOutput = result.output || '';
+                    outputText = actualOutput.trim() || 'No output generated. If you expected output, ensure Console.WriteLine statements are used and properly flushed.';
+                }
+
                 consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
             }
         } else {

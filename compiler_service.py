@@ -34,33 +34,9 @@ def is_interactive_code(code: str, language: str) -> bool:
     if language == 'cpp':
         return 'cin' in code_lower or 'getline' in code_lower
     elif language == 'csharp':
-        return 'console.readline' in code_lower or 'console.read' in code_lower
+        # Add more C# input patterns
+        return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
     return False
-
-def cleanup_session(session_id: str) -> None:
-    """Clean up resources for a session"""
-    if session_id in active_sessions:
-        session = active_sessions[session_id]
-        try:
-            if session.process and session.process.poll() is None:
-                try:
-                    group_id = os.getpgid(session.process.pid)
-                    os.killpg(group_id, signal.SIGTERM)
-                except:
-                    session.process.terminate()
-                try:
-                    session.process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    session.process.kill()
-                    session.process.wait()
-
-            if os.path.exists(session.temp_dir):
-                shutil.rmtree(session.temp_dir, ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Error cleaning up session {session_id}: {e}")
-        finally:
-            with session_lock:
-                del active_sessions[session_id]
 
 def compile_and_run(
     code: str,
@@ -88,9 +64,22 @@ def compile_and_run(
             interactive = is_interactive_code(code, language)
             logger.debug(f"Auto-detected interactive mode: {interactive}")
 
+        # For C#, we'll modify the code to ensure output is captured
+        if language == 'csharp':
+            # Add output flushing if not already present
+            if 'Console.SetOut' not in code:
+                insert_pos = code.find('static void Main')
+                if insert_pos != -1:
+                    # Find the opening brace
+                    brace_pos = code.find('{', insert_pos)
+                    if brace_pos != -1:
+                        # Insert after the opening brace
+                        code = (code[:brace_pos+1] + 
+                               '\n        Console.SetOut(new StreamWriter(Console.OpenStandardOutput()) { AutoFlush = true });' +
+                               code[brace_pos+1:])
+
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            chunk_size = 1024 * 1024  # 1MB chunks
 
             # Set up source and executable files based on language
             if language == 'cpp':
@@ -104,12 +93,9 @@ def compile_and_run(
                 compile_cmd = ['mcs', str(source_file), '-out:' + str(executable)]
                 run_cmd = ['mono', str(executable)]
 
-            # Write code in chunks
+            # Write code to file
             with open(source_file, 'w') as f:
-                for i in range(0, len(code), chunk_size):
-                    chunk = code[i:i + chunk_size]
-                    f.write(chunk)
-                    f.flush()
+                f.write(code)
 
             try:
                 logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
@@ -126,15 +112,9 @@ def compile_and_run(
                 }
 
             if compile_process.returncode != 0:
-                error_msg = compile_process.stderr
-                if language == 'csharp' and 'error CS' in error_msg:
-                    # Improve C# error messages
-                    error_lines = error_msg.split('\n')
-                    filtered_errors = [line for line in error_lines if 'error CS' in line]
-                    error_msg = '\n'.join(filtered_errors)
                 return {
                     'success': False,
-                    'error': error_msg
+                    'error': compile_process.stderr
                 }
 
             if compile_only:
@@ -144,52 +124,42 @@ def compile_and_run(
             os.chmod(executable, 0o755)
 
             try:
-                # Set process group for better cleanup
-                logger.debug(f"Starting process with command: {' '.join(run_cmd)}")
+                # Execute the program
                 process = subprocess.Popen(
                     run_cmd,
-                    stdin=subprocess.PIPE if interactive or input_data else None,
+                    stdin=subprocess.PIPE if input_data else None,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
                     bufsize=1,  # Line buffering
-                    preexec_fn=os.setsid,  # Create new process group
-                    cwd=temp_dir
+                    preexec_fn=os.setsid
                 )
 
-                if interactive:
-                    # Return process info for interactive handling
-                    logger.debug("Starting interactive session")
-                    session_id = str(process.pid)
-                    with session_lock:
-                        active_sessions[session_id] = CompilerSession(session_id, temp_dir)
-                        active_sessions[session_id].process = process
-                    return {
-                        'success': True,
-                        'session_id': session_id,
-                        'interactive': True
-                    }
-                else:
-                    # Non-interactive execution
-                    try:
-                        stdout, stderr = process.communicate(
-                            input=input_data,
-                            timeout=execution_timeout
-                        )
+                try:
+                    stdout, stderr = process.communicate(
+                        input=input_data,
+                        timeout=execution_timeout
+                    )
 
+                    if process.returncode == 0:
+                        # Only return stdout if there was actually output
+                        output = stdout.strip() if stdout else "Program executed successfully with no output."
                         return {
-                            'success': process.returncode == 0,
-                            'output': stdout,
-                            'error': stderr if process.returncode != 0 else None
+                            'success': True,
+                            'output': output
                         }
-
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        process.wait()
+                    else:
                         return {
                             'success': False,
-                            'error': f"Execution timeout after {execution_timeout} seconds. Check for infinite loops or add Console.ReadLine() for interactive programs."
+                            'error': stderr or "Program failed with no error message"
                         }
+
+                except subprocess.TimeoutExpired:
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    return {
+                        'success': False,
+                        'error': f"Execution timeout after {execution_timeout} seconds"
+                    }
 
             except Exception as e:
                 logger.error(f"Execution error: {e}", exc_info=True)
@@ -278,3 +248,28 @@ def monitor_process_resources(pid: int) -> Tuple[float, float]:
         return cpu_percent, memory_percent
     except:
         return 0.0, 0.0
+
+def cleanup_session(session_id: str) -> None:
+    """Clean up resources for a session"""
+    if session_id in active_sessions:
+        session = active_sessions[session_id]
+        try:
+            if session.process and session.process.poll() is None:
+                try:
+                    group_id = os.getpgid(session.process.pid)
+                    os.killpg(group_id, signal.SIGTERM)
+                except:
+                    session.process.terminate()
+                try:
+                    session.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    session.process.kill()
+                    session.process.wait()
+
+            if os.path.exists(session.temp_dir):
+                shutil.rmtree(session.temp_dir, ignore_errors=True)
+        except Exception as e:
+            logger.error(f"Error cleaning up session {session_id}: {e}")
+        finally:
+            with session_lock:
+                del active_sessions[session_id]
