@@ -91,7 +91,6 @@ def register():
         try:
             user = Student(
                 username=form.username.data,
-                email=form.email.data if form.email.data else None
             )
             success, message = user.set_password(form.password.data)
             if not success:

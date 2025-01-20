@@ -30,14 +30,6 @@
                             <small class="form-text text-muted">Choose a unique username to identify yourself.</small>
                         </div>
                         <div class="mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), autocomplete="email") }}
-                            {% for error in form.email.errors %}
-                                <div class="invalid-feedback">{{ error }}</div>
-                            {% endfor %}
-                            <small class="form-text text-muted">Optional: Add an email for account recovery.</small>
-                        </div>
-                        <div class="mb-3">
                             {{ form.password.label(class="form-label") }}
                             {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""), autocomplete="new-password") }}
                             {% for error in form.password.errors %}

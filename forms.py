@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationError, Optional
+from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
 from models import Student
 
 class LoginForm(FlaskForm):
@@ -25,8 +25,6 @@ class RegisterForm(FlaskForm):
                            DataRequired(),
                            Length(min=2, max=20, message='Username must be between 2 and 20 characters')
                        ])
-    email = StringField('Email (Optional)', 
-                     validators=[Optional(), Email()])
     password = PasswordField('Password', 
                          validators=[
                              DataRequired(),
