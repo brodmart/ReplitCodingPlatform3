@@ -46,30 +46,16 @@ async function executeCode() {
             body: JSON.stringify({
                 code: code,
                 language: language
-            }),
-            // Prevent redirect
-            redirect: 'manual'
+            })
         });
 
-        // Check for redirect (usually to login page)
-        if (response.type === 'opaqueredirect') {
-            throw new Error('Please log in to run code. Click OK to go to the login page.');
-        }
-
-        let result;
+        // Check if response is JSON
         const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            result = await response.json();
-        } else {
-            const textResponse = await response.text();
-            // Check if the response contains a login form or authentication message
-            if (textResponse.includes('login') || textResponse.includes('sign in')) {
-                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                return;
-            }
-            throw new Error('Unexpected server response. Please try again.');
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error('Server returned an invalid response. Please try again.');
         }
 
+        const result = await response.json();
         console.log('Execution result:', result);
 
         if (result.success) {
@@ -80,28 +66,17 @@ async function executeCode() {
                 consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
             }
         } else {
-            throw new Error(result.error === 'Missing required fields' ? 
-                'Please log in to run code. You will be redirected to the login page.' : 
-                result.error || 'Failed to execute code');
+            // Specific error handling
+            if (result.error === 'Missing required fields') {
+                throw new Error('An error occurred while running the code. Please try again.');
+            } else {
+                throw new Error(result.error || 'Failed to execute code');
+            }
         }
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
-            // If it's a login-related error or missing fields error, show a user-friendly message
-            if (error.message.includes('log in') || error.message.includes('Missing required fields')) {
-                consoleOutput.innerHTML = `
-                    <div class="console-error">
-                        Please log in to run code. 
-                        <a href="/login?next=${encodeURIComponent(window.location.pathname)}">Click here to log in</a>
-                    </div>`;
-
-                // Redirect to login page after a short delay
-                setTimeout(() => {
-                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-                }, 2000);
-            } else {
-                consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
-            }
+            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
         }
     } finally {
         isExecuting = false;
