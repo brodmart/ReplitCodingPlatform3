@@ -8,10 +8,22 @@ logger = logging.getLogger(__name__)
 def create_admin_user():
     with app.app_context():
         try:
+            # First remove any existing users - as requested
+            db.session.query(Student).filter(Student.username != 'admin').delete()
+            db.session.commit()
+            logger.info("Removed all non-admin users")
+
+            # Check if admin exists
+            admin = Student.query.filter_by(username='admin').first()
+
+            if admin:
+                logger.info("Admin user already exists")
+                return
+
             # Create admin user
             admin = Student(
                 username='admin',
-                is_admin=True,
+                email=None,  # Email is optional in the model
                 failed_login_attempts=0
             )
             success, message = admin.set_password('admin123')
@@ -20,6 +32,7 @@ def create_admin_user():
                 logger.error(f"Failed to set admin password: {message}")
                 return
 
+            admin.is_admin = True  # Set admin flag after creation
             db.session.add(admin)
             db.session.commit()
             logger.info("Admin user created successfully")
