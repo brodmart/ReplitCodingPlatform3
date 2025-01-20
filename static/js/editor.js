@@ -34,20 +34,34 @@ async function executeCode() {
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
 
-        console.log('Starting execution with:', { language, codeLength: code.length });
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            throw new Error('CSRF token not found. Please refresh the page.');
+        }
+
+        // Get activity ID if we're in an activity context
+        const activityId = document.querySelector('input[name="activity_id"]')?.value || '';
+
+        console.log('Starting execution with:', { 
+            language, 
+            codeLength: code.length,
+            hasActivityId: !!activityId,
+            hasCsrfToken: !!csrfToken
+        });
 
         // Make a POST request to execute the code
         const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-Token': csrfToken
             },
             body: JSON.stringify({
                 code: code,
                 language: language,
-                activity_id: document.querySelector('input[name="activity_id"]')?.value || '',
-                csrf_token: document.querySelector('meta[name="csrf-token"]').content
+                activity_id: activityId,
+                csrf_token: csrfToken
             })
         });
 
@@ -68,17 +82,24 @@ async function executeCode() {
                 consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
             }
         } else {
-            // Specific error handling
+            // Specific error handling with more detailed messages
+            let errorMessage = result.error;
             if (result.error === 'Missing required fields') {
-                throw new Error('Please ensure all required fields are provided.');
-            } else {
-                throw new Error(result.error || 'Failed to execute code');
+                errorMessage = 'Unable to run code - missing required information. ' + 
+                             'If this persists, try refreshing the page.';
             }
+            throw new Error(errorMessage || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
+            let errorMessage = error.message;
+            // Make error messages more user-friendly
+            if (errorMessage.includes('Missing required fields')) {
+                errorMessage = 'Unable to run code - missing required information. ' +
+                             'If this persists, try refreshing the page.';
+            }
+            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(errorMessage)}</div>`;
         }
     } finally {
         isExecuting = false;
