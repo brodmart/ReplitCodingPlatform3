@@ -80,24 +80,28 @@ async function executeCode() {
                 consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
             }
         } else {
-            throw new Error(result.error || 'Failed to execute code');
+            throw new Error(result.error === 'Missing required fields' ? 
+                'Please log in to run code. You will be redirected to the login page.' : 
+                result.error || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
-            // If it's a login-related error, show a more user-friendly message
-            if (error.message.includes('log in')) {
-                consoleOutput.innerHTML = `<div class="console-error">Please log in to run code. <a href="/login?next=${encodeURIComponent(window.location.pathname)}">Click here to log in</a></div>`;
+            // If it's a login-related error or missing fields error, show a user-friendly message
+            if (error.message.includes('log in') || error.message.includes('Missing required fields')) {
+                consoleOutput.innerHTML = `
+                    <div class="console-error">
+                        Please log in to run code. 
+                        <a href="/login?next=${encodeURIComponent(window.location.pathname)}">Click here to log in</a>
+                    </div>`;
+
+                // Redirect to login page after a short delay
+                setTimeout(() => {
+                    window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                }, 2000);
             } else {
                 consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
             }
-        }
-
-        // If it's a login error, redirect after a short delay
-        if (error.message.includes('log in')) {
-            setTimeout(() => {
-                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
-            }, 1500);
         }
     } finally {
         isExecuting = false;
