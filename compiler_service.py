@@ -94,6 +94,12 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 indent = len(line) - len(line.lstrip())
                 modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
+        # Add automatic flush after Console.Write
+        for line in code_lines:
+            if 'Console.Write(' in line and not 'Console.WriteLine' in line:
+                indent = len(line) - len(line.lstrip())
+                modified_code.append(' ' * indent + 'Console.Out.Flush();')
+
         code = '\n'.join(modified_code)
 
         # Compile the code
@@ -132,6 +138,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         env = os.environ.copy()
         env['MONO_IOMAP'] = 'all'  # Improve Mono I/O handling
         env['MONO_THREADS_PER_CPU'] = '2'  # Limit thread usage
+        env['MONO_GC_PARAMS'] = 'mode=throughput'  # Optimize GC for console apps
 
         run_cmd = ['mono', '--debug', str(executable)]
         session.process = subprocess.Popen(
@@ -147,19 +154,25 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         # Start output monitoring thread
         def monitor_output():
-            while session.process and session.process.poll() is None:
-                # Use select to check for available output
-                readable, _, _ = select.select([session.process.stdout, session.process.stderr], [], [], 0.1)
-                for stream in readable:
-                    line = stream.readline()
-                    if line:
-                        if stream == session.process.stdout:
-                            session.stdout_buffer.append(line)
-                            if any(prompt in line.lower() for prompt in ['input', 'enter', 'type', '?', ':', '>']):
-                                session.waiting_for_input = True
-                        else:
-                            session.stderr_buffer.append(line)
-                        session.last_activity = time.time()
+            try:
+                while session.process and session.process.poll() is None:
+                    # Use select to check for available output
+                    readable, _, _ = select.select([session.process.stdout, session.process.stderr], [], [], 0.1)
+
+                    for stream in readable:
+                        line = stream.readline()
+                        if line:
+                            if stream == session.process.stdout:
+                                session.stdout_buffer.append(line)
+                                logger.debug(f"Output received: {line.strip()}")
+                                if any(prompt in line.lower() for prompt in ['input', 'enter', 'type', '?', ':', '>']):
+                                    session.waiting_for_input = True
+                            else:
+                                session.stderr_buffer.append(line)
+                                logger.debug(f"Error output: {line.strip()}")
+                            session.last_activity = time.time()
+            except Exception as e:
+                logger.error(f"Error in monitor_output: {e}")
 
         session.output_thread = Thread(target=monitor_output)
         session.output_thread.daemon = True
@@ -190,6 +203,7 @@ def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
             session.process.stdin.write(input_data + '\n')
             session.process.stdin.flush()
             session.waiting_for_input = False
+            logger.debug(f"Input sent to process: {input_data}")
             return {'success': True}
         else:
             return {'success': False, 'error': 'Process not running'}
@@ -225,6 +239,8 @@ def get_output(session_id: str) -> Dict[str, Any]:
 
         # Return accumulated output
         output = ''.join(session.stdout_buffer)
+        if output:
+            logger.debug(f"Returning output: {output.strip()}")
         session.stdout_buffer = []  # Clear buffer after reading
 
         return {
@@ -396,7 +412,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         pass
 
                 if process.returncode == 0:
-                    output = stdout.strip() if stdout else "Program executed successfully with no output."
+                    output = stdout.strip() if stdout else "No output generated. If you expected output, ensure Console.WriteLine statements are used and properly flushed."
                     return {
                         'success': True,
                         'output': output
