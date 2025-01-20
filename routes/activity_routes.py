@@ -53,6 +53,7 @@ def log_api_request(start_time, client_ip, endpoint, status_code):
     logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")
 
 
+
 @activities.route('/activities/submit_confidence', methods=['POST'])
 @login_required
 @limiter.limit("30 per minute")
@@ -138,19 +139,30 @@ def run_code():
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
+        activity_id = data.get('activity_id')
 
         if not code:
             logger.error("No code provided in request")
             return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
+        # Normalize language name
+        if language in ['c#', 'csharp', 'cs']:
+            language = 'csharp'
+        elif language in ['c++', 'cpp']:
+            language = 'cpp'
+
+        logger.debug(f"Executing {language} code, length: {len(code)}")
+        logger.debug(f"Code preview: {code[:200]}...")  # Log first 200 chars for debugging
+
         # Execute the code with automatic interactive detection
-        logger.debug(f"Executing {language} code")
         result = compile_and_run(
             code=code,
             language=language,
             compile_timeout=30,
             execution_timeout=60
         )
+
+        logger.debug(f"Execution result: {result}")
 
         if result.get('interactive', False):
             # Handle interactive program
@@ -161,6 +173,27 @@ def run_code():
                 'interactive': True,
                 'session_id': session_id
             })
+
+        # Store submission if activity_id is provided
+        if activity_id:
+            try:
+                submission = CodeSubmission(
+                    student_id=current_user.id,
+                    activity_id=activity_id,
+                    code=code,
+                    language=language,
+                    success=result.get('success', False),
+                    output=result.get('output', ''),
+                    error=result.get('error', ''),
+                    submitted_at=datetime.utcnow()
+                )
+                db.session.add(submission)
+                db.session.commit()
+                logger.info(f"Stored submission for activity {activity_id}")
+            except Exception as e:
+                logger.error(f"Failed to store submission: {str(e)}")
+                # Continue with execution result even if storage fails
+                pass
 
         return jsonify(result)
 
@@ -281,6 +314,7 @@ def list_activities(grade=None):
         return response, 500
 
 
+
 @activities.route('/activity/<int:activity_id>')
 @login_required
 @limiter.limit("30 per minute")
@@ -315,6 +349,7 @@ def view_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
+
 
 
 @activities.route('/activity/enhanced/<int:activity_id>')

@@ -75,6 +75,14 @@ def compile_and_run(
     Enhanced compile and run with better resource management and interactive support
     """
     try:
+        # Normalize language
+        language = language.lower()
+        if language not in ['cpp', 'csharp']:
+            return {
+                'success': False,
+                'error': f"Unsupported language: {language}"
+            }
+
         # Auto-detect interactive mode if not specified
         if interactive is None:
             interactive = is_interactive_code(code, language)
@@ -84,17 +92,17 @@ def compile_and_run(
             temp_path = Path(temp_dir)
             chunk_size = 1024 * 1024  # 1MB chunks
 
+            # Set up source and executable files based on language
             if language == 'cpp':
                 source_file = temp_path / "program.cpp"
                 executable = temp_path / "program"
-            elif language == 'csharp':
+                compile_cmd = ['g++', str(source_file), '-o', str(executable), '-std=c++11']
+                run_cmd = [str(executable)]
+            else:  # csharp
                 source_file = temp_path / "program.cs"
                 executable = temp_path / "program.exe"
-            else:
-                return {
-                    'success': False,
-                    'error': f"Unsupported language: {language}"
-                }
+                compile_cmd = ['mcs', str(source_file), '-out:' + str(executable)]
+                run_cmd = ['mono', str(executable)]
 
             # Write code in chunks
             with open(source_file, 'w') as f:
@@ -103,15 +111,8 @@ def compile_and_run(
                     f.write(chunk)
                     f.flush()
 
-            # Compile with appropriate timeout
-            compile_cmd = (
-                ['g++', str(source_file), '-o', str(executable), '-std=c++11']
-                if language == 'cpp'
-                else ['mcs', str(source_file), '-out:' + str(executable)]
-            )
-
             try:
-                logger.debug(f"Compiling with command: {compile_cmd}")
+                logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
                 compile_process = subprocess.run(
                     compile_cmd,
                     capture_output=True,
@@ -125,9 +126,15 @@ def compile_and_run(
                 }
 
             if compile_process.returncode != 0:
+                error_msg = compile_process.stderr
+                if language == 'csharp' and 'error CS' in error_msg:
+                    # Improve C# error messages
+                    error_lines = error_msg.split('\n')
+                    filtered_errors = [line for line in error_lines if 'error CS' in line]
+                    error_msg = '\n'.join(filtered_errors)
                 return {
                     'success': False,
-                    'error': compile_process.stderr
+                    'error': error_msg
                 }
 
             if compile_only:
@@ -136,14 +143,11 @@ def compile_and_run(
             # Make executable
             os.chmod(executable, 0o755)
 
-            # Execute with proper resource limits
-            cmd = [str(executable)] if language == 'cpp' else ['mono', str(executable)]
-
             try:
                 # Set process group for better cleanup
-                logger.debug(f"Starting process with command: {cmd}")
+                logger.debug(f"Starting process with command: {' '.join(run_cmd)}")
                 process = subprocess.Popen(
-                    cmd,
+                    run_cmd,
                     stdin=subprocess.PIPE if interactive or input_data else None,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -173,17 +177,10 @@ def compile_and_run(
                             timeout=execution_timeout
                         )
 
-                        # Monitor resource usage
-                        cpu_usage, memory_usage = monitor_process_resources(process.pid)
-                        if cpu_usage > 90 or memory_usage > 90:
-                            logger.warning(f"High resource usage - CPU: {cpu_usage}%, Memory: {memory_usage}%")
-
                         return {
                             'success': process.returncode == 0,
                             'output': stdout,
-                            'error': stderr if process.returncode != 0 else None,
-                            'cpu_usage': cpu_usage,
-                            'memory_usage': memory_usage
+                            'error': stderr if process.returncode != 0 else None
                         }
 
                     except subprocess.TimeoutExpired:
