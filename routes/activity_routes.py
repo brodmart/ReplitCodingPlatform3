@@ -838,24 +838,23 @@ def execute_code():
 
         # Pass input data to compiler service
         result = compile_and_run(code, language, input_data)
+        log_api_request(start_time, client_ip, '/execute', 200)
 
-        if not result.get('success', False):
-            error_msg = result.get('error', 'An error occurred')
-            if 'memory' in error_msg.lower():
-                error_msg += ". Try reducing the size of variables or arrays."
-            elif 'timeout' in error_msg.lower():                error_msg += ". Check for infinite loops."
-            result['error'] = error_msg
+        if result.get('success', False):
+            logger.info(f"Code execution successful for {language}")
+        else:
+            logger.warning(f"Code execution failed for {language}: {result.get('error', 'Unknown error')}")
 
         response = jsonify(result)
         response.headers['Content-Type'] = 'application/json'
         return response
 
     except Exception as e:
-        error_msg = str(e)
-        logger.error(f"Error in execute_code for {client_ip}: {error_msg}", exc_info=True)
+        logger.error(f"Error executing code: {str(e)}", exc_info=True)
+        log_api_request(start_time, client_ip, '/execute', 500)
         response = jsonify({
             'success': False,
-            'error': "A network error occurred. Please try again in a few moments."
+            'error': "An error occurred while executing your code."
         })
-        response.headers['Content-Type'] ='application/json'
+        response.headers['Content-Type'] = 'application/json'
         return response, 500

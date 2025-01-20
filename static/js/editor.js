@@ -36,22 +36,32 @@ async function executeCode() {
 
         console.log('Starting execution with:', { language, codeLength: code.length });
 
-        if (!consoleInstance) {
-            throw new Error('Console instance not available');
+        // Make a POST request to execute the code
+        const response = await fetch('/activities/execute', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                code: code,
+                language: language
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        if (!consoleInstance.isInitialized) {
-            throw new Error('Console is not fully initialized');
-        }
-
-        // Clear any existing input state before execution
-        sessionStorage.removeItem('console_input_state');
-
-        const result = await consoleInstance.executeCode(code, language);
+        const result = await response.json();
         console.log('Execution result:', result);
 
-        if (!result) {
-            throw new Error('Failed to execute code');
+        if (result.success) {
+            if (consoleOutput) {
+                consoleOutput.innerHTML = `<pre class="console-output">${result.output || ''}</pre>`;
+            }
+        } else {
+            throw new Error(result.error || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
@@ -62,7 +72,7 @@ async function executeCode() {
         isExecuting = false;
         if (runButton) {
             runButton.disabled = false;
-            runButton.innerHTML = 'Run';
+            runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
         }
     }
 }
@@ -70,29 +80,20 @@ async function executeCode() {
 function getTemplateForLanguage(language) {
     if (language === 'cpp') {
         return `#include <iostream>
-#include <string>
 using namespace std;
 
 int main() {
-    string name;
-    cout << "Enter your name: ";
-    getline(cin, name);
-    cout << "Hello, " << name << "!" << endl;
+    cout << "Hello World!" << endl;
     return 0;
 }`;
     } else {
         return `using System;
 
-namespace ProgrammingActivity
+class Program 
 {
-    class Program 
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            Console.Write("Enter your name: ");
-            string name = Console.ReadLine();
-            Console.WriteLine($"Hello, {name}!");
-        }
+        Console.WriteLine("Hello World!");
     }
 }`;
     }
@@ -121,34 +122,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         tabSize: 4,
         lineWrapping: true
     });
-
-    // Initialize console with proper error handling
-    try {
-        console.log('Initializing console...');
-        if (consoleInstance) {
-            await consoleInstance.endSession();
-            consoleInstance = null;
-        }
-
-        consoleInstance = new InteractiveConsole();
-        const initSuccess = await consoleInstance.init();
-
-        if (!initSuccess) {
-            throw new Error('Console initialization failed');
-        }
-
-        isConsoleReady = true;
-        console.log('Console initialization complete');
-    } catch (error) {
-        console.error('Console initialization failed:', error);
-        if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Failed to initialize console: ${error.message}</div>`;
-        }
-        if (runButton) {
-            runButton.disabled = true;
-        }
-        return;
-    }
 
     // Only set template if editor is empty
     const currentCode = editor.getValue().trim();
@@ -180,14 +153,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (runButton) {
         runButton.addEventListener('click', async function(e) {
             e.preventDefault();
-            if (!isExecuting && isConsoleReady) {
+            if (!isExecuting) {
                 await executeCode();
             }
         });
     }
-});
 
-// Wait for console to be ready
-window.addEventListener('consoleReady', () => {
     isConsoleReady = true;
 });
