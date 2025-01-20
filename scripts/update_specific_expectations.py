@@ -7,7 +7,7 @@ project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
 from app import app, db
-from models.curriculum import Course, SpecificExpectation
+from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
 
 def get_english_translations():
     """
@@ -74,7 +74,7 @@ def get_english_translations():
 def main():
     """Update English translations for ICS3U specific expectations"""
     translations = get_english_translations()
-    
+
     try:
         with app.app_context():
             # Get ICS3U course
@@ -82,26 +82,34 @@ def main():
             if not course:
                 print("Error: ICS3U course not found")
                 return
-            
+
             # Update specific expectations
             updated_count = 0
-            for specific in SpecificExpectation.query.join(
-                SpecificExpectation.overall_expectation
+            specifics = SpecificExpectation.query.join(
+                OverallExpectation, 
+                SpecificExpectation.overall_expectation_id == OverallExpectation.id
             ).join(
-                'strand'
+                Strand, 
+                OverallExpectation.strand_id == Strand.id
+            ).join(
+                Course, 
+                Strand.course_id == Course.id
             ).filter(
                 Course.id == course.id
-            ).all():
+            ).all()
+
+            for specific in specifics:
                 if specific.code in translations:
                     specific.description_en = translations[specific.code]
                     updated_count += 1
-            
+
             db.session.commit()
             print(f"Updated {updated_count} specific expectations with English translations")
-            
+
     except Exception as e:
         print(f"Error updating translations: {str(e)}")
         db.session.rollback()
+        raise
 
 if __name__ == '__main__':
     main()
