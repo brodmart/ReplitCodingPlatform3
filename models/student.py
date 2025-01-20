@@ -66,52 +66,35 @@ class Student(UserMixin, db.Model):
             logger.error(f"Password verification error: {str(e)}")
             return False
 
-    def increment_failed_login(self):
-        """Track failed login attempts"""
-        if self.failed_login_attempts is None:  # Add safety check
-            self.failed_login_attempts = 0
-        self.failed_login_attempts += 1
-        self.last_failed_login = datetime.utcnow()
-
-        if self.failed_login_attempts >= 5:  # Lock after 5 attempts
-            self.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
-
-    def reset_failed_login(self):
-        """Reset failed login counter"""
-        self.failed_login_attempts = 0
-        self.last_failed_login = None
-        self.account_locked_until = None
-
-    def is_account_locked(self):
-        """Check if account is temporarily locked"""
-        if self.account_locked_until and self.account_locked_until > datetime.utcnow():
-            return True
-        return False
-
-    @staticmethod
-    def get_by_username(username):
-        """Safely get user by username"""
-        return Student.query.filter(Student.username == username).first()
-
     def __repr__(self):
         return f'<Student {self.username}>'
-
-class CodeSubmission(db.Model):
-    """Model for storing student code submissions"""
-    id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
-    code = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    # Add relationships
-    student = db.relationship('Student', back_populates='submissions')
 
 class CodingActivity(db.Model):
     """Model for coding exercises and activities"""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    description = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
+    curriculum = db.Column(db.String(255), nullable=False, default='ICS3U')
+    language = db.Column(db.String(50), nullable=True)
+    difficulty = db.Column(db.String(50), nullable=True)
+    sequence = db.Column(db.Integer, nullable=True)
+    instructions = db.Column(db.Text, nullable=True)
+    starter_code = db.Column(db.Text, nullable=True)
+    solution_code = db.Column(db.Text, nullable=True)
+    test_cases = db.Column(db.JSON, nullable=True)
+    hints = db.Column(db.JSON, nullable=True)
+    common_errors = db.Column(db.JSON, nullable=True)
+    points = db.Column(db.Integer, nullable=True)
+    max_attempts = db.Column(db.Integer, nullable=True)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
+    student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
+    submissions = db.relationship('CodeSubmission', backref='activity', lazy=True)
+
+    def __repr__(self):
+        return f'<CodingActivity {self.title}>'
 
 class StudentProgress(db.Model):
     """Model for tracking student progress"""
@@ -120,6 +103,23 @@ class StudentProgress(db.Model):
     activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    activity = db.relationship('CodingActivity', back_populates='student_progress')
+
+    def __repr__(self):
+        return f'<StudentProgress student_id={self.student_id} activity_id={self.activity_id}>'
+
+class CodeSubmission(db.Model):
+    """Model for storing student code submissions"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
+    code = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    student = db.relationship('Student', back_populates='submissions')
+    activity = db.relationship('CodingActivity', backref='submissions', lazy=True)
+
+    def __repr__(self):
+        return f'<CodeSubmission student_id={self.student_id} activity_id={self.activity_id}>'
 
 class SharedCode(db.Model):
     """Model for sharing code snippets"""
@@ -131,6 +131,9 @@ class SharedCode(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     student = db.relationship('Student', back_populates='shared_codes')
 
+    def __repr__(self):
+        return f'<SharedCode {self.title}>'
+
 class AuditLog(db.Model):
     """Model for tracking changes to student records"""
     id = db.Column(db.Integer, primary_key=True)
@@ -138,3 +141,6 @@ class AuditLog(db.Model):
     action = db.Column(db.String(50), nullable=False)
     details = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AuditLog user_id={self.user_id} action={self.action}>'

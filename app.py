@@ -70,20 +70,21 @@ def create_app():
         @login_manager.user_loader
         def load_user(user_id):
             try:
-                from models.student import Student
+                from models import Student
                 return Student.query.get(int(user_id))
-            except:
+            except Exception as e:
+                logger.error(f"Error loading user: {str(e)}")
                 return None
 
         # Register blueprints
         from routes.auth_routes import auth
-        from routes.activity_routes import activities
+        from routes.activities import activities_bp
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
         from routes.curriculum_routes import curriculum_bp
 
         app.register_blueprint(auth)
-        app.register_blueprint(activities, url_prefix='/activities')
+        app.register_blueprint(activities_bp)
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
         app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
@@ -91,16 +92,16 @@ def create_app():
         # Error handlers 
         @app.errorhandler(404)
         def not_found_error(error):
-            return render_template('errors/404.html', lang='en'), 404
+            return render_template('errors/404.html'), 404
 
         @app.errorhandler(500)
         def internal_error(error):
             db.session.rollback()
-            return render_template('errors/500.html', lang='en'), 500
+            return render_template('errors/500.html'), 500
 
         @app.errorhandler(413)
         def request_entity_too_large(error):
-            return render_template('errors/413.html', lang='en'), 413
+            return render_template('errors/413.html'), 413
 
         logger.info("Application initialized successfully")
         return app

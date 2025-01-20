@@ -202,12 +202,14 @@ class CodingActivity(SoftDeleteMixin, db.Model):
     syntax_help = db.Column(db.Text, nullable=True)
     points = db.Column(db.Integer, nullable=True)
     max_attempts = db.Column(db.Integer, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Keep existing relationships
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
     submissions = db.relationship('CodeSubmission', backref='activity', lazy=True)
 
+    def __repr__(self):
+        return f'<CodingActivity {self.title}>'
 
 class StudentProgress(db.Model):
     """Model for tracking student progress through activities"""

@@ -1,6 +1,7 @@
 """
 Initialize models package and expose models
 """
+from database import db
 from .student import (
     Student,
     CodeSubmission,
@@ -17,6 +18,7 @@ from .curriculum import (
 )
 
 __all__ = [
+    'db',
     'Student',
     'CodeSubmission', 
     'CodingActivity',
