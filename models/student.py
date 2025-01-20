@@ -36,6 +36,7 @@ class Student(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
+    achievements = db.relationship('StudentAchievement', backref='student', lazy=True)
     submissions = db.relationship('CodeSubmission', back_populates='student', lazy=True)
     progress = db.relationship('StudentProgress', backref='student', lazy=True)
     shared_codes = db.relationship('SharedCode', back_populates='student', lazy=True)
@@ -69,12 +70,37 @@ class Student(UserMixin, db.Model):
     def __repr__(self):
         return f'<Student {self.username}>'
 
+class Achievement(db.Model):
+    """Achievement model for tracking student accomplishments"""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.String(500), nullable=False)
+    criteria = db.Column(db.String(200), nullable=False)
+    badge_icon = db.Column(db.String(200))
+    points = db.Column(db.Integer)
+    category = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<Achievement {self.name}>'
+
+class StudentAchievement(db.Model):
+    """Junction model linking students with their achievements"""
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    achievement_id = db.Column(db.Integer, db.ForeignKey('achievement.id'), nullable=False)
+    earned_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    achievement = db.relationship('Achievement', backref=db.backref('student_achievements', lazy=True))
+
+    def __repr__(self):
+        return f'<StudentAchievement student_id={self.student_id} achievement_id={self.achievement_id}>'
+
 class CodingActivity(db.Model):
     """Model for coding exercises and activities"""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, nullable=True, default=datetime.utcnow)
     curriculum = db.Column(db.String(255), nullable=False, default='ICS3U')
     language = db.Column(db.String(50), nullable=True)
     difficulty = db.Column(db.String(50), nullable=True)
@@ -87,11 +113,12 @@ class CodingActivity(db.Model):
     common_errors = db.Column(db.JSON, nullable=True)
     points = db.Column(db.Integer, nullable=True)
     max_attempts = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     deleted_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
-    student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
-    submissions = db.relationship('CodeSubmission', backref='activity', lazy=True)
+    submissions = db.relationship('CodeSubmission', back_populates='activity', lazy=True)
+    progress_records = db.relationship('StudentProgress', back_populates='activity', lazy=True)
 
     def __repr__(self):
         return f'<CodingActivity {self.title}>'
@@ -102,8 +129,13 @@ class StudentProgress(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
     completed = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    activity = db.relationship('CodingActivity', back_populates='student_progress')
+    started_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    attempts = db.Column(db.Integer, default=0)
+    last_submission = db.Column(db.Text)
+
+    # Relationship
+    activity = db.relationship('CodingActivity', back_populates='progress_records')
 
     def __repr__(self):
         return f'<StudentProgress student_id={self.student_id} activity_id={self.activity_id}>'
@@ -114,9 +146,15 @@ class CodeSubmission(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     activity_id = db.Column(db.Integer, db.ForeignKey('coding_activity.id'), nullable=False)
     code = db.Column(db.Text, nullable=False)
+    language = db.Column(db.String(20), nullable=False)
+    success = db.Column(db.Boolean, default=False)
+    output = db.Column(db.Text)
+    error = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
     student = db.relationship('Student', back_populates='submissions')
-    activity = db.relationship('CodingActivity', backref='submissions', lazy=True)
+    activity = db.relationship('CodingActivity', back_populates='submissions')
 
     def __repr__(self):
         return f'<CodeSubmission student_id={self.student_id} activity_id={self.activity_id}>'
@@ -128,7 +166,11 @@ class SharedCode(db.Model):
     code = db.Column(db.Text, nullable=False)
     title = db.Column(db.String(255))
     description = db.Column(db.Text)
+    language = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_public = db.Column(db.Boolean, default=True)
+    views = db.Column(db.Integer, default=0)
+
     student = db.relationship('Student', back_populates='shared_codes')
 
     def __repr__(self):

@@ -369,9 +369,10 @@ def view_enhanced_activity(activity_id):
             activity.starter_code = str(activity.starter_code)
 
         return render_template(
-            'activities/enhanced_learning.html',
+            'activity.html',
             activity=activity,
-            lang=session.get('lang', 'fr')
+            lang=session.get('lang', 'fr'),
+            enhanced=True
         )
     except Exception as e:
         logger.error(f"Error viewing enhanced activity {activity_id}: {str(e)}", exc_info=True)

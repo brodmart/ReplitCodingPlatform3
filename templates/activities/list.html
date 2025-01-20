@@ -34,6 +34,9 @@
                     <a href="{{ url_for('activities.view_activity', activity_id=activity.id) }}" class="btn btn-primary">
                         {% if lang == 'fr' %}Commencer{% else %}Start{% endif %}
                     </a>
+                    <a href="{{ url_for('activities.view_activity', activity_id=activity.id, enhanced=true) }}" class="btn btn-outline-primary">
+                        {% if lang == 'fr' %}Mode avancé{% else %}Enhanced Mode{% endif %}
+                    </a>
                 </div>
             </div>
         </div>
