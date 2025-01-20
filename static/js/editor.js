@@ -46,8 +46,15 @@ async function executeCode() {
             body: JSON.stringify({
                 code: code,
                 language: language
-            })
+            }),
+            // Prevent redirect
+            redirect: 'manual'
         });
+
+        // Check for redirect (usually to login page)
+        if (response.type === 'opaqueredirect') {
+            throw new Error('Please log in to run code. Click OK to go to the login page.');
+        }
 
         let result;
         const contentType = response.headers.get("content-type");
@@ -55,10 +62,12 @@ async function executeCode() {
             result = await response.json();
         } else {
             const textResponse = await response.text();
-            throw new Error(
-                `Server returned non-JSON response. Status: ${response.status}. ` +
-                `Please try again or check if the server is running.`
-            );
+            // Check if the response contains a login form or authentication message
+            if (textResponse.includes('login') || textResponse.includes('sign in')) {
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+            throw new Error('Unexpected server response. Please try again.');
         }
 
         console.log('Execution result:', result);
@@ -68,7 +77,7 @@ async function executeCode() {
                 // Handle both string and object outputs
                 let outputText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
                 outputText = outputText || 'Program executed successfully with no output.';
-                consoleOutput.innerHTML = `<pre class="console-output">${outputText}</pre>`;
+                consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
             }
         } else {
             throw new Error(result.error || 'Failed to execute code');
@@ -76,7 +85,19 @@ async function executeCode() {
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${error.message}</div>`;
+            // If it's a login-related error, show a more user-friendly message
+            if (error.message.includes('log in')) {
+                consoleOutput.innerHTML = `<div class="console-error">Please log in to run code. <a href="/login?next=${encodeURIComponent(window.location.pathname)}">Click here to log in</a></div>`;
+            } else {
+                consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        // If it's a login error, redirect after a short delay
+        if (error.message.includes('log in')) {
+            setTimeout(() => {
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+            }, 1500);
         }
     } finally {
         isExecuting = false;
@@ -85,6 +106,16 @@ async function executeCode() {
             runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
         }
     }
+}
+
+// Helper function to escape HTML and prevent XSS
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function getTemplateForLanguage(language) {
