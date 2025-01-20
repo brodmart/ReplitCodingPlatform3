@@ -1,3 +1,6 @@
+"""
+Activity routes with curriculum compliance integration and enhanced learning features
+"""
 import os
 import logging
 import time
@@ -6,7 +9,7 @@ import shutil
 from threading import Lock
 import atexit
 import fcntl
-from flask import Blueprint, render_template, request, jsonify, session
+from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from werkzeug.exceptions import RequestTimeout
 from database import db
@@ -23,8 +26,7 @@ from compiler_service import (
     send_input,
     get_output,
     active_sessions,
-    session_lock,
-    CompilerSession # Assuming this is defined in compiler_service
+    session_lock
 )
 
 # Initialize scheduler for backups
@@ -38,9 +40,6 @@ atexit.register(lambda: scheduler.shutdown())
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
 
-# Store active sessions (Now managed by compiler_service)
-# active_sessions = {}
-# session_lock = Lock()
 
 # Create temp directory
 TEMP_DIR = os.path.join(os.getcwd(), 'temp')
@@ -53,7 +52,6 @@ def log_api_request(start_time, client_ip, endpoint, status_code):
     duration = time.time() - start_time
     logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")
 
-# compile_and_run function is now in compiler_service
 
 @activities.route('/activities/submit_confidence', methods=['POST'])
 @login_required
@@ -95,6 +93,7 @@ def submit_confidence():
         logger.error(f"Error storing confidence: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
 @activities.route('/activities/fetch_solutions/<int:activity_id>')
 @login_required
 @limiter.limit("30 per minute")
@@ -122,73 +121,46 @@ def fetch_solutions(activity_id):
         logger.error(f"Error getting solutions: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
-@activities.route('/activities/submit_code', methods=['POST'])
+
+@activities.route('/activities/run_code', methods=['POST'])
 @login_required
-@limiter.limit("30 per minute")
-def submit_code():
-    """Execute code submitted from the enhanced learning view"""
+def run_code():
+    """Execute student code submission with activity tracking"""
     try:
         if not request.is_json:
+            logger.error("Invalid request format - not JSON")
             return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
         data = request.get_json()
+        if not data:
+            logger.error("Empty request data")
+            return jsonify({'success': False, 'error': 'Missing request data'}), 400
+
         code = data.get('code', '').strip()
-        activity_id = data.get('activity_id')
         language = data.get('language', 'cpp').lower()
 
         if not code:
+            logger.error("No code provided in request")
             return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
-        if language not in ['cpp', 'csharp']:
-            return jsonify({'success': False, 'error': 'Unsupported language'}), 400
-
-        # Record start time for performance tracking
-        start_time = time.time()
-
-        # Compile and run the code
-        result = compile_and_run(code, language)
-        execution_success = result.get('success', False)
-
-        # Calculate completion time
-        completion_time = time.time() - start_time
-
-        # Update student progress with new metrics
-        progress = StudentProgress.query.filter_by(
-            student_id=current_user.id,
-            activity_id=activity_id
-        ).first()
-
-        if not progress:
-            progress = StudentProgress(
-                student_id=current_user.id,
-                activity_id=activity_id,
-                started_at=datetime.utcnow()
-            )
-            db.session.add(progress)
-
-        # Update difficulty and performance metrics
-        progress.update_difficulty(execution_success, completion_time)
-
-        # Generate personalized feedback
-        feedback = progress.generate_personalized_feedback(
-            submission_error=result.get('error') if not execution_success else None
+        # Execute the code with automatic interactive detection
+        logger.debug(f"Executing {language} code")
+        result = compile_and_run(
+            code=code,
+            language=language,
+            compile_timeout=30,
+            execution_timeout=60
         )
 
-        # If successful, mark as completed
-        if execution_success and not progress.completed:
-            progress.completed = True
-            progress.completed_at = datetime.utcnow()
-
-        progress.attempts += 1
-        progress.last_submission = code
-
-        db.session.commit()
-
-        # Add learning analytics to response
-        result['difficulty_level'] = progress.difficulty_level
-        result['success_rate'] = progress.success_rate
-        result['personalized_feedback'] = feedback
-        result['learning_patterns'] = progress.analyze_performance()
+        if result.get('interactive', False):
+            # Handle interactive program
+            logger.debug("Interactive program detected")
+            session_id = result.get('session_id')
+            return jsonify({
+                'success': True,
+                'interactive': True,
+                'session_id': session_id
+            })
 
         return jsonify(result)
 
@@ -196,8 +168,65 @@ def submit_code():
         logger.error(f"Error running code: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "An error occurred while running your code."
+            'error': str(e)
         }), 500
+
+
+@activities.route('/get_output', methods=['GET'])
+def get_session_output():
+    """Get output from a running interactive program"""
+    session_id = request.args.get('session_id')
+    logger.debug(f"Getting output for session {session_id}")
+
+    if not session_id:
+        return jsonify({'success': False, 'error': 'No session ID provided'}), 400
+
+    try:
+        result = get_output(session_id)
+        if not result['success']:
+            cleanup_session(session_id)
+            return jsonify(result), 400
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error getting output: {str(e)}", exc_info=True)
+        cleanup_session(session_id)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@activities.route('/send_input', methods=['POST'])
+def send_session_input():
+    """Send input to a running interactive program"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+        input_text = data.get('input', '')
+
+        if not session_id:
+            return jsonify({'success': False, 'error': 'No session ID provided'}), 400
+
+        result = send_input(session_id, input_text)
+        if not result['success']:
+            cleanup_session(session_id)
+            return jsonify(result), 400
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error sending input: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
@@ -251,6 +280,7 @@ def list_activities(grade=None):
         response.headers['Content-Type'] = 'application/json'
         return response, 500
 
+
 @activities.route('/activity/<int:activity_id>')
 @login_required
 @limiter.limit("30 per minute")
@@ -285,6 +315,7 @@ def view_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
+
 
 @activities.route('/activity/enhanced/<int:activity_id>')
 @login_required
@@ -321,219 +352,8 @@ def view_enhanced_activity(activity_id):
         }), 500
 
 
-@activities.route('/start_session', methods=['POST'])
-@limiter.limit("30 per minute")
-def start_session():
-    """Start a new interactive coding session with enhanced resource management"""
-    logger.info("start_session endpoint called")
 
-    if not request.is_json:
-        logger.error("Invalid request format - not JSON")
-        return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
-    try:
-        data = request.get_json()
-        logger.info(f"Received request data: {data}")
-
-        code = data.get('code', '').strip()
-        language = data.get('language', 'cpp').lower()
-
-        if not code:
-            logger.error("Empty code submitted")
-            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
-
-        # Start interactive compilation and execution
-        result = compile_and_run(
-            code,
-            language,
-            interactive=True,
-            compile_timeout=15,  # Increased compilation timeout
-            execution_timeout=60  # Increased execution timeout
-        )
-
-        if not result.get('success'):
-            logger.error(f"Compilation failed: {result.get('error')}")
-            return jsonify(result), 400
-
-        # Create new session
-        session_id = str(time.time())
-        with session_lock:
-            active_sessions[session_id] = CompilerSession(
-                session_id=session_id,
-                temp_dir=result['temp_dir']
-            )
-            session = active_sessions[session_id]
-            session.process = result['process']
-            session.last_activity = time.time()
-
-        logger.info(f"Successfully started session {session_id}")
-        return jsonify({
-            'success': True,
-            'session_id': session_id,
-            'message': 'Interactive program started successfully'
-        })
-
-    except Exception as e:
-        logger.error(f"Error in start_session: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@activities.route('/get_output', methods=['GET'])
-@limiter.limit("60 per minute")
-def get_session_output():
-    """Get output from a running interactive program with improved error handling"""
-    session_id = request.args.get('session_id')
-    logger.debug(f"GET /get_output - Session {session_id}")
-
-    if not session_id:
-        return jsonify({'success': False, 'error': 'No session ID provided'}), 400
-
-    try:
-        result = get_output(session_id)
-        if not result['success']:
-            cleanup_session(session_id)
-            return jsonify(result), 400
-
-        if result.get('session_ended', False):
-            cleanup_session(session_id)
-
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error getting output: {str(e)}", exc_info=True)
-        cleanup_session(session_id)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@activities.route('/send_input', methods=['POST'])
-@limiter.limit("60 per minute")
-def send_session_input():
-    """Send input to a running interactive program with improved error handling"""
-    try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
-        data = request.get_json()
-        session_id = data.get('session_id')
-        input_text = data.get('input', '')
-
-        if not session_id:
-            return jsonify({'success': False, 'error': 'No session ID provided'}), 400
-
-        result = send_input(session_id, input_text)
-        if not result['success']:
-            cleanup_session(session_id)
-            return jsonify(result), 400
-
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error sending input: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@activities.route('/end_session', methods=['POST'])
-@limiter.limit("30 per minute")
-def end_session():
-    """End an interactive coding session and clean up resources"""
-    try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
-        data = request.get_json()
-        session_id = data.get('session_id')
-
-        if not session_id:
-            return jsonify({'success': False, 'error': 'No session ID provided'}), 400
-
-        cleanup_session(session_id)
-        return jsonify({
-            'success': True,
-            'message': 'Session ended and resources cleaned up'
-        })
-
-    except Exception as e:
-        logger.error(f"Error ending session: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@activities.route('/execute', methods=['POST'])
-@limiter.limit("10 per minute")
-def execute_code():
-    """Execute submitted code with input support"""
-    start_time = time.time()
-    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-
-    try:
-        if not request.is_json:
-            response = jsonify({
-                'success': False,
-                'error': 'Invalid request format. Please refresh the page and try again.'
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
-
-        data = request.get_json()
-        if not data:
-            response = jsonify({
-                'success': False,
-                'error': 'Missing data. Please try again.'
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
-
-        code = data.get('code', '').strip()
-        language = data.get('language', 'cpp').lower()
-        input_data = data.get('input', '')  # Get optional input data
-
-        if not code:
-            response = jsonify({
-                'success': False,
-                'error': 'Code cannot be empty'
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
-
-        if language not in ['cpp', 'csharp']:
-            response = jsonify({
-                'success': False,
-                'error': 'Unsupported language'
-            })
-            response.headers['Content-Type'] = 'application/json'
-            return response, 400
-
-        # Pass input data to compiler service
-        result = compile_and_run(code, language, input_data)
-        log_api_request(start_time, client_ip, '/execute', 200)
-
-        if result.get('success', False):
-            logger.info(f"Code execution successful for {language}")
-        else:
-            logger.warning(f"Code execution failed for {language}: {result.get('error', 'Unknown error')}")
-
-        response = jsonify(result)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-
-    except Exception as e:
-        logger.error(f"Error executing code: {str(e)}", exc_info=True)
-        log_api_request(start_time, client_ip, '/execute', 500)
-        response = jsonify({
-            'success': False,
-            'error': "An error occurred while executing your code."
-        })
-        response.headers['Content-Type'] = 'application/json'
-        return response, 500
-
-# Initialize cleanup of old sessions
+# Cleanup inactive sessions periodically
 def cleanup_old_sessions():
     """Clean up inactive sessions older than 15 minutes"""
     try:

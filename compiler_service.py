@@ -28,13 +28,21 @@ class CompilerSession:
         self.stderr_buffer = []
         self.waiting_for_input = False
 
+def is_interactive_code(code: str, language: str) -> bool:
+    """Detect if code is likely interactive based on input patterns"""
+    code_lower = code.lower()
+    if language == 'cpp':
+        return 'cin' in code_lower or 'getline' in code_lower
+    elif language == 'csharp':
+        return 'console.readline' in code_lower or 'console.read' in code_lower
+    return False
+
 def cleanup_session(session_id: str) -> None:
     """Clean up resources for a session"""
     if session_id in active_sessions:
         session = active_sessions[session_id]
         try:
             if session.process and session.process.poll() is None:
-                # Get process group
                 try:
                     group_id = os.getpgid(session.process.pid)
                     os.killpg(group_id, signal.SIGTERM)
@@ -46,7 +54,6 @@ def cleanup_session(session_id: str) -> None:
                     session.process.kill()
                     session.process.wait()
 
-            # Clean up temp directory
             if os.path.exists(session.temp_dir):
                 shutil.rmtree(session.temp_dir, ignore_errors=True)
         except Exception as e:
@@ -55,29 +62,24 @@ def cleanup_session(session_id: str) -> None:
             with session_lock:
                 del active_sessions[session_id]
 
-def monitor_process_resources(pid: int) -> Tuple[float, float]:
-    """Monitor CPU and memory usage of a process"""
-    try:
-        process = psutil.Process(pid)
-        cpu_percent = process.cpu_percent(interval=0.1)
-        memory_percent = process.memory_percent()
-        return cpu_percent, memory_percent
-    except:
-        return 0.0, 0.0
-
 def compile_and_run(
     code: str,
     language: str,
     input_data: Optional[str] = None,
     compile_only: bool = False,
-    interactive: bool = False,
-    compile_timeout: int = 10,
-    execution_timeout: int = 30
+    interactive: Optional[bool] = None,
+    compile_timeout: int = 30,
+    execution_timeout: int = 60
 ) -> Dict[str, Any]:
     """
     Enhanced compile and run with better resource management and interactive support
     """
     try:
+        # Auto-detect interactive mode if not specified
+        if interactive is None:
+            interactive = is_interactive_code(code, language)
+            logger.debug(f"Auto-detected interactive mode: {interactive}")
+
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             chunk_size = 1024 * 1024  # 1MB chunks
@@ -109,6 +111,7 @@ def compile_and_run(
             )
 
             try:
+                logger.debug(f"Compiling with command: {compile_cmd}")
                 compile_process = subprocess.run(
                     compile_cmd,
                     capture_output=True,
@@ -138,25 +141,29 @@ def compile_and_run(
 
             try:
                 # Set process group for better cleanup
+                logger.debug(f"Starting process with command: {cmd}")
                 process = subprocess.Popen(
                     cmd,
                     stdin=subprocess.PIPE if interactive or input_data else None,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    bufsize=1 if interactive else -1,  # Line buffering for interactive mode
+                    bufsize=1,  # Line buffering
                     preexec_fn=os.setsid,  # Create new process group
                     cwd=temp_dir
                 )
 
                 if interactive:
                     # Return process info for interactive handling
+                    logger.debug("Starting interactive session")
                     session_id = str(process.pid)
                     with session_lock:
                         active_sessions[session_id] = CompilerSession(session_id, temp_dir)
+                        active_sessions[session_id].process = process
                     return {
                         'success': True,
-                        'session_id': session_id
+                        'session_id': session_id,
+                        'interactive': True
                     }
                 else:
                     # Non-interactive execution
@@ -184,10 +191,11 @@ def compile_and_run(
                         process.wait()
                         return {
                             'success': False,
-                            'error': f"Execution timeout after {execution_timeout} seconds"
+                            'error': f"Execution timeout after {execution_timeout} seconds. Check for infinite loops or add Console.ReadLine() for interactive programs."
                         }
 
             except Exception as e:
+                logger.error(f"Execution error: {e}", exc_info=True)
                 return {
                     'success': False,
                     'error': f"Execution error: {str(e)}"
@@ -263,3 +271,13 @@ def get_output(session_id: str) -> Dict[str, Any]:
 
     except Exception as e:
         return {'success': False, 'error': str(e)}
+
+def monitor_process_resources(pid: int) -> Tuple[float, float]:
+    """Monitor CPU and memory usage of a process"""
+    try:
+        process = psutil.Process(pid)
+        cpu_percent = process.cpu_percent(interval=0.1)
+        memory_percent = process.memory_percent()
+        return cpu_percent, memory_percent
+    except:
+        return 0.0, 0.0
