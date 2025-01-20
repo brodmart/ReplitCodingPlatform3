@@ -1,5 +1,5 @@
 """
-Activity routes with curriculum compliance integration
+Activity routes with curriculum compliance integration and enhanced learning features
 """
 from flask import Blueprint, jsonify, request, render_template, abort
 from flask_login import login_required, current_user
@@ -11,6 +11,98 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 activities_bp = Blueprint('activities', __name__)
 curriculum_checker = CurriculumChecker()
+
+@activities_bp.route('/activities/store_confidence', methods=['POST'])
+@login_required
+def store_confidence():
+    """Store student's confidence level for an activity"""
+    try:
+        data = request.get_json()
+        activity_id = data.get('activity_id')
+        confidence_level = data.get('confidence_level')
+
+        if not activity_id or not confidence_level:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        progress = StudentProgress.query.filter_by(
+            student_id=current_user.id,
+            activity_id=activity_id
+        ).first()
+
+        if not progress:
+            progress = StudentProgress(
+                student_id=current_user.id,
+                activity_id=activity_id,
+                confidence_level=confidence_level,
+                started_at=datetime.utcnow()
+            )
+            db.session.add(progress)
+        else:
+            progress.confidence_level = confidence_level
+
+        db.session.commit()
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Error storing confidence level: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@activities_bp.route('/activities/get_solutions/<int:activity_id>')
+@login_required
+def get_solutions(activity_id):
+    """Get solution approaches for comparison"""
+    try:
+        activity = CodingActivity.query.get_or_404(activity_id)
+        solutions = [
+            {
+                'approach_description': 'Iterative approach using loops',
+                'efficiency_score': '85%',
+                'memory_usage': '2.5'
+            },
+            {
+                'approach_description': 'Recursive solution with memoization',
+                'efficiency_score': '92%',
+                'memory_usage': '3.8'
+            }
+        ]
+        return jsonify(solutions)
+    except Exception as e:
+        logger.error(f"Error fetching solutions: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch solutions'}), 500
+
+@activities_bp.route('/activities/run_code', methods=['POST'])
+@login_required
+def run_code():
+    """Execute student code submission"""
+    try:
+        data = request.get_json()
+        code = data.get('code')
+        activity_id = data.get('activity_id')
+        language = data.get('language', 'cpp')
+
+        if not code or not activity_id:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
+
+        # Store code submission
+        submission = CodeSubmission(
+            student_id=current_user.id,
+            activity_id=activity_id,
+            code=code,
+            submitted_at=datetime.utcnow()
+        )
+        db.session.add(submission)
+        db.session.commit()
+
+        # Mock execution result for now
+        result = {
+            'success': True,
+            'output': 'Program executed successfully.\nOutput: Hello, World!'
+        }
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error running code: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @activities_bp.route('/activities')
 @activities_bp.route('/activities/<grade>')
@@ -140,7 +232,7 @@ def view_enhanced_activity(activity_id):
                 db.session.commit()
 
         return render_template(
-            'activity.html',  # This template includes enhanced features
+            'activities/enhanced_learning.html',  # Using the enhanced template
             activity=activity,
             lang=request.args.get('lang', 'fr'),
             progress=progress,
