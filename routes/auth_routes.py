@@ -89,25 +89,29 @@ def register():
     form = RegisterForm()
     if form.validate_on_submit():
         try:
+            logger.info(f"Attempting to register new user with username: {form.username.data}")
             user = Student(
                 username=form.username.data,
+                is_admin=False,
+                created_at=datetime.utcnow()
             )
             success, message = user.set_password(form.password.data)
             if not success:
+                logger.error(f"Password setting failed for user {form.username.data}: {message}")
                 flash(message, 'danger')
                 return render_template('auth/register.html', form=form)
 
             db.session.add(user)
             db.session.commit()
-            logger.info(f"New user registered: {user.username}")
+            logger.info(f"New user registered successfully: {user.username}")
 
             flash('Account created successfully! You can now log in.', 'success')
             return redirect(url_for('auth.login'))
 
         except SQLAlchemyError as e:
-            logger.error(f"Database error during registration: {str(e)}")
+            logger.error(f"Database error during registration: {str(e)}", exc_info=True)
             db.session.rollback()
-            flash('An error occurred during registration.', 'danger')
+            flash('An error occurred during registration. Please try again.', 'danger')
 
     return render_template('auth/register.html', form=form)
 
