@@ -19,6 +19,7 @@ def list_activities(grade=None):
     """List all coding activities for a specific grade"""
     try:
         logger.debug(f"Listing activities for grade: {grade}")
+        logger.debug(f"Current user: {current_user.id if current_user.is_authenticated else 'Not authenticated'}")
 
         if grade == '11':
             curriculum = 'ICS3U'
@@ -29,14 +30,16 @@ def list_activities(grade=None):
 
         logger.debug(f"Using curriculum: {curriculum}, language: {language}")
 
-        # Query activities without curriculum filter first to debug
+        # Query activities with explicit filters
         activities_list = CodingActivity.query.filter(
+            CodingActivity.curriculum == curriculum,
             CodingActivity.language == language,
-            CodingActivity.deleted_at.is_(None)
+            CodingActivity.deleted_at.is_(None)  # Explicitly check for null deleted_at
         ).order_by(CodingActivity.sequence).all()
 
         logger.debug(f"Found {len(activities_list)} active activities")
-        logger.debug(f"Activity details: {[{a.id: a.title} for a in activities_list]}")
+        for activity in activities_list:
+            logger.debug(f"Activity: {activity.id} - {activity.title} - {activity.curriculum}")
 
         # Get student progress if available
         progress_data = {}

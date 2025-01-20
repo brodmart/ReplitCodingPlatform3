@@ -4,6 +4,11 @@ Script to seed initial coding activities
 from app import app, db
 from models.student import CodingActivity
 from datetime import datetime
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def seed_activities():
     """Seed initial coding activities"""
@@ -18,6 +23,7 @@ def seed_activities():
             'instructions': 'Create variables of different types and print their values',
             'starter_code': '#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}',
             'points': 100,
+            'deleted_at': None  # Explicitly set deleted_at to None
         },
         {
             'title': 'Basic Input/Output',
@@ -29,6 +35,7 @@ def seed_activities():
             'instructions': 'Write a program that asks for user\'s name and age, then displays a greeting',
             'starter_code': '#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}',
             'points': 100,
+            'deleted_at': None  # Explicitly set deleted_at to None
         },
         {
             'title': 'C# Variables and Types',
@@ -40,6 +47,7 @@ def seed_activities():
             'instructions': 'Create variables of different types and print their values',
             'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}',
             'points': 100,
+            'deleted_at': None  # Explicitly set deleted_at to None
         },
         {
             'title': 'C# Console Input/Output',
@@ -51,28 +59,32 @@ def seed_activities():
             'instructions': 'Write a program that asks for user\'s name and age, then displays a greeting',
             'starter_code': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}',
             'points': 100,
+            'deleted_at': None  # Explicitly set deleted_at to None
         }
     ]
 
-    print("Starting to seed activities...")
-    
+    logger.info("Starting to seed activities...")
+
     try:
         # Clear existing activities
+        logger.info("Clearing existing activities...")
         CodingActivity.query.delete()
         db.session.commit()
-        print("Cleared existing activities")
-        
+        logger.info("Cleared existing activities")
+
         # Add new activities
         for activity_data in activities:
             activity = CodingActivity(**activity_data)
             db.session.add(activity)
-        
+            logger.debug(f"Added activity: {activity_data['title']}")
+
         db.session.commit()
-        print(f"Successfully seeded {len(activities)} activities")
-        
+        logger.info(f"Successfully seeded {len(activities)} activities")
+
     except Exception as e:
-        print(f"Error seeding activities: {str(e)}")
+        logger.error(f"Error seeding activities: {str(e)}")
         db.session.rollback()
+        raise
 
 if __name__ == '__main__':
     with app.app_context():
