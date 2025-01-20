@@ -38,18 +38,26 @@ async function executeCode() {
         // Prepare request payload
         const payload = {
             code: code,
-            language: language
+            language: language,
+            activity_id: '' // Empty string as default
         };
 
-        // Only add activity_id if we're in an activity context
+        // Only add activity_id if we're in an activity context and it has a value
         const activityIdInput = document.querySelector('input[name="activity_id"]');
         if (activityIdInput && activityIdInput.value) {
             payload.activity_id = activityIdInput.value;
         }
 
-        console.log('Executing code with payload:', JSON.stringify(payload, null, 2));
+        console.log('Executing code request:', {
+            url: '/activities/run_code',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            payload: JSON.stringify(payload, null, 2)
+        });
 
-        // Make a POST request to execute the code
         const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
@@ -63,19 +71,21 @@ async function executeCode() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Check if response is JSON
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-            console.error('Invalid content type:', contentType);
-            throw new Error('Server response was not in the expected format. Please try again.');
+        const responseText = await response.text();
+        console.log('Raw server response:', responseText);
+
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse server response:', e);
+            throw new Error('Invalid response format from server');
         }
 
-        const result = await response.json();
-        console.log('Server response:', result);
+        console.log('Parsed server response:', result);
 
         if (result.success) {
             if (consoleOutput) {
-                // Handle both string and object outputs
                 let outputText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
                 outputText = outputText || 'Program executed successfully with no output.';
                 consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
@@ -83,8 +93,8 @@ async function executeCode() {
         } else {
             let errorMessage = result.error;
             if (errorMessage === 'Missing required fields') {
-                console.error('Missing fields in request. Payload:', payload);
-                errorMessage = 'Error: Required information is missing. Please check your code and try again.';
+                console.error('Missing fields in request:', payload);
+                errorMessage = 'Required information is missing. Please check your code and try again.';
             }
             throw new Error(errorMessage || 'Failed to execute code');
         }
@@ -93,7 +103,9 @@ async function executeCode() {
         if (consoleOutput) {
             let displayError = error.message;
             if (error.message.includes('HTTP error!')) {
-                displayError = 'Unable to connect to code execution service. Please try again in a moment.';
+                displayError = 'Code execution service is unavailable. Please try again in a moment.';
+            } else if (error.message.includes('Invalid response format')) {
+                displayError = 'Server returned an unexpected response. Please try again.';
             }
             consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(displayError)}</div>`;
         }
