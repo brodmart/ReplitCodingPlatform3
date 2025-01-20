@@ -52,7 +52,7 @@ def create_app():
         db.init_app(app)
 
         # Initialize Flask-Migrate
-        migrate = Migrate(app, db, directory='migrations')
+        migrate = Migrate(app, db)
 
         # Initialize extensions
         CORS(app)
@@ -114,3 +114,6 @@ app = create_app()
 
 # Add ProxyFix middleware
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
