@@ -10,6 +10,9 @@ import signal
 import psutil
 from pathlib import Path
 from typing import Dict, Optional, Any
+import uuid
+import time
+from threading import Thread, Event
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,10 +26,41 @@ class ExecutionError(Exception):
     """Raised when execution fails"""
     pass
 
+class ProcessMonitor(Thread):
+    def __init__(self, process, timeout=30):
+        super().__init__()
+        self.process = process
+        self.timeout = timeout
+        self.start_time = time.time()
+        self.stopped = Event()
+
+    def run(self):
+        while not self.stopped.is_set():
+            if time.time() - self.start_time > self.timeout:
+                try:
+                    if self.process.poll() is None:
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                except:
+                    pass
+                break
+            try:
+                proc = psutil.Process(self.process.pid)
+                if proc.cpu_percent(interval=0.1) > 90 or proc.memory_percent() > 90:
+                    try:
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                    except:
+                        pass
+                    break
+            except:
+                break
+            time.sleep(0.5)
+
+    def stop(self):
+        self.stopped.set()
+
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Compile and run code for testing purposes.
-    This is a wrapper around the more detailed compiler_service implementation.
+    Compile and run code with improved monitoring and feedback.
     """
     if not code or not language:
         logger.error("Invalid input parameters: code or language is missing")
@@ -53,7 +87,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     code = namespace + "\n" + code
 
         try:
-            # Normalize language
             language = language.lower()
             if language not in ['cpp', 'csharp']:
                 return {
@@ -64,7 +97,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
 
-                # Set up source and executable files based on language
                 if language == 'cpp':
                     source_file = temp_path / "program.cpp"
                     executable = temp_path / "program"
@@ -73,15 +105,15 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 else:  # csharp
                     source_file = temp_path / "program.cs"
                     executable = temp_path / "program.exe"
-                    # Optimized C# compilation settings
                     compile_cmd = [
                         'mcs',
-                        '-optimize+',  # Enable optimizations
-                        '-debug-',     # Disable debug symbols
+                        '-optimize+',
+                        '-debug-',
+                        '-unsafe-',
                         str(source_file),
                         '-out:' + str(executable)
                     ]
-                    run_cmd = ['mono', '--gc=sgen', str(executable)]  # Use better GC
+                    run_cmd = ['mono', '--gc=sgen', '--debug', str(executable)]
 
                 # Write code to file
                 with open(source_file, 'w') as f:
@@ -93,12 +125,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         compile_cmd,
                         capture_output=True,
                         text=True,
-                        timeout=30  # Reduced compile timeout
+                        timeout=20
                     )
                 except subprocess.TimeoutExpired:
                     return {
                         'success': False,
-                        'error': f"Compilation timeout after 30 seconds"
+                        'error': "Compilation timeout after 20 seconds"
                     }
 
                 if compile_process.returncode != 0:
@@ -107,62 +139,53 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'error': compile_process.stderr
                     }
 
-                # Make executable
                 os.chmod(executable, 0o755)
 
                 try:
-                    # Execute the program with resource limits
                     process = subprocess.Popen(
                         run_cmd,
                         stdin=subprocess.PIPE if input_data else None,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        bufsize=1,  # Line buffering
+                        bufsize=1,
                         preexec_fn=os.setsid
                     )
 
-                    try:
-                        # Monitor process resources
-                        pid = process.pid
-                        def check_resources():
-                            try:
-                                proc = psutil.Process(pid)
-                                cpu_percent = proc.cpu_percent()
-                                memory_percent = proc.memory_percent()
-                                if cpu_percent > 90 or memory_percent > 90:
-                                    return True
-                                return False
-                            except:
-                                return False
+                    # Start process monitor
+                    monitor = ProcessMonitor(process, timeout=20)
+                    monitor.start()
 
+                    try:
                         stdout, stderr = process.communicate(
                             input=input_data,
-                            timeout=30  # Reduced execution timeout
+                            timeout=20
                         )
-
-                        if process.returncode == 0:
-                            # Only return stdout if there was actually output
-                            output = stdout.strip() if stdout else "Program executed successfully with no output."
-                            return {
-                                'success': True,
-                                'output': output
-                            }
-                        else:
-                            return {
-                                'success': False,
-                                'error': stderr or "Program failed with no error message"
-                            }
-
                     except subprocess.TimeoutExpired:
-                        # Kill the process group
-                        try:
-                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                        except:
-                            pass
                         return {
                             'success': False,
-                            'error': f"Execution timeout after 30 seconds"
+                            'error': "Execution timeout after 20 seconds. Check for infinite loops."
+                        }
+                    finally:
+                        monitor.stop()
+                        monitor.join()
+                        try:
+                            if process.poll() is None:
+                                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                                process.wait(timeout=1)
+                        except:
+                            pass
+
+                    if process.returncode == 0:
+                        output = stdout.strip() if stdout else "Program executed successfully with no output."
+                        return {
+                            'success': True,
+                            'output': output
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'error': stderr or "Program failed with no error message"
                         }
 
                 except Exception as e:
