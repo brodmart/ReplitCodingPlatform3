@@ -83,25 +83,24 @@ def main():
                 print("Error: ICS3U course not found")
                 return
 
-            # Update specific expectations
-            updated_count = 0
+            # Get all specific expectations for the course, including for strands C and D
             specifics = SpecificExpectation.query.join(
-                OverallExpectation, 
+                OverallExpectation,
                 SpecificExpectation.overall_expectation_id == OverallExpectation.id
             ).join(
-                Strand, 
+                Strand,
                 OverallExpectation.strand_id == Strand.id
-            ).join(
-                Course, 
-                Strand.course_id == Course.id
             ).filter(
-                Course.id == course.id
+                Strand.course_id == course.id
             ).all()
 
+            # Update specific expectations
+            updated_count = 0
             for specific in specifics:
-                if specific.code in translations:
-                    specific.description_en = translations[specific.code]
+                if specific.code.upper() in translations:  # Case-insensitive comparison
+                    specific.description_en = translations[specific.code.upper()]
                     updated_count += 1
+                    print(f"Updated {specific.code}: {specific.description_en[:50]}...")
 
             db.session.commit()
             print(f"Updated {updated_count} specific expectations with English translations")
