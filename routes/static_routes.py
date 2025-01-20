@@ -1,38 +1,45 @@
-from flask import Blueprint, render_template, redirect, url_for, session, request
-from flask_login import current_user
+from flask import Blueprint, render_template, redirect, url_for, session, request, current_app
+from flask_login import current_user, login_required
 
 static_pages = Blueprint('static_pages', __name__)
 
+def get_user_language():
+    """Get user's current language preference"""
+    return session.get('lang', current_app.config.get('DEFAULT_LANGUAGE', 'fr'))
+
 @static_pages.route('/switch-language')
 def switch_language():
-    current_lang = session.get('lang', 'fr')
+    """Switch between French and English languages"""
+    current_lang = get_user_language()
+    # Store the new language preference in session
     session['lang'] = 'en' if current_lang == 'fr' else 'fr'
+    session.modified = True  # Ensure session is marked as modified
     return redirect(request.referrer or url_for('static_pages.index'))
 
 @static_pages.route('/')
 def index():
-    return render_template('index.html', lang=session.get('lang', 'fr'))
+    return render_template('index.html', lang=get_user_language())
 
 @static_pages.route('/about')
 def about():
-    return render_template('about.html', lang=session.get('lang', 'fr'))
+    return render_template('about.html', lang=get_user_language())
 
 @static_pages.route('/contact')
 def contact():
-    return render_template('contact.html', lang=session.get('lang', 'fr'))
+    return render_template('contact.html', lang=get_user_language())
 
 @static_pages.route('/faq')
 def faq():
-    return render_template('faq.html', lang=session.get('lang', 'fr'))
+    return render_template('faq.html', lang=get_user_language())
 
 @static_pages.route('/terms')
 def terms():
-    return render_template('terms.html', lang=session.get('lang', 'fr'))
+    return render_template('terms.html', lang=get_user_language())
 
 @static_pages.route('/privacy')
 def privacy():
-    return render_template('privacy.html', lang=session.get('lang', 'fr'))
+    return render_template('privacy.html', lang=get_user_language())
 
 @static_pages.route('/accessibility')
 def accessibility():
-    return render_template('accessibility.html', lang=session.get('lang', 'fr'))
+    return render_template('accessibility.html', lang=get_user_language())

@@ -41,7 +41,10 @@ def create_app():
             'pool_timeout': 60,
             'pool_recycle': 1800,
             'pool_pre_ping': True
-        }
+        },
+        'DEFAULT_LANGUAGE': 'fr',  # Set default language
+        'SESSION_PERMANENT': True,  # Make sessions permanent
+        'PERMANENT_SESSION_LIFETIME': 31536000,  # Set session lifetime to 1 year
     })
 
     try:
