@@ -14,41 +14,56 @@ def view_curriculum():
 def get_course_data(course_code):
     """Get curriculum data for a specific course"""
     course = Course.query.filter_by(code=course_code).first_or_404()
-    
+
     # Build curriculum structure
     curriculum_data = {
         'code': course.code,
         'title_en': course.title_en,
         'title_fr': course.title_fr,
+        'description_en': course.description_en,
+        'description_fr': course.description_fr,
         'strands': []
     }
-    
-    for strand in course.strands:
+
+    # Sort strands by code to ensure consistent order
+    sorted_strands = sorted(course.strands, key=lambda x: x.code.upper())
+
+    for strand in sorted_strands:
+        # Fix strand title casing and formatting
+        strand_code = strand.code.upper()
         strand_data = {
-            'code': strand.code,
+            'code': strand_code,
             'title_en': strand.title_en,
             'title_fr': strand.title_fr,
             'overall_expectations': []
         }
-        
-        for overall in strand.overall_expectations:
+
+        # Sort overall expectations by code
+        sorted_overall = sorted(strand.overall_expectations, 
+                              key=lambda x: x.code.upper())
+
+        for overall in sorted_overall:
             overall_data = {
                 'code': overall.code,
                 'description_en': overall.description_en,
                 'description_fr': overall.description_fr,
                 'specific_expectations': []
             }
-            
-            for specific in overall.specific_expectations:
+
+            # Sort specific expectations by code
+            sorted_specific = sorted(overall.specific_expectations, 
+                                   key=lambda x: x.code.upper())
+
+            for specific in sorted_specific:
                 specific_data = {
                     'code': specific.code,
                     'description_en': specific.description_en,
                     'description_fr': specific.description_fr
                 }
                 overall_data['specific_expectations'].append(specific_data)
-            
+
             strand_data['overall_expectations'].append(overall_data)
-        
+
         curriculum_data['strands'].append(strand_data)
-    
+
     return jsonify(curriculum_data)
