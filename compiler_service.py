@@ -11,6 +11,8 @@ from typing import Dict, Optional, Any, Tuple
 import uuid
 import time
 from threading import Thread, Event, Lock
+import select
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -65,10 +67,11 @@ class CompilerSession:
         self.session_id = session_id
         self.temp_dir = temp_dir
         self.process = None
-        self.last_activity = None
+        self.last_activity = time.time()
         self.stdout_buffer = []
         self.stderr_buffer = []
         self.waiting_for_input = False
+        self.output_thread = None
 
 def is_interactive_code(code: str, language: str) -> bool:
     """Detect if code is likely interactive based on input patterns"""
@@ -76,184 +79,29 @@ def is_interactive_code(code: str, language: str) -> bool:
     if language == 'cpp':
         return 'cin' in code_lower or 'getline' in code_lower
     elif language == 'csharp':
-        # Add more C# input patterns
         return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
     return False
-
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with improved monitoring and feedback.
-    """
-    if not code or not language:
-        logger.error("Invalid input parameters: code or language is missing")
-        return {
-            'success': False,
-            'output': '',
-            'error': "Code and language are required"
-        }
-
-    try:
-        logger.debug(f"Attempting to compile and run {language} code")
-        logger.debug(f"Code length: {len(code)} characters")
-
-        # For C#, ensure required namespaces are present
-        if language.lower() == 'csharp':
-            required_namespaces = [
-                "using System;",
-                "using System.IO;",
-                "using System.Collections.Generic;",
-                "using System.Linq;"
-            ]
-            for namespace in required_namespaces:
-                if namespace not in code:
-                    code = namespace + "\n" + code
-
-        # Check if code is interactive
-        interactive = is_interactive_code(code, language)
-        logger.debug(f"Code is interactive: {interactive}")
-
-        if interactive:
-            # Create a new session for interactive execution
-            session_id = str(uuid.uuid4())
-            temp_dir = tempfile.mkdtemp()
-            session = CompilerSession(session_id, temp_dir)
-
-            with session_lock:
-                active_sessions[session_id] = session
-
-            return start_interactive_session(session, code, language)
-
-        try:
-            language = language.lower()
-            if language not in ['cpp', 'csharp']:
-                return {
-                    'success': False,
-                    'error': f"Unsupported language: {language}"
-                }
-
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-
-                if language == 'cpp':
-                    source_file = temp_path / "program.cpp"
-                    executable = temp_path / "program"
-                    compile_cmd = ['g++', str(source_file), '-o', str(executable), '-std=c++11']
-                    run_cmd = [str(executable)]
-                else:  # csharp
-                    source_file = temp_path / "program.cs"
-                    executable = temp_path / "program.exe"
-                    compile_cmd = [
-                        'mcs',
-                        '-optimize+',
-                        '-debug-',
-                        '-unsafe-',
-                        str(source_file),
-                        '-out:' + str(executable)
-                    ]
-                    run_cmd = ['mono', '--gc=sgen', '--debug', str(executable)]
-
-                # Write code to file
-                with open(source_file, 'w') as f:
-                    f.write(code)
-
-                try:
-                    logger.debug(f"Compiling with command: {' '.join(compile_cmd)}")
-                    compile_process = subprocess.run(
-                        compile_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=20
-                    )
-                except subprocess.TimeoutExpired:
-                    return {
-                        'success': False,
-                        'error': "Compilation timeout after 20 seconds"
-                    }
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': compile_process.stderr
-                    }
-
-                os.chmod(executable, 0o755)
-
-                try:
-                    process = subprocess.Popen(
-                        run_cmd,
-                        stdin=subprocess.PIPE if input_data else None,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        bufsize=1,
-                        preexec_fn=os.setsid
-                    )
-
-                    # Start process monitor
-                    monitor = ProcessMonitor(process, timeout=20)
-                    monitor.start()
-
-                    try:
-                        stdout, stderr = process.communicate(
-                            input=input_data,
-                            timeout=20
-                        )
-                    except subprocess.TimeoutExpired:
-                        return {
-                            'success': False,
-                            'error': "Execution timeout after 20 seconds. Check for infinite loops."
-                        }
-                    finally:
-                        monitor.stop()
-                        monitor.join()
-                        try:
-                            if process.poll() is None:
-                                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                                process.wait(timeout=1)
-                        except:
-                            pass
-
-                    if process.returncode == 0:
-                        output = stdout.strip() if stdout else "Program executed successfully with no output."
-                        return {
-                            'success': True,
-                            'output': output
-                        }
-                    else:
-                        return {
-                            'success': False,
-                            'error': stderr or "Program failed with no error message"
-                        }
-
-                except Exception as e:
-                    logger.error(f"Execution error: {e}", exc_info=True)
-                    return {
-                        'success': False,
-                        'error': f"Execution error: {str(e)}"
-                    }
-
-        except Exception as e:
-            logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
-            return {
-                'success': False,
-                'error': f"Service error: {str(e)}"
-            }
-
-    except Exception as e:
-        logger.error(f"Unexpected error in compile_and_run: {str(e)}")
-        logger.error(traceback.format_exc())
-        return {
-            'success': False,
-            'output': '',
-            'error': "Code execution service encountered an error. Please try again."
-        }
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session for the given code"""
     try:
+        # Add Console.Out.Flush() after WriteLine statements
+        code_lines = code.split('\n')
+        modified_code = []
+        for line in code_lines:
+            modified_code.append(line)
+            if 'Console.WriteLine' in line:
+                indent = len(line) - len(line.lstrip())
+                modified_code.append(' ' * indent + 'Console.Out.Flush();')
+
+        code = '\n'.join(modified_code)
+
         # Compile the code
         source_file = Path(session.temp_dir) / "program.cs"
         executable = Path(session.temp_dir) / "program.exe"
+
+        with open(source_file, 'w') as f:
+            f.write(code)
 
         compile_cmd = [
             'mcs',
@@ -263,9 +111,6 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             str(source_file),
             '-out:' + str(executable)
         ]
-
-        with open(source_file, 'w') as f:
-            f.write(code)
 
         compile_process = subprocess.run(
             compile_cmd,
@@ -283,8 +128,12 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         os.chmod(executable, 0o755)
 
-        # Start the process
-        run_cmd = ['mono', '--gc=sgen', '--debug', str(executable)]
+        # Start the process with environment variables for better output handling
+        env = os.environ.copy()
+        env['MONO_IOMAP'] = 'all'  # Improve Mono I/O handling
+        env['MONO_THREADS_PER_CPU'] = '2'  # Limit thread usage
+
+        run_cmd = ['mono', '--debug', str(executable)]
         session.process = subprocess.Popen(
             run_cmd,
             stdin=subprocess.PIPE,
@@ -292,10 +141,30 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             stderr=subprocess.PIPE,
             text=True,
             bufsize=1,
+            env=env,
             preexec_fn=os.setsid
         )
 
-        # Return session info
+        # Start output monitoring thread
+        def monitor_output():
+            while session.process and session.process.poll() is None:
+                # Use select to check for available output
+                readable, _, _ = select.select([session.process.stdout, session.process.stderr], [], [], 0.1)
+                for stream in readable:
+                    line = stream.readline()
+                    if line:
+                        if stream == session.process.stdout:
+                            session.stdout_buffer.append(line)
+                            if any(prompt in line.lower() for prompt in ['input', 'enter', 'type', '?', ':', '>']):
+                                session.waiting_for_input = True
+                        else:
+                            session.stderr_buffer.append(line)
+                        session.last_activity = time.time()
+
+        session.output_thread = Thread(target=monitor_output)
+        session.output_thread.daemon = True
+        session.output_thread.start()
+
         return {
             'success': True,
             'session_id': session.session_id,
@@ -334,44 +203,39 @@ def get_output(session_id: str) -> Dict[str, Any]:
 
     session = active_sessions[session_id]
     try:
-        output = []
-        if session.process:
-            if session.process.poll() is not None:
-                # Process ended
-                remaining_output, remaining_error = session.process.communicate()
-                if remaining_output:
-                    output.append(remaining_output)
-                cleanup_session(session_id)
-                return {
-                    'success': True,
-                    'output': ''.join(output),
-                    'session_ended': True
-                }
+        if not session.process:
+            return {'success': False, 'error': 'No active process'}
 
-            # Check for new output
-            try:
-                while True:
-                    line = session.process.stdout.readline()
-                    if not line:
-                        break
-                    output.append(line)
-                    # Check for input prompts
-                    if any(prompt in line.lower() for prompt in [
-                        'input', 'enter', 'type', '?', ':', '>',
-                        'cin', 'console.readline'
-                    ]):
-                        session.waiting_for_input = True
-            except:
-                pass  # No more output available
+        # Check if process has ended
+        if session.process.poll() is not None:
+            # Get any remaining output
+            remaining_out, remaining_err = session.process.communicate()
+            if remaining_out:
+                session.stdout_buffer.append(remaining_out)
+            if remaining_err:
+                session.stderr_buffer.append(remaining_err)
+
+            output = ''.join(session.stdout_buffer)
+            cleanup_session(session_id)
+            return {
+                'success': True,
+                'output': output,
+                'session_ended': True
+            }
+
+        # Return accumulated output
+        output = ''.join(session.stdout_buffer)
+        session.stdout_buffer = []  # Clear buffer after reading
 
         return {
             'success': True,
-            'output': ''.join(output),
+            'output': output,
             'waiting_for_input': session.waiting_for_input,
             'session_ended': False
         }
 
     except Exception as e:
+        logger.error(f"Error getting output: {e}")
         return {'success': False, 'error': str(e)}
 
 def cleanup_session(session_id: str) -> None:
@@ -398,3 +262,163 @@ def cleanup_session(session_id: str) -> None:
         finally:
             with session_lock:
                 del active_sessions[session_id]
+
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Compile and run code with improved monitoring and feedback.
+    """
+    if not code or not language:
+        logger.error("Invalid input parameters: code or language is missing")
+        return {
+            'success': False,
+            'output': '',
+            'error': "Code and language are required"
+        }
+
+    try:
+        logger.debug(f"Attempting to compile and run {language} code")
+        logger.debug(f"Code length: {len(code)} characters")
+
+        # For C#, ensure required namespaces are present
+        if language.lower() == 'csharp':
+            required_namespaces = [
+                "using System;",
+                "using System.IO;",
+                "using System.Collections.Generic;",
+                "using System.Linq;"
+            ]
+            for namespace in required_namespaces:
+                if namespace not in code:
+                    code = namespace + "\n" + code
+
+            # Add automatic Console.Out.Flush() after WriteLine
+            code_lines = code.split('\n')
+            modified_code = []
+            for line in code_lines:
+                modified_code.append(line)
+                if 'Console.WriteLine' in line:
+                    indent = len(line) - len(line.lstrip())
+                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
+            code = '\n'.join(modified_code)
+
+        # Check if code is interactive
+        interactive = is_interactive_code(code, language)
+        logger.debug(f"Code is interactive: {interactive}")
+
+        if interactive:
+            # Create a new session for interactive execution
+            session_id = str(uuid.uuid4())
+            temp_dir = tempfile.mkdtemp()
+            session = CompilerSession(session_id, temp_dir)
+
+            with session_lock:
+                active_sessions[session_id] = session
+
+            return start_interactive_session(session, code, language)
+
+        # Non-interactive execution
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            source_file = temp_path / "program.cs"
+            executable = temp_path / "program.exe"
+
+            compile_cmd = [
+                'mcs',
+                '-optimize+',
+                '-debug-',
+                '-unsafe-',
+                str(source_file),
+                '-out:' + str(executable)
+            ]
+
+            # Write code to file
+            with open(source_file, 'w') as f:
+                f.write(code)
+
+            try:
+                compile_process = subprocess.run(
+                    compile_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=20
+                )
+            except subprocess.TimeoutExpired:
+                return {
+                    'success': False,
+                    'error': "Compilation timeout after 20 seconds"
+                }
+
+            if compile_process.returncode != 0:
+                return {
+                    'success': False,
+                    'error': compile_process.stderr
+                }
+
+            os.chmod(executable, 0o755)
+
+            try:
+                env = os.environ.copy()
+                env['MONO_IOMAP'] = 'all'
+
+                process = subprocess.Popen(
+                    ['mono', '--debug', str(executable)],
+                    stdin=subprocess.PIPE if input_data else None,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    env=env,
+                    preexec_fn=os.setsid
+                )
+
+                monitor = ProcessMonitor(process, timeout=20)
+                monitor.start()
+
+                try:
+                    stdout, stderr = process.communicate(
+                        input=input_data,
+                        timeout=20
+                    )
+                except subprocess.TimeoutExpired:
+                    return {
+                        'success': False,
+                        'error': "Execution timeout after 20 seconds. Check for infinite loops."
+                    }
+                finally:
+                    monitor.stop()
+                    monitor.join()
+                    try:
+                        if process.poll() is None:
+                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                            process.wait(timeout=1)
+                    except:
+                        pass
+
+                if process.returncode == 0:
+                    output = stdout.strip() if stdout else "Program executed successfully with no output."
+                    return {
+                        'success': True,
+                        'output': output
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': stderr or "Program failed with no error message"
+                    }
+
+            except Exception as e:
+                logger.error(f"Execution error: {e}", exc_info=True)
+                return {
+                    'success': False,
+                    'error': f"Execution error: {str(e)}"
+                }
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {
+            'success': False,
+            'output': '',
+            'error': "Code execution service encountered an error. Please try again."
+        }
