@@ -187,23 +187,24 @@ class CodingActivity(SoftDeleteMixin, db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    difficulty = db.Column(db.String(20), nullable=False)
-    curriculum = db.Column(db.String(20), nullable=False, default='ICS3U')  # Added curriculum field
-    language = db.Column(db.String(20), nullable=False)
-    sequence = db.Column(db.Integer, nullable=False)
-    instructions = db.Column(db.Text, nullable=False)
-    starter_code = db.Column(db.Text)
-    solution_code = db.Column(db.Text, nullable=False)
-    test_cases = db.Column(db.JSON, nullable=False)
-    hints = db.Column(db.JSON)
-    common_errors = db.Column(db.JSON)
-    points = db.Column(db.Integer, default=10)
-    max_attempts = db.Column(db.Integer, default=10)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    version = db.Column(db.Integer, default=1)
+    description = db.Column(db.Text, nullable=True)
+    difficulty = db.Column(db.String(20), nullable=True)
+    curriculum = db.Column(db.String(20), nullable=False, default='ICS3U')
+    language = db.Column(db.String(20), nullable=True)
+    sequence = db.Column(db.Integer, nullable=True)
+    instructions = db.Column(db.Text, nullable=True)
+    starter_code = db.Column(db.Text, nullable=True)
+    solution_code = db.Column(db.Text, nullable=True)
+    test_cases = db.Column(db.JSON, nullable=True)
+    hints = db.Column(db.JSON, nullable=True)
+    common_errors = db.Column(db.JSON, nullable=True)
+    points = db.Column(db.Integer, nullable=True)
+    max_attempts = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=True)
 
+    # Keep existing relationships
     student_progress = db.relationship('StudentProgress', back_populates='activity', lazy=True)
+    submissions = db.relationship('CodeSubmission', backref='activity', lazy=True)
 
 
 class StudentProgress(db.Model):
@@ -257,14 +258,14 @@ class StudentProgress(db.Model):
 
         # Calculate success rate
         self.success_rate = (
-            self.performance_metrics['successful_attempts'] / 
+            self.performance_metrics['successful_attempts'] /
             self.performance_metrics['total_attempts']
         )
 
         # Calculate average completion time
         if self.performance_metrics['completion_times']:
             self.avg_completion_time = (
-                sum(self.performance_metrics['completion_times']) / 
+                sum(self.performance_metrics['completion_times']) /
                 len(self.performance_metrics['completion_times'])
             )
 
@@ -335,7 +336,7 @@ class StudentProgress(db.Model):
 
         # Determine learning style
         if self.performance_metrics.get('completion_times'):
-            time_variance = sum((t - self.avg_completion_time) ** 2 
+            time_variance = sum((t - self.avg_completion_time) ** 2
                               for t in self.performance_metrics['completion_times']) / len(self.performance_metrics['completion_times'])
 
             if time_variance < 100:  # Consistent timing
