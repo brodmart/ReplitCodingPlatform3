@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_login import LoginManager, AnonymousUserMixin
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
@@ -79,20 +79,27 @@ def create_app():
                 logger.error(f"Error loading user: {str(e)}")
                 return None
 
+        # Initialize session with default language if not set
+        @app.before_request
+        def before_request():
+            if 'lang' not in session:
+                session['lang'] = app.config['DEFAULT_LANGUAGE']
+                session.modified = True
+
         # Register blueprints
         from routes.auth_routes import auth
-        from routes.activities import activities_bp  # Use the consolidated activities blueprint
+        from routes.activities import activities_bp
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
         from routes.curriculum_routes import curriculum_bp
 
         app.register_blueprint(auth)
-        app.register_blueprint(activities_bp)  # Register the consolidated blueprint
+        app.register_blueprint(activities_bp)
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
         app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
 
-        # Error handlers 
+        # Error handlers
         @app.errorhandler(404)
         def not_found_error(error):
             return render_template('errors/404.html'), 404

@@ -279,6 +279,7 @@ def list_activities(grade=None):
     """List all coding activities for a specific grade"""
     try:
         logger.debug(f"Listing activities for grade: {grade}")
+        logger.debug(f"Current user: {current_user.id}")
 
         if grade == '11':
             curriculum = 'ICS3U'
@@ -298,7 +299,8 @@ def list_activities(grade=None):
             ).order_by(CodingActivity.sequence).all()
 
             logger.debug(f"Found {len(activities_list)} active activities")
-            logger.debug(f"Activity details: {[{a.id: a.title} for a in activities_list]}")
+            for activity in activities_list:
+                logger.debug(f"Activity: {activity.id} - {activity.title} - {activity.curriculum}")
 
             return render_template(
                 'activities/list.html',
@@ -363,6 +365,7 @@ def view_enhanced_activity(activity_id):
     """View an activity with enhanced learning features"""
     try:
         logger.debug(f"Viewing enhanced activity with ID: {activity_id}")
+        logger.debug(f"Current language: {get_user_language()}")
 
         activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
 
@@ -370,6 +373,11 @@ def view_enhanced_activity(activity_id):
             activity.starter_code = ''
         elif not isinstance(activity.starter_code, str):
             activity.starter_code = str(activity.starter_code)
+
+        # Ensure session has language set
+        if 'lang' not in session:
+            session['lang'] = current_app.config['DEFAULT_LANGUAGE']
+            session.modified = True
 
         return render_template(
             'activity.html',
@@ -835,8 +843,7 @@ def execute_code():
             error_msg = result.get('error', 'An error occurred')
             if 'memory' in error_msg.lower():
                 error_msg += ". Try reducing the size of variables or arrays."
-            elif 'timeout' in error_msg.lower():
-                error_msg += ". Check for infinite loops."
+            elif 'timeout' in error_msg.lower():                error_msg += ". Check for infinite loops."
             result['error'] = error_msg
 
         response = jsonify(result)
