@@ -17,14 +17,6 @@
         </select>
     </div>
 
-    <!-- Language Selection -->
-    <div class="mb-4">
-        <div class="btn-group" role="group" aria-label="Language Selection">
-            <button type="button" class="btn btn-outline-primary active" data-lang="en">English</button>
-            <button type="button" class="btn btn-outline-primary" data-lang="fr">Français</button>
-        </div>
-    </div>
-
     <!-- Curriculum Display -->
     <div id="curriculumDisplay" class="d-none">
         <h2 id="courseTitle" class="mb-3"></h2>
@@ -65,6 +57,7 @@
         </div>
     </div>
 </template>
+
 {% endblock %}
 
 {% block scripts %}
@@ -75,27 +68,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const courseTitle = document.getElementById('courseTitle');
     const strandTabs = document.getElementById('strandTabs');
     const strandContent = document.getElementById('strandContent');
-    const langButtons = document.querySelectorAll('[data-lang]');
-    let currentLanguage = 'en';
-    let currentData = null;
-
-    // Language selection handling
-    langButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const lang = this.dataset.lang;
-            if (lang === currentLanguage) return;
-
-            // Update button states
-            langButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            currentLanguage = lang;
-
-            // If we have data, update the display
-            if (currentData) {
-                updateDisplay(currentData);
-            }
-        });
-    });
 
     courseSelect.addEventListener('change', async function() {
         const courseCode = this.value;
@@ -106,89 +78,80 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const response = await fetch(`/curriculum/get_course_data/${courseCode}`);
-            currentData = await response.json();
-            updateDisplay(currentData);
+            const data = await response.json();
+
+            // Clear previous content
+            strandTabs.innerHTML = '';
+            strandContent.innerHTML = '';
+
+            // Update course title - use French if English is not available
+            courseTitle.textContent = `${data.code} - ${data.title_en || data.title_fr}`;
+
+            // Create tabs and content for each strand
+            data.strands.forEach((strand, index) => {
+                // Create tab - use French title if English is not available
+                const tabTemplate = document.getElementById('strandTabTemplate');
+                const tab = tabTemplate.content.cloneNode(true).querySelector('.nav-item');
+                const button = tab.querySelector('button');
+                const strandTitle = strand.title_en || strand.title_fr || `Strand ${strand.code}`;
+                button.textContent = `${strand.code} - ${strandTitle}`;
+                button.id = `strand-${strand.code}-tab`;
+                button.setAttribute('data-bs-target', `#strand-${strand.code}`);
+                button.setAttribute('aria-controls', `strand-${strand.code}`);
+                if (index === 0) button.classList.add('active');
+                strandTabs.appendChild(tab);
+
+                // Create content panel
+                const panelTemplate = document.getElementById('strandPanelTemplate');
+                const panel = panelTemplate.content.cloneNode(true).querySelector('.tab-pane');
+                panel.id = `strand-${strand.code}`;
+                if (index === 0) {
+                    panel.classList.add('show', 'active');
+                }
+
+                const accordion = panel.querySelector('.accordion');
+
+                // Add overall expectations
+                strand.overall_expectations.forEach((overall, oIndex) => {
+                    const expectationTemplate = document.getElementById('expectationTemplate');
+                    const expectation = expectationTemplate.content.cloneNode(true);
+
+                    const button = expectation.querySelector('.accordion-button');
+                    const collapse = expectation.querySelector('.accordion-collapse');
+                    const body = expectation.querySelector('.accordion-body');
+
+                    // Use French description if English is not available
+                    const overallDesc = overall.description_en || overall.description_fr || 'No description available';
+                    button.textContent = `${overall.code} - ${overallDesc}`;
+                    button.setAttribute('data-bs-target', `#${strand.code}-${overall.code}`);
+
+                    collapse.id = `${strand.code}-${overall.code}`;
+
+                    // Add specific expectations
+                    const specificList = document.createElement('ul');
+                    specificList.className = 'list-group list-group-flush';
+                    overall.specific_expectations.forEach(specific => {
+                        const item = document.createElement('li');
+                        item.className = 'list-group-item';
+                        // Use French description if English is not available
+                        const specificDesc = specific.description_en || specific.description_fr || 'No description available';
+                        item.textContent = `${specific.code} - ${specificDesc}`;
+                        specificList.appendChild(item);
+                    });
+                    body.appendChild(specificList);
+
+                    accordion.appendChild(expectation);
+                });
+
+                strandContent.appendChild(panel);
+            });
+
+            curriculumDisplay.classList.remove('d-none');
         } catch (error) {
             console.error('Error loading curriculum data:', error);
             alert('Error loading curriculum data. Please try again.');
         }
     });
-
-    function updateDisplay(data) {
-        // Clear previous content
-        strandTabs.innerHTML = '';
-        strandContent.innerHTML = '';
-
-        // Update course title using current language
-        courseTitle.textContent = `${data.code} - ${currentLanguage === 'en' ? data.title_en || data.title_fr : data.title_fr || data.title_en}`;
-
-        // Create tabs and content for each strand
-        data.strands.forEach((strand, index) => {
-            // Create tab - use current language for title
-            const tabTemplate = document.getElementById('strandTabTemplate');
-            const tab = tabTemplate.content.cloneNode(true).querySelector('.nav-item');
-            const button = tab.querySelector('button');
-            const strandTitle = currentLanguage === 'en' ? 
-                (strand.title_en || strand.title_fr) : 
-                (strand.title_fr || strand.title_en);
-            button.textContent = `${strand.code} - ${strandTitle}`;
-            button.id = `strand-${strand.code}-tab`;
-            button.setAttribute('data-bs-target', `#strand-${strand.code}`);
-            button.setAttribute('aria-controls', `strand-${strand.code}`);
-            if (index === 0) button.classList.add('active');
-            strandTabs.appendChild(tab);
-
-            // Create content panel
-            const panelTemplate = document.getElementById('strandPanelTemplate');
-            const panel = panelTemplate.content.cloneNode(true).querySelector('.tab-pane');
-            panel.id = `strand-${strand.code}`;
-            if (index === 0) {
-                panel.classList.add('show', 'active');
-            }
-
-            const accordion = panel.querySelector('.accordion');
-
-            // Add overall expectations
-            strand.overall_expectations.forEach((overall, oIndex) => {
-                const expectationTemplate = document.getElementById('expectationTemplate');
-                const expectation = expectationTemplate.content.cloneNode(true);
-
-                const button = expectation.querySelector('.accordion-button');
-                const collapse = expectation.querySelector('.accordion-collapse');
-                const body = expectation.querySelector('.accordion-body');
-
-                // Use current language for overall description
-                const overallDesc = currentLanguage === 'en' ? 
-                    (overall.description_en || overall.description_fr) : 
-                    (overall.description_fr || overall.description_en);
-                button.textContent = `${overall.code} - ${overallDesc}`;
-                button.setAttribute('data-bs-target', `#${strand.code}-${overall.code}`);
-
-                collapse.id = `${strand.code}-${overall.code}`;
-
-                // Add specific expectations
-                const specificList = document.createElement('ul');
-                specificList.className = 'list-group list-group-flush';
-                overall.specific_expectations.forEach(specific => {
-                    const item = document.createElement('li');
-                    item.className = 'list-group-item';
-                    // Use current language for specific description
-                    const specificDesc = currentLanguage === 'en' ? 
-                        (specific.description_en || specific.description_fr) : 
-                        (specific.description_fr || specific.description_en);
-                    item.textContent = `${specific.code} - ${specificDesc}`;
-                    specificList.appendChild(item);
-                });
-                body.appendChild(specificList);
-
-                accordion.appendChild(expectation);
-            });
-
-            strandContent.appendChild(panel);
-        });
-
-        curriculumDisplay.classList.remove('d-none');
-    }
 });
 </script>
 {% endblock %}
