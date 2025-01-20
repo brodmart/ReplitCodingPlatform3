@@ -4,13 +4,8 @@ let editor = null;
 let isExecuting = false;
 let lastExecution = 0;
 let isConsoleReady = false;
-const MIN_EXECUTION_INTERVAL = 1000;
-const INITIAL_POLL_INTERVAL = 100;
-const MAX_POLL_INTERVAL = 2000;
-const BACKOFF_FACTOR = 1.5;
 
 async function executeCode() {
-    console.log('executeCode called');
     if (!editor || !isConsoleReady || isExecuting) {
         console.error('Execute prevented:', {
             hasEditor: !!editor,
@@ -40,15 +35,20 @@ async function executeCode() {
             throw new Error('CSRF token not found. Please refresh the page.');
         }
 
-        // Get activity ID if we're in an activity context
-        const activityId = document.querySelector('input[name="activity_id"]')?.value || '';
+        // Prepare request payload
+        const payload = {
+            code: code,
+            language: language,
+            csrf_token: csrfToken
+        };
 
-        console.log('Starting execution with:', { 
-            language, 
-            codeLength: code.length,
-            hasActivityId: !!activityId,
-            hasCsrfToken: !!csrfToken
-        });
+        // Only add activity_id if we're in an activity context
+        const activityIdInput = document.querySelector('input[name="activity_id"]');
+        if (activityIdInput && activityIdInput.value) {
+            payload.activity_id = activityIdInput.value;
+        }
+
+        console.log('Executing code with payload:', payload);
 
         // Make a POST request to execute the code
         const response = await fetch('/activities/run_code', {
@@ -57,12 +57,7 @@ async function executeCode() {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({
-                code: code,
-                language: language,
-                activity_id: activityId,
-                csrf_token: csrfToken
-            })
+            body: JSON.stringify(payload)
         });
 
         // Check if response is JSON
@@ -72,7 +67,7 @@ async function executeCode() {
         }
 
         const result = await response.json();
-        console.log('Execution result:', result);
+        console.log('Server response:', result);
 
         if (result.success) {
             if (consoleOutput) {
@@ -82,24 +77,17 @@ async function executeCode() {
                 consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
             }
         } else {
-            // Specific error handling with more detailed messages
             let errorMessage = result.error;
-            if (result.error === 'Missing required fields') {
-                errorMessage = 'Unable to run code - missing required information. ' + 
-                             'If this persists, try refreshing the page.';
+            if (errorMessage === 'Missing required fields') {
+                console.error('Missing fields in request. Payload:', payload);
+                errorMessage = 'Server configuration error. Please try refreshing the page.';
             }
             throw new Error(errorMessage || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleOutput) {
-            let errorMessage = error.message;
-            // Make error messages more user-friendly
-            if (errorMessage.includes('Missing required fields')) {
-                errorMessage = 'Unable to run code - missing required information. ' +
-                             'If this persists, try refreshing the page.';
-            }
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(errorMessage)}</div>`;
+            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
         }
     } finally {
         isExecuting = false;
@@ -128,7 +116,8 @@ using namespace std;
 int main() {
     cout << "Hello World!" << endl;
     return 0;
-}`;
+}
+`;
     } else {
         return `using System;
 
@@ -138,7 +127,8 @@ class Program
     {
         Console.WriteLine("Hello World!");
     }
-}`;
+}
+`;
     }
 }
 
