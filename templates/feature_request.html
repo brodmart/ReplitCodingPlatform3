@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center">
+        <img src="{{ url_for('static', filename='feature_rocket.svg') }}" alt="Feature Request Rocket" class="mb-4" style="width: 200px;">
+        <h1 class="display-4 mb-4">{% if lang == 'fr' %}Partagez vos idées!{% else %}Share Your Ideas!{% endif %}</h1>
+        
+        <div class="col-lg-8 mx-auto">
+            <p class="lead mb-4">
+                {% if lang == 'fr' %}
+                Nous adorons entendre vos idées brillantes! 🌟 Avez-vous une fonctionnalité géniale en tête qui rendrait Coding Mountains encore meilleur? Nous sommes super excités de l'entendre!
+                {% else %}
+                We love hearing your brilliant ideas! 🌟 Got an awesome feature in mind that would make Coding Mountains even better? We're super excited to hear it!
+                {% endif %}
+            </p>
+            
+            <div class="alert alert-info">
+                <p class="mb-0">
+                    {% if lang == 'fr' %}
+                    Envoyez-nous vos suggestions à <strong>admin@codingmountains.com</strong>
+                    {% else %}
+                    Send your suggestions to <strong>admin@codingmountains.com</strong>
+                    {% endif %}
+                </p>
+            </div>
+            
+            <p class="mt-4">
+                {% if lang == 'fr' %}
+                Chaque suggestion compte et nous aide à créer la meilleure plateforme d'apprentissage possible! 🚀
+                {% else %}
+                Every suggestion counts and helps us create the best learning platform possible! 🚀
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
