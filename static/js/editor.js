@@ -45,7 +45,9 @@ async function executeCode() {
             },
             body: JSON.stringify({
                 code: code,
-                language: language
+                language: language,
+                activity_id: document.querySelector('input[name="activity_id"]')?.value || '',
+                csrf_token: document.querySelector('meta[name="csrf-token"]').content
             })
         });
 
@@ -68,7 +70,7 @@ async function executeCode() {
         } else {
             // Specific error handling
             if (result.error === 'Missing required fields') {
-                throw new Error('An error occurred while running the code. Please try again.');
+                throw new Error('Please ensure all required fields are provided.');
             } else {
                 throw new Error(result.error || 'Failed to execute code');
             }
