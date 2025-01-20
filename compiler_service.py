@@ -56,6 +56,30 @@ class ProcessMonitor(Thread):
     def stop(self):
         self.stopped.set()
 
+# Global session management
+active_sessions = {}
+session_lock = Lock()
+
+class CompilerSession:
+    def __init__(self, session_id: str, temp_dir: str):
+        self.session_id = session_id
+        self.temp_dir = temp_dir
+        self.process = None
+        self.last_activity = None
+        self.stdout_buffer = []
+        self.stderr_buffer = []
+        self.waiting_for_input = False
+
+def is_interactive_code(code: str, language: str) -> bool:
+    """Detect if code is likely interactive based on input patterns"""
+    code_lower = code.lower()
+    if language == 'cpp':
+        return 'cin' in code_lower or 'getline' in code_lower
+    elif language == 'csharp':
+        # Add more C# input patterns
+        return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
+    return False
+
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
     Compile and run code with improved monitoring and feedback.
@@ -83,6 +107,21 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             for namespace in required_namespaces:
                 if namespace not in code:
                     code = namespace + "\n" + code
+
+        # Check if code is interactive
+        interactive = is_interactive_code(code, language)
+        logger.debug(f"Code is interactive: {interactive}")
+
+        if interactive:
+            # Create a new session for interactive execution
+            session_id = str(uuid.uuid4())
+            temp_dir = tempfile.mkdtemp()
+            session = CompilerSession(session_id, temp_dir)
+
+            with session_lock:
+                active_sessions[session_id] = session
+
+            return start_interactive_session(session, code, language)
 
         try:
             language = language.lower()
@@ -209,64 +248,67 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'error': "Code execution service encountered an error. Please try again."
         }
 
-# Global session management
-active_sessions = {}
-session_lock = Lock()
-
-class CompilerSession:
-    def __init__(self, session_id: str, temp_dir: str):
-        self.session_id = session_id
-        self.temp_dir = temp_dir
-        self.process = None
-        self.last_activity = None
-        self.stdout_buffer = []
-        self.stderr_buffer = []
-        self.waiting_for_input = False
-
-def is_interactive_code(code: str, language: str) -> bool:
-    """Detect if code is likely interactive based on input patterns"""
-    code_lower = code.lower()
-    if language == 'cpp':
-        return 'cin' in code_lower or 'getline' in code_lower
-    elif language == 'csharp':
-        # Add more C# input patterns
-        return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
-    return False
-
-def monitor_process_resources(pid: int) -> Tuple[float, float]:
-    """Monitor CPU and memory usage of a process"""
+def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
+    """Start an interactive session for the given code"""
     try:
-        process = psutil.Process(pid)
-        cpu_percent = process.cpu_percent(interval=0.1)
-        memory_percent = process.memory_percent()
-        return cpu_percent, memory_percent
-    except:
-        return 0.0, 0.0
+        # Compile the code
+        source_file = Path(session.temp_dir) / "program.cs"
+        executable = Path(session.temp_dir) / "program.exe"
 
-def cleanup_session(session_id: str) -> None:
-    """Clean up resources for a session"""
-    if session_id in active_sessions:
-        session = active_sessions[session_id]
-        try:
-            if session.process and session.process.poll() is None:
-                try:
-                    group_id = os.getpgid(session.process.pid)
-                    os.killpg(group_id, signal.SIGTERM)
-                except:
-                    session.process.terminate()
-                try:
-                    session.process.wait(timeout=2)
-                except subprocess.TimeoutExpired:
-                    session.process.kill()
-                    session.process.wait()
+        compile_cmd = [
+            'mcs',
+            '-optimize+',
+            '-debug-',
+            '-unsafe-',
+            str(source_file),
+            '-out:' + str(executable)
+        ]
 
-            if os.path.exists(session.temp_dir):
-                shutil.rmtree(session.temp_dir, ignore_errors=True)
-        except Exception as e:
-            logger.error(f"Error cleaning up session {session_id}: {e}")
-        finally:
-            with session_lock:
-                del active_sessions[session_id]
+        with open(source_file, 'w') as f:
+            f.write(code)
+
+        compile_process = subprocess.run(
+            compile_cmd,
+            capture_output=True,
+            text=True,
+            timeout=20
+        )
+
+        if compile_process.returncode != 0:
+            cleanup_session(session.session_id)
+            return {
+                'success': False,
+                'error': compile_process.stderr
+            }
+
+        os.chmod(executable, 0o755)
+
+        # Start the process
+        run_cmd = ['mono', '--gc=sgen', '--debug', str(executable)]
+        session.process = subprocess.Popen(
+            run_cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,
+            preexec_fn=os.setsid
+        )
+
+        # Return session info
+        return {
+            'success': True,
+            'session_id': session.session_id,
+            'interactive': True
+        }
+
+    except Exception as e:
+        logger.error(f"Error starting interactive session: {e}")
+        cleanup_session(session.session_id)
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
     """Send input to an interactive session"""
@@ -331,3 +373,28 @@ def get_output(session_id: str) -> Dict[str, Any]:
 
     except Exception as e:
         return {'success': False, 'error': str(e)}
+
+def cleanup_session(session_id: str) -> None:
+    """Clean up resources for a session"""
+    if session_id in active_sessions:
+        session = active_sessions[session_id]
+        try:
+            if session.process and session.process.poll() is None:
+                try:
+                    group_id = os.getpgid(session.process.pid)
+                    os.killpg(group_id, signal.SIGTERM)
+                except:
+                    session.process.terminate()
+                try:
+                    session.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    session.process.kill()
+                    session.process.wait()
+
+            if os.path.exists(session.temp_dir):
+                shutil.rmtree(session.temp_dir, ignore_errors=True)
+        except Exception as e:
+            logger.error(f"Error cleaning up session {session_id}: {e}")
+        finally:
+            with session_lock:
+                del active_sessions[session_id]
