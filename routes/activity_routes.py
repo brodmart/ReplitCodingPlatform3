@@ -289,13 +289,15 @@ def list_activities(grade=None):
         logger.debug(f"Using curriculum: {curriculum}, language: {language}")
 
         try:
-            # Query activities without filtering by curriculum first
-            activities_list = CodingActivity.query.filter_by(
-                language=language,
-                deleted_at=None
+            # Query activities with proper filters
+            activities_list = CodingActivity.query.filter(
+                CodingActivity.curriculum == curriculum,
+                CodingActivity.language == language,
+                CodingActivity.deleted_at == None  # Using == None for SQLAlchemy
             ).order_by(CodingActivity.sequence).all()
 
             logger.debug(f"Found {len(activities_list)} active activities")
+            logger.debug(f"Activity details: {[{a.id: a.title} for a in activities_list]}")
 
             return render_template(
                 'activities/list.html',
@@ -380,6 +382,7 @@ def view_enhanced_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
+
 
 
 @activities.route('/start_session', methods=['POST'])
@@ -847,5 +850,5 @@ def execute_code():
             'success': False,
             'error': "A network error occurred. Please try again in a few moments."
         })
-        response.headers['Content-Type'] = 'application/json'
+        response.headers['Content-Type'] ='application/json'
         return response, 500
