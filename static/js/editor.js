@@ -2,8 +2,9 @@
 const editorState = {
     editor: null,
     isExecuting: false,
-    currentLanguage: 'cpp',
+    currentLanguage: 'csharp',
     isInitialized: false,
+    terminal: null,
     templates: {
         cpp: `#include <iostream>
 using namespace std;
@@ -42,7 +43,7 @@ async function initializeEditor() {
 
         // Initialize CodeMirror with error handling
         editorState.editor = CodeMirror.fromTextArea(editorElement, {
-            mode: 'text/x-c++src',
+            mode: 'text/x-csharp',  // Default to C# mode
             theme: 'dracula',
             lineNumbers: true,
             autoCloseBrackets: true,
@@ -63,6 +64,40 @@ async function initializeEditor() {
             }
         });
 
+        // Initialize xterm.js
+        const terminal = new Terminal({
+            cursorBlink: true,
+            theme: {
+                background: '#282a36',
+                foreground: '#f8f8f2'
+            },
+            fontSize: 14,
+            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+            rows: 10,
+            scrollback: 1000,
+            convertEol: true
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        terminal.loadAddon(fitAddon);
+
+        const terminalElement = document.getElementById('terminal');
+        if (!terminalElement) {
+            throw new Error('Terminal element not found');
+        }
+
+        terminal.open(terminalElement);
+        fitAddon.fit();
+
+        // Handle terminal resize
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+        });
+
+        // Store terminal instance
+        editorState.terminal = terminal;
+        window.terminal = terminal;  // Make terminal accessible globally
+
         // Set up event listeners
         setupEventListeners();
 
@@ -76,7 +111,7 @@ async function initializeEditor() {
 
         // Mark editor as initialized
         editorState.isInitialized = true;
-        console.log('Editor initialized successfully');
+        console.log('Editor and terminal initialized successfully');
 
     } catch (error) {
         console.error('Editor initialization failed:', error);
@@ -102,9 +137,9 @@ function setupEventListeners() {
 
     // Clear console button
     const clearButton = document.getElementById('clearConsole');
-    if (clearButton && window.terminal) {
+    if (clearButton && editorState.terminal) {
         clearButton.addEventListener('click', () => {
-            window.terminal.clear();
+            editorState.terminal.clear();
         });
     }
 
@@ -116,68 +151,16 @@ function setupEventListeners() {
     }
 }
 
-// Handle language change
-function handleLanguageChange(event) {
-    const newLanguage = event.target.value;
-    if (newLanguage === editorState.currentLanguage) return;
-
-    // Update current language
-    editorState.currentLanguage = newLanguage;
-
-    // Update editor mode
-    const modes = {
-        'cpp': 'text/x-c++src',
-        'csharp': 'text/x-csharp'
-    };
-
-    // Set the new mode
-    editorState.editor.setOption('mode', modes[newLanguage]);
-
-    // Check if there's existing content
-    const currentContent = editorState.editor.getValue().trim();
-    const isTemplateContent = Object.values(editorState.templates).some(template => 
-        currentContent === template.trim()
-    );
-
-    // Only set new template if current content is empty or is a template
-    if (!currentContent || isTemplateContent) {
-        setEditorTemplate(newLanguage);
-    }
-
-    // Force a refresh to ensure proper rendering
-    editorState.editor.refresh();
-}
-
-// Set editor template
-function setEditorTemplate(language) {
-    const template = editorState.templates[language] || '';
-    if (!template) {
-        console.error('Template not found for language:', language);
-        return;
-    }
-
-    // Clear any existing content
-    editorState.editor.setValue('');
-    editorState.editor.clearHistory();
-
-    // Set template content
-    editorState.editor.setValue(template);
-
-    // Place cursor after the comment line
-    const cursorLine = language === 'cpp' ? 5 : 7;
-    editorState.editor.setCursor(cursorLine, 4);
-}
-
-// Run code
+// Run code with enhanced error handling and output
 async function runCode() {
     if (editorState.isExecuting) return;
 
     const runButton = document.getElementById('runButton');
-    const terminal = window.terminal;
+    const terminal = editorState.terminal;
     editorState.isExecuting = true;
 
     try {
-        console.time('codeExecution');  // Add timing
+        console.time('codeExecution');
         if (runButton) {
             runButton.disabled = true;
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
@@ -188,15 +171,15 @@ async function runCode() {
             throw new Error('No code to execute');
         }
 
-        terminal?.write('\r\nCompiling and running code...\r\n');
-        console.log('Code length:', code.length, 'bytes');  // Log code size
+        terminal?.write('\r\n\x1b[33mCompiling and running code...\x1b[0m\r\n');
+        console.log('Code length:', code.length, 'bytes');
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
             throw new Error('CSRF token not found');
         }
 
-        console.log('Sending request to server...');  // Log request start
+        console.log('Sending request to server...');
         const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
@@ -209,24 +192,23 @@ async function runCode() {
             })
         });
 
-        console.log('Received server response');  // Log response received
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log('Parsed response:', result);  // Log parsed result
+        console.log('Received response:', result);
 
         if (result.success) {
             terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
             if (result.output) {
                 terminal?.write(result.output + '\r\n');
             }
-            if (result.metrics) {  // Log performance metrics if available
-                console.log('Compilation metrics:', result.metrics);
+            if (result.metrics) {
+                console.log('Performance metrics:', result.metrics);
             }
         } else {
-            terminal?.write('\x1b[31mError: ' + result.error + '\x1b[0m\r\n');
+            terminal?.write('\x1b[31mError: ' + (result.error || 'Unknown error occurred') + '\x1b[0m\r\n');
             if (result.metrics) {
                 console.log('Error metrics:', result.metrics);
             }
@@ -235,13 +217,55 @@ async function runCode() {
         console.error('Error executing code:', error);
         terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
     } finally {
-        console.timeEnd('codeExecution');  // End timing
+        console.timeEnd('codeExecution');
         editorState.isExecuting = false;
         if (runButton) {
             runButton.disabled = false;
             runButton.innerHTML = 'Run';
         }
     }
+}
+
+// Handle language change
+function handleLanguageChange(event) {
+    const newLanguage = event.target.value;
+    if (newLanguage === editorState.currentLanguage) return;
+
+    editorState.currentLanguage = newLanguage;
+    const modes = {
+        'cpp': 'text/x-c++src',
+        'csharp': 'text/x-csharp'
+    };
+
+    editorState.editor.setOption('mode', modes[newLanguage]);
+
+    // Check if there's existing content
+    const currentContent = editorState.editor.getValue().trim();
+    const isTemplateContent = Object.values(editorState.templates).some(template => 
+        currentContent === template.trim()
+    );
+
+    if (!currentContent || isTemplateContent) {
+        setEditorTemplate(newLanguage);
+    }
+
+    editorState.editor.refresh();
+}
+
+// Set editor template
+function setEditorTemplate(language) {
+    const template = editorState.templates[language] || '';
+    if (!template) {
+        console.error('Template not found for language:', language);
+        return;
+    }
+
+    editorState.editor.setValue('');
+    editorState.editor.clearHistory();
+    editorState.editor.setValue(template);
+
+    const cursorLine = language === 'cpp' ? 5 : 7;
+    editorState.editor.setCursor(cursorLine, 4);
 }
 
 // Show error message
@@ -252,9 +276,6 @@ function showError(message) {
     document.body.insertBefore(errorDiv, document.body.firstChild);
     setTimeout(() => errorDiv.remove(), 5000);
 }
-
-// Export initialization function
-window.initializeEditor = initializeEditor;
 
 // Initialize everything when the DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {

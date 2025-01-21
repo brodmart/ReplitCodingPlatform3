@@ -1,6 +1,5 @@
 /**
  * Enhanced Interactive Console class for handling real-time program I/O
- * Similar to W3Schools/CodePen implementation
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -20,6 +19,7 @@ class InteractiveConsole {
         this.isWaitingForInput = false;
         this.maxBufferSize = 1000;
         this.outputBuffer = [];
+        this.sessionId = null;
 
         this.setupEventListeners();
         this.clear();
@@ -27,14 +27,14 @@ class InteractiveConsole {
     }
 
     setupEventListeners() {
-        this.inputElement.addEventListener('keydown', (e) => {
+        this.inputElement.addEventListener('keydown', async (e) => {
             if (!this.isEnabled) return;
 
             switch(e.key) {
                 case 'Enter':
                     if (!e.shiftKey) {
                         e.preventDefault();
-                        this.handleEnterKey();
+                        await this.handleEnterKey();
                     }
                     break;
                 case 'ArrowUp':
@@ -44,10 +44,6 @@ class InteractiveConsole {
                 case 'ArrowDown':
                     e.preventDefault();
                     this.navigateHistory(1);
-                    break;
-                case 'Tab':
-                    e.preventDefault();
-                    this.handleTabCompletion();
                     break;
                 case 'c':
                     if (e.ctrlKey) {
@@ -60,18 +56,35 @@ class InteractiveConsole {
                         this.clear();
                     }
                     break;
-
             }
         });
     }
 
-    handleEnterKey() {
+    async handleEnterKey() {
         const input = this.inputElement.value.trim();
 
-        if (this.isWaitingForInput) {
-            this.appendOutput(`${input}\n`);
-            if (this.onInput) {
-                this.onInput(input);
+        if (this.sessionId && this.isWaitingForInput) {
+            try {
+                const response = await fetch('/send_input', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify({
+                        session_id: this.sessionId,
+                        input: input
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send input');
+                }
+
+                this.appendOutput(`${input}\n`);
+                this.isWaitingForInput = false;
+            } catch (error) {
+                this.appendError(`Error sending input: ${error.message}`);
             }
         } else if (input) {
             this.history.push(input);
@@ -79,7 +92,7 @@ class InteractiveConsole {
             this.appendOutput(`> ${input}\n`);
 
             if (this.onCommand) {
-                this.onCommand(input);
+                await this.onCommand(input);
             }
         }
 
@@ -98,16 +111,10 @@ class InteractiveConsole {
         }
 
         this.inputElement.value = this.history[this.historyIndex];
-        // Move cursor to end of input
         setTimeout(() => {
             this.inputElement.selectionStart = this.inputElement.value.length;
             this.inputElement.selectionEnd = this.inputElement.value.length;
         }, 0);
-    }
-
-    handleTabCompletion() {
-        // Implement code completion here
-        // This will be similar to W3Schools' implementation
     }
 
     handleCtrlC() {
@@ -131,6 +138,7 @@ class InteractiveConsole {
         this.outputElement.appendChild(line);
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
         this.outputBuffer.push({ text, className });
+
         if (this.outputBuffer.length > this.maxBufferSize) {
             this.outputBuffer.shift();
             if (this.outputElement.firstChild) {
@@ -201,16 +209,46 @@ class InteractiveConsole {
         }
     }
 
-    waitForInput(prompt = '') {
-        this.isWaitingForInput = true;
-        this.appendOutput(prompt);
-        this.inputElement.focus();
-        return new Promise(resolve => {
-            this.onInput = (input) => {
-                this.isWaitingForInput = false;
-                resolve(input);
-            };
-        });
+    setSession(sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    startPollingOutput() {
+        if (!this.sessionId) return;
+
+        const pollOutput = async () => {
+            try {
+                const response = await fetch(`/get_output?session_id=${this.sessionId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get output');
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    if (data.output) {
+                        this.appendOutput(data.output);
+                    }
+                    this.isWaitingForInput = data.waiting_for_input;
+
+                    if (data.session_ended) {
+                        this.sessionId = null;
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling output:', error);
+            }
+
+            if (this.sessionId) {
+                setTimeout(pollOutput, 100);
+            }
+        };
+
+        pollOutput();
+    }
+    handleTabCompletion() {
+        // Implement code completion here
+        // This will be similar to W3Schools' implementation
     }
 }
 
