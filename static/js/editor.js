@@ -155,30 +155,26 @@ async function runCode() {
             },
             body: JSON.stringify({ 
                 code, 
-                language: editorState.currentLanguage 
-            })
+                language: editorState.currentLanguage
+            }),
+            credentials: 'same-origin'
         });
 
-        // Check response content type
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            if (response.status === 401) {
-                window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
-                return;
+        if (response.status === 401) {
+            window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+            return;
+        }
+
+        if (!response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
-            throw new Error('Server returned an invalid response format');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
-
-        if (!response.ok) {
-            if (response.status === 401 && result.auth_required) {
-                window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
-                return;
-            }
-            throw new Error(result.error || `HTTP error! status: ${response.status}`);
-        }
-
         console.log('Received response:', result);
 
         if (result.success) {
@@ -191,9 +187,6 @@ async function runCode() {
             }
         } else {
             terminal?.write('\x1b[31mError: ' + (result.error || 'Unknown error occurred') + '\x1b[0m\r\n');
-            if (result.metrics) {
-                console.log('Error metrics:', result.metrics);
-            }
         }
     } catch (error) {
         console.error('Error executing code:', error);

@@ -4,23 +4,16 @@ Activity routes with curriculum compliance integration and enhanced learning fea
 import os
 import logging
 import time
-import subprocess
-import shutil
-from threading import Lock
-import atexit
-import fcntl
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from werkzeug.exceptions import RequestTimeout
 from database import db
 from models import CodingActivity, StudentProgress, CodeSubmission
 from extensions import limiter
-from sqlalchemy import text
 from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from utils.backup import DatabaseBackup
 from routes.static_routes import get_user_language
 from compiler import compile_and_run
+from flask import make_response
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -31,6 +24,18 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.chmod(TEMP_DIR, 0o755)
 
+def json_login_required(f):
+    """Decorator to require login and return JSON response"""
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({
+                'success': False,
+                'error': 'Authentication required',
+                'auth_required': True
+            }), 401
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 @activities.route('/activities/submit_confidence', methods=['POST'])
 @login_required
@@ -101,17 +106,10 @@ def fetch_solutions(activity_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @activities.route('/activities/run_code', methods=['POST'])
-@login_required
+@json_login_required
 def run_code():
     """Execute student code submission with activity tracking"""
     try:
-        if not current_user.is_authenticated:
-            return jsonify({
-                'success': False,
-                'error': 'Authentication required',
-                'auth_required': True
-            }), 401
-
         if not request.is_json:
             logger.error("Invalid request format - not JSON")
             return jsonify({'success': False, 'error': 'Invalid request format'}), 400
@@ -136,45 +134,26 @@ def run_code():
             language = 'cpp'
 
         logger.debug(f"Executing {language} code, length: {len(code)}")
-        logger.debug(f"Code preview: {code[:200]}...")  # Log first 200 chars for debugging
+        logger.debug(f"Code preview: {code[:200]}...")
 
         # Execute the code using the compiler implementation
         result = compile_and_run(
             code=code,
             language=language,
-            input_data=None  # Add input data support if needed
+            input_data=None
         )
 
-        # Ensure result is properly formatted as JSON
-        response_data = {
-            'success': result.get('success', False),
-            'output': result.get('output', ''),
-            'error': result.get('error', ''),
-            'metrics': result.get('metrics', {})
-        }
+        # Ensure result is properly formatted
+        if not isinstance(result, dict):
+            logger.error(f"Invalid result type from compile_and_run: {type(result)}")
+            return jsonify({
+                'success': False,
+                'error': 'Internal server error: Invalid compiler response'
+            }), 500
 
-        # Store submission if activity_id is provided
-        if activity_id and current_user.is_authenticated:
-            try:
-                submission = CodeSubmission(
-                    student_id=current_user.id,
-                    activity_id=activity_id,
-                    code=code,
-                    language=language,
-                    success=result.get('success', False),
-                    output=result.get('output', ''),
-                    error=result.get('error', ''),
-                    submitted_at=datetime.utcnow()
-                )
-                db.session.add(submission)
-                db.session.commit()
-                logger.info(f"Stored submission for activity {activity_id}")
-            except Exception as e:
-                logger.error(f"Failed to store submission: {str(e)}")
-                # Continue with execution result even if storage fails
-                pass
-
-        return jsonify(response_data)
+        response = jsonify(result)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         logger.error(f"Error running code: {str(e)}", exc_info=True)

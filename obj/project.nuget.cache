@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "0QP+OqOdNZ0tfxrbVf8N6rE0Sqyzv7ue0OrJD4NF6DOepG8um+JAdtAIXC6OXNAKJZhq2favI/EgzrjBPruiyg==",
+  "dgSpecHash": "ByElb2HNEcMN6NWg+XhJtDi2KpGuKXGEtWI2fRbtCXRP/NjbyywZhPxzZ5GOiHuP1iw6hYnUz2BXTu1v+evcJA==",
   "success": true,
-  "projectFilePath": "/home/runner/workspace/test.csproj",
+  "projectFilePath": "/home/runner/workspace/student_tracker.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
