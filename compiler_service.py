@@ -361,7 +361,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 if not inside_method and 'Console.' in line and not line.strip().startswith("//"):
                     return {
                         'success': False,
-                        'error': f"Error: Console statements must be inside a method. Check line containing:\n{line.strip()}\n\nTip: Move all Console operations inside the Main method or another appropriate method."
+                        'error': f"Error: Console statements must be inside a method. Check line containing:\n{line.strip()}\n\nTip: Move all Console operations inside the Main method or another appropriate method.\n\nExample structure:\nstatic void Main()\n{{\n    Console.Clear();\n    // Other console operations\n}}"
                     }
 
             code = '\n'.join(modified_code)
