@@ -152,7 +152,7 @@ namespace ConsoleApplication {
 
                 # Run with mono and support for Console.Clear()
                 process = subprocess.Popen(
-                    ['mono', '--debug', str(executable)],
+                    ['mono', str(executable)],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -209,6 +209,7 @@ namespace ConsoleApplication {
                     'success': False,
                     'error': str(e)
                 }
+
     except Exception as e:
         logger.error(f"Error in start_interactive_session: {e}")
         return {
