@@ -146,6 +146,14 @@ def run_code():
             input_data=None  # Add input data support if needed
         )
 
+        # Ensure result is properly formatted as JSON
+        response_data = {
+            'success': result.get('success', False),
+            'output': result.get('output', ''),
+            'error': result.get('error', ''),
+            'metrics': result.get('metrics', {})
+        }
+
         # Store submission if activity_id is provided
         if activity_id:
             try:
@@ -167,7 +175,9 @@ def run_code():
                 # Continue with execution result even if storage fails
                 pass
 
-        return jsonify(result)
+        response = jsonify(response_data)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         logger.error(f"Error running code: {str(e)}", exc_info=True)
