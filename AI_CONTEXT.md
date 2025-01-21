@@ -1,7 +1,13 @@
 # AI Session Context Guide
-Last Updated: January 20, 2025
+Last Updated: January 21, 2025
 
 ## Quick Start for AI Sessions:
+
+### Project Philosophy:
+- The project must maintain nimbleness and efficiency as a top priority
+- Avoid heavy frameworks or complex dependencies unless absolutely necessary
+- Prefer lightweight, modular solutions that can be easily maintained
+- Focus on performance and minimal resource usage
 
 ### Priority Files for Context (Read First):
 1. project_memory.md - Overall project status and architecture
