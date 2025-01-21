@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 class Program
 {
@@ -13,12 +12,12 @@ class Program
         public int DetentionsPrises { get; set; }
         public bool BesoinDetention => Points >= 100;
 
-        public Etudiant(string nom, int retards = 0, int points = 0, int detentionsPrises = 0)
+        public Etudiant(string nom)
         {
             Nom = nom;
-            Retards = retards;
-            Points = points;
-            DetentionsPrises = detentionsPrises;
+            Retards = 0;
+            Points = 0;
+            DetentionsPrises = 0;
         }
     }
 
@@ -39,9 +38,8 @@ class Program
         new Etudiant("Mohamed Houssam")
     };
 
-    static void Main()
+    static void Main(string[] args)
     {
-        Console.OutputEncoding = Encoding.UTF8;
         bool quitter = false;
 
         while (!quitter)
@@ -49,27 +47,34 @@ class Program
             AfficherEtudiants();
             AfficherMenu();
 
-            var choix = LireChoixMenu();
-            switch (choix)
+            string input = Console.ReadLine();
+            if (int.TryParse(input, out int choix))
             {
-                case 1:
-                    AjouterRetard();
-                    break;
-                case 2:
-                    VerifierDetentions();
-                    break;
-                case 3:
-                    ConfirmerDetention();
-                    break;
-                case 4:
-                    AjouterNouvelEtudiant();
-                    break;
-                case 5:
-                    quitter = true;
-                    break;
-                default:
-                    Console.WriteLine("Choix invalide. Essayez encore.");
-                    break;
+                switch (choix)
+                {
+                    case 1:
+                        AjouterRetard();
+                        break;
+                    case 2:
+                        VerifierDetentions();
+                        break;
+                    case 3:
+                        ConfirmerDetention();
+                        break;
+                    case 4:
+                        AjouterNouvelEtudiant();
+                        break;
+                    case 5:
+                        quitter = true;
+                        break;
+                    default:
+                        Console.WriteLine("Choix invalide. Essayez encore.");
+                        break;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Veuillez entrer un numero valide.");
             }
         }
     }
@@ -83,12 +88,6 @@ class Program
         Console.WriteLine("4. Ajouter un nouvel etudiant");
         Console.WriteLine("5. Quitter");
         Console.Write("Votre choix: ");
-    }
-
-    static int LireChoixMenu()
-    {
-        string input = Console.ReadLine() ?? "";
-        return int.TryParse(input, out int choix) ? choix : 0;
     }
 
     static void AfficherEtudiants()
@@ -107,7 +106,7 @@ class Program
     static void AjouterRetard()
     {
         Console.Write("\nEntrez le nom de l'etudiant: ");
-        string nom = Console.ReadLine() ?? "";
+        string nom = Console.ReadLine();
         var etudiant = Etudiants.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
 
         if (etudiant != null)
@@ -118,14 +117,11 @@ class Program
                 int points = CalculerPoints(minutesRetard);
                 etudiant.Retards++;
                 etudiant.Points += points;
-
-                Console.WriteLine($"\n{etudiant.Nom} a ete en retard de {minutesRetard} minutes.");
-                Console.WriteLine($"{points} points ajoutes.");
-                Console.WriteLine("Impression du billet de retard...");
+                Console.WriteLine($"\n{etudiant.Nom} a ete en retard de {minutesRetard} minutes. {points} points ajoutes.");
             }
             else
             {
-                Console.WriteLine("\nEntree invalide pour les minutes. Essayez encore.");
+                Console.WriteLine("\nEntree invalide pour les minutes.");
             }
         }
         else
@@ -136,16 +132,14 @@ class Program
 
     static void VerifierDetentions()
     {
-        var besoinDetention = Etudiants.Where(e => e.BesoinDetention).ToList();
+        var besoinDetention = Etudiants.Where(e => e.BesoinDetention);
 
         Console.WriteLine("\nEtudiants ayant besoin de detention:");
         Console.WriteLine("-------------------------------------");
-        Console.WriteLine($"{"Nom",-15} {"Points",-10} {"Detentions Prises",-15}");
-        Console.WriteLine(new string('-', 40));
 
         if (!besoinDetention.Any())
         {
-            Console.WriteLine("Aucun etudiant n'a besoin de detention.");
+            Console.WriteLine("Aucun.");
         }
         else
         {
@@ -159,7 +153,7 @@ class Program
     static void ConfirmerDetention()
     {
         Console.Write("\nEntrez le nom de l'etudiant: ");
-        string nom = Console.ReadLine() ?? "";
+        string nom = Console.ReadLine();
         var etudiant = Etudiants.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
 
         if (etudiant != null)
@@ -168,8 +162,7 @@ class Program
             {
                 etudiant.Points -= 100;
                 etudiant.DetentionsPrises++;
-                Console.WriteLine($"\nDetention confirmee pour {etudiant.Nom}.");
-                Console.WriteLine("100 points retires.");
+                Console.WriteLine($"\nDetention confirmee pour {etudiant.Nom}. 100 points retires.");
             }
             else
             {
@@ -185,7 +178,7 @@ class Program
     static void AjouterNouvelEtudiant()
     {
         Console.Write("\nEntrez le nom du nouvel etudiant: ");
-        string nom = Console.ReadLine() ?? "";
+        string nom = Console.ReadLine();
 
         if (string.IsNullOrWhiteSpace(nom))
         {
@@ -208,13 +201,12 @@ class Program
     {
         if (minutesRetard <= 1)
             return 0;
-        else if (minutesRetard <= 7)
+        if (minutesRetard <= 7)
             return (minutesRetard - 1) * 1;
-        else if (minutesRetard <= 27)
+        if (minutesRetard <= 27)
             return (minutesRetard - 7) * 2 + 6;
-        else if (minutesRetard <= 45)
+        if (minutesRetard <= 45)
             return (minutesRetard - 27) * 3 + 46;
-        else
-            return 100;
+        return 100;
     }
 }
