@@ -4,9 +4,32 @@ let editor = null;
 let isExecuting = false;
 
 // Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', async function() {
-    await initializeComponents();
+document.addEventListener('DOMContentLoaded', function() {
+    initializeEditorWithRetry();
 });
+
+async function initializeEditorWithRetry(retries = 3) {
+    try {
+        // First verify if InteractiveConsole class is available
+        if (typeof InteractiveConsole === 'undefined') {
+            throw new Error('Console class not loaded. Retrying...');
+        }
+
+        // Initialize components
+        await initializeComponents();
+    } catch (error) {
+        console.error('Initialization error:', error);
+
+        if (retries > 0) {
+            // Wait 500ms before retrying
+            setTimeout(() => {
+                initializeEditorWithRetry(retries - 1);
+            }, 500);
+        } else {
+            showError('Failed to initialize editor. Please refresh the page.');
+        }
+    }
+}
 
 async function initializeComponents() {
     try {
@@ -22,9 +45,11 @@ async function initializeComponents() {
         // Set initial editor state
         setInitialEditorState();
 
+        console.log('Editor and console initialized successfully');
+
     } catch (error) {
         console.error('Failed to initialize components:', error);
-        showError('Failed to initialize editor. Please try again.');
+        throw error;
     }
 }
 
