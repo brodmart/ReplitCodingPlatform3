@@ -92,32 +92,35 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         # Enhanced C# code preprocessing
         if language == 'csharp':
-            # Do not modify the original code
-            modified_code = code
-
-            # Only add namespace if not present
-            if 'namespace' not in code:
-                modified_code = """using System;
-using System.IO;
+            # Skip wrapping if code already contains namespace/class definition
+            if 'namespace' in code or 'class Program' in code:
+                modified_code = code
+            else:
+                modified_code = f"""using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
-namespace ConsoleApplication {
-""" + code + "\n}"
+namespace ConsoleApplication {{
+    class Program {{
+        static void Main(string[] args) {{
+            {code}
+        }}
+    }}
+}}"""
 
             # Write the code with proper encoding
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(modified_code)
 
-            # Enhanced compilation command
+            # Enhanced compilation command with proper references
             compile_cmd = [
                 'mcs',
                 '-optimize+',
                 '-debug-',
                 '-reference:System.Core.dll',
                 '-reference:System.dll',
+                '-define:INTERACTIVE',
                 str(source_file),
                 '-out:' + str(executable)
             ]
@@ -127,7 +130,7 @@ namespace ConsoleApplication {
                     compile_cmd,
                     capture_output=True,
                     text=True,
-                    timeout=20
+                    timeout=30  # Increased timeout for larger code bases
                 )
 
                 if compile_process.returncode != 0:
@@ -136,6 +139,7 @@ namespace ConsoleApplication {
                         'error': format_csharp_error(compile_process.stderr)
                     }
 
+                # Set executable permissions
                 os.chmod(executable, 0o755)
 
                 # Enhanced environment for better console handling
@@ -145,8 +149,6 @@ namespace ConsoleApplication {
                 env['MONO_DEBUG'] = 'handle-sigint'
                 env['MONO_THREADS_PER_CPU'] = '2'
                 env['MONO_GC_PARAMS'] = 'mode=throughput'
-
-                # Add proper console window support
                 env['TERM'] = 'xterm'
                 env['COLUMNS'] = '80'
                 env['LINES'] = '25'
@@ -163,11 +165,11 @@ namespace ConsoleApplication {
                     preexec_fn=os.setsid
                 )
 
-                # Set up process monitor
-                monitor = ProcessMonitor(process, timeout=30)
-                monitor.start()
-
                 session.process = process
+
+                # Set up process monitor
+                monitor = ProcessMonitor(process, timeout=60)  # Increased timeout
+                monitor.start()
 
                 # Start monitoring thread for real-time output
                 def monitor_output():
@@ -186,10 +188,11 @@ namespace ConsoleApplication {
                                             session.stdout_buffer.append(line)
                                             logger.debug(f"Output: {line.strip()}")
 
-                                        # Check for input prompts
+                                        # Enhanced input prompt detection for French and English
                                         if any(prompt in line.lower() for prompt in [
                                             'input', 'enter', 'type', '?', ':', '>',
-                                            'choix', 'votre choix', 'choisir'
+                                            'choix', 'votre choix', 'choisir', 'entrer',
+                                            'saisir', 'tapez'
                                         ]):
                                             session.waiting_for_input = True
                                             logger.debug("Waiting for input")
@@ -215,14 +218,16 @@ namespace ConsoleApplication {
                 }
 
             except subprocess.TimeoutExpired:
-                cleanup_session(session.session_id)
+                if 'process' in locals():
+                    cleanup_session(session.session_id)
                 return {
                     'success': False,
                     'error': "Compilation timeout"
                 }
             except Exception as e:
+                if 'process' in locals():
+                    cleanup_session(session.session_id)
                 logger.error(f"Error executing C# code: {e}")
-                cleanup_session(session.session_id)
                 return {
                     'success': False,
                     'error': str(e)
