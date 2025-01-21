@@ -1,3 +1,7 @@
+"""
+Compiler service for code execution and testing.
+Optimized for handling large code files.
+"""
 import subprocess
 import tempfile
 import os
@@ -33,6 +37,8 @@ class ProcessMonitor(Thread):
         self.timeout = timeout
         self.start_time = time.time()
         self.stopped = Event()
+        self.compilation_complete = Event()
+        self.progress = 0
 
     def run(self):
         while not self.stopped.is_set():
@@ -45,7 +51,15 @@ class ProcessMonitor(Thread):
                 break
             try:
                 proc = psutil.Process(self.process.pid)
-                if proc.cpu_percent(interval=0.1) > 90 or proc.memory_percent() > 90:
+                cpu_percent = proc.cpu_percent(interval=0.1)
+                mem_percent = proc.memory_percent()
+
+                # Update progress based on resource usage
+                if not self.compilation_complete.is_set():
+                    self.progress = min(95, self.progress + 5)
+
+                if cpu_percent > 90 or mem_percent > 90:
+                    logger.warning(f"Resource usage too high: CPU {cpu_percent}%, Memory {mem_percent}%")
                     try:
                         os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
                     except:
@@ -57,6 +71,272 @@ class ProcessMonitor(Thread):
 
     def stop(self):
         self.stopped.set()
+
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Enhanced compile and run function with optimizations for large code files.
+    """
+    if not code or not language:
+        logger.error("Invalid input parameters: code or language is missing")
+        return {
+            'success': False,
+            'output': '',
+            'error': "Code and language are required"
+        }
+
+    try:
+        logger.debug(f"Attempting to compile and run {language} code")
+        logger.debug(f"Code length: {len(code)} characters")
+
+        # Create temporary directory with proper cleanup
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            process = None
+            monitor = None
+
+            try:
+                if language.lower() == 'csharp':
+                    # Enhanced C# compilation
+                    source_file = temp_path / "program.cs"
+                    executable = temp_path / "program.exe"
+
+                    # Write code with proper encoding
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
+
+                    # Further optimized compilation command for large code
+                    compile_cmd = [
+                        'mcs',
+                        '-optimize+',
+                        '-debug-',
+                        '-sdk:4.5',
+                        '-parallel',
+                        '+',
+                        '-unsafe+',  # Enable unsafe code for better performance
+                        '-langversion:latest',  # Use latest C# features
+                        str(source_file),
+                        '-out:' + str(executable)
+                    ]
+
+                    # Start compilation with monitoring
+                    compile_process = subprocess.Popen(
+                        compile_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        preexec_fn=os.setsid
+                    )
+
+                    monitor = ProcessMonitor(compile_process, timeout=120)  # Increased timeout for larger files
+                    monitor.start()
+
+                    stdout, stderr = compile_process.communicate()
+
+                    if compile_process.returncode != 0:
+                        return {
+                            'success': False,
+                            'error': format_csharp_error(stderr)
+                        }
+
+                    # Set executable permissions
+                    os.chmod(executable, 0o755)
+
+                    # Enhanced Mono runtime environment configuration
+                    env = os.environ.copy()
+                    env['MONO_GC_PARAMS'] = 'major=marksweep-par,minor=split,max-heap-size=2g'
+                    env['MONO_THREADS_PER_CPU'] = '4'
+                    env['MONO_MIN_HEAP_SIZE'] = '256M'
+                    env['MONO_GC_PARAMS'] = 'mode=throughput'
+                    env['MONO_OPTS'] = '--server -O=all'
+
+                    # Run the compiled program with optimized settings
+                    process = subprocess.Popen(
+                        ['mono', '--server', '-O=all', str(executable)],
+                        stdin=subprocess.PIPE if input_data else None,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        env=env,
+                        preexec_fn=os.setsid
+                    )
+
+                    monitor.compilation_complete.set()
+                    stdout, stderr = process.communicate(
+                        input=input_data,
+                        timeout=60  # Increased execution timeout
+                    )
+
+                    if stderr and stderr.strip():
+                        error_msg = format_runtime_error(stderr)
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
+
+                    return {
+                        'success': True,
+                        'output': stdout.strip() if stdout else ""
+                    }
+
+                elif language.lower() == 'cpp':
+                    # Enhanced C++ compilation
+                    source_file = temp_path / "program.cpp"
+                    executable = temp_path / "program"
+
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
+
+                    # Optimized compilation flags for C++
+                    compile_cmd = [
+                        'g++',
+                        '-std=c++17',
+                        '-O2',
+                        '-march=native',
+                        '-flto',
+                        str(source_file),
+                        '-o',
+                        str(executable)
+                    ]
+
+                    compile_process = subprocess.Popen(
+                        compile_cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        preexec_fn=os.setsid
+                    )
+
+                    monitor = ProcessMonitor(compile_process, timeout=60)
+                    monitor.start()
+
+                    stdout, stderr = compile_process.communicate()
+
+                    if compile_process.returncode != 0:
+                        return {
+                            'success': False,
+                            'error': stderr
+                        }
+
+                    # Set executable permissions
+                    os.chmod(executable, 0o755)
+
+                    # Run with optimized environment
+                    process = subprocess.Popen(
+                        [str(executable)],
+                        stdin=subprocess.PIPE if input_data else None,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        preexec_fn=os.setsid
+                    )
+
+                    monitor.compilation_complete.set()
+                    stdout, stderr = process.communicate(
+                        input=input_data,
+                        timeout=30
+                    )
+
+                    if stderr and stderr.strip():
+                        return {
+                            'success': False,
+                            'error': stderr
+                        }
+
+                    return {
+                        'success': True,
+                        'output': stdout.strip() if stdout else ""
+                    }
+
+            except subprocess.TimeoutExpired:
+                logger.error("Compilation/execution timeout")
+                if process and process.poll() is None:
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    except:
+                        pass
+                return {
+                    'success': False,
+                    'error': "Process timed out. Check for infinite loops or excessive computation."
+                }
+
+            finally:
+                if monitor:
+                    monitor.stop()
+                if process and process.poll() is None:
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    except:
+                        pass
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return {
+            'success': False,
+            'output': '',
+            'error': f"Compilation error: {str(e)}"
+        }
+
+    return {
+        'success': False,
+        'error': "Unsupported language or compilation failed"
+    }
+
+
+def format_csharp_error(error_msg: str) -> str:
+    """Format C# compilation errors to be more user-friendly"""
+    try:
+        # Extract the core error message
+        if "error CS" in error_msg:
+            # Split the error message into parts
+            parts = error_msg.split("): ")
+            if len(parts) > 1:
+                error_code = parts[0].split("error CS")[1].strip()
+                error_desc = parts[1].strip()
+
+                # Common error codes and their friendly messages
+                error_messages = {
+                    "1525": "Code structure issue. Make sure all statements are inside methods and check for missing semicolons or braces.",
+                    "1002": "Syntax Error: Missing closing curly brace '}'",
+                    "1001": "Syntax Error: Missing opening curly brace '{'",
+                    "1513": "Error: Invalid statement. Make sure you're inside a method.",
+                    "0117": "Error: Method must have a return type. Did you forget 'void' or 'int'?",
+                    "0161": "Error: 'Console.WriteLine' can only be used inside a method",
+                    "0103": "Error: The name does not exist in the current context. Check for typos or missing 'using' statements.",
+                    "0234": "Error: The type or namespace name could not be found. Are you missing an assembly reference?",
+                    "0116": "Error: A namespace cannot directly contain a method. Wrap your code in a class."
+                }
+
+                friendly_msg = error_messages.get(error_code, error_desc)
+                # Add line number context to help locate the issue
+                line_num = error_msg.split('(')[1].split(',')[0]
+                return f"Error (CS{error_code}) at line {line_num}:\n{friendly_msg}"
+
+        return error_msg
+    except Exception:
+        return error_msg
+
+def format_runtime_error(error_msg: str) -> str:
+    """Format runtime errors to be more user-friendly"""
+    if "System.NullReferenceException" in error_msg:
+        return "Runtime Error: Attempted to use a null object. Check if all your variables are initialized before use."
+    elif "System.IndexOutOfRangeException" in error_msg:
+        return "Runtime Error: Array index out of bounds. Make sure you're not accessing an array beyond its size."
+    elif "System.DivideByZeroException" in error_msg:
+        return "Runtime Error: Division by zero detected. Check your arithmetic operations."
+    elif "System.StackOverflowException" in error_msg:
+        return "Runtime Error: Stack overflow. This usually happens with infinite recursion."
+    return error_msg
+
+def format_execution_error(error_msg: str) -> str:
+    """Format general execution errors to be more user-friendly"""
+    if "access denied" in error_msg.lower():
+        return "Execution Error: Permission denied. The program doesn't have required permissions."
+    elif "memory" in error_msg.lower():
+        return "Execution Error: Out of memory. Try reducing the size of variables or arrays."
+    elif "timeout" in error_msg.lower():
+        return "Execution Error: Program took too long to execute. Check for infinite loops."
+    return f"Execution Error: {error_msg}"
 
 # Global session management
 active_sessions = {}
@@ -346,308 +626,3 @@ def cleanup_session(session_id: str) -> None:
         finally:
             with session_lock:
                 del active_sessions[session_id]
-
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with improved monitoring and feedback.
-    """
-    if not code or not language:
-        logger.error("Invalid input parameters: code or language is missing")
-        return {
-            'success': False,
-            'output': '',
-            'error': "Code and language are required"
-        }
-
-    try:
-        logger.debug(f"Attempting to compile and run {language} code")
-        logger.debug(f"Code length: {len(code)} characters")
-
-        # Create temporary directory for compilation
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            if language.lower() == 'csharp':
-                try:
-                    # C# specific compilation with optimized Mono configuration
-                    source_file = temp_path / "program.cs"
-                    executable = temp_path / "program.exe"
-
-                    # Enhanced C# code preprocessing - minimal wrapper
-                    modified_code = code
-                    if 'namespace' not in code and 'class' not in code:
-                        modified_code = f"""using System;
-
-class Program 
-{{
-    static void Main(string[] args)
-    {{
-        {modified_code}
-    }}
-}}"""
-
-                    # Write the code with proper encoding
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write(modified_code)
-
-                    # Optimized compilation command with correct assembly references
-                    compile_cmd = [
-                        'mcs',
-                        '-optimize+',
-                        '-debug-',
-                        '-sdk:4.5',  # Use .NET 4.5 SDK for better compatibility
-                        str(source_file),
-                        '-out:' + str(executable)
-                    ]
-
-                    compile_process = subprocess.run(
-                        compile_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=10  # Reduced timeout for compilation
-                    )
-
-                    if compile_process.returncode != 0:
-                        return {
-                            'success': False,
-                            'error': format_csharp_error(compile_process.stderr)
-                        }
-
-                    os.chmod(executable, 0o755)
-
-                    # Optimized Mono runtime settings
-                    env = os.environ.copy()
-                    env['MONO_GC_PARAMS'] = 'mode=throughput'  # Faster GC
-                    env['MONO_THREADS_PER_CPU'] = '2'
-
-                    # Run with mono
-                    process = subprocess.Popen(
-                        ['mono', str(executable)],
-                        stdin=subprocess.PIPE if input_data else None,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        env=env,
-                        preexec_fn=os.setsid
-                    )
-
-                    stdout, stderr = process.communicate(
-                        input=input_data,
-                        timeout=30
-                    )
-
-                    if stderr and stderr.strip():
-                        logger.error(f"Program stderr: {stderr}")
-                        error_msg = format_runtime_error(stderr)
-                        return {
-                            'success': False,
-                            'error': error_msg
-                        }
-
-                    if process.returncode != 0:
-                        error_msg = stderr if stderr else "Program failed with no error message"
-                        logger.error(f"Program failed: {error_msg}")
-                        return {
-                            'success': False,
-                            'error': error_msg
-                        }
-
-                    output = stdout.strip() if stdout else ""
-                    return {
-                        'success': True,
-                        'output': output
-                    }
-
-                except subprocess.TimeoutExpired:
-                    try:
-                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                    except:
-                        pass
-                    return {
-                        'success': False,
-                        'error': "Execution timeout after 30 seconds"
-                    }
-                except Exception as e:
-                    return {
-                        'success': False,
-                        'error': f"C# compilation error: {str(e)}"
-                    }
-                finally:
-                    try:
-                        if process.poll() is None:
-                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                            process.wait(timeout=1)
-                    except:
-                        pass
-
-            elif language.lower() == 'cpp':
-                try:
-                    # C++ specific compilation
-                    source_file = temp_path / "program.cpp"
-                    executable = temp_path / "program"
-
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write(code)
-
-                    # Compile C++ code
-                    compile_cmd = [
-                        'g++',
-                        '-std=c++17',
-                        '-O2',
-                        str(source_file),
-                        '-o',
-                        str(executable)
-                    ]
-
-                    compile_process = subprocess.run(
-                        compile_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=20
-                    )
-
-                    if compile_process.returncode != 0:
-                        return {
-                            'success': False,
-                            'error': compile_process.stderr
-                        }
-
-                    os.chmod(executable, 0o755)
-
-                    # Run the compiled program
-                    process = subprocess.Popen(
-                        [str(executable)],
-                        stdin=subprocess.PIPE if input_data else None,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        preexec_fn=os.setsid
-                    )
-
-                except subprocess.TimeoutExpired as e:
-                    return {
-                        'success': False,
-                        'error': f"C++ compilation timed out: {str(e)}"
-                    }
-                except Exception as e:
-                    return {
-                        'success': False,
-                        'error': f"C++ compilation error: {str(e)}"
-                    }
-
-
-            else:
-                return {
-                    'success': False,
-                    'error': f"Unsupported language: {language}"
-                }
-
-            # Common execution code for both languages
-            try:
-                stdout, stderr = process.communicate(
-                    input=input_data,
-                    timeout=30
-                )
-
-                if stderr and stderr.strip():
-                    logger.error(f"Program stderr: {stderr}")
-                    error_msg = stderr if language.lower() == 'cpp' else format_runtime_error(stderr)
-                    return {
-                        'success': False,
-                        'error': error_msg
-                    }
-
-                if process.returncode != 0:
-                    error_msg = stderr if stderr else "Program failed with no error message"
-                    logger.error(f"Program failed: {error_msg}")
-                    return {
-                        'success': False,
-                        'error': error_msg
-                    }
-
-                output = stdout.strip() if stdout else ""
-                return {
-                    'success': True,
-                    'output': output
-                }
-
-            except subprocess.TimeoutExpired:
-                try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                except:
-                    pass
-                return {
-                    'success': False,
-                    'error': "Execution timeout after 30 seconds"
-                }
-            finally:
-                try:
-                    if process.poll() is None:
-                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                        process.wait(timeout=1)
-                except:
-                    pass
-
-    except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
-        logger.error(traceback.format_exc())
-        return {
-            'success': False,
-            'output': '',
-            'error': f"Code execution service encountered an error: {str(e)}"
-        }
-
-def format_csharp_error(error_msg: str) -> str:
-    """Format C# compilation errors to be more user-friendly"""
-    try:
-        # Extract the core error message
-        if "error CS" in error_msg:
-            # Split the error message into parts
-            parts = error_msg.split("): ")
-            if len(parts) > 1:
-                error_code = parts[0].split("error CS")[1].strip()
-                error_desc = parts[1].strip()
-
-                # Common error codes and their friendly messages
-                error_messages = {
-                    "1525": "Code structure issue. Make sure all statements are inside methods and check for missing semicolons or braces.",
-                    "1002": "Syntax Error: Missing closing curly brace '}'",
-                    "1001": "Syntax Error: Missing opening curly brace '{'",
-                    "1513": "Error: Invalid statement. Make sure you're inside a method.",
-                    "0117": "Error: Method must have a return type. Did you forget 'void' or 'int'?",
-                    "0161": "Error: 'Console.WriteLine' can only be used inside a method",
-                    "0103": "Error: The name does not exist in the current context. Check for typos or missing 'using' statements.",
-                    "0234": "Error: The type or namespace name could not be found. Are you missing an assembly reference?",
-                    "0116": "Error: A namespace cannot directly contain a method. Wrap your code in a class."
-                }
-
-                friendly_msg = error_messages.get(error_code, error_desc)
-                # Add line number context to help locate the issue
-                line_num = error_msg.split('(')[1].split(',')[0]
-                return f"Error (CS{error_code}) at line {line_num}:\n{friendly_msg}"
-
-        return error_msg
-    except Exception:
-        return error_msg
-
-def format_runtime_error(error_msg: str) -> str:
-    """Format runtime errors to be more user-friendly"""
-    if "System.NullReferenceException" in error_msg:
-        return "Runtime Error: Attempted to use a null object. Check if all your variables are initialized before use."
-    elif "System.IndexOutOfRangeException" in error_msg:
-        return "Runtime Error: Array index out of bounds. Make sure you're not accessing an array beyond its size."
-    elif "System.DivideByZeroException" in error_msg:
-        return "Runtime Error: Division by zero detected. Check your arithmetic operations."
-    elif "System.StackOverflowException" in error_msg:
-        return "Runtime Error: Stack overflow. This usually happens with infinite recursion."
-    return error_msg
-
-def format_execution_error(error_msg: str) -> str:
-    """Format general execution errors to be more user-friendly"""
-    if "access denied" in error_msg.lower():
-        return "Execution Error: Permission denied. The program doesn't have required permissions."
-    elif "memory" in error_msg.lower():
-        return "Execution Error: Out of memory. Try reducing the size of variables or arrays."
-    elif "timeout" in error_msg.lower():
-        return "Execution Error: Program took too long to execute. Check for infinite loops."
-    return f"Execution Error: {error_msg}"

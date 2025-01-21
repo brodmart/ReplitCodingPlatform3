@@ -71,6 +71,10 @@ args = "Interactive C# Console"
 task = "workflow.run"
 args = "Analyze W3Schools"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Large Code Compilation"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -253,6 +257,27 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python scripts/analyze_codemirror.py"
+
+[[workflows.workflow]]
+name = "Test Large Code Compilation"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = """
+python3 -c '
+from compiler_service import compile_and_run
+with open('test.cs', 'r') as f:
+    code = f.read()
+result = compile_and_run(code, 'csharp')
+print(result)
+'"""
 
 [[ports]]
 localPort = 5000
