@@ -3,117 +3,170 @@ let consoleInstance = null;
 let editor = null;
 let isExecuting = false;
 
-document.addEventListener('DOMContentLoaded', function() {
-    initializeComponents();
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', async function() {
+    await initializeComponents();
 });
 
-function initializeComponents() {
+async function initializeComponents() {
     try {
         // Initialize editor first
-        const editorElement = document.getElementById('editor');
-        if (!editorElement) {
-            throw new Error('Editor element not found');
-        }
+        await initializeEditor();
 
-        // Enhanced CodeMirror initialization with better language support
-        editor = CodeMirror.fromTextArea(editorElement, {
-            mode: 'text/x-c++src', // Default to C++
-            theme: 'dracula',
-            lineNumbers: true,
-            autoCloseBrackets: true,
-            matchBrackets: true,
-            indentUnit: 4,
-            tabSize: 4,
-            lineWrapping: true,
-            viewportMargin: Infinity,
-            gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
-            extraKeys: {
-                "Tab": function(cm) {
-                    if (cm.somethingSelected()) {
-                        cm.indentSelection("add");
-                    } else {
-                        cm.replaceSelection("    ", "end");
-                    }
-                },
-                "Ctrl-Enter": executeCode,
-                "Cmd-Enter": executeCode,
-                "Ctrl-/": "toggleComment",
-                "Cmd-/": "toggleComment"
-            },
-            autoCloseTags: true,
-            foldGutter: true,
-            matchTags: {bothTags: true}
-        });
+        // Then initialize console
+        await initializeConsole();
 
-        editor.on('change', function() {
-            // Auto-save content
-            localStorage.setItem('editorContent', editor.getValue());
-        });
+        // Setup event listeners after both components are ready
+        setupEventListeners();
 
-        editor.getWrapperElement().classList.add('CodeMirror-initialized');
-
-        // Initialize console after editor is ready
-        initializeConsole();
+        // Set initial editor state
+        setInitialEditorState();
 
     } catch (error) {
         console.error('Failed to initialize components:', error);
-        showError('Failed to initialize editor. Please refresh the page.');
+        showError('Failed to initialize editor. Please try again.');
     }
 }
 
-function initializeConsole() {
+async function initializeEditor() {
+    const editorElement = document.getElementById('editor');
+    if (!editorElement) {
+        throw new Error('Editor element not found');
+    }
+
+    editor = CodeMirror.fromTextArea(editorElement, {
+        mode: 'text/x-c++src', // Default to C++
+        theme: 'dracula',
+        lineNumbers: true,
+        autoCloseBrackets: true,
+        matchBrackets: true,
+        indentUnit: 4,
+        tabSize: 4,
+        lineWrapping: true,
+        viewportMargin: Infinity,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers", "CodeMirror-foldgutter"],
+        extraKeys: {
+            "Tab": function(cm) {
+                if (cm.somethingSelected()) {
+                    cm.indentSelection("add");
+                } else {
+                    cm.replaceSelection("    ", "end");
+                }
+            },
+            "Ctrl-Enter": executeCode,
+            "Cmd-Enter": executeCode,
+            "Ctrl-/": "toggleComment",
+            "Cmd-/": "toggleComment"
+        },
+        foldGutter: true,
+        lint: true,
+        autoCloseTags: true,
+        matchTags: {bothTags: true},
+        autoRefresh: true
+    });
+
+    // Set up editor change handler
+    editor.on('change', function() {
+        localStorage.setItem('editorContent', editor.getValue());
+    });
+
+    return new Promise((resolve) => {
+        editor.refresh();
+        editor.getWrapperElement().classList.add('CodeMirror-initialized');
+        resolve();
+    });
+}
+
+async function initializeConsole() {
     try {
-        // Check if Console class is loaded
+        // Ensure Console class is loaded
         if (typeof InteractiveConsole === 'undefined') {
             throw new Error('Console class not loaded');
         }
 
-        // Wait for console elements before initializing
-        waitForConsoleElements()
-            .then(() => {
-                consoleInstance = new InteractiveConsole();
-                setupEventListeners();
-                setInitialEditorState();
+        // Wait for console elements
+        const elements = await waitForConsoleElements();
 
-                // Restore previous content if any
-                const savedContent = localStorage.getItem('editorContent');
-                if (savedContent) {
-                    editor.setValue(savedContent);
-                }
-            })
-            .catch(error => {
-                console.error('Failed to initialize console:', error);
-                showError('Failed to initialize console. Please refresh the page.');
-            });
+        // Initialize console instance
+        consoleInstance = new InteractiveConsole({
+            outputElement: elements.output,
+            inputElement: elements.input,
+            onCommand: handleConsoleCommand
+        });
+
+        // Restore previous content if any
+        const savedContent = localStorage.getItem('editorContent');
+        if (savedContent && editor) {
+            editor.setValue(savedContent);
+        }
+
     } catch (error) {
-        console.error('Error in console initialization:', error);
-        showError('Failed to initialize console. Please refresh the page.');
+        console.error('Failed to initialize console:', error);
+        throw error;
     }
 }
 
-function showError(message) {
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'alert alert-danger';
-    errorMessage.textContent = message;
-    document.body.insertBefore(errorMessage, document.body.firstChild);
-}
-
-function waitForConsoleElements(retries = 10) {
+function waitForConsoleElements(maxRetries = 10, interval = 100) {
     return new Promise((resolve, reject) => {
-        const check = (attempts) => {
-            const consoleOutput = document.getElementById('consoleOutput');
-            const consoleInput = document.getElementById('consoleInput');
+        let attempts = 0;
 
-            if (consoleOutput && consoleInput) {
-                resolve();
-            } else if (attempts <= 0) {
+        const checkElements = () => {
+            const output = document.getElementById('consoleOutput');
+            const input = document.getElementById('consoleInput');
+
+            if (output && input) {
+                resolve({ output, input });
+            } else if (attempts >= maxRetries) {
                 reject(new Error('Console elements not found after maximum retries'));
             } else {
-                setTimeout(() => check(attempts - 1), 100);
+                attempts++;
+                setTimeout(checkElements, interval);
             }
         };
-        check(retries);
+
+        checkElements();
     });
+}
+
+async function handleConsoleCommand(command) {
+    if (!editor || !consoleInstance) return;
+
+    try {
+        const response = await executeCommand(command);
+        consoleInstance.appendOutput(response);
+    } catch (error) {
+        consoleInstance.appendOutput(`Error: ${error.message}`, 'error');
+    }
+}
+
+async function executeCommand(command) {
+    const languageSelect = document.getElementById('languageSelect');
+    const language = languageSelect ? languageSelect.value : 'cpp';
+
+    const response = await fetch('/execute_command', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+        },
+        body: JSON.stringify({ command, language })
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to execute command');
+    }
+
+    return response.text();
+}
+
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger';
+    errorDiv.textContent = message;
+    document.body.insertBefore(errorDiv, document.body.firstChild);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => errorDiv.remove(), 5000);
 }
 
 function setupEventListeners() {

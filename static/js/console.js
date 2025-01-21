@@ -2,10 +2,14 @@
  * Interactive Console class for handling real-time program I/O using CodeMirror
  */
 class InteractiveConsole {
-    constructor() {
-        if (!document.getElementById('consoleOutput') || !document.getElementById('consoleInput')) {
-            throw new Error('Console elements not found during initialization');
+    constructor(options = {}) {
+        if (!options.outputElement || !options.inputElement) {
+            throw new Error('Console requires output and input elements');
         }
+
+        this.outputElement = options.outputElement;
+        this.inputElement = options.inputElement;
+        this.onCommand = options.onCommand;
 
         this.outputBuffer = [];
         this.inputHistory = [];
@@ -14,18 +18,12 @@ class InteractiveConsole {
         this.isEnabled = true;
         this.isWaitingForInput = false;
         this.maxBufferSize = 1000;
-
-        // Initialize DOM elements
-        this.consoleElement = document.getElementById('consoleOutput');
-        this.inputElement = document.getElementById('consoleInput');
+        this.currentLanguage = 'cpp'; // Default language
 
         // Initialize console state
         this.clear();
         this.setupEventListeners();
         this.enable();
-
-        // Indicate successful initialization
-        console.log('Console initialized successfully');
     }
 
     setupEventListeners() {
@@ -34,7 +32,7 @@ class InteractiveConsole {
                 throw new Error('Input element not available for event setup');
             }
 
-            // Input handling
+            // Input handling with improved keyboard shortcuts
             this.inputElement.addEventListener('keydown', (e) => {
                 if (!this.isEnabled) return;
 
@@ -60,25 +58,40 @@ class InteractiveConsole {
                         e.preventDefault();
                         this.handleTabCompletion();
                         break;
+                    case 'l':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            this.clear();
+                        }
+                        break;
                     case 'c':
-                        if (e.ctrlKey && this.isWaitingForInput) {
-                            this.handleInterrupt();
+                        if (e.ctrlKey) {
+                            if (this.isWaitingForInput) {
+                                this.handleInterrupt();
+                            } else {
+                                // Copy selected text
+                                const selection = window.getSelection().toString();
+                                if (selection) {
+                                    navigator.clipboard.writeText(selection);
+                                }
+                            }
                         }
                         break;
                 }
             });
 
-            // Clear button
-            const clearButton = document.getElementById('clearConsole');
-            if (clearButton) {
-                clearButton.addEventListener('click', () => this.clear());
-            }
-
-            // Handle paste events
+            // Handle paste events with smart formatting
             this.inputElement.addEventListener('paste', (e) => {
                 e.preventDefault();
                 const text = e.clipboardData.getData('text');
                 this.handlePaste(text);
+            });
+
+            // Language change handler
+            document.getElementById('languageSelect')?.addEventListener('change', (e) => {
+                this.currentLanguage = e.target.value;
+                this.clear();
+                this.appendOutput(`Switched to ${this.currentLanguage} mode`, 'info');
             });
 
         } catch (error) {
@@ -88,30 +101,53 @@ class InteractiveConsole {
     }
 
     handlePaste(text) {
-        // Handle multi-line paste
         const lines = text.split('\n');
         if (lines.length > 1) {
-            // If multi-line, execute each line sequentially
-            lines.forEach(line => {
-                this.inputElement.value = line.trim();
-                this.handleInput(line.trim());
-            });
+            // If multi-line, prompt for confirmation
+            if (confirm('Paste multiple lines?')) {
+                lines.forEach((line, index) => {
+                    setTimeout(() => {
+                        this.inputElement.value = line.trim();
+                        this.handleInput(line.trim());
+                    }, index * 100);
+                });
+            }
         } else {
-            // Single line paste
             this.inputElement.value = text;
         }
     }
 
     handleTabCompletion() {
-        // Implement command completion logic here
         const input = this.inputElement.value;
-        // Add completion logic based on available commands/context
+        const words = input.split(/\s+/);
+        const lastWord = words[words.length - 1];
+
+        // Language-specific completions
+        const completions = {
+            cpp: ['cout', 'cin', 'endl', 'include', 'using', 'namespace', 'std', 'int', 'float', 'double', 'char'],
+            csharp: ['Console', 'Write', 'WriteLine', 'ReadLine', 'using', 'System', 'string', 'int', 'bool', 'var']
+        };
+
+        const suggestions = (completions[this.currentLanguage] || [])
+            .filter(word => word.toLowerCase().startsWith(lastWord.toLowerCase()));
+
+        if (suggestions.length === 1) {
+            words[words.length - 1] = suggestions[0];
+            this.inputElement.value = words.join(' ');
+        } else if (suggestions.length > 1) {
+            this.appendOutput('\nSuggestions:', 'info');
+            suggestions.forEach(s => this.appendOutput(s));
+            this.appendOutput('');
+        }
     }
 
     handleInterrupt() {
         this.appendOutput('^C', 'interrupt');
         this.isWaitingForInput = false;
         this.enable();
+        if (this.onCommand) {
+            this.onCommand('interrupt');
+        }
     }
 
     navigateHistory(direction) {
@@ -142,7 +178,7 @@ class InteractiveConsole {
 
     appendOutput(text, className = '') {
         try {
-            if (!this.consoleElement) {
+            if (!this.outputElement) {
                 throw new Error('Console output element not found');
             }
 
@@ -150,23 +186,20 @@ class InteractiveConsole {
             line.className = `console-line ${className}`;
 
             if (typeof text === 'object') {
-                // Pretty print objects
                 line.innerHTML = `<pre>${JSON.stringify(text, null, 2)}</pre>`;
             } else {
-                // Handle ANSI color codes
                 line.innerHTML = this.processAnsiCodes(String(text));
             }
 
-            this.consoleElement.appendChild(line);
-            this.consoleElement.scrollTop = this.consoleElement.scrollHeight;
+            this.outputElement.appendChild(line);
+            this.outputElement.scrollTop = this.outputElement.scrollHeight;
 
             // Manage buffer size
             this.outputBuffer.push({ text, className });
             if (this.outputBuffer.length > this.maxBufferSize) {
                 this.outputBuffer.shift();
-                // Remove oldest line from DOM
-                if (this.consoleElement.firstChild) {
-                    this.consoleElement.removeChild(this.consoleElement.firstChild);
+                if (this.outputElement.firstChild) {
+                    this.outputElement.removeChild(this.outputElement.firstChild);
                 }
             }
         } catch (error) {
@@ -175,11 +208,17 @@ class InteractiveConsole {
     }
 
     processAnsiCodes(text) {
-        // Convert ANSI color codes to CSS classes
+        // Enhanced ANSI color code support
         return text
-            .replace(/\x1b\[31m/g, '<span class="ansi-red">')
-            .replace(/\x1b\[32m/g, '<span class="ansi-green">')
-            .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
+            .replace(/\x1b\[31m/g, '<span class="ansi-red">')    // Error
+            .replace(/\x1b\[32m/g, '<span class="ansi-green">')  // Success
+            .replace(/\x1b\[33m/g, '<span class="ansi-yellow">') // Warning
+            .replace(/\x1b\[34m/g, '<span class="ansi-blue">')   // Info
+            .replace(/\x1b\[35m/g, '<span class="ansi-magenta">')
+            .replace(/\x1b\[36m/g, '<span class="ansi-cyan">')
+            .replace(/\x1b\[37m/g, '<span class="ansi-white">')
+            .replace(/\x1b\[1m/g, '<span class="ansi-bold">')
+            .replace(/\x1b\[3m/g, '<span class="ansi-italic">')
             .replace(/\x1b\[0m/g, '</span>')
             .replace(/\n/g, '<br>');
     }
@@ -191,7 +230,7 @@ class InteractiveConsole {
             // Add to history if not empty and different from last entry
             if (input && (!this.inputHistory.length || this.inputHistory[this.inputHistory.length - 1] !== input)) {
                 this.inputHistory.push(input);
-                if (this.inputHistory.length > 50) { // Limit history size
+                if (this.inputHistory.length > 50) {
                     this.inputHistory.shift();
                 }
             }
@@ -211,21 +250,15 @@ class InteractiveConsole {
                 return;
             }
 
-            // Emit input event for program to handle
-            this.emitInput(input);
+            // Execute command through callback
+            if (this.onCommand) {
+                this.onCommand(input);
+            }
 
         } catch (error) {
             console.error('Error handling input:', error);
             this.setError('Failed to process input');
         }
-    }
-
-    emitInput(input) {
-        // Create and dispatch a custom event
-        const event = new CustomEvent('console-input', {
-            detail: { input: input }
-        });
-        document.dispatchEvent(event);
     }
 
     setError(message) {
@@ -238,10 +271,10 @@ class InteractiveConsole {
 
     clear() {
         try {
-            if (!this.consoleElement) {
+            if (!this.outputElement) {
                 throw new Error('Console element not found');
             }
-            this.consoleElement.innerHTML = '';
+            this.outputElement.innerHTML = '';
             this.outputBuffer = [];
         } catch (error) {
             console.error('Error clearing console:', error);
@@ -255,7 +288,7 @@ class InteractiveConsole {
             }
             this.isEnabled = true;
             this.inputElement.disabled = false;
-            this.inputElement.placeholder = "Type your input here...";
+            this.inputElement.placeholder = "Type your command here...";
             this.inputElement.focus();
         } catch (error) {
             console.error('Error enabling console:', error);
