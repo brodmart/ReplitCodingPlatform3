@@ -183,7 +183,6 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
         except Exception as e:
             logger.error(f"Compilation worker error: {e}")
             raise
-
     try:
         with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
             futures = []
@@ -618,7 +617,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                             'error': error_msg,
                             'metrics': metrics.to_dict()
                         }
-
             else:
                 return {
                     'success': False,
@@ -732,3 +730,62 @@ def format_runtime_error(error_msg: str) -> str:
         return f"Runtime Error: {error_msg.strip()}"
     except Exception:
         return f"Runtime Error: {error_msg}"
+
+import os
+from typing import List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor
+
+def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, Any]]:
+    """
+    Compile and run multiple files in parallel
+    """
+    logger.info(f"Starting parallel compilation for {len(files)} {language} files")
+    start_time = time.time()
+
+    if language != 'csharp':
+        return [{'success': False, 'error': f'Language {language} not supported for parallel compilation'}]
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        # Read file contents
+        file_contents = {}
+        for file_path in files:
+            logger.debug(f"Reading file: {file_path}")
+            with open(file_path, 'r') as f:
+                file_contents[file_path] = f.read()
+
+        # Submit compilation tasks
+        futures = []
+        for file_path in files:
+            logger.debug(f"Submitting compilation task for: {file_path}")
+            futures.append(
+                executor.submit(
+                    compile_and_run,
+                    code=file_contents[file_path],
+                    language=language,
+                    files=[file_path]  # Pass as list for the new files parameter
+                )
+            )
+
+        # Collect results
+        results = []
+        for i, future in enumerate(futures):
+            try:
+                logger.debug(f"Waiting for result of file {i+1}/{len(futures)}")
+                result = future.result(timeout=MAX_COMPILATION_TIME * 2)  # Double timeout for safety
+                results.append(result)
+                if result['success']:
+                    logger.info(f"File {i+1} compiled successfully in {result['metrics']['compilation_time']:.2f}s")
+                else:
+                    logger.error(f"File {i+1} failed: {result.get('error', 'Unknown error')}")
+            except Exception as e:
+                error_msg = f'Parallel compilation failed: {str(e)}'
+                logger.error(error_msg)
+                results.append({
+                    'success': False,
+                    'error': error_msg,
+                    'metrics': {'compilation_time': 0, 'execution_time': 0}
+                })
+
+        total_time = time.time() - start_time
+        logger.info(f"Parallel compilation completed in {total_time:.2f}s")
+        return results
