@@ -23,19 +23,27 @@ MEMORY_LIMIT = 512        # MB
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 MAX_WORKERS = 4           # Maximum number of parallel compilation workers
 
-def find_icu_path():
-    """Find ICU library path in Nix store"""
+def find_dotnet_path():
+    """Find .NET SDK path"""
     try:
-        # Look for ICU library directory in Nix store
-        possible_paths = glob.glob("/nix/store/*/lib/icu*")
+        # Check common Nix store locations
+        possible_paths = glob.glob("/nix/store/*/dotnet-sdk*/dotnet")
         if possible_paths:
-            icu_dir = os.path.dirname(possible_paths[0])
-            logger.debug(f"Found ICU library path: {icu_dir}")
-            return icu_dir
-        logger.info("No ICU path found, using invariant globalization")
+            dotnet_path = possible_paths[0]
+            logger.debug(f"Found dotnet at: {dotnet_path}")
+            return os.path.dirname(dotnet_path)
+
+        # Try system PATH
+        process = subprocess.run(['which', 'dotnet'], capture_output=True, text=True)
+        if process.returncode == 0:
+            dotnet_path = process.stdout.strip()
+            logger.debug(f"Found dotnet in PATH: {dotnet_path}")
+            return os.path.dirname(dotnet_path)
+
+        logger.error("Could not find dotnet installation")
         return None
     except Exception as e:
-        logger.error(f"Error finding ICU path: {e}")
+        logger.error(f"Error finding dotnet path: {e}")
         return None
 
 class CompilationTimeout(Exception):
@@ -47,20 +55,30 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     Optimized compile and run with enhanced performance
     """
     start_time = time.time()
+    metrics = {'start_time': start_time}
     logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
 
     if not code or not language:
         logger.error("Invalid input parameters")
         return {
             'success': False,
-            'output': '',
-            'error': "Code and language are required"
+            'error': "Code and language are required",
+            'metrics': metrics
         }
 
     try:
         # Ensure cache directory exists with proper permissions
         os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
         os.chmod(COMPILER_CACHE_DIR, 0o755)
+
+        # Find dotnet installation
+        dotnet_root = find_dotnet_path()
+        if not dotnet_root:
+            return {
+                'success': False,
+                'error': "Could not find .NET SDK installation",
+                'metrics': metrics
+            }
 
         with tempfile.TemporaryDirectory(prefix="compile_", dir=COMPILER_CACHE_DIR) as temp_dir:
             if language == 'csharp':
@@ -75,12 +93,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Always use invariant globalization
-                logger.info("Enabling invariant globalization mode for C# compiler")
-                use_invariant = True
-
-                # Create optimized project file with minimal settings
-                project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
+                # Create optimized project file
+                project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
@@ -89,13 +103,10 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     <SelfContained>false</SelfContained>
     <InvariantGlobalization>true</InvariantGlobalization>
     <DebugType>none</DebugType>
-    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
-    <UseSystemConsole>true</UseSystemConsole>
-    <UseAppHost>false</UseAppHost>
-    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-    <StripSymbols>true</StripSymbols>
     <Optimize>true</Optimize>
     <TieredCompilation>true</TieredCompilation>
+    <UseSystemConsole>true</UseSystemConsole>
+    <UseAppHost>false</UseAppHost>
   </PropertyGroup>
 </Project>"""
 
@@ -106,46 +117,26 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 # Create bin directory
                 os.makedirs(bin_dir, exist_ok=True)
 
-                # Enhanced compilation command with optimizations
-                compile_cmd = [
-                    'dotnet',
-                    'build',
-                    str(project_file),
-                    '--configuration', 'Release',
-                    '--runtime', 'linux-x64',
-                    '--no-self-contained',
-                    '--output', str(bin_dir),
-                    '-nologo',
-                    '/p:GenerateFullPaths=true',
-                    '/p:UseAppHost=false',
-                    '/p:UseSystemConsole=true',
-                    '/consoleloggerparameters:NoSummary',
-                    '-maxcpucount:4',  # Enable parallel compilation
-                    '/p:SkipCompilerExecution=false'
-                ]
-
-                logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
-                compile_start = time.time()
-
                 try:
-                    # Set up minimal compilation environment
+                    # Set up minimal environment
                     env = {
+                        'DOTNET_ROOT': dotnet_root,
+                        'PATH': f"{dotnet_root}:{os.environ.get('PATH', '')}",
                         'DOTNET_CLI_HOME': str(project_dir),
                         'DOTNET_NOLOGO': '1',
                         'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
                         'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
                         'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
                         'DOTNET_MULTILEVEL_LOOKUP': '0',
-                        'DOTNET_ROOT': '/usr/share/dotnet',
                         'LC_ALL': 'C',
-                        'LANG': 'C'
+                        'LANG': 'C',
                     }
 
-                    logger.debug(f"Environment variables set: {env}")
+                    dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
 
-                    # First restore packages with minimal dependencies
+                    # Fast restore with minimal dependencies
                     logger.debug("Restoring NuGet packages...")
-                    restore_cmd = ['dotnet', 'restore', str(project_file), '--runtime', 'linux-x64']
+                    restore_cmd = [dotnet_cmd, 'restore', str(project_file), '--runtime', 'linux-x64']
                     restore_process = subprocess.run(
                         restore_cmd,
                         capture_output=True,
@@ -161,10 +152,26 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         return {
                             'success': False,
                             'error': f"Package restore failed: {error_msg}",
-                            'metrics': {'compilation_time': time.time() - compile_start}
+                            'metrics': metrics
                         }
 
-                    # Run compilation with optimizations
+                    # Optimized build command
+                    compile_cmd = [
+                        dotnet_cmd, 'publish',
+                        str(project_file),
+                        '--configuration', 'Release',
+                        '--runtime', 'linux-x64',
+                        '--no-self-contained',
+                        '--output', str(bin_dir),
+                        '-nologo',
+                        '-maxcpucount:4',
+                        '/p:GenerateFullPaths=true',
+                        '/p:UseAppHost=false'
+                    ]
+
+                    logger.debug(f"Starting compilation with command: {' '.join(compile_cmd)}")
+                    compile_start = time.time()
+
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
@@ -174,39 +181,30 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         env=env
                     )
 
-                    compile_time = time.time() - compile_start
-                    logger.debug(f"Compilation completed in {compile_time:.2f}s")
+                    metrics['compilation_time'] = time.time() - compile_start
 
                     if compile_process.returncode != 0:
-                        error_output = compile_process.stderr or compile_process.stdout
-                        error_msg = format_csharp_error(error_output)
+                        error_msg = format_csharp_error(compile_process.stderr)
                         logger.error(f"Compilation failed: {error_msg}")
                         return {
                             'success': False,
                             'error': error_msg,
-                            'metrics': {
-                                'compilation_time': compile_time
-                            }
+                            'metrics': metrics
                         }
 
-                    # Verify the executable exists
+                    # Verify output and run
                     dll_path = bin_dir / "program.dll"
-                    executable = bin_dir / "program"
-
-                    if dll_path.exists():
-                        logger.debug(f"Found program.dll at {dll_path}")
-                        run_cmd = ['dotnet', str(dll_path)]
-                    else:
-                        error_msg = f"Compilation succeeded but no executable found in {bin_dir}"
+                    if not dll_path.exists():
+                        error_msg = f"Compilation succeeded but no output found in {bin_dir}"
                         logger.error(error_msg)
                         return {
                             'success': False,
                             'error': error_msg,
-                            'metrics': {
-                                'compilation_time': compile_time
-                            }
+                            'metrics': metrics
                         }
 
+                    # Run the compiled program
+                    run_cmd = [dotnet_cmd, str(dll_path)]
                     logger.debug(f"Running program with command: {' '.join(run_cmd)}")
                     run_start = time.time()
 
@@ -220,9 +218,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         env=env
                     )
 
-                    run_time = time.time() - run_start
-                    total_time = time.time() - start_time
-                    logger.debug(f"Execution completed in {run_time:.2f}s")
+                    metrics['execution_time'] = time.time() - run_start
+                    metrics['total_time'] = time.time() - start_time
 
                     if run_process.returncode != 0:
                         error_msg = format_runtime_error(run_process.stderr)
@@ -230,42 +227,30 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         return {
                             'success': False,
                             'error': error_msg,
-                            'metrics': {
-                                'compilation_time': compile_time,
-                                'execution_time': run_time,
-                                'total_time': total_time
-                            }
+                            'metrics': metrics
                         }
 
                     return {
                         'success': True,
                         'output': run_process.stdout,
-                        'metrics': {
-                            'compilation_time': compile_time,
-                            'execution_time': run_time,
-                            'total_time': total_time
-                        }
+                        'metrics': metrics
                     }
 
-                except subprocess.TimeoutExpired:
-                    elapsed_time = time.time() - start_time
-                    phase = "compilation" if elapsed_time < MAX_COMPILATION_TIME else "execution"
-                    error_msg = f"{phase.capitalize()} timed out after {elapsed_time:.2f} seconds"
+                except subprocess.TimeoutExpired as e:
+                    phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
+                    error_msg = f"{phase.capitalize()} timed out after {e.timeout:.2f} seconds"
                     logger.error(error_msg)
                     return {
                         'success': False,
                         'error': error_msg,
-                        'metrics': {
-                            'time_elapsed': elapsed_time
-                        }
+                        'metrics': metrics
                     }
 
             else:
-                error_msg = f"Unsupported language: {language}"
-                logger.error(error_msg)
                 return {
                     'success': False,
-                    'error': error_msg
+                    'error': f"Unsupported language: {language}",
+                    'metrics': metrics
                 }
 
     except Exception as e:
@@ -273,7 +258,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         logger.error(error_msg)
         return {
             'success': False,
-            'error': error_msg
+            'error': error_msg,
+            'metrics': metrics
         }
 
 def format_csharp_error(error_msg: str) -> str:
@@ -313,3 +299,18 @@ def format_runtime_error(error_msg: str) -> str:
         return f"Runtime Error: {error_msg}"
     except Exception:
         return f"Runtime Error: {error_msg}"
+
+def find_icu_path():
+    """Find ICU library path in Nix store"""
+    try:
+        # Look for ICU library directory in Nix store
+        possible_paths = glob.glob("/nix/store/*/lib/icu*")
+        if possible_paths:
+            icu_dir = os.path.dirname(possible_paths[0])
+            logger.debug(f"Found ICU library path: {icu_dir}")
+            return icu_dir
+        logger.info("No ICU path found, using invariant globalization")
+        return None
+    except Exception as e:
+        logger.error(f"Error finding ICU path: {e}")
+        return None
