@@ -443,7 +443,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     env = os.environ.copy()
                     env['MONO_IOMAP'] = 'all'
                     env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                    env['MONO_DEBUG'] = 'explicit-null-checks'
+                    env['MONO_DEBUG'] = 'handle-sigint'
                     env['MONO_THREADS_PER_CPU'] = '2'
                     env['MONO_GC_PARAMS'] = 'mode=throughput'
 
@@ -494,7 +494,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 if process.returncode != 0:
-                    error_msg = stderr if stderr else "Program exited with non-zero status"
+                    error_msg = stderr if stderr else "Program failed with no error message"
                     logger.error(f"Program failed: {error_msg}")
                     return {
                         'success': False,
