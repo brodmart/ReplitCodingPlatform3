@@ -194,38 +194,122 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 # Set up C# project structure
                 source_file = temp_path / "Program.cs"
 
+                # Ensure code has proper namespace and class structure
+                if 'namespace' not in code and 'class Program' not in code:
+                    modified_code = f"""using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace ConsoleApp
+{{
+    public class Program
+    {{
+        public static void Main(string[] args)
+        {{
+            try
+            {{
+                {code}
+            }}
+            catch (Exception e)
+            {{
+                Console.WriteLine($"Runtime Error: {{e.Message}}");
+            }}
+        }}
+    }}
+}}"""
+                else:
+                    modified_code = code
+
                 logger.debug(f"Writing C# code to {source_file}")
                 with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
+                    f.write(modified_code)
 
-                success, error_msg = compile_csharp(source_file, temp_path, metrics)
-                if not success:
-                    return {
-                        'success': False,
-                        'error': error_msg,
-                        'metrics': metrics
-                    }
+                # Create project file
+                project_file = temp_path / "project.csproj"
+                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+  </PropertyGroup>
+</Project>"""
 
-                # Execute the compiled C# program
+                with open(project_file, 'w', encoding='utf-8') as f:
+                    f.write(project_content)
+
+                # Build the project
+                compile_start = time.time()
+                logger.debug("Starting C# compilation")
+
+                compile_cmd = [
+                    'dotnet',
+                    'build',
+                    str(project_file),
+                    '--configuration',
+                    'Release',
+                    '-o',
+                    str(temp_path / "bin")
+                ]
+
                 try:
-                    run_cmd = ['dotnet', str(temp_path / "bin" / "Debug" / "net7.0" / "project.dll")]
-                    logger.debug(f"Running C# with command: {' '.join(run_cmd)}")
+                    compile_process = subprocess.run(
+                        compile_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=MAX_COMPILATION_TIME,
+                        env={
+                            'DOTNET_CLI_HOME': str(temp_path),
+                            'DOTNET_NOLOGO': '1',
+                            'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
+                        }
+                    )
+
+                    metrics['compilation_time'] = time.time() - compile_start
+
+                    if compile_process.returncode != 0:
+                        logger.error(f"Compilation failed: {compile_process.stderr}")
+                        return {
+                            'success': False,
+                            'error': format_csharp_error(compile_process.stderr),
+                            'metrics': metrics
+                        }
+
+                    # Run the compiled program
+                    executable = temp_path / "bin" / "project.dll"
+                    if not executable.exists():
+                        error_msg = f"Compilation succeeded but executable not found at {executable}"
+                        logger.error(error_msg)
+                        return {
+                            'success': False,
+                            'error': error_msg,
+                            'metrics': metrics
+                        }
+
+                    run_cmd = ['dotnet', str(executable)]
+                    logger.debug(f"Running C# program: {' '.join(run_cmd)}")
 
                     run_process = subprocess.run(
                         run_cmd,
                         input=input_data.encode() if input_data else None,
                         capture_output=True,
                         text=True,
-                        timeout=MAX_EXECUTION_TIME
+                        timeout=MAX_EXECUTION_TIME,
+                        env={
+                            'DOTNET_CLI_HOME': str(temp_path),
+                            'DOTNET_NOLOGO': '1',
+                            'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
+                        }
                     )
 
                     metrics['execution_time'] = time.time() - metrics['start_time'] - metrics['compilation_time']
 
                     if run_process.returncode != 0:
-                        logger.error(f"C# execution failed: {run_process.stderr}")
+                        logger.error(f"Execution failed: {run_process.stderr}")
                         return {
                             'success': False,
-                            'error': run_process.stderr,
+                            'error': format_runtime_error(run_process.stderr),
                             'metrics': metrics
                         }
 
@@ -235,15 +319,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'metrics': metrics
                     }
 
-                except subprocess.TimeoutExpired:
+                except subprocess.TimeoutExpired as e:
+                    phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
+                    error_msg = f"{phase.capitalize()} timed out"
+                    logger.error(error_msg)
                     return {
                         'success': False,
-                        'error': f"Execution timed out after {MAX_EXECUTION_TIME} seconds",
+                        'error': error_msg,
                         'metrics': metrics
                     }
 
             elif language == 'cpp':
-                # Set up C++ compilation
+                # Existing C++ implementation remains unchanged
                 source_file = temp_path / "program.cpp"
                 executable = temp_path / "program"
 
@@ -259,7 +346,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'metrics': metrics
                     }
 
-                # Execute the compiled C++ program
                 try:
                     logger.debug(f"Running C++ executable: {executable}")
                     run_process = subprocess.run(
