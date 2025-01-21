@@ -19,8 +19,8 @@ from sqlalchemy import text
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.backup import DatabaseBackup
-from routes.static_routes import get_user_language  # Import the centralized language function
-from compiler import compile_and_run  # Updated import to use new compiler
+from routes.static_routes import get_user_language
+from compiler import compile_and_run
 
 # Initialize scheduler for backups
 scheduler = BackgroundScheduler()
@@ -38,6 +38,19 @@ TEMP_DIR = os.path.join(os.getcwd(), 'temp')
 if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.chmod(TEMP_DIR, 0o755)
+
+def json_login_required(f):
+    """Modified login_required decorator that returns JSON for API routes"""
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({
+                'success': False,
+                'error': 'Authentication required',
+                'redirect': '/login'
+            }), 401
+        return f(*args, **kwargs)
+    decorated_function.__name__ = f.__name__
+    return decorated_function
 
 @activities.route('/activities/submit_confidence', methods=['POST'])
 @login_required
@@ -107,20 +120,25 @@ def fetch_solutions(activity_id):
         logger.error(f"Error getting solutions: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
-
 @activities.route('/activities/run_code', methods=['POST'])
-@login_required
+@json_login_required
 def run_code():
     """Execute student code submission with activity tracking"""
     try:
         if not request.is_json:
             logger.error("Invalid request format - not JSON")
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Invalid request format'
+            }), 400
 
         data = request.get_json()
         if not data:
             logger.error("Empty request data")
-            return jsonify({'success': False, 'error': 'Missing request data'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Missing request data'
+            }), 400
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
@@ -128,7 +146,10 @@ def run_code():
 
         if not code:
             logger.error("No code provided in request")
-            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Code cannot be empty'
+            }), 400
 
         # Normalize language name
         if language in ['c#', 'csharp', 'cs']:
@@ -186,7 +207,6 @@ def run_code():
             'error': str(e)
         }), 500
 
-
 @activities.route('/get_output', methods=['GET'])
 def get_session_output():
     """Get output from a running interactive program"""
@@ -211,7 +231,6 @@ def get_session_output():
             'success': False,
             'error': str(e)
         }), 500
-
 
 @activities.route('/send_input', methods=['POST'])
 def send_session_input():
@@ -367,7 +386,6 @@ def view_enhanced_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
-
 
 
 # Cleanup inactive sessions periodically
