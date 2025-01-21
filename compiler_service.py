@@ -1,6 +1,6 @@
 """
 Compiler service for code execution and testing.
-Optimized for handling large code files.
+Enhanced for large code files and interactive console support.
 """
 import subprocess
 import tempfile
@@ -22,14 +22,7 @@ import io
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class CompilerError(Exception):
-    """Raised when compilation fails"""
-    pass
-
-class ExecutionError(Exception):
-    """Raised when execution fails"""
-    pass
-
+# Add new process monitoring class
 class ProcessMonitor(Thread):
     def __init__(self, process, timeout=30):
         super().__init__()
@@ -54,10 +47,6 @@ class ProcessMonitor(Thread):
                 cpu_percent = proc.cpu_percent(interval=0.1)
                 mem_percent = proc.memory_percent()
 
-                # Update progress based on resource usage
-                if not self.compilation_complete.is_set():
-                    self.progress = min(95, self.progress + 5)
-
                 if cpu_percent > 90 or mem_percent > 90:
                     logger.warning(f"Resource usage too high: CPU {cpu_percent}%, Memory {mem_percent}%")
                     try:
@@ -67,15 +56,13 @@ class ProcessMonitor(Thread):
                     break
             except:
                 break
-            time.sleep(0.5)
+            time.sleep(0.1)
 
     def stop(self):
         self.stopped.set()
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Enhanced compile and run function with optimizations for large code files.
-    """
+    """Enhanced compile and run function with optimizations for large code files"""
     if not code or not language:
         logger.error("Invalid input parameters: code or language is missing")
         return {
@@ -87,6 +74,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     try:
         logger.debug(f"Attempting to compile and run {language} code")
         logger.debug(f"Code length: {len(code)} characters")
+        logger.debug(f"Code content:\n{code}")
 
         # Create temporary directory with proper cleanup
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -104,7 +92,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     with open(source_file, 'w', encoding='utf-8') as f:
                         f.write(code)
 
-                    # Further optimized compilation command for large code
+                    # Optimized compilation command for large code
                     compile_cmd = [
                         'mcs',
                         '-optimize+',
@@ -127,12 +115,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                    monitor = ProcessMonitor(compile_process, timeout=120)  # Increased timeout for larger files
+                    monitor = ProcessMonitor(compile_process, timeout=60)  # Increased timeout
                     monitor.start()
 
                     stdout, stderr = compile_process.communicate()
 
                     if compile_process.returncode != 0:
+                        logger.error(f"Compilation failed: {stderr}")
                         return {
                             'success': False,
                             'error': format_csharp_error(stderr)
@@ -141,15 +130,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     # Set executable permissions
                     os.chmod(executable, 0o755)
 
-                    # Enhanced Mono runtime environment configuration
+                    # Enhanced Mono runtime environment
                     env = os.environ.copy()
                     env['MONO_GC_PARAMS'] = 'major=marksweep-par,minor=split,max-heap-size=2g'
                     env['MONO_THREADS_PER_CPU'] = '4'
                     env['MONO_MIN_HEAP_SIZE'] = '256M'
-                    env['MONO_GC_PARAMS'] = 'mode=throughput'
-                    env['MONO_OPTS'] = '--server -O=all'
 
-                    # Run the compiled program with optimized settings
+                    # Run the compiled program
                     process = subprocess.Popen(
                         ['mono', '--server', '-O=all', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
@@ -163,14 +150,14 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     monitor.compilation_complete.set()
                     stdout, stderr = process.communicate(
                         input=input_data,
-                        timeout=60  # Increased execution timeout
+                        timeout=30
                     )
 
-                    if stderr and stderr.strip():
-                        error_msg = format_runtime_error(stderr)
+                    if stderr:
+                        logger.error(f"Runtime error: {stderr}")
                         return {
                             'success': False,
-                            'error': error_msg
+                            'error': format_runtime_error(stderr)
                         }
 
                     return {
@@ -277,40 +264,28 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'error': f"Compilation error: {str(e)}"
         }
 
-    return {
-        'success': False,
-        'error': "Unsupported language or compilation failed"
-    }
-
-
 def format_csharp_error(error_msg: str) -> str:
     """Format C# compilation errors to be more user-friendly"""
     try:
-        # Extract the core error message
         if "error CS" in error_msg:
-            # Split the error message into parts
             parts = error_msg.split("): ")
             if len(parts) > 1:
                 error_code = parts[0].split("error CS")[1].strip()
                 error_desc = parts[1].strip()
 
-                # Common error codes and their friendly messages
+                # Common error codes and friendly messages
                 error_messages = {
-                    "1525": "Code structure issue. Make sure all statements are inside methods and check for missing semicolons or braces.",
+                    "1525": "Code structure issue. Check for missing semicolons or braces.",
                     "1002": "Syntax Error: Missing closing curly brace '}'",
                     "1001": "Syntax Error: Missing opening curly brace '{'",
-                    "1513": "Error: Invalid statement. Make sure you're inside a method.",
-                    "0117": "Error: Method must have a return type. Did you forget 'void' or 'int'?",
-                    "0161": "Error: 'Console.WriteLine' can only be used inside a method",
-                    "0103": "Error: The name does not exist in the current context. Check for typos or missing 'using' statements.",
-                    "0234": "Error: The type or namespace name could not be found. Are you missing an assembly reference?",
-                    "0116": "Error: A namespace cannot directly contain a method. Wrap your code in a class."
+                    "0117": "Method must have a return type. Did you forget 'void' or 'int'?",
+                    "0161": "'Console.WriteLine' can only be used inside a method",
+                    "0103": "Name does not exist in current context. Check for typos."
                 }
 
                 friendly_msg = error_messages.get(error_code, error_desc)
-                # Add line number context to help locate the issue
                 line_num = error_msg.split('(')[1].split(',')[0]
-                return f"Error (CS{error_code}) at line {line_num}:\n{friendly_msg}"
+                return f"Error at line {line_num}: {friendly_msg}"
 
         return error_msg
     except Exception:
@@ -319,13 +294,11 @@ def format_csharp_error(error_msg: str) -> str:
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors to be more user-friendly"""
     if "System.NullReferenceException" in error_msg:
-        return "Runtime Error: Attempted to use a null object. Check if all your variables are initialized before use."
+        return "Runtime Error: Attempted to use a null object. Check if all variables are initialized."
     elif "System.IndexOutOfRangeException" in error_msg:
-        return "Runtime Error: Array index out of bounds. Make sure you're not accessing an array beyond its size."
+        return "Runtime Error: Array index out of bounds. Check array access."
     elif "System.DivideByZeroException" in error_msg:
-        return "Runtime Error: Division by zero detected. Check your arithmetic operations."
-    elif "System.StackOverflowException" in error_msg:
-        return "Runtime Error: Stack overflow. This usually happens with infinite recursion."
+        return "Runtime Error: Division by zero detected."
     return error_msg
 
 def format_execution_error(error_msg: str) -> str:

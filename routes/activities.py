@@ -16,7 +16,7 @@ curriculum_checker = CurriculumChecker()
 @activities_bp.route('/activities/execute', methods=['POST'])
 @login_required
 def execute_code():
-    """Execute submitted code"""
+    """Execute submitted code with enhanced error handling"""
     try:
         if not request.is_json:
             logger.error("Invalid request format - not JSON")
@@ -28,6 +28,7 @@ def execute_code():
         data = request.get_json()
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
+        input_data = data.get('input')  # Add support for input data
 
         if not code:
             logger.error("Empty code submitted")
@@ -44,8 +45,10 @@ def execute_code():
             }), 400
 
         logger.debug(f"Executing {language} code of length {len(code)}")
-        # Execute the code using the compiler service
-        result = compile_and_run(code, language)
+        logger.debug(f"Code content:\n{code}")
+
+        # Execute the code using the compiler service with input data
+        result = compile_and_run(code, language, input_data)
         logger.debug(f"Execution result: {result}")
 
         if not result.get('success', False):
@@ -63,7 +66,7 @@ def execute_code():
         logger.error(f"Error executing code: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': "An error occurred while executing your code."
+            'error': f"An error occurred while executing your code: {str(e)}"
         }), 500
 
 @activities_bp.route('/activities/run_code', methods=['POST'])
