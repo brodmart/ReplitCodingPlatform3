@@ -2,211 +2,214 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-class Program
+namespace StudentTracker
 {
-    public class Etudiant
+    public class Program
     {
-        public string Nom { get; set; }
-        public int Retards { get; set; }
-        public int Points { get; set; }
-        public int DetentionsPrises { get; set; }
-        public bool BesoinDetention => Points >= 100;
-
-        public Etudiant(string nom)
+        public class Student
         {
-            Nom = nom;
-            Retards = 0;
-            Points = 0;
-            DetentionsPrises = 0;
-        }
-    }
+            public string Name { get; set; }
+            public int LateCount { get; set; }
+            public int Points { get; set; }
+            public int DetentionsServed { get; set; }
+            public bool NeedsDetention => Points >= 100;
 
-    static List<Etudiant> Etudiants = new List<Etudiant>
-    {
-        new Etudiant("Abdirahman"),
-        new Etudiant("Alexander"),
-        new Etudiant("Alexandre"),
-        new Etudiant("Ali"),
-        new Etudiant("Ben"),
-        new Etudiant("Deshi"),
-        new Etudiant("Fidel"),
-        new Etudiant("Haaroon"),
-        new Etudiant("Jakub"),
-        new Etudiant("Kadija"),
-        new Etudiant("Karl-Hendz"),
-        new Etudiant("Mohamed"),
-        new Etudiant("Mohamed Houssam")
-    };
-
-    static void Main(string[] args)
-    {
-        bool quitter = false;
-
-        while (!quitter)
-        {
-            AfficherEtudiants();
-            AfficherMenu();
-
-            string input = Console.ReadLine();
-            if (int.TryParse(input, out int choix))
+            public Student(string name)
             {
-                switch (choix)
+                Name = name;
+                LateCount = 0;
+                Points = 0;
+                DetentionsServed = 0;
+            }
+        }
+
+        static List<Student> Students = new List<Student>
+        {
+            new Student("Abdirahman"),
+            new Student("Alexander"),
+            new Student("Alexandre"),
+            new Student("Ali"),
+            new Student("Ben"),
+            new Student("Deshi"),
+            new Student("Fidel"),
+            new Student("Haaroon"),
+            new Student("Jakub"),
+            new Student("Kadija"),
+            new Student("Karl-Hendz"),
+            new Student("Mohamed"),
+            new Student("Mohamed Houssam")
+        };
+
+        static void Main(string[] args)
+        {
+            bool quit = false;
+
+            while (!quit)
+            {
+                DisplayStudents();
+                DisplayMenu();
+
+                string input = Console.ReadLine();
+                if (int.TryParse(input, out int choice))
                 {
-                    case 1:
-                        AjouterRetard();
-                        break;
-                    case 2:
-                        VerifierDetentions();
-                        break;
-                    case 3:
-                        ConfirmerDetention();
-                        break;
-                    case 4:
-                        AjouterNouvelEtudiant();
-                        break;
-                    case 5:
-                        quitter = true;
-                        break;
-                    default:
-                        Console.WriteLine("Choix invalide. Essayez encore.");
-                        break;
+                    switch (choice)
+                    {
+                        case 1:
+                            AddLate();
+                            break;
+                        case 2:
+                            CheckDetentions();
+                            break;
+                        case 3:
+                            ConfirmDetention();
+                            break;
+                        case 4:
+                            AddNewStudent();
+                            break;
+                        case 5:
+                            quit = true;
+                            break;
+                        default:
+                            Console.WriteLine("Invalid choice. Please try again.");
+                            break;
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Please enter a valid number.");
+                }
+            }
+        }
+
+        static void DisplayMenu()
+        {
+            Console.WriteLine("\nMenu:");
+            Console.WriteLine("1. Add a late arrival for a student");
+            Console.WriteLine("2. Check who needs detention");
+            Console.WriteLine("3. Confirm a detention served");
+            Console.WriteLine("4. Add a new student");
+            Console.WriteLine("5. Exit");
+            Console.Write("Your choice: ");
+        }
+
+        static void DisplayStudents()
+        {
+            Console.WriteLine("\nStudents and Points:");
+            Console.WriteLine("-----------------------");
+            Console.WriteLine($"{"Name",-15} {"Lates",-15} {"Points",-10} {"Detentions",-15}");
+            Console.WriteLine(new string('-', 55));
+
+            foreach (var student in Students.OrderBy(e => e.Name))
+            {
+                Console.WriteLine($"{student.Name,-15} {student.LateCount,-15} {student.Points,-10} {student.DetentionsServed,-15}");
+            }
+        }
+
+        static void AddLate()
+        {
+            Console.Write("\nEnter student name: ");
+            string name = Console.ReadLine();
+            var student = Students.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (student != null)
+            {
+                Console.Write("Enter minutes late: ");
+                if (int.TryParse(Console.ReadLine(), out int minutesLate))
+                {
+                    int points = CalculatePoints(minutesLate);
+                    student.LateCount++;
+                    student.Points += points;
+                    Console.WriteLine($"\n{student.Name} was {minutesLate} minutes late. {points} points added.");
+                }
+                else
+                {
+                    Console.WriteLine("\nInvalid input for minutes.");
                 }
             }
             else
             {
-                Console.WriteLine("Veuillez entrer un numero valide.");
+                Console.WriteLine("\nStudent not found.");
             }
         }
-    }
 
-    static void AfficherMenu()
-    {
-        Console.WriteLine("\nMenu:");
-        Console.WriteLine("1. Ajouter un retard pour un etudiant");
-        Console.WriteLine("2. Verifier qui a besoin de detention");
-        Console.WriteLine("3. Confirmer une detention prise");
-        Console.WriteLine("4. Ajouter un nouvel etudiant");
-        Console.WriteLine("5. Quitter");
-        Console.Write("Votre choix: ");
-    }
-
-    static void AfficherEtudiants()
-    {
-        Console.WriteLine("\nEtudiants et Points:");
-        Console.WriteLine("-----------------------");
-        Console.WriteLine($"{"Nom",-15} {"Retards",-15} {"Points",-10} {"Detentions Prises",-15}");
-        Console.WriteLine(new string('-', 55));
-
-        foreach (var etudiant in Etudiants.OrderBy(e => e.Nom))
+        static void CheckDetentions()
         {
-            Console.WriteLine($"{etudiant.Nom,-15} {etudiant.Retards,-15} {etudiant.Points,-10} {etudiant.DetentionsPrises,-15}");
-        }
-    }
+            var needsDetention = Students.Where(e => e.NeedsDetention);
 
-    static void AjouterRetard()
-    {
-        Console.Write("\nEntrez le nom de l'etudiant: ");
-        string nom = Console.ReadLine();
-        var etudiant = Etudiants.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
+            Console.WriteLine("\nStudents needing detention:");
+            Console.WriteLine("-------------------------------------");
 
-        if (etudiant != null)
-        {
-            Console.Write("Entrez le nombre de minutes de retard: ");
-            if (int.TryParse(Console.ReadLine(), out int minutesRetard))
+            if (!needsDetention.Any())
             {
-                int points = CalculerPoints(minutesRetard);
-                etudiant.Retards++;
-                etudiant.Points += points;
-                Console.WriteLine($"\n{etudiant.Nom} a ete en retard de {minutesRetard} minutes. {points} points ajoutes.");
+                Console.WriteLine("None.");
             }
             else
             {
-                Console.WriteLine("\nEntree invalide pour les minutes.");
+                foreach (var student in needsDetention)
+                {
+                    Console.WriteLine($"{student.Name,-15} {student.Points,-10} {student.DetentionsServed,-15}");
+                }
             }
         }
-        else
-        {
-            Console.WriteLine("\nEtudiant non trouve.");
-        }
-    }
 
-    static void VerifierDetentions()
-    {
-        var besoinDetention = Etudiants.Where(e => e.BesoinDetention);
-
-        Console.WriteLine("\nEtudiants ayant besoin de detention:");
-        Console.WriteLine("-------------------------------------");
-
-        if (!besoinDetention.Any())
+        static void ConfirmDetention()
         {
-            Console.WriteLine("Aucun.");
-        }
-        else
-        {
-            foreach (var etudiant in besoinDetention)
+            Console.Write("\nEnter student name: ");
+            string name = Console.ReadLine();
+            var student = Students.FirstOrDefault(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (student != null)
             {
-                Console.WriteLine($"{etudiant.Nom,-15} {etudiant.Points,-10} {etudiant.DetentionsPrises,-15}");
-            }
-        }
-    }
-
-    static void ConfirmerDetention()
-    {
-        Console.Write("\nEntrez le nom de l'etudiant: ");
-        string nom = Console.ReadLine();
-        var etudiant = Etudiants.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
-
-        if (etudiant != null)
-        {
-            if (etudiant.BesoinDetention)
-            {
-                etudiant.Points -= 100;
-                etudiant.DetentionsPrises++;
-                Console.WriteLine($"\nDetention confirmee pour {etudiant.Nom}. 100 points retires.");
+                if (student.NeedsDetention)
+                {
+                    student.Points -= 100;
+                    student.DetentionsServed++;
+                    Console.WriteLine($"\nDetention confirmed for {student.Name}. 100 points removed.");
+                }
+                else
+                {
+                    Console.WriteLine($"\n{student.Name} does not need detention.");
+                }
             }
             else
             {
-                Console.WriteLine($"\n{etudiant.Nom} n'a pas besoin de detention.");
+                Console.WriteLine("\nStudent not found.");
             }
         }
-        else
-        {
-            Console.WriteLine("\nEtudiant non trouve.");
-        }
-    }
 
-    static void AjouterNouvelEtudiant()
-    {
-        Console.Write("\nEntrez le nom du nouvel etudiant: ");
-        string nom = Console.ReadLine();
-
-        if (string.IsNullOrWhiteSpace(nom))
+        static void AddNewStudent()
         {
-            Console.WriteLine("\nLe nom ne peut pas être vide.");
-            return;
+            Console.Write("\nEnter new student name: ");
+            string name = Console.ReadLine();
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                Console.WriteLine("\nName cannot be empty.");
+                return;
+            }
+
+            if (Students.Any(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            {
+                Console.WriteLine("\nStudent already exists.");
+            }
+            else
+            {
+                Students.Add(new Student(name));
+                Console.WriteLine($"\nStudent {name} added.");
+            }
         }
 
-        if (Etudiants.Any(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase)))
+        static int CalculatePoints(int minutesLate)
         {
-            Console.WriteLine("\nL'etudiant existe deja.");
+            if (minutesLate <= 1)
+                return 0;
+            if (minutesLate <= 7)
+                return (minutesLate - 1) * 1;
+            if (minutesLate <= 27)
+                return (minutesLate - 7) * 2 + 6;
+            if (minutesLate <= 45)
+                return (minutesLate - 27) * 3 + 46;
+            return 100;
         }
-        else
-        {
-            Etudiants.Add(new Etudiant(nom));
-            Console.WriteLine($"\nEtudiant {nom} ajoute.");
-        }
-    }
-
-    static int CalculerPoints(int minutesRetard)
-    {
-        if (minutesRetard <= 1)
-            return 0;
-        if (minutesRetard <= 7)
-            return (minutesRetard - 1) * 1;
-        if (minutesRetard <= 27)
-            return (minutesRetard - 7) * 2 + 6;
-        if (minutesRetard <= 45)
-            return (minutesRetard - 27) * 3 + 46;
-        return 100;
     }
 }

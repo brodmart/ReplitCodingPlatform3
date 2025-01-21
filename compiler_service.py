@@ -9,17 +9,14 @@ import logging
 import traceback
 import signal
 import psutil
-import shutil
 from pathlib import Path
 from typing import Dict, Optional, Any, Tuple
-import uuid
 import time
 from threading import Thread, Event, Lock
 import select
 import io
-import resource
 
-# Configure detailed logging with line numbers
+# Configure detailed logging
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]'
@@ -27,40 +24,41 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
-MAX_COMPILATION_TIME = 60  
+MAX_COMPILATION_TIME = 60
 MAX_EXECUTION_TIME = 30
 MEMORY_LIMIT = 1024  # MB
-COMPILER_CACHE_DIR = "/tmp/compiler_cache"
-MAX_CODE_SIZE = 10 * 1024 * 1024  # 10MB max file size
 
-def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMetrics') -> Tuple[bool, str]:
+def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[bool, str]:
     """Compile C# code with detailed error logging"""
     try:
+        # Create a temporary project directory
+        project_dir = source_file.parent
+
+        # Create minimal project file if it doesn't exist
+        project_file = project_dir / "temp.csproj"
+        if not project_file.exists():
+            with open(project_file, 'w') as f:
+                f.write("""<Project Sdk="Microsoft.NET.Sdk">
+                    <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net7.0</TargetFramework>
+                    </PropertyGroup>
+                </Project>""")
+
         compile_cmd = [
-            'mcs',
-            '-optimize+',
-            '-debug-',
-            '-unsafe+',
-            '-langversion:latest',
-            '-parallel+',
-            '-warnaserror-',
-            '-nowarn:219,414',
-            str(source_file),
-            '-out:' + str(executable)
+            'dotnet',
+            'build',
+            str(project_file),
+            '-o',
+            str(executable.parent),
+            '/p:GenerateFullPaths=true',
+            '/consoleloggerparameters:NoSummary'
         ]
 
         logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
-        metrics.log_status("Starting C# compilation")
         compile_start = time.time()
 
         try:
-            # Log source code for debugging
-            with open(source_file, 'r', encoding='utf-8') as f:
-                source_content = f.read()
-                logger.debug(f"Source code length: {len(source_content)} bytes")
-                logger.debug(f"First 500 chars of source:\n{source_content[:500]}")
-
-            # Run compilation with detailed output capture
             compile_process = subprocess.run(
                 compile_cmd,
                 capture_output=True,
@@ -69,34 +67,19 @@ def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMet
             )
 
             compile_time = time.time() - compile_start
-            metrics.compilation_time = compile_time
-
-            # Log all compilation outputs
-            logger.debug(f"Compilation completed in {compile_time:.2f}s")
-            logger.debug(f"Return code: {compile_process.returncode}")
-            if compile_process.stdout:
-                logger.debug(f"Compilation stdout:\n{compile_process.stdout}")
-            if compile_process.stderr:
-                logger.debug(f"Compilation stderr:\n{compile_process.stderr}")
+            metrics['compilation_time'] = compile_time
 
             if compile_process.returncode != 0:
                 error_msg = compile_process.stderr if compile_process.stderr else "Unknown compilation error occurred"
-                logger.error(f"Compilation failed with return code {compile_process.returncode}")
-                logger.error(f"Error message: {error_msg}")
+                logger.error(f"Compilation failed: {error_msg}")
                 return False, error_msg
 
-            logger.debug("Compilation successful, setting executable permissions")
-            os.chmod(executable, 0o755)
+            logger.debug("Compilation successful")
             return True, ""
 
         except subprocess.TimeoutExpired as e:
             error_msg = f"Compilation timed out after {MAX_COMPILATION_TIME}s"
             logger.error(error_msg)
-            return False, error_msg
-
-        except Exception as e:
-            error_msg = f"Unexpected compilation error: {str(e)}"
-            logger.error(error_msg, exc_info=True)
             return False, error_msg
 
     except Exception as e:
@@ -106,7 +89,7 @@ def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMet
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with enhanced logging"""
-    metrics = CompilationMetrics()
+    metrics = {'start_time': time.time()}
     logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
 
     if not code or not language:
@@ -118,45 +101,43 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         }
 
     try:
-        # Create compiler cache directory if it doesn't exist
-        os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
-
         with tempfile.TemporaryDirectory() as temp_dir:
             if language == 'csharp':
-                source_file = os.path.join(temp_dir, "program.cs")
-                executable = os.path.join(temp_dir, "program.exe")
+                # Set up project structure
+                project_dir = Path(temp_dir)
+                source_file = project_dir / "Program.cs"
+                executable = project_dir / "bin/Debug/net7.0/program"
 
                 logger.debug(f"Writing code to {source_file}")
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                success, error_msg = compile_csharp(Path(source_file), Path(executable), metrics)
+                success, error_msg = compile_csharp(source_file, executable, metrics)
 
                 if not success:
-                    logger.error(f"Compilation failed: {error_msg}")
                     return {
                         'success': False,
                         'error': error_msg,
-                        'metrics': metrics.to_dict()
+                        'metrics': metrics
                     }
 
-                logger.debug("Starting program execution")
                 try:
-                    run_cmd = ['mono', executable]
+                    run_cmd = ['dotnet', str(executable)]
+                    logger.debug(f"Running with command: {' '.join(run_cmd)}")
+
                     run_process = subprocess.run(
                         run_cmd,
                         capture_output=True,
                         text=True,
                         timeout=MAX_EXECUTION_TIME,
                         env={
-                            'MONO_GC_PARAMS': 'major=marksweep-par,nursery-size=64m',
-                            'MONO_THREADS_PER_CPU': '2',
-                            'MONO_MIN_HEAP_SIZE': '128M',
-                            'MONO_MAX_HEAP_SIZE': f'{MEMORY_LIMIT}M'
+                            'DOTNET_CLI_HOME': temp_dir,
+                            'DOTNET_NOLOGO': '1',
+                            'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
                         }
                     )
 
-                    run_time = time.time() - metrics.start_time - metrics.compilation_time
+                    metrics['execution_time'] = time.time() - metrics['start_time'] - metrics['compilation_time']
 
                     if run_process.returncode != 0:
                         logger.error(f"Execution failed: {run_process.stderr}")
@@ -164,36 +145,35 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             'success': False,
                             'output': run_process.stdout,
                             'error': run_process.stderr,
-                            'metrics': metrics.to_dict()
+                            'metrics': metrics
                         }
 
-                    logger.debug(f"Execution completed successfully in {run_time:.2f}s")
+                    logger.debug("Execution completed successfully")
                     return {
                         'success': True,
-                        'output': run_process.stdout.strip() if run_process.stdout else "",
-                        'metrics': metrics.to_dict()
+                        'output': run_process.stdout.strip(),
+                        'metrics': metrics
                     }
 
-                except subprocess.TimeoutExpired as e:
-                    logger.error("Execution timed out", exc_info=True)
+                except subprocess.TimeoutExpired:
+                    logger.error("Execution timed out")
                     return {
                         'success': False,
                         'error': f"Execution timed out after {MAX_EXECUTION_TIME} seconds",
-                        'metrics': metrics.to_dict()
+                        'metrics': metrics
                     }
 
-            else:
-                return {
-                    'success': False,
-                    'error': f"Unsupported language: {language}"
-                }
+            return {
+                'success': False,
+                'error': f"Unsupported language: {language}"
+            }
 
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         return {
             'success': False,
             'error': f"An unexpected error occurred: {str(e)}",
-            'metrics': metrics.to_dict()
+            'metrics': metrics
         }
 
 class CompilationMetrics:
@@ -391,15 +371,13 @@ namespace ConsoleApplication {{
 
             # Enhanced compilation command with proper references
             compile_cmd = [
-                'mcs',
-                '-optimize+',
-                '-debug-',
-                '-reference:System.Core.dll',
-                '-reference:System.dll',
-                '-define:INTERACTIVE',
-                '-sdk:4.5',
+                'dotnet',
+                'build',
                 str(source_file),
-                '-out:' + str(executable)
+                '-o',
+                str(executable.parent),
+                '/p:GenerateFullPaths=true',
+                '/consoleloggerparameters:NoSummary'
             ]
 
             try:
@@ -432,9 +410,9 @@ namespace ConsoleApplication {{
                 env['COLUMNS'] = '80'
                 env['LINES'] = '25'
 
-                # Run with mono, using Popen for interactive I/O
+                # Run with dotnet, using Popen for interactive I/O
                 process = subprocess.Popen(
-                    ['mono', str(executable)],
+                    ['dotnet', str(executable)],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
