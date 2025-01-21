@@ -14,6 +14,8 @@ from datetime import datetime
 from routes.static_routes import get_user_language
 from compiler import compile_and_run
 from flask import make_response
+import atexit
+from apscheduler.schedulers.background import BackgroundScheduler
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -136,24 +138,39 @@ def run_code():
         logger.debug(f"Executing {language} code, length: {len(code)}")
         logger.debug(f"Code preview: {code[:200]}...")
 
-        # Execute the code using the compiler implementation
-        result = compile_and_run(
-            code=code,
-            language=language,
-            input_data=None
-        )
+        try:
+            # Execute with timeout
+            result = compile_and_run(
+                code=code,
+                language=language,
+                input_data=None
+            )
 
-        # Ensure result is properly formatted
-        if not isinstance(result, dict):
-            logger.error(f"Invalid result type from compile_and_run: {type(result)}")
+            # Ensure result is properly formatted
+            if not isinstance(result, dict):
+                logger.error(f"Invalid result type from compile_and_run: {type(result)}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Internal server error: Invalid compiler response'
+                }), 500
+
+            # Always return a JSON response with proper headers
+            response = jsonify(result)
+            response.headers['Content-Type'] = 'application/json'
+            return response
+
+        except TimeoutError:
+            logger.error("Code execution timed out")
             return jsonify({
                 'success': False,
-                'error': 'Internal server error: Invalid compiler response'
+                'error': 'Code execution timed out'
+            }), 408
+        except Exception as exec_error:
+            logger.error(f"Execution error: {str(exec_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'Execution error: {str(exec_error)}'
             }), 500
-
-        response = jsonify(result)
-        response.headers['Content-Type'] = 'application/json'
-        return response
 
     except Exception as e:
         logger.error(f"Error running code: {str(e)}", exc_info=True)
@@ -338,7 +355,9 @@ def view_enhanced_activity(activity_id):
         }), 500
 
 
-# Cleanup inactive sessions periodically
+#Cleanup inactive sessions periodically
+session_lock = threading.Lock()
+active_sessions = {}
 def cleanup_old_sessions():
     """Clean up inactive sessions older than 15 minutes"""
     try:
@@ -361,3 +380,5 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_old_sessions, 'interval', minutes=5)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
+
+import threading
