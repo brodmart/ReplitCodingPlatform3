@@ -52,7 +52,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Always update the editor mode and template when switching languages
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            editor.setValue(getTemplateForLanguage(language));
+
+            // Only update template if current content is empty or matches a template
+            const currentCode = editor.getValue().trim();
+            const isCppTemplate = currentCode === getTemplateForLanguage('cpp').trim();
+            const isCsharpTemplate = currentCode === getTemplateForLanguage('csharp').trim();
+
+            if (!currentCode || isCppTemplate || isCsharpTemplate) {
+                editor.setValue(getTemplateForLanguage(language));
+            }
         });
     }
 
@@ -95,10 +103,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function getTemplateForLanguage(language) {
     if (language === 'cpp') {
         return `#include <iostream>
+#include <string>
 using namespace std;
 
 int main() {
-    cout << "Hello World!" << endl;
+    string message = "Hello World!";
+    cout << message << endl;
+
+    // Get user input
+    string name;
+    cout << "Enter your name: ";
+    getline(cin, name);
+    cout << "Hello, " << name << "!" << endl;
+
     return 0;
 }`;
     } else if (language === 'csharp') {
@@ -108,7 +125,13 @@ class Program
 {
     static void Main(string[] args)
     {
-        Console.WriteLine("Hello World!");
+        string message = "Hello World!";
+        Console.WriteLine(message);
+
+        // Get user input
+        Console.Write("Enter your name: ");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
     }
 }`;
     }
