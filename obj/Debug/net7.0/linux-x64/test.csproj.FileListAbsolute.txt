@@ -1,0 +1,2 @@
+/home/runner/workspace/obj/Debug/net7.0/linux-x64/test.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/obj/Debug/net7.0/linux-x64/test.csproj.CoreCompileInputs.cache

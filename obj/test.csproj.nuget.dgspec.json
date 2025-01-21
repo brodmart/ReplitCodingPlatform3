@@ -50,10 +50,15 @@
           "warn": true,
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
-              "privateAssets": "all"
+              "privateAssets": "none"
             }
           },
           "runtimeIdentifierGraphPath": "/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410/sdk/7.0.410/RuntimeIdentifierGraph.json"
+        }
+      },
+      "runtimes": {
+        "linux-x64": {
+          "#import": []
         }
       }
     }

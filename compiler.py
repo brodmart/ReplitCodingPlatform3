@@ -420,24 +420,11 @@ def get_optimized_environment() -> Dict[str, str]:
         'COMPlus_TC_QuickJit': '1',
         'LC_ALL': 'C',
         'LANG': 'C',
-        'DOTNET_ThreadPool_MinThreads': str(THREAD_POOL_SIZES['normal'](MAX_WORKERS)),
-        'DOTNET_ThreadPool_MaxThreads': str(THREAD_POOL_SIZES['normal'](MAX_WORKERS)),
-        'DOTNET_JitMinOpts': '1',
-        'DOTNET_TieredCompilation': '1',
-        'DOTNET_ReadyToRun': '1',
-        'DOTNET_TC_QuickJit': '1',
-        'DOTNET_SYSTEM_THREADING_POOLASYNCVALUETASKS': '1',
-        'DOTNET_SYSTEM_THREADING_TASKS_FAST_FLOW': '1',
-        # Additional aggressive optimization flags
-        'COMPlus_JITMinOpts': '1',
-        'COMPlus_TieredCompilation': '1',
-        'COMPlus_TC_QuickJit': '1',
-        'COMPlus_ReadyToRun': '1',
-        'COMPlus_ZapDisable': '1',
-        'COMPlus_JITMinOpts': '1',
-        'COMPlus_TieredCompilation': '1',
-        'DOTNET_JitMinOpts': '1',
-        'DOTNET_TieredCompilation': '1',
+        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
+        'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'true',
+        'MSBuildSDKsPath': os.path.join(dotnet_root, 'sdk', '7.0.0', 'Sdks'),
+        'MSBuildExtensionsPath': os.path.join(dotnet_root, 'sdk', '7.0.0', 'Sdks'),
+        'DOTNET_REFERENCE_ASSEMBLIES_PATH': os.path.join(dotnet_root, 'packs', 'Microsoft.NETCore.App.Ref', '7.0.0', 'ref', 'net7.0')
     })
     return env
 
@@ -476,67 +463,24 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
                 'metrics': metrics.to_dict()
             }
 
-        # Enhanced environment setup using the new function
+        # Enhanced environment setup
         env = get_optimized_environment()
 
         warmup_compiler()
 
         with tempfile.TemporaryDirectory(prefix='compile_', dir=COMPILER_CACHE_DIR) as temp_dir:
-            if language == 'csharp':
-                if files: #Handle multiple files
-                    try:
-                        metrics.log_status("Parallel compilation started")
-                        compile_start = time.time()
-                        results = run_parallel_compilation(files, temp_dir, env, MAX_COMPILATION_TIME)
-                        metrics.compilation_time = time.time() - compile_start
-                        metrics.log_status("Parallel compilation finished")
+            project_dir = Path(temp_dir)
+            source_file = project_dir / "Program.cs"
+            project_file = project_dir / "program.csproj"
+            bin_dir = project_dir / "bin" / "Release" / "net7.0" / "linux-x64"
+            os.makedirs(bin_dir, exist_ok=True)
 
-                        failed_builds = [res for res in results if res.returncode != 0]
-                        if failed_builds:
-                            error_msgs = [format_csharp_error(res.stderr) for res in failed_builds]
-                            return {
-                                'success': False,
-                                'error': f"Compilation failed: {', '.join(error_msgs)}",
-                                'metrics': metrics.to_dict()
-                            }
-                        #Assume only one dll per file, needs improvement for more robust handling
-                        dll_path = Path(temp_dir) / "bin" / "Release" / "net7.0" / "linux-x64" / "program.dll"
-                        if not dll_path.exists():
-                            return {
-                                'success': False,
-                                'error': "Build succeeded but no output found",
-                                'metrics': metrics.to_dict()
-                            }
-                        save_to_build_cache(code_hash, dll_path)
-                        return run_cached_build(str(dll_path), input_data, metrics)
-                    except subprocess.TimeoutExpired as e:
-                        error_msg = f"Compilation timed out after {e.timeout} seconds"
-                        logger.error(error_msg)
-                        return {
-                            'success': False,
-                            'error': error_msg,
-                            'metrics': metrics.to_dict()
-                        }
-                    except Exception as e:
-                        logger.error(f"Parallel compilation error: {e}")
-                        return {
-                            'success': False,
-                            'error': str(e),
-                            'metrics': metrics.to_dict()
-                        }
-                else: #Handle single file case as before
-                    project_dir = Path(temp_dir)
-                    source_file = project_dir / "Program.cs"
-                    project_file = project_dir / "program.csproj"
-                    bin_dir = project_dir / "bin" / "Release" / "net7.0" / "linux-x64"
-                    os.makedirs(bin_dir, exist_ok=True)
+            # Write source code
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(code)
 
-                    # Write source code
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write(code)
-
-                    # Create optimized project file
-                    project_content = """<Project Sdk="Microsoft.NET.Sdk">
+            # Create optimized project file with proper framework references
+            project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
@@ -544,162 +488,124 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
     <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <TieredCompilation>true</TieredCompilation>
-    <UseSystemConsole>true</UseSystemConsole>
-    <UseAppHost>false</UseAppHost>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <EnableDefaultItems>false</EnableDefaultItems>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-    <RetainVMGarbageCollection>true</RetainVMGarbageCollection>
-    <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
-    <WarningLevel>0</WarningLevel>
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
   </PropertyGroup>
+
   <ItemGroup>
     <Compile Include="Program.cs" />
     <FrameworkReference Include="Microsoft.NETCore.App" />
   </ItemGroup>
 </Project>"""
 
-                    with open(project_file, 'w', encoding='utf-8') as f:
-                        f.write(project_content)
+            with open(project_file, 'w', encoding='utf-8') as f:
+                f.write(project_content)
 
-                    try:
-                        compile_start = time.time()
-                        dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
+            try:
+                compile_start = time.time()
+                dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
 
-                        # Create response file with compiler options
-                        compiler_options = [
-                            '/nowarn:CS1701,CS1702,CS1705,CS1591',
-                            '/warnaserror-',
-                            '/incremental-',
-                            '/deterministic-',
-                            '/parallel+',
-                            '/debug-',
-                            '/optimize+',
-                            '/langversion:latest'
-                        ]
-                        response_file = get_cached_response_file(compiler_options)
+                build_cmd = [
+                    dotnet_cmd, 'build',
+                    str(project_file),
+                    '--configuration', 'Release',
+                    '--runtime', 'linux-x64',
+                    '--no-self-contained',
+                    '-nologo',
+                    '-verbosity:quiet',
+                    '/p:GenerateFullPaths=true',
+                    '/p:EnableDefaultItems=true'
+                ]
 
-                        # Fast compilation with minimal restore
-                        build_cmd = [
-                            dotnet_cmd, 'publish',
-                            str(project_file),
-                            '--configuration', 'Release',
-                            '--runtime', 'linux-x64',
-                            '--no-self-contained',
-                            '--output', str(bin_dir),
-                            '-nologo',
-                            '-maxcpucount:4',
-                            f'@{response_file}',
-                            '/p:GenerateFullPaths=true',
-                            '/p:UseAppHost=false',
-                            '/p:EnableDefaultCompileItems=false',
-                            '/p:SkipCompilerExecution=false',
-                            '/p:ContinuousIntegrationBuild=true',
-                            '/p:GenerateAssemblyInfo=false',
-                            '/p:WarningLevel=0',
-                            '/p:RestoreDisableParallel=false',
-                            '/p:RestoreUseSkipNonexistentTargets=true',
-                            '/p:UseSharedCompilation=true',
-                            '/p:BuildInParallel=true',
-                            '/p:DisableImplicitNuGetFallbackFolder=true'
-                        ]
+                logger.debug(f"Starting compilation with command: {' '.join(build_cmd)}")
 
-                        logger.debug(f"Starting compilation with command: {' '.join(build_cmd)}")
+                metrics.log_status("Compilation started")
+                compile_process = subprocess.run(
+                    build_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=str(project_dir),
+                    env=env
+                )
+                metrics.compilation_time = time.time() - compile_start
+                metrics.log_status("Compilation finished")
 
-                        # Run compilation in parallel process with retry and monitoring
-                        metrics.log_status("Compilation started")
-                        compile_start = time.time() #Re-assign compile_start here to fix issue #2
-                        compile_process = run_parallel_compilation(
-                            [str(project_file)], #Passing as a single element list
-                            str(project_dir),
-                            env,
-                            MAX_COMPILATION_TIME
-                        )
-                        metrics.compilation_time = time.time() - compile_start
-                        metrics.log_status("Compilation finished")
+                if compile_process.returncode != 0:
+                    error_msg = format_csharp_error(compile_process.stderr)
+                    logger.error(f"Compilation failed: {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'metrics': metrics.to_dict()
+                    }
 
-                        if compile_process[0].returncode != 0:
-                            error_msg = format_csharp_error(compile_process[0].stderr)
-                            logger.error(f"Compilation failed: {error_msg}")
-                            return {
-                                'success': False,
-                                'error': error_msg,
-                                'metrics': metrics.to_dict()
-                            }
+                # Verify output
+                dll_path = bin_dir / "program.dll"
+                if not dll_path.exists():
+                    return {
+                        'success': False,
+                        'error': "Build succeeded but no output found",
+                        'metrics': metrics.to_dict()
+                    }
 
-                        # Verify output
-                        dll_path = bin_dir / "program.dll"
-                        if not dll_path.exists():
-                            return {
-                                'success': False,
-                                'error': "Build succeeded but no output found",
-                                'metrics': metrics.to_dict()
-                            }
+                # Save successful build to cache
+                save_to_build_cache(code_hash, dll_path)
 
-                        # Save successful build to cache
-                        save_to_build_cache(code_hash, dll_path)
+                # Run with optimized settings
+                run_cmd = [
+                    dotnet_cmd,
+                    str(dll_path),
+                    '--gc-server',
+                    '--tiered-compilation'
+                ]
 
-                        # Run with optimized settings
-                        run_cmd = [
-                            dotnet_cmd,
-                            str(dll_path),
-                            '--gc-server',
-                            '--tiered-compilation'
-                        ]
+                logger.debug(f"Running program with command: {' '.join(run_cmd)}")
+                run_start = time.time()
+                metrics.log_status("Execution started")
 
-                        logger.debug(f"Running program with command: {' '.join(run_cmd)}")
-                        run_start = time.time()
-                        metrics.log_status("Execution started")
+                run_process = subprocess.run(
+                    run_cmd,
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME,
+                    cwd=str(project_dir),
+                    env=env
+                )
 
-                        run_process = subprocess.run(
-                            run_cmd,
-                            input=input_data.encode() if input_data else None,
-                            capture_output=True,
-                            text=True,
-                            timeout=MAX_EXECUTION_TIME,
-                            cwd=str(project_dir),
-                            env=env
-                        )
-                        metrics.execution_time = time.time() - run_start
-                        metrics.log_status("Execution finished")
-                        metrics['total_time'] = time.time() - metrics.start_time
+                metrics.execution_time = time.time() - run_start
+                metrics.log_status("Execution finished")
+                metrics['total_time'] = time.time() - metrics.start_time
 
-                        if run_process.returncode != 0:
-                            error_msg = format_runtime_error(run_process.stderr)
-                            logger.error(f"Execution failed: {error_msg}")
-                            return {
-                                'success': False,
-                                'error': error_msg,
-                                'metrics': metrics.to_dict()
-                            }
+                if run_process.returncode != 0:
+                    error_msg = format_runtime_error(run_process.stderr)
+                    logger.error(f"Execution failed: {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'metrics': metrics.to_dict()
+                    }
 
-                        return {
-                            'success': True,
-                            'output': run_process.stdout,
-                            'metrics': metrics.to_dict()
-                        }
+                return {
+                    'success': True,
+                    'output': run_process.stdout,
+                    'metrics': metrics.to_dict()
+                }
 
-                    except subprocess.TimeoutExpired as e:
-                        phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
-                        error_msg = f"{phase.capitalize()} timed out after {e.timeout} seconds"
-                        logger.error(error_msg)
-                        return {
-                            'success': False,
-                            'error': error_msg,
-                            'metrics': metrics.to_dict()
-                        }
-            else:
+            except subprocess.TimeoutExpired as e:
+                phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
+                error_msg = f"{phase.capitalize()} timed out after {e.timeout} seconds"
+                logger.error(error_msg)
                 return {
                     'success': False,
-                    'error': f"Unsupported language: {language}",
+                    'error': error_msg,
                     'metrics': metrics.to_dict()
                 }
 
@@ -812,7 +718,7 @@ def format_runtime_error(error_msg: str) -> str:
             "System.ArgumentException": "Invalid argument provided",
             "System.FormatException": "Invalid format",
             "System.StackOverflowException": "Stack overflow - check for infinite recursion",
-            "System.OutOfMemoryException": "Out of memory - program is usingtoo much memory",
+            "System.OutOfMemoryException": "Out of memory - program is using too much memory",
             "System.IO.IOException": "Input/Output operation failed",
             "System.Security.SecurityException": "Security violation"
         }
