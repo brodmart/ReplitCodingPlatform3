@@ -7,6 +7,105 @@
     overflow-x: hidden;
 }
 
+/* Enhanced Editor Container */
+.editor-container {
+    width: 100%;
+    height: 750px;
+    position: relative;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Enhanced CodeMirror Customization */
+.CodeMirror {
+    height: 100% !important;
+    width: 100%;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 4px;
+}
+
+/* Enhanced Console Output */
+.console-container {
+    background-color: #1e1e1e;
+    color: #d4d4d4;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 14px;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    border: 1px solid #2d2d2d;
+    overflow: hidden;
+}
+
+/* Enhanced Console Input/Output */
+.console-output {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.console-input-line {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+    border-top: 1px solid #2d2d2d;
+    background-color: #1e1e1e;
+}
+
+/* Enhanced Error Styling */
+.CodeMirror-lint-marker {
+    width: 16px;
+    height: 16px;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    cursor: pointer;
+}
+
+.CodeMirror-lint-marker-error {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="%23dc3545"/><path d="M8 4v5M8 11v1" stroke="white" stroke-width="2"/></svg>');
+}
+
+.CodeMirror-lint-marker-warning {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M8 1l7 14H1L8 1z" fill="%23ffc107"/><path d="M8 6v5M8 13v1" stroke="black" stroke-width="2"/></svg>');
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 768px) {
+    .editor-container,
+    .console-container {
+        height: 50vh;
+        min-height: 300px;
+    }
+
+    .editor-console-row {
+        flex-direction: column;
+    }
+
+    .editor-column,
+    .console-column {
+        width: 100%;
+        padding: 0;
+        margin-bottom: 20px;
+    }
+
+    .CodeMirror {
+        font-size: 16px; /* Larger font for mobile */
+    }
+
+    .console-input {
+        font-size: 16px; /* Larger font for mobile */
+    }
+}
+
 .row {
     margin: 0;
     padding: 0;
@@ -31,37 +130,10 @@ html, body {
     color: var(--bs-light);
 }
 
-:root {
+::root {
     --bs-dark: #212529;
     --bs-light: #f8f9fa;
     --bs-border-color: #495057;
-}
-
-/* Editor Container */
-.editor-container {
-    width: 100%;
-    height: 750px;
-    position: relative;
-    margin-bottom: 20px;
-}
-
-#editor {
-    visibility: hidden;
-}
-
-.CodeMirror-initialized {
-    visibility: visible;
-}
-
-/* CodeMirror Customization */
-.CodeMirror {
-    height: 100% !important;
-    width: 100%;
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    border: 1px solid var(--bs-border-color);
-    border-radius: 4px;
 }
 
 /* Console Output */
@@ -296,3 +368,10 @@ html, body {
 }
 
 /* Container width control */
+#editor {
+    visibility: hidden;
+}
+
+.CodeMirror-initialized {
+    visibility: visible;
+}

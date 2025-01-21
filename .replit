@@ -67,6 +67,10 @@ args = "Seed Database"
 task = "workflow.run"
 args = "Interactive C# Console"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Analyze W3Schools"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -235,6 +239,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "dotnet run Program.cs"
+
+[[workflows.workflow]]
+name = "Analyze W3Schools"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python scripts/analyze_codemirror.py"
 
 [[ports]]
 localPort = 5000

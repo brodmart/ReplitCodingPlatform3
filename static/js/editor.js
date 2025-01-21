@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Initialize CodeMirror
+    // Enhanced CodeMirror initialization with educational features
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src', // Default to C++
         theme: 'dracula',
@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
         tabSize: 4,
         lineWrapping: true,
         viewportMargin: Infinity,
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
         extraKeys: {
             "Tab": function(cm) {
                 if (cm.somethingSelected()) {
@@ -34,24 +36,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     cm.replaceSelection("    ", "end");
                 }
+            },
+            "Ctrl-Space": "autocomplete",
+            "Ctrl-/": "toggleComment",
+            "Ctrl-F": "findPersistent"
+        },
+        // Educational features
+        highlightSelectionMatches: {showToken: /\w/, annotateScrollbar: true},
+        matchTags: {bothTags: true},
+        autoCloseTags: true,
+        lint: true,
+        hintOptions: {
+            completeSingle: false,
+            extraKeys: {
+                "Ctrl-Space": "autocomplete"
             }
         }
     });
 
-    // Only set template if editor is empty
-    if (!editor.getValue().trim()) {
-        const language = languageSelect ? languageSelect.value : 'cpp';
-        editor.setValue(getTemplateForLanguage(language));
-    }
-
-    // Language change handler
+    // Enhance the language change handler
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = languageSelect.value;
             console.log('Language changed to:', language);
 
-            // Always update the editor mode and template when switching languages
-            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+            // Update editor mode and settings based on language
+            if (language === 'cpp') {
+                editor.setOption('mode', 'text/x-c++src');
+                editor.setOption('lint', {
+                    'esversion': 6,
+                    'asi': true
+                });
+            } else if (language === 'csharp') {
+                editor.setOption('mode', 'text/x-csharp');
+                editor.setOption('lint', {
+                    'esversion': 6,
+                    'asi': true
+                });
+            }
 
             // Only update template if current content is empty or matches a template
             const currentCode = editor.getValue().trim();
@@ -64,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Run button handler with debounce
+    // Enhanced error handling and execution
     if (runButton) {
         let executionTimeout;
         runButton.addEventListener('click', async function(e) {
@@ -89,17 +111,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Keyboard shortcut
+    // Add keyboard shortcuts for educational features
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
             e.preventDefault();
             executeCode();
         }
+        // Add educational shortcut keys
+        if (e.ctrlKey && e.key === 'h') { // Help shortcut
+            e.preventDefault();
+            showHelp();
+        }
+    });
+
+    // Initialize error checking
+    editor.on('change', function(cm, change) {
+        clearTimeout(editor.lintTimeout);
+        editor.lintTimeout = setTimeout(function() {
+            updateErrorHighlighting(cm);
+        }, 500);
     });
 
     isConsoleReady = true;
 });
 
+// Enhanced template function
 function getTemplateForLanguage(language) {
     if (language === 'cpp') {
         return `#include <iostream>
@@ -107,6 +143,7 @@ function getTemplateForLanguage(language) {
 using namespace std;
 
 int main() {
+    // This is a simple C++ program
     string message = "Hello World!";
     cout << message << endl;
 
@@ -125,6 +162,7 @@ class Program
 {
     static void Main(string[] args)
     {
+        // This is a simple C# program
         string message = "Hello World!";
         Console.WriteLine(message);
 
@@ -136,6 +174,36 @@ class Program
 }`;
     }
     return ''; // Default empty template
+}
+
+// New function for error highlighting
+function updateErrorHighlighting(cm) {
+    const code = cm.getValue();
+    const language = document.getElementById('languageSelect')?.value || 'cpp';
+
+    // Clear existing error markers
+    cm.clearGutter('CodeMirror-lint-markers');
+
+    // Basic syntax checking (placeholder - replace with actual implementation)
+    let errors = [];
+    if (language === 'cpp') {
+        errors = checkCppSyntax(code);
+    } else if (language === 'csharp') {
+        errors = checkCSharpSyntax(code);
+    }
+
+    // Mark errors in the editor
+    errors.forEach(error => {
+        cm.setGutterMarker(error.line, 'CodeMirror-lint-markers', makeMarker(error.message));
+    });
+}
+
+// Helper function for error markers
+function makeMarker(msg) {
+    const marker = document.createElement('div');
+    marker.classList.add('CodeMirror-lint-marker');
+    marker.title = msg;
+    return marker;
 }
 
 // Execute Code Function with improved error handling
@@ -249,4 +317,20 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+// Placeholder functions for syntax checking -  Replace with actual implementation
+function checkCppSyntax(code) {
+    // Implement C++ syntax checking logic here.  Return an array of error objects:  [{line: 10, message: "Syntax error"}, ...]
+    return [];
+}
+
+function checkCSharpSyntax(code) {
+    // Implement C# syntax checking logic here. Return an array of error objects:  [{line: 10, message: "Syntax error"}, ...]
+    return [];
+}
+
+function showHelp() {
+    //Implement help functionality here.  Alert for now.
+    alert("Help: Ctrl+Space for autocomplete, Ctrl+/ for commenting, Ctrl+F for find.");
 }
