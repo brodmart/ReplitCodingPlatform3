@@ -1,5 +1,5 @@
 /**
- * Interactive Console class for handling real-time program I/O using Xterm.js
+ * Interactive Console class for handling real-time program I/O using CodeMirror
  */
 class InteractiveConsole {
     constructor() {
@@ -12,13 +12,18 @@ class InteractiveConsole {
         this.inputCallback = null;
         this.consoleElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
+        this.isExecuting = false;
 
         // Initialize console if elements exist
         if (this.consoleElement && this.inputElement) {
             this.setupEventListeners();
             this.clear();
+            console.log('Console initialized successfully');
         } else {
-            console.error('Console elements not found');
+            console.error('Console elements not found:', {
+                consoleElement: !!this.consoleElement,
+                inputElement: !!this.inputElement
+            });
         }
     }
 
@@ -26,10 +31,12 @@ class InteractiveConsole {
         if (!this.inputElement) return;
 
         this.inputElement.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && this.isWaitingForInput) {
+            if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 const input = this.inputElement.value;
-                this.handleInput(input);
+                if (input.trim()) {
+                    this.handleInput(input);
+                }
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 this.navigateHistory(-1);
@@ -67,18 +74,33 @@ class InteractiveConsole {
     }
 
     appendOutput(text, className = '') {
-        if (!this.consoleElement) return;
+        if (!this.consoleElement) {
+            console.error('Console element not found when appending output');
+            return;
+        }
 
         const line = document.createElement('div');
         line.className = `console-line ${className}`;
-        line.textContent = text;
+
+        // Handle different types of output
+        if (typeof text === 'object') {
+            line.textContent = JSON.stringify(text, null, 2);
+        } else {
+            line.textContent = String(text);
+        }
+
         this.consoleElement.appendChild(line);
         this.consoleElement.scrollTop = this.consoleElement.scrollHeight;
         this.outputBuffer.push({ text, className });
+
+        // Enable input after output unless we're still executing
+        if (!this.isExecuting) {
+            this.enable();
+        }
     }
 
     handleInput(input) {
-        if (!this.isWaitingForInput || !this.inputElement) return;
+        if (!this.inputElement) return;
 
         // Add to history if not empty and different from last entry
         if (input && (!this.inputHistory.length || this.inputHistory[this.inputHistory.length - 1] !== input)) {
@@ -88,7 +110,7 @@ class InteractiveConsole {
         // Reset history navigation
         this.historyIndex = -1;
 
-        // Echo input
+        // Echo input with prompt
         this.appendOutput(`> ${input}`, 'console-input');
 
         // Clear input field
@@ -108,6 +130,7 @@ class InteractiveConsole {
 
         this.appendOutput(prompt, 'console-prompt');
         this.isWaitingForInput = true;
+        this.enable();
         this.inputElement.focus();
 
         return new Promise(resolve => {
@@ -133,12 +156,14 @@ class InteractiveConsole {
     disable() {
         if (this.inputElement) {
             this.inputElement.disabled = true;
+            this.isExecuting = true;
         }
     }
 
     enable() {
         if (this.inputElement) {
             this.inputElement.disabled = false;
+            this.isExecuting = false;
             this.inputElement.focus();
         }
     }

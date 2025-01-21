@@ -5,12 +5,27 @@ let isExecuting = false;
 let lastExecution = 0;
 let isConsoleReady = false;
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize console first
+function initializeConsole() {
+    // Wait for DOM elements to be ready
+    const consoleOutput = document.getElementById('consoleOutput');
+    const consoleInput = document.getElementById('consoleInput');
+
+    if (!consoleOutput || !consoleInput) {
+        console.error('Console elements not ready, retrying in 100ms...');
+        setTimeout(initializeConsole, 100);
+        return;
+    }
+
+    console.log('Initializing editor and console...');
     consoleInstance = new InteractiveConsole();
     isConsoleReady = true;
 
-    // Initialize CodeMirror with basic settings first
+    // Initialize CodeMirror after console is ready
+    initializeEditor();
+}
+
+function initializeEditor() {
+    // Initialize CodeMirror with basic settings
     const editorElement = document.getElementById('editor');
     if (!editorElement) {
         console.error('Editor element not found');
@@ -35,13 +50,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     cm.replaceSelection("    ", "end");
                 }
+            },
+            "Ctrl-Enter": function() {
+                if (!isExecuting) {
+                    executeCode();
+                }
             }
         }
     });
 
     // Make editor visible immediately after initialization
     editor.getWrapperElement().classList.add('CodeMirror-initialized');
+    console.log('Editor initialized');
 
+    // Set up event listeners
+    setupEventListeners();
+}
+
+function setupEventListeners() {
     // Get language select and set initial template
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
@@ -49,21 +75,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Setting initial language:', initialLanguage);
         updateEditorMode(initialLanguage);
         setEditorTemplate(initialLanguage);
-
-        // Language change handler with debugging
-        languageSelect.addEventListener('change', function(event) {
-            const language = event.target.value;
-            console.log('Language changed to:', language);
-            updateEditorMode(language);
-            setEditorTemplate(language);
-
-            // Force editor refresh after mode change
-            editor.refresh();
-        });
     }
 
     // Run button handler
-    const runButton = document.getElementById('runButton') || document.getElementById('runCode');
+    const runButton = document.getElementById('runButton');
     if (runButton) {
         runButton.addEventListener('click', async function(e) {
             e.preventDefault();
@@ -71,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 await executeCode();
             }
         });
+        console.log('Run button handler attached');
     }
 
     // Keyboard shortcut
@@ -80,10 +96,136 @@ document.addEventListener('DOMContentLoaded', function() {
             executeCode();
         }
     });
-});
+}
+
+// Start initialization when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeConsole);
+
+async function executeCode() {
+    console.log('Starting code execution...');
+
+    if (!editor || !isConsoleReady || isExecuting) {
+        console.error('Execute prevented:', {
+            hasEditor: !!editor,
+            isConsoleReady,
+            isExecuting
+        });
+        return;
+    }
+
+    const runButton = document.getElementById('runButton');
+
+    try {
+        isExecuting = true;
+        lastExecution = Date.now();
+
+        if (runButton) {
+            runButton.disabled = true;
+            runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
+        }
+
+        // Clear previous output and show compiling message
+        if (consoleInstance) {
+            consoleInstance.clear();
+            consoleInstance.disable();
+            consoleInstance.appendOutput('Compiling and running code...\n', 'console-info');
+        }
+
+        const code = editor.getValue().trim();
+        if (!code) {
+            throw new Error('No code to execute');
+        }
+
+        const languageSelect = document.getElementById('languageSelect');
+        const language = languageSelect ? languageSelect.value : 'cpp';
+        console.log('Executing code in language:', language);
+
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
+        console.log('Sending code execution request...');
+        const response = await fetch('/activities/run_code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({
+                code: code,
+                language: language
+            })
+        });
+
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Execution result:', result);
+
+        if (result.success) {
+            if (consoleInstance) {
+                consoleInstance.clear();
+                consoleInstance.setSuccess('Compilation successful\n');
+                if (result.output) {
+                    consoleInstance.appendOutput(result.output);
+                } else {
+                    consoleInstance.appendOutput('Program completed with no output\n');
+                }
+            }
+        } else {
+            throw new Error(result.error || 'Failed to execute code');
+        }
+    } catch (error) {
+        console.error('Error executing code:', error);
+        if (consoleInstance) {
+            consoleInstance.setError(`Error: ${error.message}`);
+        }
+    } finally {
+        isExecuting = false;
+        if (runButton) {
+            runButton.disabled = false;
+            runButton.innerHTML = 'Run';
+        }
+        if (consoleInstance) {
+            consoleInstance.enable();
+        }
+    }
+}
+
+function updateEditorMode(language) {
+    if (!editor) {
+        console.error('Editor not initialized');
+        return;
+    }
+
+    console.log('Updating editor mode for:', language);
+    if (language === 'cpp') {
+        editor.setOption('mode', 'text/x-c++src');
+    } else if (language === 'csharp') {
+        editor.setOption('mode', 'text/x-csharp');
+    }
+}
+
+function setEditorTemplate(language) {
+    if (!editor) {
+        console.error('Editor not initialized');
+        return;
+    }
+
+    const template = getTemplateForLanguage(language);
+    console.log('Setting template for', language);
+    editor.setValue(template);
+    editor.setCursor(0, 0);
+}
 
 function getTemplateForLanguage(language) {
-    console.log('Getting template for language:', language);
     if (language === 'cpp') {
         return `#include <iostream>
 using namespace std;
@@ -106,137 +248,6 @@ class Program
     return ''; // Default empty template
 }
 
-function setEditorTemplate(language) {
-    if (!editor) {
-        console.error('Editor not initialized');
-        return;
-    }
-
-    // Always set template when language changes
-    const template = getTemplateForLanguage(language);
-    console.log('Setting template for', language, ':', template);
-    editor.setValue(template);
-
-    // Ensure cursor is at the start
-    editor.setCursor(0, 0);
-}
-
-function updateEditorMode(language) {
-    if (!editor) {
-        console.error('Editor not initialized');
-        return;
-    }
-
-    console.log('Updating editor mode for:', language);
-    if (language === 'cpp') {
-        editor.setOption('mode', 'text/x-c++src');
-    } else if (language === 'csharp') {
-        editor.setOption('mode', 'text/x-csharp');
-    }
-}
-
-async function executeCode() {
-    console.log('Starting code execution...');
-
-    if (!editor || !isConsoleReady || isExecuting) {
-        console.error('Execute prevented:', {
-            hasEditor: !!editor,
-            isConsoleReady,
-            isExecuting
-        });
-        return;
-    }
-
-    const runButton = document.getElementById('runButton') || document.getElementById('runCode');
-
-    try {
-        isExecuting = true;
-        lastExecution = Date.now();
-
-        if (runButton) {
-            runButton.disabled = true;
-            runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
-        }
-
-        // Clear previous output and show compiling message
-        if (consoleInstance) {
-            consoleInstance.clear();
-            consoleInstance.appendOutput('Compiling and running code...\n', 'console-info');
-        }
-
-        const code = editor.getValue().trim();
-        if (!code) {
-            throw new Error('No code to execute');
-        }
-
-        const languageSelect = document.getElementById('languageSelect');
-        const language = languageSelect ? languageSelect.value : 'cpp';
-        console.log('Executing code in language:', language);
-
-        // Get CSRF token
-        const tokenInput = document.querySelector('input[name="csrf_token"]');
-        if (!tokenInput) {
-            throw new Error('CSRF token element not found');
-        }
-        const csrfToken = tokenInput.value;
-        if (!csrfToken) {
-            throw new Error('CSRF token is empty');
-        }
-
-        console.log('Sending code execution request...');
-        const response = await fetch('/activities/run_code', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({
-                code: code,
-                language: language
-            })
-        });
-
-        console.log('Response status:', response.status);
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('Execution result:', result);
-
-        if (result.success) {
-            if (consoleInstance) {
-                // Clear the "Compiling..." message
-                consoleInstance.clear();
-
-                // Show compilation success and output
-                consoleInstance.appendOutput('Compilation successful\n', 'console-success');
-                if (result.output) {
-                    consoleInstance.appendOutput(result.output);
-                } else {
-                    consoleInstance.appendOutput('No output generated\n');
-                }
-            }
-        } else {
-            throw new Error(result.error || 'Failed to execute code');
-        }
-    } catch (error) {
-        console.error('Error executing code:', error);
-        if (consoleInstance) {
-            consoleInstance.clear();
-            consoleInstance.setError(`Error: ${error.message}`);
-        }
-    } finally {
-        isExecuting = false;
-        if (runButton) {
-            runButton.disabled = false;
-            runButton.innerHTML = 'Run';
-        }
-    }
-}
-
 // Helper function to escape HTML for safe display
 function escapeHtml(unsafe) {
     return unsafe
@@ -245,17 +256,4 @@ function escapeHtml(unsafe) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-// Syntax checking placeholder functions
-function checkCppSyntax(code) {
-    return [];
-}
-
-function checkCSharpSyntax(code) {
-    return [];
-}
-
-function showHelp() {
-    alert("Help: Ctrl+Space for autocomplete, Ctrl+/ for commenting, Ctrl+F for find.");
 }
