@@ -24,26 +24,62 @@ COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 MAX_WORKERS = 4           # Maximum number of parallel compilation workers
 
 def find_dotnet_path():
-    """Find .NET SDK path"""
+    """Find .NET SDK path with enhanced path detection"""
     try:
-        # Check common Nix store locations
-        possible_paths = glob.glob("/nix/store/*/dotnet-sdk*/dotnet")
+        # Check Nix store with more specific patterns
+        possible_paths = []
+
+        # Check for dotnet-sdk
+        sdk_paths = glob.glob("/nix/store/*/dotnet-sdk-*/dotnet")
+        if sdk_paths:
+            possible_paths.extend(sdk_paths)
+
+        # Check for dotnet runtime
+        runtime_paths = glob.glob("/nix/store/*/dotnet-runtime-*/dotnet")
+        if runtime_paths:
+            possible_paths.extend(runtime_paths)
+
+        # Check aspnet paths
+        aspnet_paths = glob.glob("/nix/store/*/aspnetcore-runtime-*/dotnet")
+        if aspnet_paths:
+            possible_paths.extend(aspnet_paths)
+
         if possible_paths:
+            # Sort by version number (assuming newer versions have higher numbers)
+            possible_paths.sort(reverse=True)
             dotnet_path = possible_paths[0]
-            logger.debug(f"Found dotnet at: {dotnet_path}")
+            logger.debug(f"Found dotnet in Nix store: {dotnet_path}")
             return os.path.dirname(dotnet_path)
 
-        # Try system PATH
+        # Try common system locations
+        system_locations = [
+            "/usr/share/dotnet",
+            "/usr/local/share/dotnet",
+            "/opt/dotnet",
+            os.path.expanduser("~/.dotnet")
+        ]
+
+        for location in system_locations:
+            dotnet_exe = os.path.join(location, "dotnet")
+            if os.path.exists(dotnet_exe) and os.access(dotnet_exe, os.X_OK):
+                logger.debug(f"Found dotnet in system location: {dotnet_exe}")
+                return location
+
+        # Try PATH as last resort
         process = subprocess.run(['which', 'dotnet'], capture_output=True, text=True)
         if process.returncode == 0:
             dotnet_path = process.stdout.strip()
             logger.debug(f"Found dotnet in PATH: {dotnet_path}")
             return os.path.dirname(dotnet_path)
 
-        logger.error("Could not find dotnet installation")
+        # If nothing found, log detailed debug information
+        logger.error("Could not find dotnet installation. Debug info:")
+        logger.error(f"PATH: {os.environ.get('PATH', 'Not set')}")
+        logger.error(f"Searched Nix paths: {len(possible_paths)} found")
+        logger.error("Searched system locations: " + ", ".join(system_locations))
         return None
     except Exception as e:
-        logger.error(f"Error finding dotnet path: {e}")
+        logger.error(f"Error finding dotnet path: {e}\n{traceback.format_exc()}")
         return None
 
 class CompilationTimeout(Exception):
@@ -52,7 +88,7 @@ class CompilationTimeout(Exception):
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Optimized compile and run with enhanced performance
+    Optimized compile and run with enhanced performance and better path handling
     """
     start_time = time.time()
     metrics = {'start_time': start_time}
@@ -71,14 +107,34 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
         os.chmod(COMPILER_CACHE_DIR, 0o755)
 
-        # Find dotnet installation
+        # Find dotnet installation with enhanced path detection
         dotnet_root = find_dotnet_path()
         if not dotnet_root:
+            error_msg = "Could not find .NET SDK installation. Please ensure .NET SDK is properly installed."
+            logger.error(error_msg)
             return {
                 'success': False,
-                'error': "Could not find .NET SDK installation",
+                'error': error_msg,
                 'metrics': metrics
             }
+
+        # Set up enhanced environment variables
+        enhanced_env = os.environ.copy()  # Start with current environment
+        enhanced_env.update({
+            'DOTNET_ROOT': dotnet_root,
+            'PATH': f"{dotnet_root}:{enhanced_env.get('PATH', '')}",
+            'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
+            'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
+            'DOTNET_NOLOGO': '1',
+            'DOTNET_MULTILEVEL_LOOKUP': '0',
+            'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
+            'LC_ALL': 'C',
+            'LANG': 'C',
+        })
+
+        # Log environment setup for debugging
+        logger.debug(f"Using DOTNET_ROOT: {dotnet_root}")
+        logger.debug(f"Updated PATH: {enhanced_env['PATH']}")
 
         with tempfile.TemporaryDirectory(prefix="compile_", dir=COMPILER_CACHE_DIR) as temp_dir:
             if language == 'csharp':
@@ -118,24 +174,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 os.makedirs(bin_dir, exist_ok=True)
 
                 try:
-                    # Set up minimal environment
-                    env = {
-                        'DOTNET_ROOT': dotnet_root,
-                        'PATH': f"{dotnet_root}:{os.environ.get('PATH', '')}",
-                        'DOTNET_CLI_HOME': str(project_dir),
-                        'DOTNET_NOLOGO': '1',
-                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
-                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
-                        'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
-                        'DOTNET_MULTILEVEL_LOOKUP': '0',
-                        'LC_ALL': 'C',
-                        'LANG': 'C',
-                    }
-
-                    dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
-
                     # Fast restore with minimal dependencies
                     logger.debug("Restoring NuGet packages...")
+                    dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
                     restore_cmd = [dotnet_cmd, 'restore', str(project_file), '--runtime', 'linux-x64']
                     restore_process = subprocess.run(
                         restore_cmd,
@@ -143,7 +184,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         text=True,
                         timeout=30,
                         cwd=str(project_dir),
-                        env=env
+                        env=enhanced_env
                     )
 
                     if restore_process.returncode != 0:
@@ -178,7 +219,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         text=True,
                         timeout=MAX_COMPILATION_TIME,
                         cwd=str(project_dir),
-                        env=env
+                        env=enhanced_env
                     )
 
                     metrics['compilation_time'] = time.time() - compile_start
@@ -215,7 +256,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         text=True,
                         timeout=MAX_EXECUTION_TIME,
                         cwd=str(project_dir),
-                        env=env
+                        env=enhanced_env
                     )
 
                     metrics['execution_time'] = time.time() - run_start
