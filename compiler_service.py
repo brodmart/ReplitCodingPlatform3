@@ -332,9 +332,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 "using System.Threading.Tasks;"
             ]
 
-            # Check if the code already contains a namespace declaration
-            has_namespace = "namespace" in code
-
             # Add missing namespaces only if they're not already present
             namespace_code = ""
             for namespace in required_namespaces:
@@ -342,7 +339,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     namespace_code += namespace + "\n"
 
             # If no namespace is defined, wrap the code in a default namespace
-            if not has_namespace:
+            if "namespace" not in code:
                 code = namespace_code + "\nnamespace ConsoleApplication {\n" + code + "\n}"
             else:
                 code = namespace_code + code
@@ -395,7 +392,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     env = os.environ.copy()
                     env['MONO_IOMAP'] = 'all'
                     env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                    # Set specific debug options that work with interactive console
                     env['MONO_DEBUG'] = 'explicit-null-checks,handle-sigint'
                     env['MONO_THREADS_PER_CPU'] = '2'
 
@@ -411,14 +407,37 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                    monitor = ProcessMonitor(process, timeout=30)  # Increased timeout for interactive apps
+                    monitor = ProcessMonitor(process, timeout=30)
                     monitor.start()
 
                     try:
                         stdout, stderr = process.communicate(
                             input=input_data,
-                            timeout=30  # Increased timeout
+                            timeout=30
                         )
+
+                        # Check for any error output
+                        if stderr and stderr.strip():
+                            return {
+                                'success': False,
+                                'error': format_runtime_error(stderr)
+                            }
+
+                        # Check process return code
+                        if process.returncode != 0:
+                            error_msg = stderr if stderr else "Program exited with non-zero status"
+                            return {
+                                'success': False,
+                                'error': format_runtime_error(error_msg)
+                            }
+
+                        output = stdout.strip() if stdout else ""
+                        return {
+                            'success': True,
+                            'output': output,
+                            'interactive': True if 'Console.ReadLine' in code else False
+                        }
+
                     except subprocess.TimeoutExpired:
                         return {
                             'success': False,
@@ -433,22 +452,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                                 process.wait(timeout=1)
                         except:
                             pass
-
-                    if process.returncode == 0:
-                        output = stdout.strip() if stdout else ""
-                        if not output:
-                            output = "Program is waiting for input. Use Console.ReadLine() to read user input."
-                        return {
-                            'success': True,
-                            'output': output,
-                            'interactive': True if 'Console.ReadLine' in code else False
-                        }
-                    else:
-                        error_msg = format_runtime_error(stderr) if stderr else "Program failed with no error message"
-                        return {
-                            'success': False,
-                            'error': error_msg
-                        }
 
                 except Exception as e:
                     logger.error(f"Execution error: {e}", exc_info=True)

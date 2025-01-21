@@ -77,105 +77,78 @@ async function executeCode() {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const responseText = await response.text();
-        console.log('Raw server response:', responseText);
-
-        let result;
-        try {
-            result = JSON.parse(responseText);
-        } catch (e) {
-            console.error('Failed to parse server response:', e);
-            throw new Error('Invalid response format from server');
-        }
-
-        console.log('Parsed server response:', result);
+        const result = await response.json();
+        console.log('Server response:', result);
 
         if (result.success) {
             if (consoleOutput) {
-                let outputText = typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2);
+                let outputText = result.output || '';
 
                 // If output is empty or undefined, show a message
                 if (!outputText || outputText.trim() === '') {
-                    outputText = 'Program executed successfully with no output.';
+                    outputText = 'Program executed successfully but produced no output.';
                 }
 
                 // Enhanced handling for interactive C# programs
-                if (language === 'csharp') {
-                    if (result.interactive) {
-                        // Create an input field for user interaction
-                        const inputArea = document.createElement('div');
-                        inputArea.className = 'console-input-area';
-                        const input = document.createElement('input');
-                        input.type = 'text';
-                        input.className = 'console-input';
-                        const sendButton = document.createElement('button');
-                        sendButton.textContent = 'Send';
-                        sendButton.className = 'console-send-btn';
+                if (language === 'csharp' && result.interactive) {
+                    // Create an input field for user interaction
+                    const inputArea = document.createElement('div');
+                    inputArea.className = 'console-input-area';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'console-input';
+                    const sendButton = document.createElement('button');
+                    sendButton.textContent = 'Send';
+                    sendButton.className = 'console-send-btn';
 
-                        inputArea.appendChild(input);
-                        inputArea.appendChild(sendButton);
+                    inputArea.appendChild(input);
+                    inputArea.appendChild(sendButton);
 
-                        consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
-                        consoleOutput.appendChild(inputArea);
+                    consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
+                    consoleOutput.appendChild(inputArea);
 
-                        input.focus();
+                    input.focus();
 
-                        // Handle input submission
-                        const submitInput = async () => {
-                            const userInput = input.value;
-                            input.value = '';
+                    // Handle input submission
+                    const submitInput = async () => {
+                        const userInput = input.value;
+                        input.value = '';
 
-                            // Send input to the program
-                            const response = await fetch('/activities/run_code', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-Token': csrfToken
-                                },
-                                body: JSON.stringify({
-                                    code: editor.getValue(),
-                                    language: language,
-                                    input: userInput
-                                })
-                            });
+                        // Send input to the program
+                        const inputResponse = await fetch('/activities/run_code', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-Token': csrfToken
+                            },
+                            body: JSON.stringify({
+                                ...payload,
+                                input: userInput
+                            })
+                        });
 
-                            if (response.ok) {
-                                const result = await response.json();
-                                if (result.success) {
-                                    consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(result.output)}</pre>`;
-                                } else {
-                                    consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(result.error)}</div>`;
-                                }
+                        if (inputResponse.ok) {
+                            const inputResult = await inputResponse.json();
+                            if (inputResult.success) {
+                                consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(inputResult.output)}</pre>`;
+                            } else {
+                                consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(inputResult.error)}</div>`;
                             }
-                        };
+                        }
+                    };
 
-                        sendButton.onclick = submitInput;
-                        input.onkeypress = (e) => {
-                            if (e.key === 'Enter') {
-                                submitInput();
-                            }
-                        };
-                    } else {
-                        consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
-                    }
+                    sendButton.onclick = submitInput;
+                    input.onkeypress = (e) => {
+                        if (e.key === 'Enter') {
+                            submitInput();
+                        }
+                    };
                 } else {
                     consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
                 }
             }
         } else {
-            let errorMessage = result.error;
-
-            // Format C# compilation errors for better readability
-            if (language === 'csharp' && errorMessage.includes('error CS')) {
-                errorMessage = formatCSharpError(errorMessage);
-            }
-
-            if (errorMessage === 'Missing required fields') {
-                console.error('Missing fields in request:', payload);
-                errorMessage = 'Required information is missing. Please check your code and try again.';
-            }
-
-            throw new Error(errorMessage || 'Failed to execute code');
+            throw new Error(result.error || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
