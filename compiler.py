@@ -23,8 +23,8 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Constants
-MAX_COMPILATION_TIME = 10  # seconds
-MAX_EXECUTION_TIME = 5    # seconds
+MAX_COMPILATION_TIME = 30  # Increased from 10 to 30 seconds
+MAX_EXECUTION_TIME = 10    # seconds
 MEMORY_LIMIT = 512       # MB
 COMPILER_CACHE_DIR = os.path.expanduser("~/.compiler_cache")
 MAX_WORKERS = os.cpu_count() or 4
@@ -52,6 +52,7 @@ for cache_dir in [NUGET_CACHE, ASSEMBLY_CACHE, RESPONSE_FILE_CACHE, BUILD_CACHE]
 # Cache locks
 cache_lock = Lock()
 build_lock = Lock()
+_compiler_warmed_up = False
 
 def calculate_code_hash(code: str) -> str:
     """Calculate a hash of the code for caching"""
@@ -415,19 +416,13 @@ def get_optimized_environment() -> Dict[str, str]:
         'COMPlus_JitMinOpts': '1',
         'COMPlus_TieredCompilation': '1',
         'COMPlus_TC_QuickJit': '1',
-        'LC_ALL': 'C',
-        'LANG': 'C',
-        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
-        'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'true',
-        'MSBuildSDKsPath': os.path.join(dotnet_root, 'sdk', '7.0.0', 'Sdks'),
-        'MSBuildExtensionsPath': os.path.join(dotnet_root, 'sdk', '7.0.0', 'Sdks'),
-        'DOTNET_REFERENCE_ASSEMBLIES_PATH': os.path.join(dotnet_root, 'packs', 'Microsoft.NETCore.App.Ref', '7.0.0', 'ref', 'net7.0')
+        'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'true'
     })
     return env
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Optimized compile and run with proper process management
+    Optimized compile and run with caching and proper process management
     """
     metrics = CompilationMetrics()
     logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
@@ -439,6 +434,14 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'metrics': metrics.to_dict()
         }
 
+    # Calculate code hash for caching
+    code_hash = calculate_code_hash(code)
+
+    # Check cache first
+    if cached_dll := get_cached_build(code_hash):
+        metrics.cached = True
+        return run_cached_build(cached_dll, input_data, metrics)
+
     try:
         with tempfile.TemporaryDirectory() as temp_dir:
             project_dir = Path(temp_dir)
@@ -449,53 +452,70 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(code)
 
-            # Create project file
+            # Create optimized project file
             project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
 </Project>"""
 
             with open(project_file, 'w', encoding='utf-8') as f:
                 f.write(project_content)
 
             try:
-                # Build with timeout
+                # Build with optimized settings
                 logger.debug("Starting compilation")
+                env = get_optimized_environment()
                 build_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file), '--nologo'],
+                    [
+                        'dotnet', 'build',
+                        str(project_file),
+                        '--configuration', 'Release',
+                        '--nologo',
+                        '/p:GenerateFullPaths=true',
+                        '/consoleloggerparameters:NoSummary'
+                    ],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(project_dir)
+                    cwd=str(project_dir),
+                    env=env
                 )
 
                 if build_process.returncode != 0:
                     logger.error(f"Build failed: {build_process.stderr}")
                     return {
                         'success': False,
-                        'error': build_process.stderr,
+                        'error': format_csharp_error(build_process.stderr),
                         'metrics': metrics.to_dict()
                     }
 
-                # Run the compiled program with timeout
+                # Save successful build to cache
+                dll_path = project_dir / "bin" / "Release" / "net7.0" / "program.dll"
+                save_to_build_cache(code_hash, dll_path)
+
+                # Run the compiled program
                 logger.debug("Starting program execution")
                 run_process = subprocess.Popen(
-                    ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                    ['dotnet', str(dll_path)],
                     stdin=subprocess.PIPE if input_data else None,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
                     cwd=str(project_dir),
-                    preexec_fn=os.setsid  # Create new process group
+                    env=env
                 )
 
                 try:
                     stdout, stderr = run_process.communicate(
-                        input=input_data.encode() if input_data else None,
+                        input=input_data,
                         timeout=MAX_EXECUTION_TIME
                     )
 
@@ -503,7 +523,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         logger.error(f"Execution failed: {stderr}")
                         return {
                             'success': False,
-                            'error': stderr,
+                            'error': format_runtime_error(stderr),
                             'metrics': metrics.to_dict()
                         }
 
@@ -514,7 +534,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 except subprocess.TimeoutExpired:
-                    # Kill the entire process group
                     os.killpg(os.getpgid(run_process.pid), signal.SIGTERM)
                     run_process.wait(timeout=1)
                     logger.error("Execution timed out")
@@ -683,7 +702,7 @@ def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, 
                     compile_and_run,
                     code=file_contents[file_path],
                     language=language,
-                    files=[file_path]  # Pass as list for the new files parameter
+                    
                 )
             )
 

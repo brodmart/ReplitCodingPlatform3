@@ -103,6 +103,10 @@ args = "Test Simple Compiler"
 task = "workflow.run"
 args = "Test Updated C# Service"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Compiler Warmup"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -404,6 +408,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 test_updated_compiler.py"
+
+[[workflows.workflow]]
+name = "Test Compiler Warmup"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 test_compiler_warmup.py"
 
 [[ports]]
 localPort = 5000
