@@ -63,15 +63,16 @@ active_sessions = {}
 session_lock = Lock()
 
 class CompilerSession:
+    """Session handler for interactive compilation."""
     def __init__(self, session_id: str, temp_dir: str):
         self.session_id = session_id
         self.temp_dir = temp_dir
-        self.process = None
+        self.process: Optional[subprocess.Popen] = None
         self.last_activity = time.time()
-        self.stdout_buffer = []
-        self.stderr_buffer = []
+        self.stdout_buffer: list[str] = []
+        self.stderr_buffer: list[str] = []
         self.waiting_for_input = False
-        self.output_thread = None
+        self.output_thread: Optional[Thread] = None
 
 def is_interactive_code(code: str, language: str) -> bool:
     """Detect if code is likely interactive based on input patterns"""
@@ -187,7 +188,7 @@ namespace ConsoleApplication {
 
                                         # Check for input prompts
                                         if any(prompt in line.lower() for prompt in [
-                                            'input', 'enter', 'type', '?', ':', '>', 
+                                            'input', 'enter', 'type', '?', ':', '>',
                                             'choix', 'votre choix', 'choisir'
                                         ]):
                                             session.waiting_for_input = True
@@ -338,59 +339,89 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         logger.debug(f"Attempting to compile and run {language} code")
         logger.debug(f"Code length: {len(code)} characters")
 
-        # For C#, ensure required namespaces and basic code structure
-        if language.lower() == 'csharp':
-            # Validate code size
-            if len(code) > 1000000:  # 1MB limit
-                return {
-                    'success': False,
-                    'error': "Code size exceeds maximum limit (1MB). Please reduce the size of your code."
-                }
+        # Create temporary directory for compilation
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
 
-            # Only add namespaces if they're not present
-            required_namespaces = [
-                "using System;",
-                "using System.IO;",
-                "using System.Collections.Generic;",
-                "using System.Linq;",
-                "using System.Text;",
-                "using System.Threading.Tasks;"
-            ]
-
-            # Add missing namespaces only if they're not already present
-            namespace_code = ""
-            for namespace in required_namespaces:
-                if namespace not in code:
-                    namespace_code += namespace + "\n"
-
-            # Add namespace only if code doesn't already have one
-            if "namespace" not in code:
-                modified_code = namespace_code + "\nnamespace ConsoleApplication {\n" + code + "\n}"
-            else:
-                modified_code = namespace_code + code
-
-            # Write code to file with proper encoding
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_path = Path(temp_dir)
-                source_file = temp_path / "program.cs"
-                executable = temp_path / "program.exe"
-
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(modified_code)
-
-                # Enhanced compilation command
-                compile_cmd = [
-                    'mcs',
-                    '-optimize+',
-                    '-debug-',
-                    '-unsafe-',
-                    '-reference:System.Core.dll',
-                    '-reference:System.dll',
-                    str(source_file),
-                    '-out:' + str(executable)
-                ]
-
+            if language.lower() == 'cpp':
                 try:
+                    # C++ specific compilation
+                    source_file = temp_path / "program.cpp"
+                    executable = temp_path / "program"
+
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
+
+                    # Compile C++ code
+                    compile_cmd = [
+                        'g++',
+                        '-std=c++17',
+                        '-O2',
+                        str(source_file),
+                        '-o',
+                        str(executable)
+                    ]
+
+                    compile_process = subprocess.run(
+                        compile_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=20
+                    )
+
+                    if compile_process.returncode != 0:
+                        return {
+                            'success': False,
+                            'error': compile_process.stderr
+                        }
+
+                    os.chmod(executable, 0o755)
+
+                    # Run the compiled program
+                    process = subprocess.Popen(
+                        [str(executable)],
+                        stdin=subprocess.PIPE if input_data else None,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        preexec_fn=os.setsid
+                    )
+
+                except subprocess.TimeoutExpired as e:
+                    return {
+                        'success': False,
+                        'error': f"C++ compilation timed out: {str(e)}"
+                    }
+                except Exception as e:
+                    return {
+                        'success': False,
+                        'error': f"C++ compilation error: {str(e)}"
+                    }
+
+            elif language.lower() == 'csharp':
+                try:
+                    # C# specific compilation with proper Mono configuration
+                    source_file = temp_path / "program.cs"
+                    executable = temp_path / "program.exe"
+
+                    # Only add namespaces if they're not present
+                    if "using System;" not in code:
+                        code = "using System;\n" + code
+
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
+
+                    # Enhanced compilation command for C#
+                    compile_cmd = [
+                        'mcs',
+                        '-optimize+',
+                        '-debug-',
+                        '-reference:System.Core.dll',
+                        '-reference:System.dll',
+                        str(source_file),
+                        '-out:' + str(executable)
+                    ]
+
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
@@ -414,189 +445,87 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     env['MONO_TRACE_LISTENER'] = 'Console.Out'
                     env['MONO_DEBUG'] = 'explicit-null-checks'
                     env['MONO_THREADS_PER_CPU'] = '2'
+                    env['MONO_GC_PARAMS'] = 'mode=throughput'
 
-                    # Run the compiled program
+                    # Run with mono
                     process = subprocess.Popen(
                         ['mono', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        bufsize=1,
                         env=env,
                         preexec_fn=os.setsid
                     )
 
-                    monitor = ProcessMonitor(process, timeout=30)
-                    monitor.start()
-
-                    try:
-                        stdout, stderr = process.communicate(
-                            input=input_data,
-                            timeout=30
-                        )
-
-                        # Check for any error output
-                        if stderr and stderr.strip():
-                            logger.error(f"Program stderr: {stderr}")
-                            return {
-                                'success': False,
-                                'error': format_runtime_error(stderr)
-                            }
-
-                        # Check process return code
-                        if process.returncode != 0:
-                            error_msg = stderr if stderr else "Program exited with non-zero status"
-                            logger.error(f"Program failed: {error_msg}")
-                            return {
-                                'success': False,
-                                'error': format_runtime_error(error_msg)
-                            }
-
-                        output = stdout.strip() if stdout else ""
-                        return {
-                            'success': True,
-                            'output': output,
-                            'interactive': True if 'Console.ReadLine' in code else False
-                        }
-
-                    except subprocess.TimeoutExpired:
-                        return {
-                            'success': False,
-                            'error': "Execution timeout after 30 seconds. For interactive programs, use Console.ReadLine() to get user input."
-                        }
-                    finally:
-                        monitor.stop()
-                        monitor.join()
-                        try:
-                            if process.poll() is None:
-                                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                                process.wait(timeout=1)
-                        except:
-                            pass
-
-                except Exception as e:
-                    logger.error(f"Execution error: {e}", exc_info=True)
+                except subprocess.TimeoutExpired as e:
                     return {
                         'success': False,
-                        'error': format_execution_error(str(e))
+                        'error': f"C# compilation timed out: {str(e)}"
+                    }
+                except Exception as e:
+                    return {
+                        'success': False,
+                        'error': f"C# compilation error: {str(e)}"
                     }
 
-        # Check if code is interactive
-        interactive = is_interactive_code(code, language)
-        logger.debug(f"Code is interactive: {interactive}")
-
-        if interactive:
-            # Create a new session for interactive execution
-            session_id = str(uuid.uuid4())
-            temp_dir = tempfile.mkdtemp()
-            session = CompilerSession(session_id, temp_dir)
-
-            with session_lock:
-                active_sessions[session_id] = session
-
-            return start_interactive_session(session, code, language)
-
-        # Non-interactive execution
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            source_file = temp_path / "program.cs"
-            executable = temp_path / "program.exe"
-
-            # Write code to file
-            with open(source_file, 'w') as f:
-                f.write(code)
-
-            compile_cmd = [
-                'mcs',
-                '-optimize+',
-                '-debug-',
-                '-unsafe-',
-                str(source_file),
-                '-out:' + str(executable)
-            ]
-
-            try:
-                compile_process = subprocess.run(
-                    compile_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=20
-                )
-            except subprocess.TimeoutExpired:
+            else:
                 return {
                     'success': False,
-                    'error': "Compilation timeout after 20 seconds"
+                    'error': f"Unsupported language: {language}"
                 }
 
-            if compile_process.returncode != 0:
-                # Enhanced error message formatting for C# compilation errors
-                error_msg = compile_process.stderr
-                formatted_error = format_csharp_error(error_msg)
-                return {
-                    'success': False,
-                    'error': formatted_error
-                }
-
-            os.chmod(executable, 0o755)
-
+            # Common execution code for both languages
             try:
-                env = os.environ.copy()
-                env['MONO_IOMAP'] = 'all'
-
-                process = subprocess.Popen(
-                    ['mono', '--debug', str(executable)],
-                    stdin=subprocess.PIPE if input_data else None,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    bufsize=1,
-                    env=env,
-                    preexec_fn=os.setsid
-                )
-
-                monitor = ProcessMonitor(process, timeout=20)
+                monitor = ProcessMonitor(process, timeout=30)
                 monitor.start()
 
-                try:
-                    stdout, stderr = process.communicate(
-                        input=input_data,
-                        timeout=20
-                    )
-                except subprocess.TimeoutExpired:
-                    return {
-                        'success': False,
-                        'error': "Execution timeout after 20 seconds. Check for infinite loops."
-                    }
-                finally:
-                    monitor.stop()
-                    monitor.join()
-                    try:
-                        if process.poll() is None:
-                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                            process.wait(timeout=1)
-                    except:
-                        pass
+                stdout, stderr = process.communicate(
+                    input=input_data,
+                    timeout=30
+                )
 
-                if process.returncode == 0:
-                    output = stdout.strip() if stdout else "No output generated. If you expected output, ensure Console.WriteLine statements are used and properly flushed."
-                    return {
-                        'success': True,
-                        'output': output
-                    }
-                else:
-                    error_msg = format_runtime_error(stderr) if stderr else "Program failed with no error message"
+                if stderr and stderr.strip():
+                    logger.error(f"Program stderr: {stderr}")
+                    error_msg = stderr if language.lower() == 'cpp' else format_runtime_error(stderr)
                     return {
                         'success': False,
                         'error': error_msg
                     }
 
-            except Exception as e:
-                logger.error(f"Execution error: {e}", exc_info=True)
+                if process.returncode != 0:
+                    error_msg = stderr if stderr else "Program exited with non-zero status"
+                    logger.error(f"Program failed: {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg
+                    }
+
+                output = stdout.strip() if stdout else ""
+                return {
+                    'success': True,
+                    'output': output
+                }
+
+            except subprocess.TimeoutExpired:
+                try:
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                except:
+                    pass
                 return {
                     'success': False,
-                    'error': format_execution_error(str(e))
+                    'error': "Execution timeout after 30 seconds"
                 }
+            finally:
+                if 'monitor' in locals():
+                    monitor.stop()
+                    monitor.join()
+                try:
+                    if process.poll() is None:
+                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                        process.wait(timeout=1)
+                except:
+                    pass
 
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
@@ -604,7 +533,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         return {
             'success': False,
             'output': '',
-            'error': "Code execution service encountered an error. Please try again."
+            'error': f"Code execution service encountered an error: {str(e)}"
         }
 
 def format_csharp_error(error_msg: str) -> str:
