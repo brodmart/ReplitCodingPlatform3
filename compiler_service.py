@@ -322,7 +322,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'error': "Code size exceeds maximum limit (1MB). Please reduce the size of your code."
                 }
 
-            # Enhanced namespace handling for C#
+            # Only add namespaces if they're not present
             required_namespaces = [
                 "using System;",
                 "using System.IO;",
@@ -338,22 +338,22 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 if namespace not in code:
                     namespace_code += namespace + "\n"
 
-            # If no namespace is defined, wrap the code in a default namespace
+            # Add namespace only if code doesn't already have one
             if "namespace" not in code:
-                code = namespace_code + "\nnamespace ConsoleApplication {\n" + code + "\n}"
+                modified_code = namespace_code + "\nnamespace ConsoleApplication {\n" + code + "\n}"
             else:
-                code = namespace_code + code
+                modified_code = namespace_code + code
 
-            # Improved compilation command with enhanced options
+            # Write code to file with proper encoding
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
                 source_file = temp_path / "program.cs"
                 executable = temp_path / "program.exe"
 
-                # Write code to file
-                with open(source_file, 'w') as f:
-                    f.write(code)
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(modified_code)
 
+                # Enhanced compilation command
                 compile_cmd = [
                     'mcs',
                     '-optimize+',
@@ -372,30 +372,25 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         text=True,
                         timeout=20
                     )
-                except subprocess.TimeoutExpired:
-                    return {
-                        'success': False,
-                        'error': "Compilation timeout after 20 seconds"
-                    }
 
-                if compile_process.returncode != 0:
-                    error_msg = compile_process.stderr
-                    formatted_error = format_csharp_error(error_msg)
-                    return {
-                        'success': False,
-                        'error': formatted_error
-                    }
+                    if compile_process.returncode != 0:
+                        error_msg = compile_process.stderr
+                        formatted_error = format_csharp_error(error_msg)
+                        return {
+                            'success': False,
+                            'error': formatted_error
+                        }
 
-                os.chmod(executable, 0o755)
+                    os.chmod(executable, 0o755)
 
-                try:
+                    # Set up environment for mono execution
                     env = os.environ.copy()
                     env['MONO_IOMAP'] = 'all'
                     env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                    env['MONO_DEBUG'] = 'explicit-null-checks,handle-sigint'
+                    env['MONO_DEBUG'] = 'explicit-null-checks'
                     env['MONO_THREADS_PER_CPU'] = '2'
 
-                    # Enhanced process setup for interactive console
+                    # Run the compiled program
                     process = subprocess.Popen(
                         ['mono', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
@@ -418,6 +413,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
                         # Check for any error output
                         if stderr and stderr.strip():
+                            logger.error(f"Program stderr: {stderr}")
                             return {
                                 'success': False,
                                 'error': format_runtime_error(stderr)
@@ -426,6 +422,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         # Check process return code
                         if process.returncode != 0:
                             error_msg = stderr if stderr else "Program exited with non-zero status"
+                            logger.error(f"Program failed: {error_msg}")
                             return {
                                 'success': False,
                                 'error': format_runtime_error(error_msg)
