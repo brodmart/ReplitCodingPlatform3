@@ -114,7 +114,7 @@ namespace ConsoleApplication {
             compile_cmd = [
                 'mcs',
                 '-optimize+',
-                '-debug+',
+                '-debug-',
                 '-reference:System.Core.dll',
                 '-reference:System.dll',
                 str(source_file),
@@ -141,7 +141,7 @@ namespace ConsoleApplication {
                 env = os.environ.copy()
                 env['MONO_IOMAP'] = 'all'
                 env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                env['MONO_DEBUG'] = 'handle-sigint,explicit-null-checks'
+                env['MONO_DEBUG'] = 'handle-sigint'
                 env['MONO_THREADS_PER_CPU'] = '2'
                 env['MONO_GC_PARAMS'] = 'mode=throughput'
 
@@ -150,7 +150,7 @@ namespace ConsoleApplication {
                 env['COLUMNS'] = '80'
                 env['LINES'] = '25'
 
-                # Run with mono and support for Console.Clear()
+                # Run with mono, using Popen for interactive I/O
                 process = subprocess.Popen(
                     ['mono', str(executable)],
                     stdin=subprocess.PIPE,
@@ -161,6 +161,10 @@ namespace ConsoleApplication {
                     env=env,
                     preexec_fn=os.setsid
                 )
+
+                # Set up process monitor
+                monitor = ProcessMonitor(process, timeout=30)
+                monitor.start()
 
                 session.process = process
 
@@ -179,19 +183,25 @@ namespace ConsoleApplication {
                                             session.stdout_buffer = []  # Clear buffer
                                         else:
                                             session.stdout_buffer.append(line)
+                                            logger.debug(f"Output: {line.strip()}")
 
-                                        # Check for input prompts in a more comprehensive way
+                                        # Check for input prompts
                                         if any(prompt in line.lower() for prompt in [
                                             'input', 'enter', 'type', '?', ':', '>', 
                                             'choix', 'votre choix', 'choisir'
                                         ]):
                                             session.waiting_for_input = True
+                                            logger.debug("Waiting for input")
                                     else:
                                         session.stderr_buffer.append(line)
+                                        logger.debug(f"Error: {line.strip()}")
                                     session.last_activity = time.time()
 
                     except Exception as e:
                         logger.error(f"Error in monitor_output: {e}")
+                    finally:
+                        monitor.stop()
+                        cleanup_session(session.session_id)
 
                 session.output_thread = Thread(target=monitor_output)
                 session.output_thread.daemon = True
@@ -203,8 +213,15 @@ namespace ConsoleApplication {
                     'interactive': True
                 }
 
+            except subprocess.TimeoutExpired:
+                cleanup_session(session.session_id)
+                return {
+                    'success': False,
+                    'error': "Compilation timeout"
+                }
             except Exception as e:
                 logger.error(f"Error executing C# code: {e}")
+                cleanup_session(session.session_id)
                 return {
                     'success': False,
                     'error': str(e)
@@ -212,6 +229,7 @@ namespace ConsoleApplication {
 
     except Exception as e:
         logger.error(f"Error in start_interactive_session: {e}")
+        cleanup_session(session.session_id)
         return {
             'success': False,
             'error': str(e)
