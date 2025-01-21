@@ -332,37 +332,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             # Add automatic Console.Out.Flush() after WriteLine
             code_lines = code.split('\n')
             modified_code = []
-            inside_method = False
-            brace_count = 0
-
             for line in code_lines:
-                stripped_line = line.strip()
-
-                # Track method boundaries
-                if '{' in line:
-                    brace_count += 1
-                if '}' in line:
-                    brace_count -= 1
-                    if brace_count == 0:
-                        inside_method = False
-
-                # Check for method start
-                if ('static void Main' in line or 'public void' in line or 'private void' in line or 'static void' in line) and '{' in line:
-                    inside_method = True
-
                 modified_code.append(line)
-
-                # Only add flush inside methods
-                if inside_method and 'Console.WriteLine' in line:
+                # Only add flush after WriteLine
+                if 'Console.WriteLine' in line:
                     indent = len(line) - len(line.lstrip())
                     modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
-                # Warning for Console usage outside methods with improved error message
-                if not inside_method and 'Console.' in line and not line.strip().startswith("//"):
-                    return {
-                        'success': False,
-                        'error': f"Error: Console statements must be inside a method. Check line containing:\n{line.strip()}\n\nTip: Move all Console operations inside the Main method or another appropriate method.\n\nExample structure:\nstatic void Main()\n{{\n    Console.Clear();\n    // Other console operations\n}}"
-                    }
+            # Add automatic flush after Console.Write
+            for line in code_lines:
+                if 'Console.Write(' in line and not 'Console.WriteLine' in line:
+                    indent = len(line) - len(line.lstrip())
+                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
             code = '\n'.join(modified_code)
 
