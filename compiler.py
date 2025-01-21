@@ -302,51 +302,45 @@ def preallocate_compilation_buffers():
         logger.warning(f"Failed to preallocate buffers: {e}")
         return []
 
+_compiler_warmed_up = False
 def warmup_compiler():
     """Warm up the compiler with common code patterns for better performance"""
-    if not COMPILER_WARMUP_ENABLED:
+    global _compiler_warmed_up
+    if not COMPILER_WARMUP_ENABLED or getattr(warmup_compiler, '_warmed_up', False):
         return
-
-    warmup_patterns = [
-        # Basic program
-        """
-using System;
-class Program {
-    static void Main() {
-        Console.WriteLine("Warmup");
-    }
-}""",
-        # With string operations
-        """
-using System;
-class Program {
-    static void Main() {
-        string msg = "Hello" + " World";
-        Console.WriteLine(msg.ToUpper());
-    }
-}""",
-        # With basic arithmetic
-        """
-using System;
-class Program {
-    static void Main() {
-        int sum = 0;
-        for(int i = 0; i < 10; i++) {
-            sum += i;
-        }
-        Console.WriteLine(sum);
-    }
-}"""
-    ]
 
     try:
         logger.debug("Starting compiler warmup sequence...")
-        for i, pattern in enumerate(warmup_patterns):
-            logger.debug(f"Warmup pattern {i+1}/{len(warmup_patterns)}")
-            compile_and_run(pattern, 'csharp')
+        warmup_code = """
+using System;
+class Program {
+    static void Main() {
+        Console.WriteLine("Hello World");
+    }
+}"""
+
+        # Create a temporary file for warmup
+        with tempfile.NamedTemporaryFile(suffix='.cs', mode='w', delete=False) as f:
+            f.write(warmup_code)
+            warmup_file = f.name
+
+        try:
+            # Simple compilation without recursion
+            dotnet_cmd = os.path.join(find_dotnet_path(), 'dotnet')
+            subprocess.run(
+                [dotnet_cmd, 'build', warmup_file],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=5
+            )
+        finally:
+            os.unlink(warmup_file)
+
+        warmup_compiler._warmed_up = True
         logger.debug("Compiler warmup complete")
     except Exception as e:
         logger.warning(f"Compiler warmup failed: {e}")
+        warmup_compiler._warmed_up = True  # Prevent retries even on failure
 
 def get_optimized_environment() -> Dict[str, str]:
     """Get optimized environment variables for the compiler"""
@@ -821,7 +815,7 @@ def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, 
                 logger.error(error_msg)
                 results.append({
                     'success': False,
-                    'error': error_msg,
+                    ''error': error_msg,
                     'metrics': {'compilation_time': 0, 'execution_time': 0}
                 })
 
