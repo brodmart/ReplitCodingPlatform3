@@ -59,11 +59,8 @@ async function initializeEditor() {
         // Set up event listeners
         setupEventListeners();
 
-        // Load initial content
-        const savedContent = localStorage.getItem('editorContent');
-        if (savedContent) {
-            editorState.editor.setValue(savedContent);
-        } else {
+        // Set initial template only if editor is empty
+        if (!editorState.editor.getValue()) {
             setEditorTemplate(editorState.currentLanguage);
         }
 
@@ -102,14 +99,17 @@ function setupEventListeners() {
     }
 
     // Auto-save editor content
-    editorState.editor.on('change', () => {
-        localStorage.setItem('editorContent', editorState.editor.getValue());
-    });
+    if (editorState.editor) {
+        editorState.editor.on('change', () => {
+            localStorage.setItem('editorContent', editorState.editor.getValue());
+        });
+    }
 }
 
 // Handle language change
 function handleLanguageChange(event) {
     const newLanguage = event.target.value;
+    if (newLanguage === editorState.currentLanguage) return;
 
     // Update current language
     editorState.currentLanguage = newLanguage;
@@ -120,13 +120,12 @@ function handleLanguageChange(event) {
         'csharp': 'text/x-csharp'
     };
 
-    // Clear the editor completely
-    editorState.editor.setValue('');
-
     // Set the new mode
     editorState.editor.setOption('mode', modes[newLanguage]);
 
-    // Set the new template
+    // Clear editor and set new template
+    editorState.editor.setValue('');
+    editorState.editor.clearHistory();
     setEditorTemplate(newLanguage);
 
     // Force a refresh to ensure proper rendering
@@ -135,10 +134,16 @@ function handleLanguageChange(event) {
 
 // Set editor template
 function setEditorTemplate(language) {
-    const template = editorState.templates[language] || editorState.templates.cpp;
+    const template = editorState.templates[language] || '';
+    if (!template) {
+        console.error('Template not found for language:', language);
+        return;
+    }
+
+    // Set template content
     editorState.editor.setValue(template);
 
-    // Place cursor after the comment line in main
+    // Place cursor after the comment line
     const cursorLine = language === 'cpp' ? 5 : 7;
     editorState.editor.setCursor(cursorLine, 4);
 }
