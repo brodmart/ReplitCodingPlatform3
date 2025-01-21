@@ -22,6 +22,9 @@ from optimization_analyzer import ResourceMonitor, PerformanceOptimizer
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Global variables
+_compiler_warmed_up = False
+
 # Performance tuning constants
 MAX_COMPILATION_TIME = 10  # seconds
 MAX_EXECUTION_TIME = 5     # seconds
@@ -60,16 +63,35 @@ def calculate_code_hash(code: str) -> str:
 def get_cached_build(code_hash: str) -> Optional[str]:
     """Try to get cached build output"""
     cache_path = os.path.join(BUILD_CACHE, f"{code_hash}.dll")
-    if os.path.exists(cache_path):
+    config_path = os.path.join(BUILD_CACHE, f"{code_hash}.runtimeconfig.json")
+
+    if os.path.exists(cache_path) and os.path.exists(config_path):
         return cache_path
     return None
 
 def save_to_build_cache(code_hash: str, dll_path: Path) -> None:
-    """Save successful build to cache"""
+    """Save successful build to cache with runtime config"""
     with build_lock:
         cache_path = os.path.join(BUILD_CACHE, f"{code_hash}.dll")
+        config_path = os.path.join(BUILD_CACHE, f"{code_hash}.runtimeconfig.json")
         try:
+            # Copy the compiled DLL
             shutil.copy2(dll_path, cache_path)
+
+            # Create and save runtime config
+            runtime_config = {
+                "runtimeOptions": {
+                    "tfm": "net7.0",
+                    "framework": {
+                        "name": "Microsoft.NETCore.App",
+                        "version": "7.0.0"
+                    }
+                }
+            }
+
+            with open(config_path, 'w') as f:
+                json.dump(runtime_config, f, indent=2)
+
         except Exception as e:
             logger.error(f"Failed to cache build: {e}")
 
@@ -169,6 +191,12 @@ class CompilerResourceManager:
                 optimal_size = THREAD_POOL_SIZES[load_level](cpu_count)
                 self._thread_pool = ThreadPoolExecutor(max_workers=optimal_size)
             return self._thread_pool
+    
+    def get_recommended_thread_count(self) -> int:
+        """Get recommended thread count based on system load"""
+        cpu_count = os.cpu_count() or 4
+        load_level = self.resource_monitor.get_load_level()
+        return THREAD_POOL_SIZES[load_level](cpu_count)
 
     def get_system_metrics(self) -> Dict[str, Any]:
         """Get current system metrics"""
@@ -184,7 +212,7 @@ compiler_resources = CompilerResourceManager()
 
 def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, timeout: int, retry_count: int = 0) -> List[subprocess.CompletedProcess]:
     """Run compilation in parallel for multiple files using process pool with retry mechanism and resource awareness"""
-    def compile_worker(cmd: list):
+    def compile_worker(cmd: list) -> subprocess.CompletedProcess:
         try:
             if compiler_resources.should_throttle():
                 logger.warning("System under high load, applying throttling")
@@ -203,16 +231,20 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
             monitor = ProcessMonitor(process, timeout=timeout)
             monitor.start()
 
-            start_time = time.time()
-            while process.poll() is None:
-                if time.time() - start_time > timeout:
-                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                    raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)  # Pass cmd here
-                time.sleep(0.1)
-
-            stdout, stderr = process.communicate()
-            monitor.stop()
-            monitor.join()
+            try:
+                stdout, stderr = process.communicate(timeout=timeout)
+                returncode = process.poll()
+                if returncode is None:
+                    process.terminate()
+                    process.wait(timeout=1)
+                    raise subprocess.TimeoutExpired(cmd, timeout)
+            except subprocess.TimeoutExpired:
+                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                process.wait(timeout=1)
+                raise
+            finally:
+                monitor.stop()
+                monitor.join(timeout=1)
 
             return subprocess.CompletedProcess(
                 cmd, process.returncode, stdout, stderr
@@ -222,7 +254,7 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
             raise
 
     try:
-        with compiler_resources.get_thread_pool() as executor:
+        with ThreadPoolExecutor(max_workers=compiler_resources.get_recommended_thread_count()) as executor:
             futures = []
             for file_path in files_to_compile:
                 cmd = [
@@ -230,7 +262,10 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
                     file_path,
                     '--configuration', 'Release',
                     '--runtime', 'linux-x64',
-                    '--no-self-contained'
+                    '--no-self-contained',
+                    '/p:GenerateFullPaths=true',
+                    '/p:UseAppHost=false',
+                    '/p:EnableDefaultCompileItems=false'
                 ]
                 futures.append(executor.submit(compile_worker, cmd))
 
@@ -243,7 +278,7 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
                         logger.warning(f"Compilation timeout, retrying ({retry_count + 1}/{MAX_RETRIES})")
                         time.sleep(1)
                         return run_parallel_compilation(files_to_compile, cwd, env, timeout, retry_count + 1)
-                    raise subprocess.TimeoutExpired(cmd, timeout)
+                    raise subprocess.TimeoutExpired(files_to_compile[0], timeout)
             return results
     except Exception as e:
         logger.error(f"Parallel compilation failed: {e}")
@@ -302,11 +337,10 @@ def preallocate_compilation_buffers():
         logger.warning(f"Failed to preallocate buffers: {e}")
         return []
 
-_compiler_warmed_up = False
 def warmup_compiler():
     """Warm up the compiler with common code patterns for better performance"""
     global _compiler_warmed_up
-    if not COMPILER_WARMUP_ENABLED or getattr(warmup_compiler, '_warmed_up', False):
+    if not COMPILER_WARMUP_ENABLED or _compiler_warmed_up:
         return
 
     try:
@@ -326,21 +360,33 @@ class Program {
 
         try:
             # Simple compilation without recursion
-            dotnet_cmd = os.path.join(find_dotnet_path(), 'dotnet')
-            subprocess.run(
+            dotnet_cmd = 'dotnet'
+            if dotnet_path := find_dotnet_path():
+                dotnet_cmd = os.path.join(dotnet_path, 'dotnet')
+
+            process = subprocess.run(
                 [dotnet_cmd, 'build', warmup_file],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=5
+                timeout=5,
+                check=False
             )
-        finally:
-            os.unlink(warmup_file)
 
-        warmup_compiler._warmed_up = True
+            if process.returncode == 0:
+                logger.debug("Compiler warmup successful")
+            else:
+                logger.warning(f"Compiler warmup completed with warnings: {process.stderr}")
+        finally:
+            try:
+                os.unlink(warmup_file)
+            except Exception as e:
+                logger.warning(f"Failed to cleanup warmup file: {e}")
+
+        _compiler_warmed_up = True
         logger.debug("Compiler warmup complete")
     except Exception as e:
         logger.warning(f"Compiler warmup failed: {e}")
-        warmup_compiler._warmed_up = True  # Prevent retries even on failure
+        _compiler_warmed_up = True  # Prevent retries even on failure
 
 def get_optimized_environment() -> Dict[str, str]:
     """Get optimized environment variables for the compiler"""
@@ -677,22 +723,36 @@ def run_cached_build(dll_path: str, input_data: Optional[str], metrics: Compilat
                 'metrics': metrics.to_dict()
             }
 
+        # Ensure runtime config exists
+        runtime_config = dll_path.replace('.dll', '.runtimeconfig.json')
+        if not os.path.exists(runtime_config):
+            return {
+                'success': False,
+                'error': "Missing runtime configuration",
+                'metrics': metrics.to_dict()
+            }
+
         run_cmd = [
             os.path.join(dotnet_root, 'dotnet'),
+            '--roll-forward', 'Major',
             dll_path,
             '--gc-server',
             '--tiered-compilation'
         ]
 
+        env = get_optimized_environment()
         run_start = time.time()
         metrics.log_status("Execution started (cached)")
+
         run_process = subprocess.run(
             run_cmd,
             input=input_data.encode() if input_data else None,
             capture_output=True,
             text=True,
-            timeout=MAX_EXECUTION_TIME
+            timeout=MAX_EXECUTION_TIME,
+            env=env
         )
+
         metrics.execution_time = time.time() - run_start
         metrics.log_status("Execution finished (cached)")
         metrics['total_time'] = time.time() - metrics.start_time
@@ -752,7 +812,7 @@ def format_runtime_error(error_msg: str) -> str:
             "System.ArgumentException": "Invalid argument provided",
             "System.FormatException": "Invalid format",
             "System.StackOverflowException": "Stack overflow - check for infinite recursion",
-            "System.OutOfMemoryException": "Out of memory - program is using too much memory",
+            "System.OutOfMemoryException": "Out of memory - program is usingtoo much memory",
             "System.IO.IOException": "Input/Output operation failed",
             "System.Security.SecurityException": "Security violation"
         }
@@ -785,7 +845,6 @@ def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, 
             logger.debug(f"Reading file: {file_path}")
             with open(file_path, 'r') as f:
                 file_contents[file_path] = f.read()
-
         # Submit compilation tasks
         futures = []
         for file_path in files:
@@ -815,7 +874,7 @@ def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, 
                 logger.error(error_msg)
                 results.append({
                     'success': False,
-                    ''error': error_msg,
+                    'error': error_msg,
                     'metrics': {'compilation_time': 0, 'execution_time': 0}
                 })
 
