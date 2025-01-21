@@ -295,16 +295,28 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         logger.debug(f"Attempting to compile and run {language} code")
         logger.debug(f"Code length: {len(code)} characters")
 
-        # For C#, ensure required namespaces are present
+        # For C#, ensure required namespaces and basic code structure
         if language.lower() == 'csharp':
+            # Add basic code structure check
+            if 'class Program' not in code and 'static void Main' not in code:
+                return {
+                    'success': False,
+                    'error': "Missing required C# program structure. Make sure you have:\n" +
+                            "1. A 'class Program' declaration\n" +
+                            "2. A 'static void Main' method"
+                }
+
             required_namespaces = [
                 "using System;",
                 "using System.IO;",
                 "using System.Collections.Generic;",
                 "using System.Linq;"
             ]
+
+            # Check and add missing namespaces
+            existing_code = code
             for namespace in required_namespaces:
-                if namespace not in code:
+                if namespace not in existing_code:
                     code = namespace + "\n" + code
 
             # Add automatic Console.Out.Flush() after WriteLine
@@ -335,9 +347,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         # Non-interactive execution
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-
             source_file = temp_path / "program.cs"
             executable = temp_path / "program.exe"
+
+            # Write code to file
+            with open(source_file, 'w') as f:
+                f.write(code)
 
             compile_cmd = [
                 'mcs',
@@ -347,10 +362,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 str(source_file),
                 '-out:' + str(executable)
             ]
-
-            # Write code to file
-            with open(source_file, 'w') as f:
-                f.write(code)
 
             try:
                 compile_process = subprocess.run(
@@ -366,9 +377,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 }
 
             if compile_process.returncode != 0:
+                # Enhanced error message formatting for C# compilation errors
+                error_msg = compile_process.stderr
+                formatted_error = format_csharp_error(error_msg)
                 return {
                     'success': False,
-                    'error': compile_process.stderr
+                    'error': formatted_error
                 }
 
             os.chmod(executable, 0o755)
@@ -418,16 +432,17 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'output': output
                     }
                 else:
+                    error_msg = format_runtime_error(stderr) if stderr else "Program failed with no error message"
                     return {
                         'success': False,
-                        'error': stderr or "Program failed with no error message"
+                        'error': error_msg
                     }
 
             except Exception as e:
                 logger.error(f"Execution error: {e}", exc_info=True)
                 return {
                     'success': False,
-                    'error': f"Execution error: {str(e)}"
+                    'error': format_execution_error(str(e))
                 }
 
     except Exception as e:
@@ -438,3 +453,53 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'output': '',
             'error': "Code execution service encountered an error. Please try again."
         }
+
+def format_csharp_error(error_msg: str) -> str:
+    """Format C# compilation errors to be more user-friendly"""
+    try:
+        # Extract the core error message
+        if "error CS" in error_msg:
+            # Split the error message into parts
+            parts = error_msg.split("): ")
+            if len(parts) > 1:
+                error_code = parts[0].split("error CS")[1].strip()
+                error_desc = parts[1].strip()
+
+                # Common error codes and their friendly messages
+                error_messages = {
+                    "1525": "Syntax Error: Unexpected symbol found. Check for missing semicolons or brackets.",
+                    "1002": "Syntax Error: Missing closing curly brace '}'",
+                    "1001": "Syntax Error: Missing opening curly brace '{'",
+                    "1513": "Error: Invalid statement. Make sure you're inside a method.",
+                    "0117": "Error: Method must have a return type. Did you forget 'void' or 'int'?",
+                    "0161": "Error: 'Console.WriteLine' can only be used inside a method"
+                }
+
+                friendly_msg = error_messages.get(error_code, error_desc)
+                return f"Compilation Error (CS{error_code}): {friendly_msg}\n\nOriginal Error: {error_desc}"
+
+        return error_msg
+    except Exception:
+        return error_msg
+
+def format_runtime_error(error_msg: str) -> str:
+    """Format runtime errors to be more user-friendly"""
+    if "System.NullReferenceException" in error_msg:
+        return "Runtime Error: Attempted to use a null object. Check if all your variables are initialized before use."
+    elif "System.IndexOutOfRangeException" in error_msg:
+        return "Runtime Error: Array index out of bounds. Make sure you're not accessing an array beyond its size."
+    elif "System.DivideByZeroException" in error_msg:
+        return "Runtime Error: Division by zero detected. Check your arithmetic operations."
+    elif "System.StackOverflowException" in error_msg:
+        return "Runtime Error: Stack overflow. This usually happens with infinite recursion."
+    return error_msg
+
+def format_execution_error(error_msg: str) -> str:
+    """Format general execution errors to be more user-friendly"""
+    if "access denied" in error_msg.lower():
+        return "Execution Error: Permission denied. The program doesn't have required permissions."
+    elif "memory" in error_msg.lower():
+        return "Execution Error: Out of memory. Try reducing the size of variables or arrays."
+    elif "timeout" in error_msg.lower():
+        return "Execution Error: Program took too long to execute. Check for infinite loops."
+    return f"Execution Error: {error_msg}"
