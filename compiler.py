@@ -1,6 +1,3 @@
-"""
-Compiler service for code execution and testing.
-"""
 import subprocess
 import tempfile
 import os
@@ -13,16 +10,18 @@ import psutil
 import time
 import re
 import glob
+from concurrent.futures import ThreadPoolExecutor
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
-MAX_COMPILATION_TIME = 30  # Increased from 10 to 30 seconds for large files
-MAX_EXECUTION_TIME = 15    # Execution timeout remains at 15 seconds
+MAX_COMPILATION_TIME = 15  # Reduced from 30 to 15 seconds
+MAX_EXECUTION_TIME = 10    # Reduced from 15 to 10 seconds
 MEMORY_LIMIT = 512        # MB
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
+MAX_WORKERS = 4           # Maximum number of parallel compilation workers
 
 def find_icu_path():
     """Find ICU library path in Nix store"""
@@ -33,13 +32,6 @@ def find_icu_path():
             icu_dir = os.path.dirname(possible_paths[0])
             logger.debug(f"Found ICU library path: {icu_dir}")
             return icu_dir
-
-        # Look for ICU data directory in Nix store
-        data_paths = glob.glob("/nix/store/*/share/icu")
-        if data_paths:
-            logger.debug(f"Found ICU data path: {data_paths[0]}")
-            return data_paths[0]
-
         logger.info("No ICU path found, using invariant globalization")
         return None
     except Exception as e:
@@ -52,7 +44,7 @@ class CompilationTimeout(Exception):
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Compile and run code with enhanced timeout handling for large files.
+    Optimized compile and run with enhanced performance
     """
     start_time = time.time()
     logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
@@ -66,8 +58,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         }
 
     try:
-        # Create compiler cache directory if it doesn't exist
+        # Ensure cache directory exists with proper permissions
         os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
+        os.chmod(COMPILER_CACHE_DIR, 0o755)
 
         with tempfile.TemporaryDirectory(prefix="compile_", dir=COMPILER_CACHE_DIR) as temp_dir:
             if language == 'csharp':
@@ -86,23 +79,23 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 logger.info("Enabling invariant globalization mode for C# compiler")
                 use_invariant = True
 
-                # Create project file with enhanced console support and invariant globalization
+                # Create optimized project file with minimal settings
                 project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>false</SelfContained>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <DebugType>embedded</DebugType>
+    <DebugType>none</DebugType>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
     <UseSystemConsole>true</UseSystemConsole>
     <UseAppHost>false</UseAppHost>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <StripSymbols>true</StripSymbols>
+    <Optimize>true</Optimize>
+    <TieredCompilation>true</TieredCompilation>
   </PropertyGroup>
 </Project>"""
 
@@ -110,10 +103,10 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 with open(project_file, 'w', encoding='utf-8') as f:
                     f.write(project_content)
 
-                # Create bin directory if it doesn't exist
+                # Create bin directory
                 os.makedirs(bin_dir, exist_ok=True)
 
-                # Enhanced compilation command with proper environment setup
+                # Enhanced compilation command with optimizations
                 compile_cmd = [
                     'dotnet',
                     'build',
@@ -126,38 +119,33 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     '/p:GenerateFullPaths=true',
                     '/p:UseAppHost=false',
                     '/p:UseSystemConsole=true',
-                    '/consoleloggerparameters:NoSummary'
+                    '/consoleloggerparameters:NoSummary',
+                    '-maxcpucount:4',  # Enable parallel compilation
+                    '/p:SkipCompilerExecution=false'
                 ]
 
                 logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
                 compile_start = time.time()
 
                 try:
-                    # Set up enhanced compilation environment
-                    env = os.environ.copy()
-                    env_updates = {
+                    # Set up minimal compilation environment
+                    env = {
                         'DOTNET_CLI_HOME': str(project_dir),
                         'DOTNET_NOLOGO': '1',
                         'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
-                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',  # Always use invariant mode
-                        'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'false',
+                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
+                        'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
                         'DOTNET_MULTILEVEL_LOOKUP': '0',
-                        'DOTNET_CLI_UI_LANGUAGE': 'en-US',
-                        'COMPlus_EnableDiagnostics': '0',
                         'DOTNET_ROOT': '/usr/share/dotnet',
-                        'LC_ALL': 'C',  # Use C locale for invariant behavior
-                        'LANG': 'C',    # Use C locale for invariant behavior
-                        'TERM': 'xterm-256color',
-                        'COLUMNS': '80',
-                        'LINES': '25'
+                        'LC_ALL': 'C',
+                        'LANG': 'C'
                     }
 
-                    env.update(env_updates)
-                    logger.debug(f"Environment variables set: {env_updates}")
+                    logger.debug(f"Environment variables set: {env}")
 
-                    # First restore packages
+                    # First restore packages with minimal dependencies
                     logger.debug("Restoring NuGet packages...")
-                    restore_cmd = ['dotnet', 'restore', str(project_file)]
+                    restore_cmd = ['dotnet', 'restore', str(project_file), '--runtime', 'linux-x64']
                     restore_process = subprocess.run(
                         restore_cmd,
                         capture_output=True,
@@ -176,7 +164,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             'metrics': {'compilation_time': time.time() - compile_start}
                         }
 
-                    # Run compilation
+                    # Run compilation with optimizations
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
@@ -208,14 +196,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     if dll_path.exists():
                         logger.debug(f"Found program.dll at {dll_path}")
                         run_cmd = ['dotnet', str(dll_path)]
-                    elif executable.exists():
-                        logger.debug(f"Found executable at {executable}")
-                        os.chmod(executable, 0o755)
-                        run_cmd = [str(executable)]
                     else:
                         error_msg = f"Compilation succeeded but no executable found in {bin_dir}"
                         logger.error(error_msg)
-                        logger.debug(f"Directory contents: {list(bin_dir.glob('*'))}")
                         return {
                             'success': False,
                             'error': error_msg,

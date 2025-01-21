@@ -13,9 +13,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/runner/workspace/test_minimal.csproj",
-      "projectName": "test_minimal",
-      "projectPath": "/home/runner/workspace/test_minimal.csproj",
+      "projectUniqueName": "/home/runner/workspace/test.csproj",
+      "projectName": "test",
+      "projectPath": "/home/runner/workspace/test.csproj",
       "packagesPath": "/home/runner/.nuget/packages/",
       "outputPath": "/home/runner/workspace/obj/",
       "projectStyle": "PackageReference",
