@@ -2,3 +2,13 @@
 /home/runner/workspace/obj/Debug/net7.0/student_tracker.AssemblyInfoInputs.cache
 /home/runner/workspace/obj/Debug/net7.0/student_tracker.AssemblyInfo.cs
 /home/runner/workspace/obj/Debug/net7.0/student_tracker.csproj.CoreCompileInputs.cache
+/home/runner/workspace/bin/Debug/net7.0/student_tracker
+/home/runner/workspace/bin/Debug/net7.0/student_tracker.deps.json
+/home/runner/workspace/bin/Debug/net7.0/student_tracker.runtimeconfig.json
+/home/runner/workspace/bin/Debug/net7.0/student_tracker.dll
+/home/runner/workspace/bin/Debug/net7.0/student_tracker.pdb
+/home/runner/workspace/obj/Debug/net7.0/student_tracker.dll
+/home/runner/workspace/obj/Debug/net7.0/refint/student_tracker.dll
+/home/runner/workspace/obj/Debug/net7.0/student_tracker.pdb
+/home/runner/workspace/obj/Debug/net7.0/student_tracker.genruntimeconfig.cache
+/home/runner/workspace/obj/Debug/net7.0/ref/student_tracker.dll

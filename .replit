@@ -234,7 +234,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "dotnet run"
+args = "dotnet run --project student_tracker.csproj"
 
 [[ports]]
 localPort = 5000
