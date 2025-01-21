@@ -29,17 +29,20 @@ def handle_auth_error(error_msg="Authentication required"):
 def run_code():
     """Execute student code submission with activity tracking"""
     try:
-        if not current_user.is_authenticated:
-            return handle_auth_error()
-
-        if not request.is_json:
-            logger.error("Invalid request format - not JSON")
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
         data = request.get_json()
         if not data:
-            logger.error("Empty request data")
-            return jsonify({'success': False, 'error': 'Missing request data'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Missing request data'
+            }), 400
+
+        # Explicit authentication check with proper JSON response
+        if not current_user.is_authenticated:
+            return jsonify({
+                'success': False,
+                'error': 'Authentication required',
+                'redirect': url_for('auth.login', next=request.url)
+            }), 401
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
@@ -48,8 +51,10 @@ def run_code():
         logger.debug(f"Code preview (first 200 chars): {code[:200]}")
 
         if not code:
-            logger.error("No code provided in request")
-            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Code cannot be empty'
+            }), 400
 
         # Execute the code
         logger.debug("Calling compile_and_run")
@@ -62,9 +67,7 @@ def run_code():
                 'error': 'Internal server error: Invalid compiler response'
             }), 500
 
-        response = jsonify(result)
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error running code: {str(e)}", exc_info=True)
@@ -73,10 +76,16 @@ def run_code():
             'error': str(e)
         }), 500
 
-# Add error handler for unauthorized access
+# Update error handler for unauthorized access to return JSON
 @activities_bp.errorhandler(401)
 def unauthorized_error(error):
-    return handle_auth_error()
+    if request.is_json:
+        return jsonify({
+            'success': False,
+            'error': 'Authentication required',
+            'redirect': url_for('auth.login', next=request.url)
+        }), 401
+    return redirect(url_for('auth.login', next=request.url))
 
 def get_user_language():
     """Get user's current language preference"""

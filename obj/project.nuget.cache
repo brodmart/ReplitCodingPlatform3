@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "0QP+OqOdNZ0tfxrbVf8N6rE0Sqyzv7ue0OrJD4NF6DOepG8um+JAdtAIXC6OXNAKJZhq2favI/EgzrjBPruiyg==",
+  "dgSpecHash": "tDEFzwC0WJK844Yl4osJ5F1Co6NPcJJurcE6XbzYitW+623/mfzjLnVUNBrLINgdgrmK7KFcAKWQT9qO0KpJxQ==",
   "success": true,
-  "projectFilePath": "/home/runner/workspace/test.csproj",
+  "projectFilePath": "/home/runner/workspace/HelloWorld.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

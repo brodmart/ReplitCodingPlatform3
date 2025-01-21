@@ -160,22 +160,19 @@ async function runCode() {
             credentials: 'same-origin'
         });
 
-        if (response.status === 401) {
-            window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
-            return;
-        }
-
-        if (!response.ok) {
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-            }
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Invalid response format from server');
         }
 
         const result = await response.json();
         console.log('Received response:', result);
+
+        // Handle authentication redirect
+        if (response.status === 401 && result.redirect) {
+            window.location.href = result.redirect;
+            return;
+        }
 
         if (result.success) {
             terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
