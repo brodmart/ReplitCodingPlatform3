@@ -347,7 +347,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         inside_method = False
 
                 # Check for method start
-                if ('static void' in line or 'public void' in line or 'private void' in line) and '{' in line:
+                if ('static void Main' in line or 'public void' in line or 'private void' in line or 'static void' in line) and '{' in line:
                     inside_method = True
 
                 modified_code.append(line)
@@ -357,11 +357,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     indent = len(line) - len(line.lstrip())
                     modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
-                # Warning for Console usage outside methods
+                # Warning for Console usage outside methods with improved error message
                 if not inside_method and 'Console.' in line and not line.strip().startswith("//"):
                     return {
                         'success': False,
-                        'error': f"Error: Console statements must be inside a method. Check line containing:\n{line.strip()}"
+                        'error': f"Error: Console statements must be inside a method. Check line containing:\n{line.strip()}\n\nTip: Move all Console operations inside the Main method or another appropriate method."
                     }
 
             code = '\n'.join(modified_code)
