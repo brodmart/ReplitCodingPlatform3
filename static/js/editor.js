@@ -5,6 +5,7 @@ const editorState = {
     currentLanguage: 'csharp',
     isInitialized: false,
     terminal: null,
+    currentSession: null,
     templates: {
         cpp: `#include <iostream>
 using namespace std;
@@ -64,43 +65,6 @@ async function initializeEditor() {
             }
         });
 
-        // Initialize xterm.js
-        const terminal = new Terminal({
-            cursorBlink: true,
-            theme: {
-                background: '#282a36',
-                foreground: '#f8f8f2'
-            },
-            fontSize: 14,
-            fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-            rows: 10,
-            scrollback: 1000,
-            convertEol: true
-        });
-
-        const fitAddon = new FitAddon.FitAddon();
-        terminal.loadAddon(fitAddon);
-
-        const terminalElement = document.getElementById('terminal');
-        if (!terminalElement) {
-            throw new Error('Terminal element not found');
-        }
-
-        terminal.open(terminalElement);
-        fitAddon.fit();
-
-        // Handle terminal resize
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-        });
-
-        // Store terminal instance
-        editorState.terminal = terminal;
-        window.terminal = terminal;  // Make terminal accessible globally
-
-        // Set up event listeners
-        setupEventListeners();
-
         // Set initial template only if editor is empty
         const savedContent = localStorage.getItem('editorContent');
         if (!savedContent) {
@@ -109,9 +73,12 @@ async function initializeEditor() {
             editorState.editor.setValue(savedContent);
         }
 
+        // Set up event listeners
+        setupEventListeners();
+
         // Mark editor as initialized
         editorState.isInitialized = true;
-        console.log('Editor and terminal initialized successfully');
+        console.log('Editor initialized successfully');
 
     } catch (error) {
         console.error('Editor initialization failed:', error);
@@ -137,9 +104,9 @@ function setupEventListeners() {
 
     // Clear console button
     const clearButton = document.getElementById('clearConsole');
-    if (clearButton && editorState.terminal) {
+    if (clearButton && window.terminal) {
         clearButton.addEventListener('click', () => {
-            editorState.terminal.clear();
+            window.terminal.clear();
         });
     }
 
@@ -156,7 +123,7 @@ async function runCode() {
     if (editorState.isExecuting) return;
 
     const runButton = document.getElementById('runButton');
-    const terminal = editorState.terminal;
+    const terminal = window.terminal;
     editorState.isExecuting = true;
 
     try {
@@ -200,9 +167,17 @@ async function runCode() {
         console.log('Received response:', result);
 
         if (result.success) {
-            terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
-            if (result.output) {
-                terminal?.write(result.output + '\r\n');
+            if (result.session_id) {
+                // Interactive session
+                window.currentSession = result.session_id;
+                terminal?.write('\r\n\x1b[32mInteractive session started\x1b[0m\r\n');
+                startPollingOutput(result.session_id);
+            } else {
+                // Non-interactive output
+                terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
+                if (result.output) {
+                    terminal?.write(result.output + '\r\n');
+                }
             }
             if (result.metrics) {
                 console.log('Performance metrics:', result.metrics);
@@ -224,6 +199,62 @@ async function runCode() {
             runButton.innerHTML = 'Run';
         }
     }
+}
+
+// Poll for output from interactive sessions
+async function startPollingOutput(sessionId) {
+    const terminal = window.terminal;
+    let pollCount = 0;
+    const maxPolls = 300; // 5 minutes maximum
+
+    const poll = async () => {
+        if (pollCount >= maxPolls || !sessionId) {
+            console.log('Session polling ended');
+            return;
+        }
+
+        try {
+            const response = await fetch('/activities/get_output', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({ session_id: sessionId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to get output');
+            }
+
+            const result = await response.json();
+
+            if (result.success) {
+                if (result.output) {
+                    terminal?.write(result.output);
+                }
+
+                if (result.session_ended) {
+                    console.log('Session ended normally');
+                    window.currentSession = null;
+                    return;
+                }
+
+                // Continue polling if session is still active
+                pollCount++;
+                setTimeout(poll, 1000);
+            } else {
+                console.error('Error getting output:', result.error);
+                window.currentSession = null;
+            }
+        } catch (error) {
+            console.error('Error polling output:', error);
+            window.currentSession = null;
+        }
+    };
+
+    // Start polling
+    poll();
 }
 
 // Handle language change
