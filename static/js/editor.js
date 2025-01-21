@@ -5,6 +5,7 @@ let isExecuting = false;
 let lastExecution = 0;
 let isConsoleReady = false;
 
+// Update the executeCode function handling for C# interactive programs
 async function executeCode() {
     if (!editor || !isConsoleReady || isExecuting) {
         console.error('Execute prevented:', {
@@ -17,6 +18,7 @@ async function executeCode() {
 
     const runButton = document.getElementById('runButton');
     const consoleOutput = document.getElementById('consoleOutput');
+    const consoleInput = document.getElementById('consoleInput');
 
     try {
         if (runButton) {
@@ -44,15 +46,8 @@ async function executeCode() {
         // Prepare request payload
         const payload = {
             code: code,
-            language: language,
-            activity_id: '' // Empty string as default
+            language: language
         };
-
-        // Only add activity_id if we're in an activity context and it has a value
-        const activityIdInput = document.querySelector('input[name="activity_id"]');
-        if (activityIdInput && activityIdInput.value) {
-            payload.activity_id = activityIdInput.value;
-        }
 
         console.log('Executing code request:', {
             url: '/activities/run_code',
@@ -81,70 +76,123 @@ async function executeCode() {
         console.log('Server response:', result);
 
         if (result.success) {
-            if (consoleOutput) {
-                let outputText = result.output || '';
+            if (result.interactive) {
+                // Set up interactive console session
+                let sessionId = result.session_id;
+                consoleOutput.innerHTML = '';
 
-                // If output is empty or undefined, show a message
-                if (!outputText || outputText.trim() === '') {
-                    outputText = 'Program executed successfully but produced no output.';
-                }
-
-                // Enhanced handling for interactive C# programs
-                if (language === 'csharp' && result.interactive) {
-                    // Create an input field for user interaction
-                    const inputArea = document.createElement('div');
-                    inputArea.className = 'console-input-area';
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.className = 'console-input';
-                    const sendButton = document.createElement('button');
-                    sendButton.textContent = 'Send';
-                    sendButton.className = 'console-send-btn';
-
-                    inputArea.appendChild(input);
-                    inputArea.appendChild(sendButton);
-
-                    consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
-                    consoleOutput.appendChild(inputArea);
-
-                    input.focus();
+                // Enable input handling
+                if (consoleInput) {
+                    consoleInput.disabled = false;
+                    consoleInput.focus();
 
                     // Handle input submission
-                    const submitInput = async () => {
-                        const userInput = input.value;
-                        input.value = '';
+                    const handleInput = async (input) => {
+                        if (input.trim() === '') return;
 
-                        // Send input to the program
-                        const inputResponse = await fetch('/activities/run_code', {
+                        // Display input in console
+                        const inputLine = document.createElement('div');
+                        inputLine.className = 'console-input';
+                        inputLine.textContent = `> ${input}`;
+                        consoleOutput.appendChild(inputLine);
+
+                        // Send input to server
+                        try {
+                            const inputResponse = await fetch('/activities/run_code', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-Token': csrfToken
+                                },
+                                body: JSON.stringify({
+                                    session_id: sessionId,
+                                    input: input + '\n'
+                                })
+                            });
+
+                            if (inputResponse.ok) {
+                                const inputResult = await inputResponse.json();
+                                if (inputResult.success) {
+                                    if (inputResult.output) {
+                                        const outputElement = document.createElement('div');
+                                        outputElement.className = 'console-output';
+                                        outputElement.textContent = inputResult.output;
+                                        consoleOutput.appendChild(outputElement);
+                                    }
+
+                                    // Auto-scroll to bottom
+                                    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+
+                                    if (inputResult.session_ended) {
+                                        consoleInput.disabled = true;
+                                        sessionId = null;
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error sending input:', error);
+                            const errorElement = document.createElement('div');
+                            errorElement.className = 'console-error';
+                            errorElement.textContent = 'Error sending input: ' + error.message;
+                            consoleOutput.appendChild(errorElement);
+                        }
+
+                        // Clear input field
+                        consoleInput.value = '';
+                    };
+
+                    // Handle Enter key
+                    consoleInput.onkeypress = (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            const input = consoleInput.value;
+                            handleInput(input);
+                        }
+                    };
+                }
+
+                // Start polling for output
+                const pollOutput = async () => {
+                    if (!sessionId) return;
+
+                    try {
+                        const outputResponse = await fetch('/activities/get_output', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRF-Token': csrfToken
                             },
-                            body: JSON.stringify({
-                                ...payload,
-                                input: userInput
-                            })
+                            body: JSON.stringify({ session_id: sessionId })
                         });
 
-                        if (inputResponse.ok) {
-                            const inputResult = await inputResponse.json();
-                            if (inputResult.success) {
-                                consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(inputResult.output)}</pre>`;
+                        if (outputResponse.ok) {
+                            const outputResult = await outputResponse.json();
+                            if (outputResult.success && outputResult.output) {
+                                const outputElement = document.createElement('div');
+                                outputElement.className = 'console-output';
+                                outputElement.textContent = outputResult.output;
+                                consoleOutput.appendChild(outputElement);
+                                consoleOutput.scrollTop = consoleOutput.scrollHeight;
+                            }
+
+                            if (!outputResult.session_ended) {
+                                setTimeout(pollOutput, 100);
                             } else {
-                                consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(inputResult.error)}</div>`;
+                                consoleInput.disabled = true;
+                                sessionId = null;
                             }
                         }
-                    };
+                    } catch (error) {
+                        console.error('Error polling output:', error);
+                    }
+                };
 
-                    sendButton.onclick = submitInput;
-                    input.onkeypress = (e) => {
-                        if (e.key === 'Enter') {
-                            submitInput();
-                        }
-                    };
-                } else {
-                    consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(outputText)}</pre>`;
+                // Start polling
+                pollOutput();
+            } else {
+                // Handle non-interactive output
+                if (consoleOutput) {
+                    consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(result.output || '')}</pre>`;
                 }
             }
         } else {
@@ -156,10 +204,6 @@ async function executeCode() {
             let displayError = error.message;
             if (error.message.includes('HTTP error!')) {
                 displayError = 'Code execution service is unavailable. Please try again in a moment.';
-            } else if (error.message.includes('Invalid response format')) {
-                displayError = 'Server returned an unexpected response. Please try again.';
-            } else if (error.message.includes('exceeds maximum limit')) {
-                displayError = 'Code size is too large. Please reduce the size of your code.';
             }
             consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(displayError)}</div>`;
         }
@@ -205,7 +249,8 @@ using namespace std;
 int main() {
     cout << "Hello World!" << endl;
     return 0;
-}`;
+}
+`;
     } else {
         return `using System;
 
@@ -215,7 +260,8 @@ class Program
     {
         Console.WriteLine("Hello World!");
     }
-}`;
+}
+`;
     }
 }
 

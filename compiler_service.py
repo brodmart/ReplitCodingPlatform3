@@ -92,13 +92,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             modified_code = []
             for line in code_lines:
                 modified_code.append(line)
-                if 'Console.WriteLine' in line or 'Console.Write(' in line:
-                    indent = len(line) - len(line.lstrip())
-                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
-
-            # Add automatic flush after every Console operation
-            for i, line in enumerate(code_lines):
-                if 'Console.' in line and not line.strip().startswith('//'):
+                if 'Console.Write' in line and not line.strip().startswith('//'):
                     indent = len(line) - len(line.lstrip())
                     modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
@@ -170,11 +164,11 @@ namespace ConsoleApplication {
             preexec_fn=os.setsid
         )
 
-        # Start output monitoring thread
+        # Start output monitoring thread with enhanced buffering
         def monitor_output():
             try:
                 while session.process and session.process.poll() is None:
-                    # Use select to check for available output
+                    # Use select with a shorter timeout for more responsive output
                     readable, _, _ = select.select([session.process.stdout, session.process.stderr], [], [], 0.1)
 
                     for stream in readable:
@@ -183,7 +177,11 @@ namespace ConsoleApplication {
                             if stream == session.process.stdout:
                                 session.stdout_buffer.append(line)
                                 logger.debug(f"Output received: {line.strip()}")
-                                if any(prompt in line.lower() for prompt in ['input', 'enter', 'type', '?', ':', '>']):
+                                # Consider more prompt patterns
+                                if any(prompt in line.lower() for prompt in [
+                                    'input', 'enter', 'type', '?', ':', '>', 
+                                    'choix', 'votre choix', 'choisir'
+                                ]):
                                     session.waiting_for_input = True
                             else:
                                 session.stderr_buffer.append(line)
