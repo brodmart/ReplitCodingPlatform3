@@ -17,22 +17,24 @@ import time
 from threading import Thread, Event, Lock
 import select
 import io
+import resource
 
 # Configure detailed logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Performance monitoring constants
-MAX_COMPILATION_TIME = 30  # seconds
-MAX_EXECUTION_TIME = 30   # seconds
-MEMORY_LIMIT = 512       # MB
+# Performance tuning constants
+MAX_COMPILATION_TIME = 20  # Reduced from 30 to optimize for typical compilation times
+MAX_EXECUTION_TIME = 30
+MEMORY_LIMIT = 512  # MB
+COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 
 class CompilationMetrics:
     """Track compilation and execution metrics"""
     def __init__(self):
         self.start_time = time.time()
-        self.compilation_time = 0
-        self.execution_time = 0
+        self.compilation_time = 0.0  # Changed to float for more precise timing
+        self.execution_time = 0.0
         self.peak_memory = 0
         self.status_updates = []
 
@@ -41,59 +43,8 @@ class CompilationMetrics:
         self.status_updates.append((current_time, status))
         logger.debug(f"[{current_time:.2f}s] {status}")
 
-# Enhanced process monitor
-class ProcessMonitor(Thread):
-    def __init__(self, process, timeout=30, memory_limit_mb=512):
-        super().__init__()
-        self.process = process
-        self.timeout = timeout
-        self.memory_limit = memory_limit_mb * 1024 * 1024  # Convert to bytes
-        self.metrics = CompilationMetrics()
-        self.stopped = Event()
-
-    def run(self):
-        while not self.stopped.is_set():
-            try:
-                if time.time() - self.metrics.start_time > self.timeout:
-                    self.metrics.log_status("Process timed out")
-                    self._terminate_process()
-                    break
-
-                if self.process.poll() is not None:
-                    break
-
-                proc = psutil.Process(self.process.pid)
-                memory_info = proc.memory_info()
-                cpu_percent = proc.cpu_percent(interval=0.1)
-
-                self.metrics.peak_memory = max(self.metrics.peak_memory, memory_info.rss)
-
-                if memory_info.rss > self.memory_limit:
-                    self.metrics.log_status(f"Memory limit exceeded: {memory_info.rss / (1024*1024):.1f}MB")
-                    self._terminate_process()
-                    break
-
-                if cpu_percent > 90:
-                    self.metrics.log_status(f"High CPU usage: {cpu_percent}%")
-
-            except Exception as e:
-                logger.error(f"Monitor error: {str(e)}")
-                break
-            time.sleep(0.1)
-
-    def _terminate_process(self):
-        try:
-            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-        except:
-            if self.process.poll() is None:
-                self.process.terminate()
-
-    def stop(self):
-        self.stopped.set()
-        self._terminate_process()
-
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced compile and run function with detailed metrics and optimization for large C# files"""
+    """Enhanced compile and run function with optimizations for large C# files"""
     metrics = CompilationMetrics()
 
     if not code or not language:
@@ -106,6 +57,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         metrics.log_status("Starting compilation process")
         logger.debug(f"Code length: {len(code)} characters")
 
+        # Create compiler cache directory if it doesn't exist
+        os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
+
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             monitor = None
@@ -117,13 +71,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     source_file = temp_path / "program.cs"
                     executable = temp_path / "program.exe"
 
-                    # Write code with proper encoding
-                    with open(source_file, 'w', encoding='utf-8') as f:
+                    # Write code with proper encoding and BOM for C#
+                    with open(source_file, 'w', encoding='utf-8-sig') as f:
                         f.write(code)
 
                     metrics.log_status("Starting C# compilation")
 
-                    # Optimized compilation command
+                    # Enhanced compilation flags for better performance
                     compile_cmd = [
                         'mcs',
                         '-optimize+',
@@ -131,16 +85,29 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         '-unsafe+',
                         '-langversion:latest',
                         '-parallel+',
+                        '-warnaserror-',  # Don't treat warnings as errors
+                        '-nowarn:219,414',  # Ignore common warnings
                         str(source_file),
                         '-out:' + str(executable)
                     ]
+
+                    # Set resource limits for compiler process
+                    def set_compiler_limits():
+                        import resource
+                        resource.setrlimit(resource.RLIMIT_CPU, (MAX_COMPILATION_TIME, MAX_COMPILATION_TIME))
+                        resource.setrlimit(resource.RLIMIT_AS, (MEMORY_LIMIT * 1024 * 1024, MEMORY_LIMIT * 1024 * 1024))
 
                     compile_process = subprocess.Popen(
                         compile_cmd,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        preexec_fn=os.setsid
+                        preexec_fn=set_compiler_limits,
+                        env={
+                            'MONO_GC_PARAMS': 'max-heap-size=512M',
+                            'MONO_THREADS_PER_CPU': '2',
+                            'PATH': os.environ['PATH']
+                        }
                     )
 
                     monitor = ProcessMonitor(compile_process, timeout=MAX_COMPILATION_TIME)
@@ -162,14 +129,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         }
 
                     metrics.log_status("Compilation successful")
+
+                    # Set executable permissions
                     os.chmod(executable, 0o755)
 
-                    # Optimized Mono runtime environment
+                    # Optimized Mono runtime settings
                     env = os.environ.copy()
-                    env['MONO_GC_PARAMS'] = 'major=marksweep-par,nursery-size=64m'
-                    env['MONO_THREADS_PER_CPU'] = '2'
-                    env['MONO_MIN_HEAP_SIZE'] = '128M'
-                    env['MONO_MAX_HEAP_SIZE'] = f'{MEMORY_LIMIT}M'
+                    env.update({
+                        'MONO_GC_PARAMS': 'major=marksweep-par,nursery-size=64m',
+                        'MONO_THREADS_PER_CPU': '2',
+                        'MONO_MIN_HEAP_SIZE': '128M',
+                        'MONO_MAX_HEAP_SIZE': f'{MEMORY_LIMIT}M'
+                    })
 
                     metrics.log_status("Starting program execution")
 
@@ -179,8 +150,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        env=env,
-                        preexec_fn=os.setsid
+                        env=env
                     )
 
                     monitor = ProcessMonitor(process, timeout=MAX_EXECUTION_TIME)
@@ -281,6 +251,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'output': stdout.strip() if stdout else ""
                     }
 
+                else:
+                    return {'success': False, 'error': 'Unsupported language'}
+
             except subprocess.TimeoutExpired:
                 metrics.log_status("Process timed out")
                 return {
@@ -289,6 +262,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'metrics': {
                         'compilation_time': metrics.compilation_time,
                         'peak_memory': monitor.metrics.peak_memory if monitor else 0,
+                        'status_updates': metrics.status_updates
+                    }
+                }
+
+            except Exception as e:
+                logger.error(f"Unexpected error during compilation or execution: {e}")
+                logger.error(traceback.format_exc())
+                return {
+                    'success': False,
+                    'error': f"An unexpected error occurred: {str(e)}",
+                    'metrics': {
+                        'compilation_time': metrics.compilation_time,
                         'status_updates': metrics.status_updates
                     }
                 }
@@ -308,6 +293,56 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 'status_updates': metrics.status_updates
             }
         }
+
+class ProcessMonitor(Thread):
+    def __init__(self, process, timeout=30, memory_limit_mb=512):
+        super().__init__()
+        self.process = process
+        self.timeout = timeout
+        self.memory_limit = memory_limit_mb * 1024 * 1024  # Convert to bytes
+        self.metrics = CompilationMetrics()
+        self.stopped = Event()
+
+    def run(self):
+        while not self.stopped.is_set():
+            try:
+                if time.time() - self.metrics.start_time > self.timeout:
+                    self.metrics.log_status("Process timed out")
+                    self._terminate_process()
+                    break
+
+                if self.process.poll() is not None:
+                    break
+
+                proc = psutil.Process(self.process.pid)
+                memory_info = proc.memory_info()
+                cpu_percent = proc.cpu_percent(interval=0.1)
+
+                self.metrics.peak_memory = max(self.metrics.peak_memory, memory_info.rss)
+
+                if memory_info.rss > self.memory_limit:
+                    self.metrics.log_status(f"Memory limit exceeded: {memory_info.rss / (1024*1024):.1f}MB")
+                    self._terminate_process()
+                    break
+
+                if cpu_percent > 90:
+                    self.metrics.log_status(f"High CPU usage: {cpu_percent}%")
+
+            except Exception as e:
+                logger.error(f"Monitor error: {str(e)}")
+                break
+            time.sleep(0.1)
+
+    def _terminate_process(self):
+        try:
+            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+        except:
+            if self.process.poll() is None:
+                self.process.terminate()
+
+    def stop(self):
+        self.stopped.set()
+        self._terminate_process()
 
 def format_csharp_error(error_msg: str) -> str:
     """Format C# compilation errors to be more user-friendly"""
