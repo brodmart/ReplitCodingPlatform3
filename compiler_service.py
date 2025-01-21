@@ -41,6 +41,8 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
         # Create project structure
         project_dir = source_file.parent
         project_file = project_dir / "temp.csproj"
+        bin_dir = project_dir / "bin" / "Debug" / "net7.0"
+        os.makedirs(bin_dir, exist_ok=True)
 
         # Enhanced project file with proper settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -52,7 +54,7 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishReadyToRun>true</PublishReadyToRun>
     <SelfContained>false</SelfContained>
-    <DebugType>embedded</DebugType>
+    <DebugType>none</DebugType>
   </PropertyGroup>
 </Project>"""
 
@@ -70,12 +72,10 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
             'dotnet',
             'build',
             str(project_file),
-            '-o',
-            str(executable.parent),
+            '--output',
+            str(bin_dir),
             '/p:GenerateFullPaths=true',
-            '/consoleloggerparameters:NoSummary',
-            '/p:DebugSymbols=false',
-            '/p:DebugType=None'
+            '/consoleloggerparameters:NoSummary'
         ]
 
         logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
@@ -112,9 +112,10 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
                 logger.error(f"Compilation error output: {error_msg}")
                 return False, format_csharp_error(error_msg)
 
-            # Verify executable was created
-            if not executable.exists():
-                error_msg = "Compilation completed but executable not found"
+            # Verify executable exists
+            output_dll = bin_dir / "temp.dll"
+            if not output_dll.exists():
+                error_msg = "Compilation completed but output DLL not found"
                 logger.error(error_msg)
                 return False, error_msg
 
@@ -198,7 +199,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 # Set up project structure
                 project_dir = Path(temp_dir)
                 source_file = project_dir / "Program.cs"
-                executable = project_dir / "bin/Debug/net7.0/program"
+                executable = project_dir / "bin" / "Debug" / "net7.0" / "temp"
 
                 logger.debug(f"Writing code to {source_file}")
                 with open(source_file, 'w', encoding='utf-8') as f:
@@ -214,7 +215,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 try:
-                    run_cmd = ['dotnet', str(executable)]
+                    run_cmd = ['dotnet', str(executable.parent / "temp.dll")]
                     logger.debug(f"Running with command: {' '.join(run_cmd)}")
 
                     run_process = subprocess.run(

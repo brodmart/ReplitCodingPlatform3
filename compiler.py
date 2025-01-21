@@ -51,15 +51,19 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 project_dir = Path(temp_dir)
                 source_file = project_dir / "Program.cs"
                 project_file = project_dir / "program.csproj"
-                executable = project_dir / "bin/Debug/net7.0/program"
+                bin_dir = project_dir / "bin" / "Debug" / "net7.0"
+                executable = bin_dir / "program"
 
-                # Create project file
+                # Create project file with proper configuration
                 project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
 </Project>"""
 
@@ -71,28 +75,40 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Enhanced compilation command with optimization flags
+                # Create bin directory if it doesn't exist
+                os.makedirs(bin_dir, exist_ok=True)
+
+                # Enhanced compilation command
                 compile_cmd = [
                     'dotnet',
                     'build',
                     str(project_file),
-                    '-o',
-                    str(executable.parent),
+                    '--output',
+                    str(bin_dir),
                     '/p:GenerateFullPaths=true',
                     '/consoleloggerparameters:NoSummary'
                 ]
 
-                logger.debug("Starting C# compilation with enhanced settings")
+                logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
                 compile_start = time.time()
 
                 try:
-                    logger.debug(f"Executing compilation command: {' '.join(compile_cmd)}")
+                    # Set up enhanced compilation environment
+                    env = os.environ.copy()
+                    env.update({
+                        'DOTNET_CLI_HOME': str(project_dir),
+                        'DOTNET_NOLOGO': '1',
+                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
+                        'DOTNET_ROLL_FORWARD': 'Major'
+                    })
+
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
                         text=True,
                         timeout=MAX_COMPILATION_TIME,
-                        cwd=str(project_dir)
+                        cwd=str(project_dir),
+                        env=env
                     )
 
                     compile_time = time.time() - compile_start
@@ -108,10 +124,19 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             }
                         }
 
-                    logger.debug("Compilation successful, preparing execution")
-                    os.chmod(executable, 0o755)
+                    # Verify the executable exists
+                    if not executable.exists():
+                        error_msg = f"Compilation succeeded but executable not found at {executable}"
+                        logger.error(error_msg)
+                        return {
+                            'success': False,
+                            'error': error_msg,
+                            'metrics': {
+                                'compilation_time': compile_time
+                            }
+                        }
 
-                    # Execute with optimized Mono runtime settings
+                    logger.debug("Compilation successful, preparing execution")
                     run_cmd = ['dotnet', str(executable)]
                     run_start = time.time()
 
@@ -120,19 +145,30 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         capture_output=True,
                         text=True,
                         timeout=MAX_EXECUTION_TIME,
-                        cwd=str(project_dir)
+                        cwd=str(project_dir),
+                        env=env
                     )
 
                     run_time = time.time() - run_start
                     total_time = time.time() - start_time
 
                     logger.debug(f"Execution completed in {run_time:.2f}s")
-                    logger.debug(f"Total processing time: {total_time:.2f}s")
+
+                    if run_process.returncode != 0:
+                        logger.error(f"Execution failed: {run_process.stderr}")
+                        return {
+                            'success': False,
+                            'error': run_process.stderr,
+                            'metrics': {
+                                'compilation_time': compile_time,
+                                'execution_time': run_time,
+                                'total_time': total_time
+                            }
+                        }
 
                     return {
-                        'success': run_process.returncode == 0,
+                        'success': True,
                         'output': run_process.stdout,
-                        'error': run_process.stderr if run_process.returncode != 0 else None,
                         'metrics': {
                             'compilation_time': compile_time,
                             'execution_time': run_time,
@@ -143,26 +179,28 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 except subprocess.TimeoutExpired as e:
                     elapsed_time = time.time() - start_time
                     phase = "compilation" if elapsed_time < MAX_COMPILATION_TIME else "execution"
-                    logger.error(f"{phase.capitalize()} timed out after {elapsed_time:.2f}s")
+                    error_msg = f"{phase.capitalize()} timed out after {elapsed_time:.2f} seconds"
+                    logger.error(error_msg)
                     return {
                         'success': False,
-                        'error': f"{phase.capitalize()} timed out after {elapsed_time:.2f} seconds",
+                        'error': error_msg,
                         'metrics': {
                             'time_elapsed': elapsed_time
                         }
                     }
 
             else:
-                logger.error(f"Unsupported language: {language}")
+                error_msg = f"Unsupported language: {language}"
+                logger.error(error_msg)
                 return {
                     'success': False,
-                    'error': f"Unsupported language: {language}"
+                    'error': error_msg
                 }
 
     except Exception as e:
-        error_details = traceback.format_exc()
-        logger.error(f"Unexpected error: {str(e)}\n{error_details}")
+        error_msg = f"Unexpected error occurred: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
         return {
             'success': False,
-            'error': f"An error occurred while processing your code: {str(e)}"
+            'error': error_msg
         }
