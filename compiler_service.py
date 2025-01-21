@@ -86,13 +86,16 @@ def is_interactive_code(code: str, language: str) -> bool:
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session for the given code"""
     try:
+        logger.debug(f"Starting interactive session for {language}")
+        process = None
+
         # Set up files
-        source_file = Path(session.temp_dir) / "program.cs"
-        executable = Path(session.temp_dir) / "program.exe"
+        source_file = Path(session.temp_dir) / f"program.{language.lower()}"
+        executable = Path(session.temp_dir) / ("program.exe" if language == "csharp" else "program")
 
         # Enhanced C# code preprocessing
         if language == 'csharp':
-            # Skip wrapping if code already contains namespace/class definition
+            # Don't wrap if code already contains namespace/class definition
             if 'namespace' in code or 'class Program' in code:
                 modified_code = code
             else:
@@ -100,11 +103,19 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Globalization;
 
 namespace ConsoleApplication {{
     class Program {{
         static void Main(string[] args) {{
-            {code}
+            try {{
+                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+                {code}
+            }}
+            catch (Exception e) {{
+                Console.WriteLine($"Runtime Error: {{e.Message}}");
+            }}
         }}
     }}
 }}"""
@@ -121,17 +132,20 @@ namespace ConsoleApplication {{
                 '-reference:System.Core.dll',
                 '-reference:System.dll',
                 '-define:INTERACTIVE',
+                '-sdk:4.5',
                 str(source_file),
                 '-out:' + str(executable)
             ]
 
             try:
+                start_time = time.time()
                 compile_process = subprocess.run(
                     compile_cmd,
                     capture_output=True,
                     text=True,
-                    timeout=30  # Increased timeout for larger code bases
+                    timeout=60  # Increased timeout for larger codebases
                 )
+                compilation_time = time.time() - start_time
 
                 if compile_process.returncode != 0:
                     return {
@@ -168,7 +182,7 @@ namespace ConsoleApplication {{
                 session.process = process
 
                 # Set up process monitor
-                monitor = ProcessMonitor(process, timeout=60)  # Increased timeout
+                monitor = ProcessMonitor(process, timeout=300)  # Increased timeout for larger programs
                 monitor.start()
 
                 # Start monitoring thread for real-time output
@@ -182,17 +196,14 @@ namespace ConsoleApplication {{
                                 line = stream.readline()
                                 if line:
                                     if stream == process.stdout:
-                                        if '\x1b[2J\x1b[H' in line:  # Console.Clear() sequence
-                                            session.stdout_buffer = []  # Clear buffer
-                                        else:
-                                            session.stdout_buffer.append(line)
-                                            logger.debug(f"Output: {line.strip()}")
+                                        session.stdout_buffer.append(line)
+                                        logger.debug(f"Output: {line.strip()}")
 
-                                        # Enhanced input prompt detection for French and English
+                                        # Enhanced input prompt detection
                                         if any(prompt in line.lower() for prompt in [
                                             'input', 'enter', 'type', '?', ':', '>',
                                             'choix', 'votre choix', 'choisir', 'entrer',
-                                            'saisir', 'tapez'
+                                            'saisir', 'tapez', 'press', 'continue'
                                         ]):
                                             session.waiting_for_input = True
                                             logger.debug("Waiting for input")
@@ -214,24 +225,32 @@ namespace ConsoleApplication {{
                 return {
                     'success': True,
                     'session_id': session.session_id,
-                    'interactive': True
+                    'interactive': True,
+                    'compilation_time': compilation_time
                 }
 
             except subprocess.TimeoutExpired:
-                if 'process' in locals():
+                if process:
                     cleanup_session(session.session_id)
                 return {
                     'success': False,
                     'error': "Compilation timeout"
                 }
             except Exception as e:
-                if 'process' in locals():
+                if process:
                     cleanup_session(session.session_id)
                 logger.error(f"Error executing C# code: {e}")
                 return {
                     'success': False,
                     'error': str(e)
                 }
+
+        elif language == 'cpp':
+            # C++ specific implementation
+            return {
+                'success': False,
+                'error': "C++ interactive mode not implemented"
+            }
 
     except Exception as e:
         logger.error(f"Error in start_interactive_session: {e}")
