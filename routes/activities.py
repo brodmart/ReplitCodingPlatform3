@@ -56,8 +56,10 @@ def run_code():
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
 
+        # Add detailed request logging
         logger.debug(f"Request received - Language: {language}, Code length: {len(code)}")
         logger.debug(f"Code preview (first 200 chars): {code[:200]}")
+        logger.debug(f"Request headers: {dict(request.headers)}")
 
         if not code:
             logger.error("No code provided in request")
@@ -67,8 +69,15 @@ def run_code():
             }), 400
 
         # Execute the code
-        logger.debug("Calling compile_and_run")
+        logger.info(f"Starting code execution - Language: {language}, Code size: {len(code)} bytes")
+        start_time = time.time()
+
         result = compile_and_run(code, language)
+
+        # Enhanced metrics logging
+        execution_time = time.time() - start_time
+        logger.info(f"Code execution completed in {execution_time:.2f}s")
+        logger.debug(f"Compilation result: {result}")
 
         if not isinstance(result, dict):
             logger.error(f"Invalid result type from compile_and_run: {type(result)}")
@@ -77,16 +86,20 @@ def run_code():
                 'error': 'Internal server error: Invalid compiler response'
             }), 500
 
+        if not result.get('success', False):
+            error_msg = result.get('error', 'An unknown error occurred')
+            logger.error(f"Execution failed with error: {error_msg}")
+
         # Ensure proper content type
         response = jsonify(result)
         response.headers['Content-Type'] = 'application/json'
         return response
 
     except Exception as e:
-        logger.error(f"Error running code: {str(e)}", exc_info=True)
+        logger.error(f"Error executing code: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': f"An error occurred while executing your code: {str(e)}"
         }), 500
 
 # Update error handler for unauthorized access
