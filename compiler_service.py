@@ -353,24 +353,25 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     modified_code = code
                     if 'namespace' not in code and 'class' not in code:
                         modified_code = f"""using System;
+
 class Program 
 {{
-    {modified_code}
+    static void Main(string[] args)
+    {{
+        {modified_code}
+    }}
 }}"""
 
                     # Write the code with proper encoding
                     with open(source_file, 'w', encoding='utf-8') as f:
                         f.write(modified_code)
 
-                    # Optimized compilation command with faster settings
+                    # Optimized compilation command with correct assembly references
                     compile_cmd = [
                         'mcs',
                         '-optimize+',
                         '-debug-',
-                        '-noconfig',  # Skip reading the default config file
-                        '-nostdlib+', # Only reference essential libraries
-                        '-reference:System.dll',
-                        '-reference:System.Core.dll',
+                        '-sdk:4.5',  # Use .NET 4.5 SDK for better compatibility
                         str(source_file),
                         '-out:' + str(executable)
                     ]
@@ -394,11 +395,10 @@ class Program
                     env = os.environ.copy()
                     env['MONO_GC_PARAMS'] = 'mode=throughput'  # Faster GC
                     env['MONO_THREADS_PER_CPU'] = '2'
-                    env['MONO_MIN_THREADS'] = '4'
 
                     # Run with mono
                     process = subprocess.Popen(
-                        ['mono', '--gc=sgen', str(executable)],  # Use sgen GC for better performance
+                        ['mono', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
