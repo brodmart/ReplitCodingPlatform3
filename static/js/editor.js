@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Run button handler - using both possible IDs
+    // Run button handler
     const runButton = document.getElementById('runButton') || document.getElementById('runCode');
     if (runButton) {
         runButton.addEventListener('click', async function(e) {
@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function getTemplateForLanguage(language) {
+    console.log('Getting template for language:', language);
     if (language === 'cpp') {
         return `#include <iostream>
 using namespace std;
@@ -135,6 +136,8 @@ function updateEditorMode(language) {
 }
 
 async function executeCode() {
+    console.log('Starting code execution...');
+
     if (!editor || !isConsoleReady || isExecuting) {
         console.error('Execute prevented:', {
             hasEditor: !!editor,
@@ -162,8 +165,13 @@ async function executeCode() {
         }
 
         const code = editor.getValue().trim();
+        if (!code) {
+            throw new Error('No code to execute');
+        }
+
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
+        console.log('Executing code in language:', language);
 
         // Get CSRF token
         const tokenInput = document.querySelector('input[name="csrf_token"]');
@@ -175,8 +183,7 @@ async function executeCode() {
             throw new Error('CSRF token is empty');
         }
 
-        console.log('Executing code with language:', language);
-
+        console.log('Sending code execution request...');
         const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
@@ -189,8 +196,11 @@ async function executeCode() {
             })
         });
 
+        console.log('Response status:', response.status);
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Server error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, response: ${errorText}`);
         }
 
         const result = await response.json();
@@ -215,6 +225,7 @@ async function executeCode() {
     } catch (error) {
         console.error('Error executing code:', error);
         if (consoleInstance) {
+            consoleInstance.clear();
             consoleInstance.setError(`Error: ${error.message}`);
         }
     } finally {
