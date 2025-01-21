@@ -1,5 +1,4 @@
-
-modules = ["python-3.11", "nix", "postgresql-16"]
+modules = ["python-3.11", "nix", "postgresql-16", "dotnet-7.0"]
 
 [nix]
 channel = "stable-24_05"
@@ -63,6 +62,10 @@ args = "Apply Migrations"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Seed Database"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Run C# Program"
 
 [[workflows.workflow]]
 name = "Flask Server"
@@ -218,6 +221,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python scripts/seed_activities.py"
+
+[[workflows.workflow]]
+name = "Run C# Program"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "dotnet run"
 
 [[ports]]
 localPort = 5000
