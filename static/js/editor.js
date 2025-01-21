@@ -24,8 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
         tabSize: 4,
         lineWrapping: true,
         viewportMargin: Infinity,
-        foldGutter: true,
-        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
         extraKeys: {
             "Tab": function(cm) {
                 if (cm.somethingSelected()) {
@@ -44,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         const initialLanguage = languageSelect.value;
+        console.log('Setting initial language:', initialLanguage);
         updateEditorMode(initialLanguage);
         setEditorTemplate(initialLanguage);
 
@@ -110,12 +109,13 @@ function setEditorTemplate(language) {
         return;
     }
 
-    const currentCode = editor.getValue().trim();
-    if (!currentCode) {
-        const template = getTemplateForLanguage(language);
-        console.log('Setting template for', language, ':', template);
-        editor.setValue(template);
-    }
+    // Always set template when language changes
+    const template = getTemplateForLanguage(language);
+    console.log('Setting template for', language, ':', template);
+    editor.setValue(template);
+
+    // Ensure cursor is at the start
+    editor.setCursor(0, 0);
 }
 
 function updateEditorMode(language) {
