@@ -50,23 +50,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const language = languageSelect.value;
             console.log('Language changed to:', language);
 
-            // Set appropriate mode for CodeMirror
-            if (language === 'cpp') {
-                editor.setOption('mode', 'text/x-c++src');
-            } else if (language === 'csharp') {
-                editor.setOption('mode', 'text/x-csharp');
-            }
+            // Update editor mode based on language
+            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
 
-            // Get current code and new template
+            // Always update the template when switching languages
             const currentCode = editor.getValue().trim();
             const newTemplate = getTemplateForLanguage(language);
+            const otherLangTemplate = getTemplateForLanguage(language === 'cpp' ? 'csharp' : 'cpp');
 
-            // Check if current code matches any template
-            const cppTemplate = getTemplateForLanguage('cpp');
-            const csharpTemplate = getTemplateForLanguage('csharp');
-
-            // Only replace code if it matches a template or is empty
-            if (!currentCode || currentCode === cppTemplate || currentCode === csharpTemplate) {
+            // Update code if it's empty or matches the other language's template
+            if (!currentCode || currentCode === otherLangTemplate) {
                 editor.setValue(newTemplate);
             }
         });
