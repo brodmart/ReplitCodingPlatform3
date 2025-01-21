@@ -11,7 +11,6 @@ from typing import Dict, Optional, Any
 from pathlib import Path
 import psutil
 import time
-from threading import Thread, Event
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -48,42 +47,52 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
         with tempfile.TemporaryDirectory() as temp_dir:
             if language == 'csharp':
-                source_file = os.path.join(temp_dir, "program.cs")
-                executable = os.path.join(temp_dir, "program.exe")
+                # Set up project structure
+                project_dir = Path(temp_dir)
+                source_file = project_dir / "Program.cs"
+                project_file = project_dir / "program.csproj"
+                executable = project_dir / "bin/Debug/net7.0/program"
 
-                logger.debug(f"Writing code to {source_file}")
+                # Create project file
+                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>"""
+
+                logger.debug(f"Writing project file to {project_file}")
+                with open(project_file, 'w', encoding='utf-8') as f:
+                    f.write(project_content)
+
+                logger.debug(f"Writing source code to {source_file}")
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
                 # Enhanced compilation command with optimization flags
                 compile_cmd = [
-                    'mcs',
-                    '-optimize+',
-                    '-debug-',
-                    '-unsafe+',
-                    '-langversion:latest',
-                    '-parallel+',
-                    '-warnaserror-',
-                    '-nowarn:219,414',
-                    str(source_file),
-                    '-out:' + str(executable)
+                    'dotnet',
+                    'build',
+                    str(project_file),
+                    '-o',
+                    str(executable.parent),
+                    '/p:GenerateFullPaths=true',
+                    '/consoleloggerparameters:NoSummary'
                 ]
 
                 logger.debug("Starting C# compilation with enhanced settings")
                 compile_start = time.time()
 
                 try:
-                    logger.debug("Executing compilation command")
+                    logger.debug(f"Executing compilation command: {' '.join(compile_cmd)}")
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
                         text=True,
                         timeout=MAX_COMPILATION_TIME,
-                        env={
-                            'MONO_GC_PARAMS': 'max-heap-size=512M',
-                            'MONO_THREADS_PER_CPU': '2',
-                            'PATH': os.environ['PATH']
-                        }
+                        cwd=str(project_dir)
                     )
 
                     compile_time = time.time() - compile_start
@@ -103,7 +112,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     os.chmod(executable, 0o755)
 
                     # Execute with optimized Mono runtime settings
-                    run_cmd = ['mono', executable]
+                    run_cmd = ['dotnet', str(executable)]
                     run_start = time.time()
 
                     run_process = subprocess.run(
@@ -111,12 +120,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         capture_output=True,
                         text=True,
                         timeout=MAX_EXECUTION_TIME,
-                        env={
-                            'MONO_GC_PARAMS': 'major=marksweep-par,nursery-size=64m',
-                            'MONO_THREADS_PER_CPU': '2',
-                            'MONO_MIN_HEAP_SIZE': '128M',
-                            'MONO_MAX_HEAP_SIZE': f'{MEMORY_LIMIT}M'
-                        }
+                        cwd=str(project_dir)
                     )
 
                     run_time = time.time() - run_start
@@ -142,21 +146,23 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     logger.error(f"{phase.capitalize()} timed out after {elapsed_time:.2f}s")
                     return {
                         'success': False,
-                        'error': f"{phase.capitalize()} timed out after {elapsed_time:.2f} seconds. For large files, try breaking down the code into smaller functions.",
+                        'error': f"{phase.capitalize()} timed out after {elapsed_time:.2f} seconds",
                         'metrics': {
                             'time_elapsed': elapsed_time
                         }
                     }
 
             else:
+                logger.error(f"Unsupported language: {language}")
                 return {
                     'success': False,
                     'error': f"Unsupported language: {language}"
                 }
 
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        error_details = traceback.format_exc()
+        logger.error(f"Unexpected error: {str(e)}\n{error_details}")
         return {
             'success': False,
-            'error': f"An unexpected error occurred: {str(e)}"
+            'error': f"An error occurred while processing your code: {str(e)}"
         }
