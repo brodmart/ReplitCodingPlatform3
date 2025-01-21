@@ -151,7 +151,8 @@ async function runCode() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': csrfToken,
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ 
                 code, 
@@ -160,18 +161,28 @@ async function runCode() {
             credentials: 'same-origin'
         });
 
+        let result;
         const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Invalid response format from server');
+
+        try {
+            result = await response.json();
+            console.log('Received response:', result);
+        } catch (error) {
+            console.error('Failed to parse JSON response:', error);
+            throw new Error('Invalid response format from server. Please check if you are logged in.');
         }
 
-        const result = await response.json();
-        console.log('Received response:', result);
-
         // Handle authentication redirect
-        if (response.status === 401 && result.redirect) {
-            window.location.href = result.redirect;
-            return;
+        if (response.status === 401) {
+            if (result.redirect) {
+                window.location.href = result.redirect;
+                return;
+            }
+            throw new Error('Authentication required. Please log in.');
+        }
+
+        if (!response.ok) {
+            throw new Error(result.error || `Server error: ${response.status}`);
         }
 
         if (result.success) {
