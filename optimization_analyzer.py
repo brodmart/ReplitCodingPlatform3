@@ -29,15 +29,16 @@ class PerformanceOptimizer:
 
     def _init_metrics(self):
         """Initialize metrics with proper typing"""
-        self.language_metrics: Dict[str, Dict[str, Union[int, float, Dict[str, int]]]] = {}
-        for lang in ['cpp', 'csharp']:
-            self.language_metrics[lang] = {
+        self.language_metrics: Dict[str, Dict[str, Union[int, float, Dict[str, int]]]] = {
+            lang: {
                 'total_executions': 0,
                 'failed_executions': 0,
                 'avg_compile_time': 0.0,
                 'peak_memory': 0.0,
                 'common_errors': defaultdict(int)
             }
+            for lang in ['cpp', 'csharp']
+        }
 
     def analyze_compiler_metrics(self, metrics: Dict[str, Any]) -> List[OptimizationSuggestion]:
         """Analyze compiler performance metrics and generate optimization suggestions."""
@@ -82,27 +83,17 @@ class PerformanceOptimizer:
         """Update language-specific performance metrics."""
         if language not in self.language_metrics:
             self._init_metrics()
-            if language not in self.language_metrics:
-                self.language_metrics[language] = {
-                    'total_executions': 0,
-                    'failed_executions': 0,
-                    'avg_compile_time': 0.0,
-                    'peak_memory': 0.0,
-                    'common_errors': defaultdict(int)
-                }
 
         lang_stats = self.language_metrics[language]
-        lang_stats['total_executions'] = lang_stats.get('total_executions', 0) + 1
+        lang_stats['total_executions'] = int(lang_stats['total_executions']) + 1
 
         if not metrics.get('success', True):
-            lang_stats['failed_executions'] = lang_stats.get('failed_executions', 0) + 1
+            lang_stats['failed_executions'] = int(lang_stats['failed_executions']) + 1
             error_type = metrics.get('error_type', 'unknown')
-            errors = lang_stats.get('common_errors', defaultdict(int))
-            errors[error_type] += 1
-            lang_stats['common_errors'] = errors
+            lang_stats['common_errors'][error_type] = lang_stats['common_errors'].get(error_type, 0) + 1
 
         # Update running averages
-        current_avg = float(lang_stats.get('avg_compile_time', 0.0))
+        current_avg = float(lang_stats['avg_compile_time'])
         new_time = float(metrics.get('compilation_time', 0.0))
         total_execs = int(lang_stats['total_executions'])
         lang_stats['avg_compile_time'] = (
@@ -110,7 +101,7 @@ class PerformanceOptimizer:
         )
 
         # Track peak memory
-        current_peak = float(lang_stats.get('peak_memory', 0.0))
+        current_peak = float(lang_stats['peak_memory'])
         new_peak = float(metrics.get('peak_memory', 0.0))
         lang_stats['peak_memory'] = max(current_peak, new_peak)
 
@@ -121,11 +112,10 @@ class PerformanceOptimizer:
             return None
 
         lang_stats = self.language_metrics[language]
-        errors = lang_stats.get('common_errors', defaultdict(int))
-        error_frequency = errors.get(error_type, 0)
+        error_count = lang_stats['common_errors'].get(error_type, 0)
         total_executions = int(lang_stats['total_executions'])
 
-        if total_executions > 0 and (error_frequency / total_executions) > 0.1:  # More than 10% error rate
+        if total_executions > 0 and (error_count / total_executions) > 0.1:  # More than 10% error rate
             return OptimizationSuggestion(
                 category='compiler',
                 priority=5,
@@ -133,8 +123,8 @@ class PerformanceOptimizer:
                 impact='High failure rate affecting user experience',
                 recommendation=self._get_error_recommendation(error_type, language),
                 metrics={
-                    'error_rate': error_frequency / total_executions,
-                    'total_occurrences': error_frequency
+                    'error_rate': error_count / total_executions,
+                    'total_occurrences': error_count
                 }
             )
         return None

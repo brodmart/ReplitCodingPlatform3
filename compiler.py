@@ -4,7 +4,7 @@ import os
 import logging
 import traceback
 import signal
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from pathlib import Path
 import psutil
 import time
@@ -15,6 +15,7 @@ import re
 from threading import Lock, Thread, Event
 import hashlib
 import json
+from dataclasses import dataclass, asdict, field
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -68,28 +69,34 @@ def save_to_build_cache(code_hash: str, dll_path: Path) -> None:
         except Exception as e:
             logger.error(f"Failed to cache build: {e}")
 
+@dataclass
 class CompilationMetrics:
-    """Track compilation and execution metrics"""
-    def __init__(self):
-        self.start_time = time.time()
-        self.compilation_time = 0.0
-        self.execution_time = 0.0
-        self.peak_memory = 0
-        self.status_updates = []
+    """Track compilation and execution metrics with dictionary-style access"""
+    start_time: float = field(default_factory=time.time)
+    compilation_time: float = 0.0
+    execution_time: float = 0.0
+    peak_memory: float = 0.0
+    status_updates: List[tuple] = field(default_factory=list)
+    cached: bool = False
+    total_time: float = 0.0
 
-    def log_status(self, status: str):
+    def __getitem__(self, key: str) -> Any:
+        """Enable dictionary-style access to metrics"""
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        """Enable dictionary-style setting of metrics"""
+        setattr(self, key, value)
+
+    def log_status(self, status: str) -> None:
+        """Log a status update with timestamp"""
         current_time = time.time() - self.start_time
         self.status_updates.append((current_time, status))
         logger.debug(f"[{current_time:.2f}s] {status}")
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
-            'compilation_time': self.compilation_time,
-            'execution_time': self.execution_time,
-            'peak_memory': self.peak_memory,
-            'total_time': time.time() - self.start_time,
-            'status_updates': self.status_updates
-        }
+        """Convert metrics to dictionary format"""
+        return asdict(self)
 
 class ProcessMonitor(Thread):
     def __init__(self, process, timeout=30, memory_limit_mb=512):
@@ -242,25 +249,103 @@ def preallocate_compilation_buffers():
         return []
 
 def warmup_compiler():
-    """Warm up the compiler with common code patterns"""
+    """Warm up the compiler with common code patterns for better performance"""
     if not COMPILER_WARMUP_ENABLED:
         return
 
-    warmup_code = """
+    warmup_patterns = [
+        # Basic program
+        """
 using System;
 class Program {
     static void Main() {
         Console.WriteLine("Warmup");
     }
+}""",
+        # With string operations
+        """
+using System;
+class Program {
+    static void Main() {
+        string msg = "Hello" + " World";
+        Console.WriteLine(msg.ToUpper());
+    }
+}""",
+        # With basic arithmetic
+        """
+using System;
+class Program {
+    static void Main() {
+        int sum = 0;
+        for(int i = 0; i < 10; i++) {
+            sum += i;
+        }
+        Console.WriteLine(sum);
+    }
 }"""
+    ]
 
     try:
-        logger.debug("Warming up compiler...")
-        compile_and_run(warmup_code, 'csharp')
+        logger.debug("Starting compiler warmup sequence...")
+        for i, pattern in enumerate(warmup_patterns):
+            logger.debug(f"Warmup pattern {i+1}/{len(warmup_patterns)}")
+            compile_and_run(pattern, 'csharp')
         logger.debug("Compiler warmup complete")
     except Exception as e:
         logger.warning(f"Compiler warmup failed: {e}")
 
+def get_optimized_environment() -> Dict[str, str]:
+    """Get optimized environment variables for the compiler"""
+    dotnet_root = find_dotnet_path()
+    if not dotnet_root:
+        return os.environ.copy()
+
+    env = os.environ.copy()
+    env.update({
+        'DOTNET_ROOT': dotnet_root,
+        'PATH': f"{dotnet_root}:{env.get('PATH', '')}",
+        'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
+        'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
+        'DOTNET_NOLOGO': '1',
+        'DOTNET_MULTILEVEL_LOOKUP': '0',
+        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
+        'DOTNET_CLI_HOME': COMPILER_CACHE_DIR,
+        'NUGET_PACKAGES': NUGET_CACHE,
+        'DOTNET_ASSEMBLY_CACHE': ASSEMBLY_CACHE,
+        'DOTNET_USE_POLLING_FILE_WATCHER': '1',
+        'DOTNET_ROLL_FORWARD': 'Major',
+        'COMPlus_gcServer': '1',
+        'COMPlus_GCRetainVM': '1',
+        'COMPlus_Thread_UseAllCpuGroups': '1',
+        'COMPlus_gcConcurrent': '1',
+        'COMPlus_GCLatencyLevel': '1',
+        'COMPlus_GCCpuGroup': '1',
+        'COMPlus_ThreadPool_ForceMinWorkerThreads': str(MAX_WORKERS),
+        'COMPlus_JitMinOpts': '1',
+        'COMPlus_TieredCompilation': '1',
+        'COMPlus_TC_QuickJit': '1',
+        'LC_ALL': 'C',
+        'LANG': 'C',
+        'DOTNET_ThreadPool_MinThreads': str(THREAD_POOL_MIN_SIZE),
+        'DOTNET_ThreadPool_MaxThreads': str(THREAD_POOL_MAX_SIZE),
+        'DOTNET_JitMinOpts': '1',
+        'DOTNET_TieredCompilation': '1',
+        'DOTNET_ReadyToRun': '1',
+        'DOTNET_TC_QuickJit': '1',
+        'DOTNET_SYSTEM_THREADING_POOLASYNCVALUETASKS': '1',
+        'DOTNET_SYSTEM_THREADING_TASKS_FAST_FLOW': '1',
+        # Additional aggressive optimization flags
+        'COMPlus_JITMinOpts': '1',
+        'COMPlus_TieredCompilation': '1',
+        'COMPlus_TC_QuickJit': '1',
+        'COMPlus_ReadyToRun': '1',
+        'COMPlus_ZapDisable': '1',
+        'COMPlus_JITMinOpts': '1',
+        'COMPlus_TieredCompilation': '1',
+        'DOTNET_JitMinOpts': '1',
+        'DOTNET_TieredCompilation': '1',
+    })
+    return env
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -297,42 +382,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 'metrics': metrics.to_dict()
             }
 
-        # Enhanced environment setup
-        env = os.environ.copy()
-        env.update({
-            'DOTNET_ROOT': dotnet_root,
-            'PATH': f"{dotnet_root}:{env.get('PATH', '')}",
-            'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
-            'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
-            'DOTNET_NOLOGO': '1',
-            'DOTNET_MULTILEVEL_LOOKUP': '0',
-            'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
-            'DOTNET_CLI_HOME': COMPILER_CACHE_DIR,
-            'NUGET_PACKAGES': NUGET_CACHE,
-            'DOTNET_ASSEMBLY_CACHE': ASSEMBLY_CACHE,
-            'DOTNET_USE_POLLING_FILE_WATCHER': '1',
-            'DOTNET_ROLL_FORWARD': 'Major',
-            'COMPlus_gcServer': '1',
-            'COMPlus_GCRetainVM': '1',
-            'COMPlus_Thread_UseAllCpuGroups': '1',
-            'COMPlus_gcConcurrent': '1',
-            'COMPlus_GCLatencyLevel': '1',
-            'COMPlus_GCCpuGroup': '1',
-            'COMPlus_ThreadPool_ForceMinWorkerThreads': str(MAX_WORKERS),
-            'COMPlus_JitMinOpts': '1',
-            'COMPlus_TieredCompilation': '1',
-            'COMPlus_TC_QuickJit': '1',
-            'LC_ALL': 'C',
-            'LANG': 'C',
-            'DOTNET_ThreadPool_MinThreads': str(THREAD_POOL_MIN_SIZE),
-            'DOTNET_ThreadPool_MaxThreads': str(THREAD_POOL_MAX_SIZE),
-            'DOTNET_JitMinOpts': '1',
-            'DOTNET_TieredCompilation': '1',
-            'DOTNET_ReadyToRun': '1',
-            'DOTNET_TC_QuickJit': '1',
-            'DOTNET_SYSTEM_THREADING_POOLASYNCVALUETASKS': '1',
-            'DOTNET_SYSTEM_THREADING_TASKS_FAST_FLOW': '1'
-        })
+        # Enhanced environment setup using the new function
+        env = get_optimized_environment()
 
         warmup_compiler()
 
