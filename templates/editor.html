@@ -189,18 +189,47 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
 
-<!-- Initialize console before editor -->
-<script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script>
-// Ensure console.js is loaded before proceeding
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof InteractiveConsole === 'undefined') {
-        console.error('Console class not loaded');
+// Global initialization flag
+window.editorInitialized = false;
+
+// Function to check if console.js is loaded
+function isConsoleLoaded() {
+    return typeof InteractiveConsole !== 'undefined';
+}
+
+// Function to check if all required scripts are loaded
+function areScriptsLoaded() {
+    return typeof CodeMirror !== 'undefined' && isConsoleLoaded();
+}
+
+// Function to initialize the editor
+function initializeEditor() {
+    if (window.editorInitialized) return;
+
+    if (!areScriptsLoaded()) {
+        console.log('Waiting for scripts to load...');
+        setTimeout(initializeEditor, 100);
         return;
     }
-});
-</script>
 
-<!-- Then initialize editor -->
-<script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+    // Load editor.js only after console.js is confirmed loaded
+    const editorScript = document.createElement('script');
+    editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+    editorScript.onload = () => {
+        window.editorInitialized = true;
+        console.log('Editor initialized successfully');
+    };
+    document.body.appendChild(editorScript);
+}
+
+// Load console.js first
+const consoleScript = document.createElement('script');
+consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
+consoleScript.onload = () => {
+    console.log('Console script loaded');
+    initializeEditor();
+};
+document.body.appendChild(consoleScript);
+</script>
 {% endblock %}
