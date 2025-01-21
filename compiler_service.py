@@ -297,13 +297,23 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
         # For C#, ensure required namespaces and basic code structure
         if language.lower() == 'csharp':
-            # Add basic code structure check
-            if 'class Program' not in code and 'static void Main' not in code:
+            # Validate code size
+            if len(code) > 1000000:  # 1MB limit
                 return {
                     'success': False,
-                    'error': "Missing required C# program structure. Make sure you have:\n" +
-                            "1. A 'class Program' declaration\n" +
-                            "2. A 'static void Main' method"
+                    'error': "Code size exceeds maximum limit (1MB). Please reduce the size of your code."
+                }
+
+            # Add basic code structure check with better error messages
+            if 'class Program' not in code:
+                return {
+                    'success': False,
+                    'error': "Missing 'class Program' declaration. Your code must contain a Program class."
+                }
+            if 'static void Main' not in code:
+                return {
+                    'success': False,
+                    'error': "Missing 'static void Main' method. Your code must contain a Main method as the entry point."
                 }
 
             required_namespaces = [
@@ -322,12 +332,40 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             # Add automatic Console.Out.Flush() after WriteLine
             code_lines = code.split('\n')
             modified_code = []
+            inside_method = False
+            brace_count = 0
+
             for line in code_lines:
+                stripped_line = line.strip()
+
+                # Track method boundaries
+                if '{' in line:
+                    brace_count += 1
+                if '}' in line:
+                    brace_count -= 1
+                    if brace_count == 0:
+                        inside_method = False
+
+                # Check for method start
+                if ('static void' in line or 'public void' in line or 'private void' in line) and '{' in line:
+                    inside_method = True
+
                 modified_code.append(line)
-                if 'Console.WriteLine' in line:
+
+                # Only add flush inside methods
+                if inside_method and 'Console.WriteLine' in line:
                     indent = len(line) - len(line.lstrip())
                     modified_code.append(' ' * indent + 'Console.Out.Flush();')
+
+                # Warning for Console usage outside methods
+                if not inside_method and 'Console.' in line and not line.strip().startswith("//"):
+                    return {
+                        'success': False,
+                        'error': f"Error: Console statements must be inside a method. Check line containing:\n{line.strip()}"
+                    }
+
             code = '\n'.join(modified_code)
+
 
         # Check if code is interactive
         interactive = is_interactive_code(code, language)
@@ -467,7 +505,7 @@ def format_csharp_error(error_msg: str) -> str:
 
                 # Common error codes and their friendly messages
                 error_messages = {
-                    "1525": "Syntax Error: Unexpected symbol found. Check for missing semicolons or brackets.",
+                    "1525": "Code structure issue. Make sure all statements are inside methods and check for missing semicolons or braces.",
                     "1002": "Syntax Error: Missing closing curly brace '}'",
                     "1001": "Syntax Error: Missing opening curly brace '{'",
                     "1513": "Error: Invalid statement. Make sure you're inside a method.",
@@ -476,7 +514,9 @@ def format_csharp_error(error_msg: str) -> str:
                 }
 
                 friendly_msg = error_messages.get(error_code, error_desc)
-                return f"Compilation Error (CS{error_code}): {friendly_msg}\n\nOriginal Error: {error_desc}"
+                # Add line number context to help locate the issue
+                line_num = error_msg.split('(')[1].split(',')[0]
+                return f"Compilation Error (CS{error_code}) at line {line_num}:\n{friendly_msg}\n\nTip: Check the code structure around this line and ensure all statements are properly enclosed in methods.\n\nOriginal Error: {error_desc}"
 
         return error_msg
     except Exception:
