@@ -79,6 +79,18 @@ args = "Test Large Code Compilation"
 task = "workflow.run"
 args = "C# Compiler"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test C# Minimal"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test C# Basic"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Updated Compiler"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -296,6 +308,48 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "dotnet build HelloWorld.csproj && dotnet run --project HelloWorld.csproj"
+
+[[workflows.workflow]]
+name = "Test C# Minimal"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "dotnet build test_minimal.csproj && dotnet run --project test_minimal.csproj"
+
+[[workflows.workflow]]
+name = "Test C# Basic"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pwd && ls -la && dotnet build test.csproj && dotnet run --project test.csproj"
+
+[[workflows.workflow]]
+name = "Test Updated Compiler"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -c \"from compiler_service import compile_and_run; result = compile_and_run(open('test.cs').read(), 'csharp'); print(result)\""
 
 [[ports]]
 localPort = 5000

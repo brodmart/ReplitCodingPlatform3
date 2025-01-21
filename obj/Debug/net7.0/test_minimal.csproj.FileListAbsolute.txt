@@ -1,0 +1,4 @@
+/home/runner/workspace/obj/Debug/net7.0/test_minimal.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/obj/Debug/net7.0/test_minimal.AssemblyInfoInputs.cache
+/home/runner/workspace/obj/Debug/net7.0/test_minimal.AssemblyInfo.cs
+/home/runner/workspace/obj/Debug/net7.0/test_minimal.csproj.CoreCompileInputs.cache
