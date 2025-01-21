@@ -249,9 +249,8 @@ using namespace std;
 int main() {
     cout << "Hello World!" << endl;
     return 0;
-}
-`;
-    } else {
+}`;
+    } else if (language === 'csharp') {
         return `using System;
 
 class Program 
@@ -260,9 +259,9 @@ class Program
     {
         Console.WriteLine("Hello World!");
     }
-}
-`;
+}`;
     }
+    return ''; // Default empty template
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -278,7 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(editorElement, {
-        mode: 'text/x-c++src',
+        mode: 'text/x-c++src', // Default to C++
         theme: 'dracula',
         lineNumbers: true,
         autoCloseBrackets: true,
@@ -299,21 +298,27 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Only set template if editor is empty
-    const currentCode = editor.getValue().trim();
-    if (!currentCode) {
+    if (!editor.getValue().trim()) {
         const language = languageSelect ? languageSelect.value : 'cpp';
         editor.setValue(getTemplateForLanguage(language));
     }
 
     // Language change handler
     if (languageSelect) {
-        languageSelect.addEventListener('change', () => {
+        languageSelect.addEventListener('change', function() {
             const language = languageSelect.value;
-            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-
-            // Only reset code if it's empty or contains the template
             const currentCode = editor.getValue().trim();
-            if (!currentCode || currentCode === getTemplateForLanguage(language === 'cpp' ? 'csharp' : 'cpp')) {
+
+            // Set appropriate mode for CodeMirror
+            if (language === 'cpp') {
+                editor.setOption('mode', 'text/x-c++src');
+            } else if (language === 'csharp') {
+                editor.setOption('mode', 'text/x-csharp');
+            }
+
+            // Only set template if current code is empty or matches the other language's template
+            const otherTemplate = getTemplateForLanguage(language === 'cpp' ? 'csharp' : 'cpp');
+            if (!currentCode || currentCode === otherTemplate) {
                 editor.setValue(getTemplateForLanguage(language));
             }
         });
