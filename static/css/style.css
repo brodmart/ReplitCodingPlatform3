@@ -42,7 +42,6 @@
     overflow: hidden;
 }
 
-/* Enhanced Console Input/Output */
 .console-output {
     flex-grow: 1;
     overflow-y: auto;
@@ -59,6 +58,57 @@
     border-top: 1px solid #2d2d2d;
     background-color: #1e1e1e;
 }
+
+.console-prompt {
+    color: #569cd6;
+    margin-right: 8px;
+    user-select: none;
+}
+
+.console-input-field {
+    background: transparent;
+    border: none;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: inherit;
+    flex-grow: 1;
+    outline: none;
+    padding: 4px 8px;
+}
+
+.console-input-field:focus {
+    background-color: #2d2d2d;
+}
+
+.console-line {
+    margin: 2px 0;
+    padding: 2px 0;
+}
+
+.console-input {
+    color: #569cd6;
+}
+
+.console-error {
+    color: #f14c4c;
+    background-color: rgba(241, 76, 76, 0.1);
+    border-left: 3px solid #f14c4c;
+    padding: 4px 8px;
+    margin: 4px 0;
+}
+
+.console-success {
+    color: #23d160;
+    background-color: rgba(35, 209, 96, 0.1);
+    border-left: 3px solid #23d160;
+    padding: 4px 8px;
+    margin: 4px 0;
+}
+
+.console-prompt {
+    color: #a8a8a8;
+}
+
 
 /* Enhanced Error Styling */
 .CodeMirror-lint-marker {
@@ -130,7 +180,7 @@ html, body {
     color: var(--bs-light);
 }
 
-::root {
+:root {
     --bs-dark: #212529;
     --bs-light: #f8f9fa;
     --bs-border-color: #495057;
