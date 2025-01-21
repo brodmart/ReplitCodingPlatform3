@@ -159,22 +159,21 @@ async function runCode() {
             })
         });
 
-        let result;
+        // Check response content type
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-            // Handle non-JSON responses (like HTML redirects)
             if (response.status === 401) {
-                throw new Error('Authentication required. Please log in to continue.');
+                window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
             }
-            throw new Error('Invalid response from server. Please try again.');
+            throw new Error('Server returned an invalid response format');
         }
 
-        result = await response.json();
+        const result = await response.json();
 
         if (!response.ok) {
             if (response.status === 401 && result.auth_required) {
-                // Redirect to login page with return URL
-                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                window.location.href = '/auth/login?next=' + encodeURIComponent(window.location.pathname);
                 return;
             }
             throw new Error(result.error || `HTTP error! status: ${response.status}`);
@@ -183,17 +182,9 @@ async function runCode() {
         console.log('Received response:', result);
 
         if (result.success) {
-            if (result.session_id) {
-                // Interactive session
-                window.currentSession = result.session_id;
-                terminal?.write('\r\n\x1b[32mInteractive session started\x1b[0m\r\n');
-                startPollingOutput(result.session_id);
-            } else {
-                // Non-interactive output
-                terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
-                if (result.output) {
-                    terminal?.write(result.output + '\r\n');
-                }
+            terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
+            if (result.output) {
+                terminal?.write(result.output + '\r\n');
             }
             if (result.metrics) {
                 console.log('Performance metrics:', result.metrics);
@@ -212,7 +203,7 @@ async function runCode() {
         editorState.isExecuting = false;
         if (runButton) {
             runButton.disabled = false;
-            runButton.innerHTML = 'Run';
+            runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
         }
     }
 }

@@ -24,73 +24,13 @@ def handle_auth_error(error_msg="Authentication required"):
         }), 401
     return redirect(url_for('auth.login', next=request.url))
 
-@activities_bp.route('/activities/execute', methods=['POST'])
-@login_required
-def execute_code():
-    """Execute submitted code with enhanced error handling and metrics"""
-    try:
-        if not request.is_json:
-            logger.error("Invalid request format - not JSON")
-            return jsonify({
-                'success': False,
-                'error': 'Invalid request format'
-            }), 400
-
-        data = request.get_json()
-        code = data.get('code', '').strip()
-        language = data.get('language', 'cpp').lower()
-        input_data = data.get('input')
-
-        if not code:
-            logger.error("Empty code submitted")
-            return jsonify({
-                'success': False,
-                'error': 'Code cannot be empty'
-            }), 400
-
-        if language not in ['cpp', 'csharp']:
-            logger.error(f"Unsupported language: {language}")
-            return jsonify({
-                'success': False,
-                'error': 'Unsupported language'
-            }), 400
-
-        # Add detailed request logging
-        logger.debug(f"Executing {language} code of length {len(code)} bytes")
-        logger.debug(f"Code preview (first 200 chars): {code[:200]}")
-        logger.debug(f"Request headers: {dict(request.headers)}")
-
-        # Add detailed execution status logging
-        logger.info(f"Starting code execution - Language: {language}, Code size: {len(code)} bytes")
-        start_time = time.time()
-
-        result = compile_and_run(code, language, input_data)
-
-        # Enhanced metrics logging
-        execution_time = time.time() - start_time
-        logger.info(f"Code execution completed in {execution_time:.2f}s")
-        logger.debug(f"Compilation result: {result}")
-
-        if not result.get('success', False):
-            error_msg = result.get('error', 'An unknown error occurred')
-            logger.error(f"Execution failed with error: {error_msg}")
-
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error executing code: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': f"An error occurred while executing your code: {str(e)}"
-        }), 500
-
 @activities_bp.route('/activities/run_code', methods=['POST'])
 @login_required
 def run_code():
     """Execute student code submission with activity tracking"""
     try:
-        start_time = time.time()
-        logger.debug("Starting code execution request")
+        if not current_user.is_authenticated:
+            return handle_auth_error()
 
         if not request.is_json:
             logger.error("Invalid request format - not JSON")
@@ -115,11 +55,16 @@ def run_code():
         logger.debug("Calling compile_and_run")
         result = compile_and_run(code, language)
 
-        execution_time = time.time() - start_time
-        logger.debug(f"Execution completed in {execution_time:.2f}s")
-        logger.debug(f"Compilation result: {result}")
+        if not isinstance(result, dict):
+            logger.error(f"Invalid result type from compile_and_run: {type(result)}")
+            return jsonify({
+                'success': False,
+                'error': 'Internal server error: Invalid compiler response'
+            }), 500
 
-        return jsonify(result)
+        response = jsonify(result)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
     except Exception as e:
         logger.error(f"Error running code: {str(e)}", exc_info=True)
@@ -342,4 +287,64 @@ def view_enhanced_activity(activity_id):
         return jsonify({
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
+        }), 500
+
+@activities_bp.route('/activities/execute', methods=['POST'])
+@login_required
+def execute_code():
+    """Execute submitted code with enhanced error handling and metrics"""
+    try:
+        if not request.is_json:
+            logger.error("Invalid request format - not JSON")
+            return jsonify({
+                'success': False,
+                'error': 'Invalid request format'
+            }), 400
+
+        data = request.get_json()
+        code = data.get('code', '').strip()
+        language = data.get('language', 'cpp').lower()
+        input_data = data.get('input')
+
+        if not code:
+            logger.error("Empty code submitted")
+            return jsonify({
+                'success': False,
+                'error': 'Code cannot be empty'
+            }), 400
+
+        if language not in ['cpp', 'csharp']:
+            logger.error(f"Unsupported language: {language}")
+            return jsonify({
+                'success': False,
+                'error': 'Unsupported language'
+            }), 400
+
+        # Add detailed request logging
+        logger.debug(f"Executing {language} code of length {len(code)} bytes")
+        logger.debug(f"Code preview (first 200 chars): {code[:200]}")
+        logger.debug(f"Request headers: {dict(request.headers)}")
+
+        # Add detailed execution status logging
+        logger.info(f"Starting code execution - Language: {language}, Code size: {len(code)} bytes")
+        start_time = time.time()
+
+        result = compile_and_run(code, language, input_data)
+
+        # Enhanced metrics logging
+        execution_time = time.time() - start_time
+        logger.info(f"Code execution completed in {execution_time:.2f}s")
+        logger.debug(f"Compilation result: {result}")
+
+        if not result.get('success', False):
+            error_msg = result.get('error', 'An unknown error occurred')
+            logger.error(f"Execution failed with error: {error_msg}")
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error executing code: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f"An error occurred while executing your code: {str(e)}"
         }), 500

@@ -22,14 +22,6 @@ from utils.backup import DatabaseBackup
 from routes.static_routes import get_user_language
 from compiler import compile_and_run
 
-# Initialize scheduler for backups
-scheduler = BackgroundScheduler()
-scheduler.add_job(DatabaseBackup.schedule_backup, 'interval', hours=6)
-scheduler.start()
-
-# Register cleanup on application shutdown
-atexit.register(lambda: scheduler.shutdown())
-
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
 
@@ -39,18 +31,6 @@ if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.chmod(TEMP_DIR, 0o755)
 
-def json_login_required(f):
-    """Modified login_required decorator that returns JSON for API routes"""
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated:
-            return jsonify({
-                'success': False,
-                'error': 'Authentication required',
-                'redirect': '/login'
-            }), 401
-        return f(*args, **kwargs)
-    decorated_function.__name__ = f.__name__
-    return decorated_function
 
 @activities.route('/activities/submit_confidence', methods=['POST'])
 @login_required
@@ -121,24 +101,25 @@ def fetch_solutions(activity_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @activities.route('/activities/run_code', methods=['POST'])
-@json_login_required
+@login_required
 def run_code():
     """Execute student code submission with activity tracking"""
     try:
-        if not request.is_json:
-            logger.error("Invalid request format - not JSON")
+        if not current_user.is_authenticated:
             return jsonify({
                 'success': False,
-                'error': 'Invalid request format'
-            }), 400
+                'error': 'Authentication required',
+                'auth_required': True
+            }), 401
+
+        if not request.is_json:
+            logger.error("Invalid request format - not JSON")
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
 
         data = request.get_json()
         if not data:
             logger.error("Empty request data")
-            return jsonify({
-                'success': False,
-                'error': 'Missing request data'
-            }), 400
+            return jsonify({'success': False, 'error': 'Missing request data'}), 400
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
@@ -146,10 +127,7 @@ def run_code():
 
         if not code:
             logger.error("No code provided in request")
-            return jsonify({
-                'success': False,
-                'error': 'Code cannot be empty'
-            }), 400
+            return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
         # Normalize language name
         if language in ['c#', 'csharp', 'cs']:
@@ -160,7 +138,7 @@ def run_code():
         logger.debug(f"Executing {language} code, length: {len(code)}")
         logger.debug(f"Code preview: {code[:200]}...")  # Log first 200 chars for debugging
 
-        # Execute the code using the new compiler implementation
+        # Execute the code using the compiler implementation
         result = compile_and_run(
             code=code,
             language=language,
@@ -176,7 +154,7 @@ def run_code():
         }
 
         # Store submission if activity_id is provided
-        if activity_id:
+        if activity_id and current_user.is_authenticated:
             try:
                 submission = CodeSubmission(
                     student_id=current_user.id,
@@ -196,9 +174,7 @@ def run_code():
                 # Continue with execution result even if storage fails
                 pass
 
-        response = jsonify(response_data)
-        response.headers['Content-Type'] = 'application/json'
-        return response
+        return jsonify(response_data)
 
     except Exception as e:
         logger.error(f"Error running code: {str(e)}", exc_info=True)
@@ -260,8 +236,6 @@ def send_session_input():
             'error': str(e)
         }), 500
 
-
-
 @activities.route('/activities')
 @activities.route('/activities/<grade>')
 @login_required
@@ -314,8 +288,6 @@ def list_activities(grade=None):
         response.headers['Content-Type'] = 'application/json'
         return response, 500
 
-
-
 @activities.route('/activity/<int:activity_id>')
 @login_required
 @limiter.limit("30 per minute")
@@ -350,7 +322,6 @@ def view_activity(activity_id):
             'success': False,
             'error': "An unexpected error occurred while loading the activity"
         }), 500
-
 
 
 @activities.route('/activity/enhanced/<int:activity_id>')
