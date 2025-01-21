@@ -6,17 +6,14 @@ let lastExecution = 0;
 let isConsoleReady = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize CodeMirror with basic settings first
     const editorElement = document.getElementById('editor');
-    const languageSelect = document.getElementById('languageSelect');
-    const consoleOutput = document.getElementById('consoleOutput');
-    const runButton = document.getElementById('runButton');
-
-    if (!editorElement || !consoleOutput) {
-        console.error('Required elements not found');
+    if (!editorElement) {
+        console.error('Editor element not found');
         return;
     }
 
-    // Initialize CodeMirror with basic settings first
+    // Initialize CodeMirror with basic settings
     editor = CodeMirror.fromTextArea(editorElement, {
         mode: 'text/x-c++src', // Default to C++
         theme: 'dracula',
@@ -40,38 +37,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Make editor visible
-    editor.on('keyHandled', () => {
-        editor.getWrapperElement().classList.add('CodeMirror-initialized');
-    });
+    // Make editor visible immediately after initialization
+    editor.getWrapperElement().classList.add('CodeMirror-initialized');
 
-    // Set initial template
+    // Get language select and set initial template
+    const languageSelect = document.getElementById('languageSelect');
     const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    editor.setValue(getTemplateForLanguage(initialLanguage));
+    setEditorTemplate(initialLanguage);
 
     // Language change handler
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = languageSelect.value;
-            console.log('Language changed to:', language);
-
-            // Update editor mode based on language
-            if (language === 'cpp') {
-                editor.setOption('mode', 'text/x-c++src');
-            } else if (language === 'csharp') {
-                editor.setOption('mode', 'text/x-csharp');
-            }
-
-            // Update template
-            const currentCode = editor.getValue().trim();
-            if (!currentCode || currentCode === getTemplateForLanguage('cpp').trim() || 
-                currentCode === getTemplateForLanguage('csharp').trim()) {
-                editor.setValue(getTemplateForLanguage(language));
-            }
+            updateEditorMode(language);
+            setEditorTemplate(language);
         });
     }
 
-    // Run button handler
+    // Run button handler - using both possible IDs
+    const runButton = document.getElementById('runButton') || document.getElementById('runCode');
     if (runButton) {
         runButton.addEventListener('click', async function(e) {
             e.preventDefault();
@@ -95,7 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function getTemplateForLanguage(language) {
     if (language === 'cpp') {
         return `#include <iostream>
-#include <string>
 using namespace std;
 
 int main() {
@@ -116,6 +99,25 @@ class Program
     return ''; // Default empty template
 }
 
+function setEditorTemplate(language) {
+    if (!editor) return;
+
+    const currentCode = editor.getValue().trim();
+    if (!currentCode) {
+        editor.setValue(getTemplateForLanguage(language));
+    }
+}
+
+function updateEditorMode(language) {
+    if (!editor) return;
+
+    if (language === 'cpp') {
+        editor.setOption('mode', 'text/x-c++src');
+    } else if (language === 'csharp') {
+        editor.setOption('mode', 'text/x-csharp');
+    }
+}
+
 async function executeCode() {
     if (!editor || !isConsoleReady || isExecuting) {
         console.error('Execute prevented:', {
@@ -126,7 +128,7 @@ async function executeCode() {
         return;
     }
 
-    const runButton = document.getElementById('runButton');
+    const runButton = document.getElementById('runButton') || document.getElementById('runCode');
     const consoleOutput = document.getElementById('consoleOutput');
     const languageSelect = document.getElementById('languageSelect');
 
