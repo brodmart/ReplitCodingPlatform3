@@ -4,6 +4,10 @@
 <!-- Required CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+<!-- Add CodeMirror addons CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
 
@@ -307,6 +311,46 @@
     .col-md-4, .col-md-8 {
         padding: 10px;  /* Add minimal padding for content spacing */
     }
+
+    /* Add styles for CodeMirror error markers and gutters */
+    .CodeMirror-lint-marker-error {
+        width: 16px;
+        height: 16px;
+        background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmMDAwMCI+PHBhdGggZD0iTTEyIDJDNi40NyAyIDIgNi40NyAyIDEyczQuNDcgMTAgMTAgMTAgMTAtNC40NyAxMC0xMFMxNy41MyAyIDEyIDJ6bTAgMThjLTQuNDEgMC04LTMuNTktOC04czMuNTktOCA4LTggOCAzLjU5IDggOC0zLjU5IDgtOCA4eiIvPjxwYXRoIGQ9Ik0xMiA2YzEuMSAwIDIgLjkgMiAycy0uOSAyLTIgMi0yLS45LTItMiAuOS0yIDItMnoiLz48L3N2Zz4=') no-repeat center center;
+        background-size: contain;
+    }
+
+    .CodeMirror-lint-marker-warning {
+        width: 16px;
+        height: 16px;
+        background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmYTUwMCI+PHBhdGggZD0iTTEgMjFoMjJMMTIgMiAxIDIxem0xMi0zaC0ydi0yaDJ2MnptMC00aC0ydi00aDJ2NHoiLz48L3N2Zz4=') no-repeat center center;
+        background-size: contain;
+    }
+
+    .line-error {
+        background-color: rgba(255, 0, 0, 0.1);
+    }
+
+    .line-warning {
+        background-color: rgba(255, 165, 0, 0.1);
+    }
+
+    .CodeMirror-foldgutter {
+        width: 16px;
+    }
+
+    .CodeMirror-foldgutter-open,
+    .CodeMirror-foldgutter-folded {
+        cursor: pointer;
+    }
+
+    .CodeMirror-foldgutter-open:after {
+        content: "\25BC";
+    }
+
+    .CodeMirror-foldgutter-folded:after {
+        content: "\25B6";
+    }
 </style>
 {% endblock %}
 
@@ -507,11 +551,19 @@
 <!-- Required scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+<!-- Add CodeMirror addons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <!-- Load console.js before editor.js -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
-
 <script>
 // Initialize lang variable from meta tag
 const lang = document.querySelector('meta[name="interface-lang"]').content;
@@ -564,7 +616,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         cm.replaceSelection("    ", "end");
                     }
                 }
-            }
+            },
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+            foldGutter: true
         });
     }
 
