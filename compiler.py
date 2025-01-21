@@ -37,11 +37,15 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     try:
         logger.debug(f"Attempting to compile and run {language} code")
         logger.debug(f"Code length: {len(code)} characters")
+        logger.debug(f"Code content:\n{code}")
 
         result = service_compile_and_run(code, language, input_data)
 
+        logger.debug(f"Compilation result: {result}")
+
         if not result.get('success', False):
             logger.error(f"Compilation/execution failed: {result.get('error', 'Unknown error')}")
+            logger.error(f"Full result: {result}")
 
         return result
 
