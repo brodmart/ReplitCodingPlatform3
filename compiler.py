@@ -22,13 +22,10 @@ from optimization_analyzer import ResourceMonitor, PerformanceOptimizer
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Global variables
-_compiler_warmed_up = False
-
-# Performance tuning constants
+# Constants
 MAX_COMPILATION_TIME = 10  # seconds
-MAX_EXECUTION_TIME = 5     # seconds
-MEMORY_LIMIT = 512        # MB
+MAX_EXECUTION_TIME = 5    # seconds
+MEMORY_LIMIT = 512       # MB
 COMPILER_CACHE_DIR = os.path.expanduser("~/.compiler_cache")
 MAX_WORKERS = os.cpu_count() or 4
 MAX_RETRIES = 2
@@ -428,9 +425,9 @@ def get_optimized_environment() -> Dict[str, str]:
     })
     return env
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None, files: Optional[List[str]] = None) -> Dict[str, Any]:
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Optimized compile and run with enhanced caching and parallel compilation
+    Optimized compile and run with proper process management
     """
     metrics = CompilationMetrics()
     logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
@@ -443,169 +440,95 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
         }
 
     try:
-        # Calculate code hash for caching
-        code_hash = calculate_code_hash(code)
-
-        # Try to get cached build
-        cached_dll = get_cached_build(code_hash)
-        if cached_dll:
-            logger.debug("Using cached build output")
-            metrics.log_status("Using cached build")
-            metrics['cached'] = True
-            return run_cached_build(cached_dll, input_data, metrics)
-
-        # Find dotnet installation
-        dotnet_root = find_dotnet_path()
-        if not dotnet_root:
-            return {
-                'success': False,
-                'error': "Could not find .NET SDK installation",
-                'metrics': metrics.to_dict()
-            }
-
-        # Enhanced environment setup
-        env = get_optimized_environment()
-
-        warmup_compiler()
-
-        with tempfile.TemporaryDirectory(prefix='compile_', dir=COMPILER_CACHE_DIR) as temp_dir:
+        with tempfile.TemporaryDirectory() as temp_dir:
             project_dir = Path(temp_dir)
             source_file = project_dir / "Program.cs"
             project_file = project_dir / "program.csproj"
-            bin_dir = project_dir / "bin" / "Release" / "net7.0" / "linux-x64"
-            os.makedirs(bin_dir, exist_ok=True)
 
             # Write source code
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(code)
 
-            # Create optimized project file with proper framework references
+            # Create project file
             project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-    <PublishSingleFile>false</PublishSingleFile>
+    <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-    <DebugType>none</DebugType>
-    <Optimize>true</Optimize>
-    <TieredCompilation>true</TieredCompilation>
-    <UseSystemResourceKeys>true</UseSystemResourceKeys>
-    <ServerGarbageCollection>true</ServerGarbageCollection>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="Program.cs" />
-    <FrameworkReference Include="Microsoft.NETCore.App" />
-  </ItemGroup>
 </Project>"""
 
             with open(project_file, 'w', encoding='utf-8') as f:
                 f.write(project_content)
 
             try:
-                compile_start = time.time()
-                dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
-
-                build_cmd = [
-                    dotnet_cmd, 'build',
-                    str(project_file),
-                    '--configuration', 'Release',
-                    '--runtime', 'linux-x64',
-                    '--no-self-contained',
-                    '-nologo',
-                    '-verbosity:quiet',
-                    '/p:GenerateFullPaths=true',
-                    '/p:EnableDefaultItems=true'
-                ]
-
-                logger.debug(f"Starting compilation with command: {' '.join(build_cmd)}")
-
-                metrics.log_status("Compilation started")
-                compile_process = subprocess.run(
-                    build_cmd,
+                # Build with timeout
+                logger.debug("Starting compilation")
+                build_process = subprocess.run(
+                    ['dotnet', 'build', str(project_file), '--nologo'],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(project_dir),
-                    env=env
+                    cwd=str(project_dir)
                 )
-                metrics.compilation_time = time.time() - compile_start
-                metrics.log_status("Compilation finished")
 
-                if compile_process.returncode != 0:
-                    error_msg = format_csharp_error(compile_process.stderr)
-                    logger.error(f"Compilation failed: {error_msg}")
+                if build_process.returncode != 0:
+                    logger.error(f"Build failed: {build_process.stderr}")
                     return {
                         'success': False,
-                        'error': error_msg,
+                        'error': build_process.stderr,
                         'metrics': metrics.to_dict()
                     }
 
-                # Verify output
-                dll_path = bin_dir / "program.dll"
-                if not dll_path.exists():
-                    return {
-                        'success': False,
-                        'error': "Build succeeded but no output found",
-                        'metrics': metrics.to_dict()
-                    }
-
-                # Save successful build to cache
-                save_to_build_cache(code_hash, dll_path)
-
-                # Run with optimized settings
-                run_cmd = [
-                    dotnet_cmd,
-                    str(dll_path),
-                    '--gc-server',
-                    '--tiered-compilation'
-                ]
-
-                logger.debug(f"Running program with command: {' '.join(run_cmd)}")
-                run_start = time.time()
-                metrics.log_status("Execution started")
-
-                run_process = subprocess.run(
-                    run_cmd,
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
+                # Run the compiled program with timeout
+                logger.debug("Starting program execution")
+                run_process = subprocess.Popen(
+                    ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                    stdin=subprocess.PIPE if input_data else None,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
                     text=True,
-                    timeout=MAX_EXECUTION_TIME,
                     cwd=str(project_dir),
-                    env=env
+                    preexec_fn=os.setsid  # Create new process group
                 )
 
-                metrics.execution_time = time.time() - run_start
-                metrics.log_status("Execution finished")
-                metrics['total_time'] = time.time() - metrics.start_time
+                try:
+                    stdout, stderr = run_process.communicate(
+                        input=input_data.encode() if input_data else None,
+                        timeout=MAX_EXECUTION_TIME
+                    )
 
-                if run_process.returncode != 0:
-                    error_msg = format_runtime_error(run_process.stderr)
-                    logger.error(f"Execution failed: {error_msg}")
+                    if run_process.returncode != 0:
+                        logger.error(f"Execution failed: {stderr}")
+                        return {
+                            'success': False,
+                            'error': stderr,
+                            'metrics': metrics.to_dict()
+                        }
+
                     return {
-                        'success': False,
-                        'error': error_msg,
+                        'success': True,
+                        'output': stdout,
                         'metrics': metrics.to_dict()
                     }
 
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'metrics': metrics.to_dict()
-                }
+                except subprocess.TimeoutExpired:
+                    # Kill the entire process group
+                    os.killpg(os.getpgid(run_process.pid), signal.SIGTERM)
+                    run_process.wait(timeout=1)
+                    logger.error("Execution timed out")
+                    return {
+                        'success': False,
+                        'error': "Execution timed out",
+                        'metrics': metrics.to_dict()
+                    }
 
-            except subprocess.TimeoutExpired as e:
-                phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
-                error_msg = f"{phase.capitalize()} timed out after {e.timeout} seconds"
-                logger.error(error_msg)
+            except subprocess.TimeoutExpired:
+                logger.error("Compilation timed out")
                 return {
                     'success': False,
-                    'error': error_msg,
+                    'error': "Compilation timed out",
                     'metrics': metrics.to_dict()
                 }
 
