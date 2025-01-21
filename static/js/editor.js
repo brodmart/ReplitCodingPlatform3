@@ -6,6 +6,10 @@ let lastExecution = 0;
 let isConsoleReady = false;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize console first
+    consoleInstance = new InteractiveConsole();
+    isConsoleReady = true;
+
     // Initialize CodeMirror with basic settings first
     const editorElement = document.getElementById('editor');
     if (!editorElement) {
@@ -76,8 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
             executeCode();
         }
     });
-
-    isConsoleReady = true;
 });
 
 function getTemplateForLanguage(language) {
@@ -155,11 +157,17 @@ async function executeCode() {
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
         }
 
+        // Clear previous output
+        if (consoleInstance) {
+            consoleInstance.clear();
+            consoleInstance.appendOutput('Compiling and running code...\n', 'console-info');
+        }
+
         const code = editor.getValue().trim();
         const language = languageSelect ? languageSelect.value : 'cpp';
 
         // Get CSRF token
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
         if (!csrfToken) {
             throw new Error('CSRF token not found');
         }
@@ -179,16 +187,21 @@ async function executeCode() {
         const result = await response.json();
 
         if (result.success) {
-            if (consoleOutput && result.output) {
-                consoleOutput.innerHTML = `<pre class="console-output">${escapeHtml(result.output)}</pre>`;
+            if (consoleInstance && result.output) {
+                // Clear the "Compiling..." message
+                consoleInstance.clear();
+
+                // Show compilation success and output
+                consoleInstance.appendOutput('Compilation successful\n', 'console-success');
+                consoleInstance.appendOutput(result.output);
             }
         } else {
             throw new Error(result.error || 'Failed to execute code');
         }
     } catch (error) {
         console.error('Error executing code:', error);
-        if (consoleOutput) {
-            consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(error.message)}</div>`;
+        if (consoleInstance) {
+            consoleInstance.setError(`Error: ${error.message}`);
         }
     } finally {
         isExecuting = false;
