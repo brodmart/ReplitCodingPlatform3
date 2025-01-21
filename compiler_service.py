@@ -352,41 +352,24 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     # Enhanced C# code preprocessing
                     modified_code = code
 
-                    # Check if code already has namespace and class
+                    # Check if code already has basic requirements
                     has_namespace = 'namespace' in code
-                    has_class = 'class Program' in code or 'class MainProgram' in code
+                    has_class = 'class' in code
                     has_using_system = 'using System;' in code
 
-                    # Build the code structure as needed
+                    # Only add using System if not present
                     if not has_using_system:
                         modified_code = "using System;\n" + modified_code
 
+                    # Only wrap in namespace and class if neither exists
                     if not has_namespace and not has_class:
-                        # Wrap in both namespace and class if neither exists
-                        modified_code = f"""namespace ConsoleApp
+                        modified_code = f"""namespace ConsoleApp 
 {{
-    class MainProgram
+    class Program 
     {{
         {modified_code}
     }}
 }}"""
-                    elif not has_namespace:
-                        # Wrap only in namespace if class exists
-                        modified_code = f"""namespace ConsoleApp
-{{
-    {modified_code}
-}}"""
-                    elif not has_class:
-                        # Wrap only in class if namespace exists
-                        modified_code = modified_code.replace("namespace", """class MainProgram
-    {
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Hello World!");
-        }
-    }
-
-namespace""")
 
                     # Write the code with proper encoding
                     with open(source_file, 'w', encoding='utf-8') as f:
@@ -423,8 +406,6 @@ namespace""")
                     env['MONO_IOMAP'] = 'all'
                     env['MONO_TRACE_LISTENER'] = 'Console.Out'
                     env['MONO_DEBUG'] = 'handle-sigint'
-                    env['MONO_THREADS_PER_CPU'] = '2'
-                    env['MONO_GC_PARAMS'] = 'mode=throughput'
 
                     # Run with mono
                     process = subprocess.Popen(
@@ -433,14 +414,9 @@ namespace""")
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
-                        bufsize=1,
                         env=env,
                         preexec_fn=os.setsid
                     )
-
-                    # Set up process monitor
-                    monitor = ProcessMonitor(process, timeout=30)
-                    monitor.start()
 
                 except subprocess.TimeoutExpired as e:
                     return {
@@ -491,9 +467,6 @@ namespace""")
                         'error': "Execution timeout after 30 seconds"
                     }
                 finally:
-                    if 'monitor' in locals():
-                        monitor.stop()
-                        monitor.join()
                     try:
                         if process.poll() is None:
                             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
@@ -555,6 +528,7 @@ namespace""")
                         'success': False,
                         'error': f"C++ compilation error: {str(e)}"
                     }
+                
 
             else:
                 return {

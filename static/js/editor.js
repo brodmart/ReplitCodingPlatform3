@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = languageSelect.value;
+            console.log('Language changed to:', language);
 
             // Set appropriate mode for CodeMirror
             if (language === 'cpp') {
@@ -104,11 +105,14 @@ int main() {
     } else if (language === 'csharp') {
         return `using System;
 
-class Program 
+namespace ConsoleApp 
 {
-    static void Main(string[] args)
+    class Program 
     {
-        Console.WriteLine("Hello World!");
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+        }
     }
 }`;
     }
@@ -128,16 +132,15 @@ async function executeCode() {
 
     const runButton = document.getElementById('runButton');
     const consoleOutput = document.getElementById('consoleOutput');
-    const consoleInput = document.getElementById('consoleInput');
     const languageSelect = document.getElementById('languageSelect');
 
     try {
+        isExecuting = true;
         if (runButton) {
             runButton.disabled = true;
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
         }
 
-        isExecuting = true;
         const code = editor.getValue().trim();
         const language = languageSelect ? languageSelect.value : 'cpp';
 
@@ -196,21 +199,6 @@ async function executeCode() {
             runButton.innerHTML = 'Run';
         }
     }
-}
-
-// Helper function to format C# errors
-function formatCSharpError(errorMsg) {
-    try {
-        // Extract line number and error message
-        const match = errorMsg.match(/\((\d+),(\d+)\):\s*(error\s*CS\d+):\s*(.+)/);
-        if (match) {
-            const [_, line, column, errorCode, message] = match;
-            return `${errorCode} at line ${line}, column ${column}:\n${message}`;
-        }
-    } catch (e) {
-        console.error('Error formatting C# error:', e);
-    }
-    return errorMsg;
 }
 
 // Helper function to escape HTML
