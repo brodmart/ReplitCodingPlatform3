@@ -1,6 +1,7 @@
 import time
 from compiler import compile_and_run
 import logging
+import os
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -43,5 +44,55 @@ def test_compilation_performance():
         logger.info(f"Best time: {min(compilation_times):.2f}s")
         logger.info(f"Worst time: {max(compilation_times):.2f}s")
 
+
+def test_parallel_compilation_performance():
+    """Test the performance of parallel compilation with multiple files"""
+    logger.info("Starting parallel compilation performance test")
+
+    # Create multiple test files with different content
+    test_files = []
+    for i in range(3):
+        filename = f'test_parallel_{i}.cs'
+        with open(filename, 'w') as f:
+            f.write(f"""
+using System;
+class Program_{i} {{
+    static void Main() {{
+        Console.WriteLine("Test program {i}");
+        for(int j = 0; j < {i+1}*1000; j++) {{
+            Math.Pow(j, 2);
+        }}
+    }}
+}}
+""")
+        test_files.append(filename)
+
+    try:
+        # Test parallel compilation
+        start_time = time.time()
+        results = compile_and_run_parallel(test_files, 'csharp')
+        end_time = time.time()
+
+        total_time = end_time - start_time
+        logger.info(f"Parallel compilation completed in {total_time:.2f}s")
+
+        # Log individual file results
+        for i, result in enumerate(results):
+            if result['success']:
+                logger.info(f"File {i+1} compilation metrics:")
+                logger.info(f"Compilation time: {result['metrics']['compilation_time']:.2f}s")
+                logger.info(f"Execution time: {result['metrics']['execution_time']:.2f}s")
+            else:
+                logger.error(f"File {i+1} failed: {result['error']}")
+
+    finally:
+        # Cleanup test files
+        for file in test_files:
+            try:
+                os.remove(file)
+            except:
+                pass
+
 if __name__ == "__main__":
-    test_compilation_performance()
+    test_compilation_performance()  # Run original test
+    test_parallel_compilation_performance()  # Run parallel test

@@ -148,9 +148,9 @@ class ProcessMonitor(Thread):
         self.stopped.set()
         self._terminate_process()
 
-def run_parallel_compilation(cmd: list, cwd: str, env: dict, timeout: int, retry_count: int = 0) -> subprocess.CompletedProcess:
-    """Run compilation in parallel using process pool with retry mechanism"""
-    def compile_worker():
+def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, timeout: int, retry_count: int = 0) -> List[subprocess.CompletedProcess]:
+    """Run compilation in parallel for multiple files using process pool with retry mechanism"""
+    def compile_worker(cmd: list):
         try:
             process = subprocess.Popen(
                 cmd,
@@ -185,15 +185,32 @@ def run_parallel_compilation(cmd: list, cwd: str, env: dict, timeout: int, retry
             raise
 
     try:
-        with ProcessPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(compile_worker)
-            return future.result(timeout=timeout)
-    except TimeoutError:
-        if retry_count < MAX_RETRIES:
-            logger.warning(f"Compilation timeout, retrying ({retry_count + 1}/{MAX_RETRIES})")
-            time.sleep(1)  # Add small delay before retry
-            return run_parallel_compilation(cmd, cwd, env, timeout, retry_count + 1)
-        raise subprocess.TimeoutExpired(cmd, timeout)
+        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            futures = []
+            for file_path in files_to_compile:
+                cmd = [
+                    'dotnet', 'build',
+                    file_path,
+                    '--configuration', 'Release',
+                    '--runtime', 'linux-x64',
+                    '--no-self-contained'
+                ]
+                futures.append(executor.submit(compile_worker, cmd))
+
+            results = []
+            for future in futures:
+                try:
+                    results.append(future.result(timeout=timeout))
+                except TimeoutError:
+                    if retry_count < MAX_RETRIES:
+                        logger.warning(f"Compilation timeout, retrying ({retry_count + 1}/{MAX_RETRIES})")
+                        time.sleep(1)
+                        return run_parallel_compilation(files_to_compile, cwd, env, timeout, retry_count + 1)
+                    raise subprocess.TimeoutExpired(cmd, timeout)
+            return results
+    except Exception as e:
+        logger.error(f"Parallel compilation failed: {e}")
+        raise
 
 def create_response_file(file_path: str, options: list) -> None:
     """Create a compiler response file with cached options"""
@@ -347,7 +364,7 @@ def get_optimized_environment() -> Dict[str, str]:
     })
     return env
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None, files: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Optimized compile and run with enhanced caching and parallel compilation
     """
@@ -389,18 +406,60 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
         with tempfile.TemporaryDirectory(prefix='compile_', dir=COMPILER_CACHE_DIR) as temp_dir:
             if language == 'csharp':
-                project_dir = Path(temp_dir)
-                source_file = project_dir / "Program.cs"
-                project_file = project_dir / "program.csproj"
-                bin_dir = project_dir / "bin" / "Release" / "net7.0" / "linux-x64"
-                os.makedirs(bin_dir, exist_ok=True)
+                if files: #Handle multiple files
+                    try:
+                        metrics.log_status("Parallel compilation started")
+                        compile_start = time.time()
+                        results = run_parallel_compilation(files, temp_dir, env, MAX_COMPILATION_TIME)
+                        metrics.compilation_time = time.time() - compile_start
+                        metrics.log_status("Parallel compilation finished")
 
-                # Write source code
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
+                        failed_builds = [res for res in results if res.returncode != 0]
+                        if failed_builds:
+                            error_msgs = [format_csharp_error(res.stderr) for res in failed_builds]
+                            return {
+                                'success': False,
+                                'error': f"Compilation failed: {', '.join(error_msgs)}",
+                                'metrics': metrics.to_dict()
+                            }
+                        #Assume only one dll per file, needs improvement for more robust handling
+                        dll_path = Path(temp_dir) / "bin" / "Release" / "net7.0" / "linux-x64" / "program.dll"
+                        if not dll_path.exists():
+                            return {
+                                'success': False,
+                                'error': "Build succeeded but no output found",
+                                'metrics': metrics.to_dict()
+                            }
+                        save_to_build_cache(code_hash, dll_path)
+                        return run_cached_build(str(dll_path), input_data, metrics)
+                    except subprocess.TimeoutExpired as e:
+                        error_msg = f"Compilation timed out after {e.timeout} seconds"
+                        logger.error(error_msg)
+                        return {
+                            'success': False,
+                            'error': error_msg,
+                            'metrics': metrics.to_dict()
+                        }
+                    except Exception as e:
+                        logger.error(f"Parallel compilation error: {e}")
+                        return {
+                            'success': False,
+                            'error': str(e),
+                            'metrics': metrics.to_dict()
+                        }
+                else: #Handle single file case as before
+                    project_dir = Path(temp_dir)
+                    source_file = project_dir / "Program.cs"
+                    project_file = project_dir / "program.csproj"
+                    bin_dir = project_dir / "bin" / "Release" / "net7.0" / "linux-x64"
+                    os.makedirs(bin_dir, exist_ok=True)
 
-                # Create optimized project file
-                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                    # Write source code
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
+
+                    # Create optimized project file
+                    project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
@@ -431,134 +490,134 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
   </ItemGroup>
 </Project>"""
 
-                with open(project_file, 'w', encoding='utf-8') as f:
-                    f.write(project_content)
+                    with open(project_file, 'w', encoding='utf-8') as f:
+                        f.write(project_content)
 
-                try:
-                    compile_start = time.time()
-                    dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
+                    try:
+                        compile_start = time.time()
+                        dotnet_cmd = os.path.join(dotnet_root, 'dotnet')
 
-                    # Create response file with compiler options
-                    compiler_options = [
-                        '/nowarn:CS1701,CS1702,CS1705,CS1591',
-                        '/warnaserror-',
-                        '/incremental-',
-                        '/deterministic-',
-                        '/parallel+',
-                        '/debug-',
-                        '/optimize+',
-                        '/langversion:latest'
-                    ]
-                    response_file = get_cached_response_file(compiler_options)
+                        # Create response file with compiler options
+                        compiler_options = [
+                            '/nowarn:CS1701,CS1702,CS1705,CS1591',
+                            '/warnaserror-',
+                            '/incremental-',
+                            '/deterministic-',
+                            '/parallel+',
+                            '/debug-',
+                            '/optimize+',
+                            '/langversion:latest'
+                        ]
+                        response_file = get_cached_response_file(compiler_options)
 
-                    # Fast compilation with minimal restore
-                    build_cmd = [
-                        dotnet_cmd, 'publish',
-                        str(project_file),
-                        '--configuration', 'Release',
-                        '--runtime', 'linux-x64',
-                        '--no-self-contained',
-                        '--output', str(bin_dir),
-                        '-nologo',
-                        '-maxcpucount:4',
-                        f'@{response_file}',
-                        '/p:GenerateFullPaths=true',
-                        '/p:UseAppHost=false',
-                        '/p:EnableDefaultCompileItems=false',
-                        '/p:SkipCompilerExecution=false',
-                        '/p:ContinuousIntegrationBuild=true',
-                        '/p:GenerateAssemblyInfo=false',
-                        '/p:WarningLevel=0',
-                        '/p:RestoreDisableParallel=false',
-                        '/p:RestoreUseSkipNonexistentTargets=true',
-                        '/p:UseSharedCompilation=true',
-                        '/p:BuildInParallel=true',
-                        '/p:DisableImplicitNuGetFallbackFolder=true'
-                    ]
+                        # Fast compilation with minimal restore
+                        build_cmd = [
+                            dotnet_cmd, 'publish',
+                            str(project_file),
+                            '--configuration', 'Release',
+                            '--runtime', 'linux-x64',
+                            '--no-self-contained',
+                            '--output', str(bin_dir),
+                            '-nologo',
+                            '-maxcpucount:4',
+                            f'@{response_file}',
+                            '/p:GenerateFullPaths=true',
+                            '/p:UseAppHost=false',
+                            '/p:EnableDefaultCompileItems=false',
+                            '/p:SkipCompilerExecution=false',
+                            '/p:ContinuousIntegrationBuild=true',
+                            '/p:GenerateAssemblyInfo=false',
+                            '/p:WarningLevel=0',
+                            '/p:RestoreDisableParallel=false',
+                            '/p:RestoreUseSkipNonexistentTargets=true',
+                            '/p:UseSharedCompilation=true',
+                            '/p:BuildInParallel=true',
+                            '/p:DisableImplicitNuGetFallbackFolder=true'
+                        ]
 
-                    logger.debug(f"Starting compilation with command: {' '.join(build_cmd)}")
+                        logger.debug(f"Starting compilation with command: {' '.join(build_cmd)}")
 
-                    # Run compilation in parallel process with retry and monitoring
-                    metrics.log_status("Compilation started")
-                    compile_process = run_parallel_compilation(
-                        build_cmd,
-                        str(project_dir),
-                        env,
-                        MAX_COMPILATION_TIME
-                    )
-                    metrics.compilation_time = time.time() - compile_start
-                    metrics.log_status("Compilation finished")
+                        # Run compilation in parallel process with retry and monitoring
+                        metrics.log_status("Compilation started")
+                        compile_process = run_parallel_compilation(
+                            [str(project_file)], #Passing as a single element list
+                            str(project_dir),
+                            env,
+                            MAX_COMPILATION_TIME
+                        )
+                        metrics.compilation_time = time.time() - compile_start
+                        metrics.log_status("Compilation finished")
 
-                    if compile_process.returncode != 0:
-                        error_msg = format_csharp_error(compile_process.stderr)
-                        logger.error(f"Compilation failed: {error_msg}")
+                        if compile_process[0].returncode != 0:
+                            error_msg = format_csharp_error(compile_process[0].stderr)
+                            logger.error(f"Compilation failed: {error_msg}")
+                            return {
+                                'success': False,
+                                'error': error_msg,
+                                'metrics': metrics.to_dict()
+                            }
+
+                        # Verify output
+                        dll_path = bin_dir / "program.dll"
+                        if not dll_path.exists():
+                            return {
+                                'success': False,
+                                'error': "Build succeeded but no output found",
+                                'metrics': metrics.to_dict()
+                            }
+
+                        # Save successful build to cache
+                        save_to_build_cache(code_hash, dll_path)
+
+                        # Run with optimized settings
+                        run_cmd = [
+                            dotnet_cmd,
+                            str(dll_path),
+                            '--gc-server',
+                            '--tiered-compilation'
+                        ]
+
+                        logger.debug(f"Running program with command: {' '.join(run_cmd)}")
+                        run_start = time.time()
+                        metrics.log_status("Execution started")
+
+                        run_process = subprocess.run(
+                            run_cmd,
+                            input=input_data.encode() if input_data else None,
+                            capture_output=True,
+                            text=True,
+                            timeout=MAX_EXECUTION_TIME,
+                            cwd=str(project_dir),
+                            env=env
+                        )
+                        metrics.execution_time = time.time() - run_start
+                        metrics.log_status("Execution finished")
+                        metrics['total_time'] = time.time() - metrics.start_time
+
+                        if run_process.returncode != 0:
+                            error_msg = format_runtime_error(run_process.stderr)
+                            logger.error(f"Execution failed: {error_msg}")
+                            return {
+                                'success': False,
+                                'error': error_msg,
+                                'metrics': metrics.to_dict()
+                            }
+
+                        return {
+                            'success': True,
+                            'output': run_process.stdout,
+                            'metrics': metrics.to_dict()
+                        }
+
+                    except subprocess.TimeoutExpired as e:
+                        phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
+                        error_msg = f"{phase.capitalize()} timed out after {e.timeout} seconds"
+                        logger.error(error_msg)
                         return {
                             'success': False,
                             'error': error_msg,
                             'metrics': metrics.to_dict()
                         }
-
-                    # Verify output
-                    dll_path = bin_dir / "program.dll"
-                    if not dll_path.exists():
-                        return {
-                            'success': False,
-                            'error': "Build succeeded but no output found",
-                            'metrics': metrics.to_dict()
-                        }
-
-                    # Save successful build to cache
-                    save_to_build_cache(code_hash, dll_path)
-
-                    # Run with optimized settings
-                    run_cmd = [
-                        dotnet_cmd,
-                        str(dll_path),
-                        '--gc-server',
-                        '--tiered-compilation'
-                    ]
-
-                    logger.debug(f"Running program with command: {' '.join(run_cmd)}")
-                    run_start = time.time()
-                    metrics.log_status("Execution started")
-
-                    run_process = subprocess.run(
-                        run_cmd,
-                        input=input_data.encode() if input_data else None,
-                        capture_output=True,
-                        text=True,
-                        timeout=MAX_EXECUTION_TIME,
-                        cwd=str(project_dir),
-                        env=env
-                    )
-                    metrics.execution_time = time.time() - run_start
-                    metrics.log_status("Execution finished")
-                    metrics['total_time'] = time.time() - metrics.start_time
-
-                    if run_process.returncode != 0:
-                        error_msg = format_runtime_error(run_process.stderr)
-                        logger.error(f"Execution failed: {error_msg}")
-                        return {
-                            'success': False,
-                            'error': error_msg,
-                            'metrics': metrics.to_dict()
-                        }
-
-                    return {
-                        'success': True,
-                        'output': run_process.stdout,
-                        'metrics': metrics.to_dict()
-                    }
-
-                except subprocess.TimeoutExpired as e:
-                    phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
-                    error_msg = f"{phase.capitalize()} timed out after {e.timeout} seconds"
-                    logger.error(error_msg)
-                    return {
-                        'success': False,
-                        'error': error_msg,
-                        'metrics': metrics.to_dict()
-                    }
 
             else:
                 return {
