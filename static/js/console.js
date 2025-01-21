@@ -3,38 +3,30 @@
  */
 class InteractiveConsole {
     constructor() {
-        console.log('Initializing InteractiveConsole');
         this.outputBuffer = [];
         this.inputHistory = [];
         this.historyIndex = -1;
         this.currentInput = '';
-        this.isWaitingForInput = false;
-        this.inputCallback = null;
+
         this.consoleElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
-        this.isExecuting = false;
 
-        // Initialize console if elements exist
-        if (this.consoleElement && this.inputElement) {
-            this.setupEventListeners();
-            this.clear();
-            console.log('Console initialized successfully');
-        } else {
-            console.error('Console elements not found:', {
-                consoleElement: !!this.consoleElement,
-                inputElement: !!this.inputElement
-            });
+        if (!this.consoleElement || !this.inputElement) {
+            console.error('Failed to initialize console - elements not found');
+            return;
         }
+
+        this.setupEventListeners();
+        this.clear();
     }
 
     setupEventListeners() {
-        if (!this.inputElement) return;
-
+        // Input handling
         this.inputElement.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                const input = this.inputElement.value;
-                if (input.trim()) {
+                const input = this.inputElement.value.trim();
+                if (input) {
                     this.handleInput(input);
                 }
             } else if (e.key === 'ArrowUp') {
@@ -46,7 +38,7 @@ class InteractiveConsole {
             }
         });
 
-        // Clear console button handler
+        // Clear button
         const clearButton = document.getElementById('clearConsole');
         if (clearButton) {
             clearButton.addEventListener('click', () => this.clear());
@@ -54,7 +46,7 @@ class InteractiveConsole {
     }
 
     navigateHistory(direction) {
-        if (!this.inputElement || this.inputHistory.length === 0) return;
+        if (!this.inputHistory.length) return;
 
         if (this.historyIndex === -1) {
             this.currentInput = this.inputElement.value;
@@ -74,15 +66,11 @@ class InteractiveConsole {
     }
 
     appendOutput(text, className = '') {
-        if (!this.consoleElement) {
-            console.error('Console element not found when appending output');
-            return;
-        }
+        if (!this.consoleElement) return;
 
         const line = document.createElement('div');
         line.className = `console-line ${className}`;
 
-        // Handle different types of output
         if (typeof text === 'object') {
             line.textContent = JSON.stringify(text, null, 2);
         } else {
@@ -92,16 +80,9 @@ class InteractiveConsole {
         this.consoleElement.appendChild(line);
         this.consoleElement.scrollTop = this.consoleElement.scrollHeight;
         this.outputBuffer.push({ text, className });
-
-        // Enable input after output unless we're still executing
-        if (!this.isExecuting) {
-            this.enable();
-        }
     }
 
     handleInput(input) {
-        if (!this.inputElement) return;
-
         // Add to history if not empty and different from last entry
         if (input && (!this.inputHistory.length || this.inputHistory[this.inputHistory.length - 1] !== input)) {
             this.inputHistory.push(input);
@@ -111,39 +92,18 @@ class InteractiveConsole {
         this.historyIndex = -1;
 
         // Echo input with prompt
-        this.appendOutput(`> ${input}`, 'console-input');
+        this.appendOutput(`> ${input}`, 'input');
 
         // Clear input field
         this.inputElement.value = '';
-
-        // Call callback if exists
-        if (this.inputCallback) {
-            this.inputCallback(input);
-            this.inputCallback = null;
-        }
-
-        this.isWaitingForInput = false;
-    }
-
-    async getInput(prompt = '> ') {
-        if (!this.inputElement) return null;
-
-        this.appendOutput(prompt, 'console-prompt');
-        this.isWaitingForInput = true;
-        this.enable();
-        this.inputElement.focus();
-
-        return new Promise(resolve => {
-            this.inputCallback = resolve;
-        });
     }
 
     setError(message) {
-        this.appendOutput(message, 'console-error');
+        this.appendOutput(message, 'error');
     }
 
     setSuccess(message) {
-        this.appendOutput(message, 'console-success');
+        this.appendOutput(message, 'success');
     }
 
     clear() {
@@ -153,21 +113,19 @@ class InteractiveConsole {
         }
     }
 
-    disable() {
-        if (this.inputElement) {
-            this.inputElement.disabled = true;
-            this.isExecuting = true;
-        }
-    }
-
     enable() {
         if (this.inputElement) {
             this.inputElement.disabled = false;
-            this.isExecuting = false;
             this.inputElement.focus();
+        }
+    }
+
+    disable() {
+        if (this.inputElement) {
+            this.inputElement.disabled = true;
         }
     }
 }
 
-// Export the console to window object
+// Export to window object
 window.InteractiveConsole = InteractiveConsole;
