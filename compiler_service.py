@@ -1,6 +1,6 @@
 """
 Compiler service for code execution and testing.
-Enhanced for large code files and interactive console support.
+Enhanced for large code files and interactive console support with detailed logging.
 """
 import subprocess
 import tempfile
@@ -18,73 +18,102 @@ from threading import Thread, Event, Lock
 import select
 import io
 
-# Configure logging
+# Configure detailed logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Add new process monitoring class
+# Performance monitoring constants
+MAX_COMPILATION_TIME = 30  # seconds
+MAX_EXECUTION_TIME = 30   # seconds
+MEMORY_LIMIT = 512       # MB
+
+class CompilationMetrics:
+    """Track compilation and execution metrics"""
+    def __init__(self):
+        self.start_time = time.time()
+        self.compilation_time = 0
+        self.execution_time = 0
+        self.peak_memory = 0
+        self.status_updates = []
+
+    def log_status(self, status: str):
+        current_time = time.time() - self.start_time
+        self.status_updates.append((current_time, status))
+        logger.debug(f"[{current_time:.2f}s] {status}")
+
+# Enhanced process monitor
 class ProcessMonitor(Thread):
-    def __init__(self, process, timeout=30):
+    def __init__(self, process, timeout=30, memory_limit_mb=512):
         super().__init__()
         self.process = process
         self.timeout = timeout
-        self.start_time = time.time()
+        self.memory_limit = memory_limit_mb * 1024 * 1024  # Convert to bytes
+        self.metrics = CompilationMetrics()
         self.stopped = Event()
-        self.compilation_complete = Event()
-        self.progress = 0
 
     def run(self):
         while not self.stopped.is_set():
-            if time.time() - self.start_time > self.timeout:
-                try:
-                    if self.process.poll() is None:
-                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                except:
-                    pass
-                break
             try:
-                proc = psutil.Process(self.process.pid)
-                cpu_percent = proc.cpu_percent(interval=0.1)
-                mem_percent = proc.memory_percent()
-
-                if cpu_percent > 90 or mem_percent > 90:
-                    logger.warning(f"Resource usage too high: CPU {cpu_percent}%, Memory {mem_percent}%")
-                    try:
-                        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-                    except:
-                        pass
+                if time.time() - self.metrics.start_time > self.timeout:
+                    self.metrics.log_status("Process timed out")
+                    self._terminate_process()
                     break
-            except:
+
+                if self.process.poll() is not None:
+                    break
+
+                proc = psutil.Process(self.process.pid)
+                memory_info = proc.memory_info()
+                cpu_percent = proc.cpu_percent(interval=0.1)
+
+                self.metrics.peak_memory = max(self.metrics.peak_memory, memory_info.rss)
+
+                if memory_info.rss > self.memory_limit:
+                    self.metrics.log_status(f"Memory limit exceeded: {memory_info.rss / (1024*1024):.1f}MB")
+                    self._terminate_process()
+                    break
+
+                if cpu_percent > 90:
+                    self.metrics.log_status(f"High CPU usage: {cpu_percent}%")
+
+            except Exception as e:
+                logger.error(f"Monitor error: {str(e)}")
                 break
             time.sleep(0.1)
 
+    def _terminate_process(self):
+        try:
+            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+        except:
+            if self.process.poll() is None:
+                self.process.terminate()
+
     def stop(self):
         self.stopped.set()
+        self._terminate_process()
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced compile and run function with optimizations for large code files"""
+    """Enhanced compile and run function with detailed metrics and optimization for large C# files"""
+    metrics = CompilationMetrics()
+
     if not code or not language:
-        logger.error("Invalid input parameters: code or language is missing")
         return {
             'success': False,
-            'output': '',
             'error': "Code and language are required"
         }
 
     try:
-        logger.debug(f"Attempting to compile and run {language} code")
+        metrics.log_status("Starting compilation process")
         logger.debug(f"Code length: {len(code)} characters")
-        logger.debug(f"Code content:\n{code}")
 
-        # Create temporary directory with proper cleanup
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
-            process = None
             monitor = None
+            process = None
 
             try:
                 if language.lower() == 'csharp':
-                    # Enhanced C# compilation
+                    metrics.log_status("Processing C# code")
                     source_file = temp_path / "program.cs"
                     executable = temp_path / "program.exe"
 
@@ -92,21 +121,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     with open(source_file, 'w', encoding='utf-8') as f:
                         f.write(code)
 
-                    # Optimized compilation command for large code
+                    metrics.log_status("Starting C# compilation")
+
+                    # Optimized compilation command
                     compile_cmd = [
                         'mcs',
                         '-optimize+',
                         '-debug-',
-                        '-sdk:4.5',
-                        '-parallel',
-                        '+',
-                        '-unsafe+',  # Enable unsafe code for better performance
-                        '-langversion:latest',  # Use latest C# features
+                        '-unsafe+',
+                        '-langversion:latest',
+                        '-parallel+',
                         str(source_file),
                         '-out:' + str(executable)
                     ]
 
-                    # Start compilation with monitoring
                     compile_process = subprocess.Popen(
                         compile_cmd,
                         stdout=subprocess.PIPE,
@@ -115,28 +143,36 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                    monitor = ProcessMonitor(compile_process, timeout=60)  # Increased timeout
+                    monitor = ProcessMonitor(compile_process, timeout=MAX_COMPILATION_TIME)
                     monitor.start()
 
                     stdout, stderr = compile_process.communicate()
+                    metrics.compilation_time = time.time() - metrics.start_time
 
                     if compile_process.returncode != 0:
-                        logger.error(f"Compilation failed: {stderr}")
+                        metrics.log_status(f"Compilation failed: {stderr}")
                         return {
                             'success': False,
-                            'error': format_csharp_error(stderr)
+                            'error': format_csharp_error(stderr),
+                            'metrics': {
+                                'compilation_time': metrics.compilation_time,
+                                'peak_memory': monitor.metrics.peak_memory / (1024*1024),
+                                'status_updates': metrics.status_updates
+                            }
                         }
 
-                    # Set executable permissions
+                    metrics.log_status("Compilation successful")
                     os.chmod(executable, 0o755)
 
-                    # Enhanced Mono runtime environment
+                    # Optimized Mono runtime environment
                     env = os.environ.copy()
-                    env['MONO_GC_PARAMS'] = 'major=marksweep-par,minor=split,max-heap-size=2g'
-                    env['MONO_THREADS_PER_CPU'] = '4'
-                    env['MONO_MIN_HEAP_SIZE'] = '256M'
+                    env['MONO_GC_PARAMS'] = 'major=marksweep-par,nursery-size=64m'
+                    env['MONO_THREADS_PER_CPU'] = '2'
+                    env['MONO_MIN_HEAP_SIZE'] = '128M'
+                    env['MONO_MAX_HEAP_SIZE'] = f'{MEMORY_LIMIT}M'
 
-                    # Run the compiled program
+                    metrics.log_status("Starting program execution")
+
                     process = subprocess.Popen(
                         ['mono', '--server', '-O=all', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
@@ -147,22 +183,35 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                    monitor.compilation_complete.set()
-                    stdout, stderr = process.communicate(
-                        input=input_data,
-                        timeout=30
-                    )
+                    monitor = ProcessMonitor(process, timeout=MAX_EXECUTION_TIME)
+                    monitor.start()
+
+                    stdout, stderr = process.communicate(input=input_data)
+                    metrics.execution_time = time.time() - (metrics.start_time + metrics.compilation_time)
 
                     if stderr:
-                        logger.error(f"Runtime error: {stderr}")
+                        metrics.log_status(f"Runtime error: {stderr}")
                         return {
                             'success': False,
-                            'error': format_runtime_error(stderr)
+                            'error': format_runtime_error(stderr),
+                            'metrics': {
+                                'compilation_time': metrics.compilation_time,
+                                'execution_time': metrics.execution_time,
+                                'peak_memory': monitor.metrics.peak_memory / (1024*1024),
+                                'status_updates': metrics.status_updates
+                            }
                         }
 
+                    metrics.log_status("Execution completed successfully")
                     return {
                         'success': True,
-                        'output': stdout.strip() if stdout else ""
+                        'output': stdout.strip() if stdout else "",
+                        'metrics': {
+                            'compilation_time': metrics.compilation_time,
+                            'execution_time': metrics.execution_time,
+                            'peak_memory': monitor.metrics.peak_memory / (1024*1024),
+                            'status_updates': metrics.status_updates
+                        }
                     }
 
                 elif language.lower() == 'cpp':
@@ -217,11 +266,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                    monitor.compilation_complete.set()
-                    stdout, stderr = process.communicate(
-                        input=input_data,
-                        timeout=30
-                    )
+                    monitor = ProcessMonitor(process, timeout=30)
+                    monitor.start()
+                    stdout, stderr = process.communicate(input=input_data)
 
                     if stderr and stderr.strip():
                         return {
@@ -235,33 +282,31 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
             except subprocess.TimeoutExpired:
-                logger.error("Compilation/execution timeout")
-                if process and process.poll() is None:
-                    try:
-                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                    except:
-                        pass
+                metrics.log_status("Process timed out")
                 return {
                     'success': False,
-                    'error': "Process timed out. Check for infinite loops or excessive computation."
+                    'error': "Process timed out. Check for infinite loops or excessive computation.",
+                    'metrics': {
+                        'compilation_time': metrics.compilation_time,
+                        'peak_memory': monitor.metrics.peak_memory if monitor else 0,
+                        'status_updates': metrics.status_updates
+                    }
                 }
 
             finally:
                 if monitor:
                     monitor.stop()
-                if process and process.poll() is None:
-                    try:
-                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                    except:
-                        pass
 
     except Exception as e:
         logger.error(f"Unexpected error: {str(e)}")
         logger.error(traceback.format_exc())
         return {
             'success': False,
-            'output': '',
-            'error': f"Compilation error: {str(e)}"
+            'error': f"Compilation error: {str(e)}",
+            'metrics': {
+                'compilation_time': metrics.compilation_time,
+                'status_updates': metrics.status_updates
+            }
         }
 
 def format_csharp_error(error_msg: str) -> str:
@@ -272,34 +317,41 @@ def format_csharp_error(error_msg: str) -> str:
             if len(parts) > 1:
                 error_code = parts[0].split("error CS")[1].strip()
                 error_desc = parts[1].strip()
+                line_num = error_msg.split('(')[1].split(',')[0]
 
-                # Common error codes and friendly messages
-                error_messages = {
+                common_errors = {
                     "1525": "Code structure issue. Check for missing semicolons or braces.",
-                    "1002": "Syntax Error: Missing closing curly brace '}'",
-                    "1001": "Syntax Error: Missing opening curly brace '{'",
+                    "1002": "Missing closing curly brace '}'",
+                    "1001": "Missing opening curly brace '{'",
                     "0117": "Method must have a return type. Did you forget 'void' or 'int'?",
                     "0161": "'Console.WriteLine' can only be used inside a method",
-                    "0103": "Name does not exist in current context. Check for typos."
+                    "0103": "Name does not exist in current context. Check for typos.",
+                    "0234": "Missing using directive or assembly reference",
+                    "0246": "Missing required namespace declaration"
                 }
 
-                friendly_msg = error_messages.get(error_code, error_desc)
-                line_num = error_msg.split('(')[1].split(',')[0]
-                return f"Error at line {line_num}: {friendly_msg}"
+                friendly_msg = common_errors.get(error_code, error_desc)
+                return f"Line {line_num}: {friendly_msg}"
 
         return error_msg
-    except Exception:
+    except:
         return error_msg
 
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors to be more user-friendly"""
-    if "System.NullReferenceException" in error_msg:
-        return "Runtime Error: Attempted to use a null object. Check if all variables are initialized."
-    elif "System.IndexOutOfRangeException" in error_msg:
-        return "Runtime Error: Array index out of bounds. Check array access."
-    elif "System.DivideByZeroException" in error_msg:
-        return "Runtime Error: Division by zero detected."
-    return error_msg
+    common_errors = {
+        "System.NullReferenceException": "Attempted to use a null object. Check if all variables are initialized.",
+        "System.IndexOutOfRangeException": "Array index out of bounds. Check array access.",
+        "System.DivideByZeroException": "Division by zero detected.",
+        "System.StackOverflowException": "Stack overflow. Check for infinite recursion.",
+        "System.OutOfMemoryException": "Out of memory. Reduce data size or optimize memory usage."
+    }
+
+    for error_type, message in common_errors.items():
+        if error_type in error_msg:
+            return f"Runtime Error: {message}"
+
+    return f"Runtime Error: {error_msg}"
 
 def format_execution_error(error_msg: str) -> str:
     """Format general execution errors to be more user-friendly"""

@@ -16,7 +16,7 @@ curriculum_checker = CurriculumChecker()
 @activities_bp.route('/activities/execute', methods=['POST'])
 @login_required
 def execute_code():
-    """Execute submitted code with enhanced error handling"""
+    """Execute submitted code with enhanced CodeMirror integration"""
     try:
         if not request.is_json:
             logger.error("Invalid request format - not JSON")
@@ -28,7 +28,7 @@ def execute_code():
         data = request.get_json()
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
-        input_data = data.get('input')  # Add support for input data
+        input_data = data.get('input')
 
         if not code:
             logger.error("Empty code submitted")
@@ -47,19 +47,26 @@ def execute_code():
         logger.debug(f"Executing {language} code of length {len(code)}")
         logger.debug(f"Code content:\n{code}")
 
-        # Execute the code using the compiler service with input data
+        # Add detailed compilation status logging
+        logger.info("Starting compilation process...")
         result = compile_and_run(code, language, input_data)
-        logger.debug(f"Execution result: {result}")
+
+        # Log compilation metrics
+        if 'metrics' in result:
+            metrics = result['metrics']
+            logger.info(f"Compilation time: {metrics.get('compilation_time', 0):.2f}s")
+            logger.info(f"Execution time: {metrics.get('execution_time', 0):.2f}s")
+            logger.info(f"Peak memory: {metrics.get('peak_memory', 0):.1f}MB")
+
+            for time_stamp, status in metrics.get('status_updates', []):
+                logger.debug(f"[{time_stamp:.2f}s] {status}")
 
         if not result.get('success', False):
             error_msg = result.get('error', 'An error occurred')
-            if 'memory' in error_msg.lower():
-                error_msg += ". Try reducing the size of variables or arrays."
-            elif 'timeout' in error_msg.lower():
-                error_msg += ". Check for infinite loops."
-            result['error'] = error_msg
             logger.error(f"Execution failed: {error_msg}")
+            return jsonify(result)
 
+        logger.info("Code execution completed successfully")
         return jsonify(result)
 
     except Exception as e:
