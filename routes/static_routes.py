@@ -47,6 +47,11 @@ def privacy():
 def accessibility():
     return render_template('accessibility.html', lang=get_user_language())
 
+@static_pages.route('/report-bug')
+def report_bug():
+    """Handle bug report page"""
+    return render_template('report_bug.html', lang=get_user_language())
+
 @static_pages.route('/feature-request')
 def feature_request():
     """Handle feature request page"""

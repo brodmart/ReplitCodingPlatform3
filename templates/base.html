@@ -141,7 +141,10 @@
                         <li><a href="{{ url_for('static_pages.terms') }}" class="text-light">{% if lang == 'fr' %}Conditions d'utilisation{% else %}Terms of Use{% endif %}</a></li>
                         <li><a href="{{ url_for('static_pages.privacy') }}" class="text-light">{% if lang == 'fr' %}Politique de confidentialité{% else %}Privacy Policy{% endif %}</a></li>
                         <li><a href="{{ url_for('static_pages.accessibility') }}" class="text-light">{% if lang == 'fr' %}Accessibilité{% else %}Accessibility{% endif %}</a></li>
-                        <li><a href="{{ url_for('static_pages.feature_request') }}" class="text-light"><strong>{% if lang == 'fr' %}DEMANDER UNE FONCTIONNALITÉ !{% else %}REQUEST A FEATURE!{% endif %}</strong></a></li>
+                        <li>
+                            <a href="{{ url_for('static_pages.report_bug') }}" class="text-light"><strong>{% if lang == 'fr' %}SIGNALER UN BUG !{% else %}REPORT A BUG!{% endif %}</strong></a>
+                            <a href="{{ url_for('static_pages.feature_request') }}" class="text-light ms-3"><strong>{% if lang == 'fr' %}DEMANDER UNE FONCTIONNALITÉ !{% else %}REQUEST A FEATURE!{% endif %}</strong></a>
+                        </li>
                     </ul>
                 </div>
                 <div class="col-md-4">

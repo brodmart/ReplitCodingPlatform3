@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <img src="{{ url_for('static', filename='debug_bunny.svg') }}" alt="Debug Bunny" class="img-fluid mb-4" style="max-width: 300px;">
+            
+            <h1 class="mb-4">
+                {% if lang == 'fr' %}
+                Oups ! Vous avez trouvé un bug ? 🐛
+                {% else %}
+                Oops! Found a Bug? 🐛
+                {% endif %}
+            </h1>
+
+            <div class="card bg-dark text-light border-light">
+                <div class="card-body">
+                    <p class="lead mb-4">
+                        {% if lang == 'fr' %}
+                        Notre équipe de lapins débogueurs est prête à s'attaquer à ce bug ! 🐰
+                        Envoyez-nous les détails à <strong>admin@codingmountains.com</strong>
+                        {% else %}
+                        Our debug bunnies are ready to hop on this bug! 🐰
+                        Send us the details at <strong>admin@codingmountains.com</strong>
+                        {% endif %}
+                    </p>
+
+                    <div class="alert alert-info">
+                        {% if lang == 'fr' %}
+                        N'oubliez pas d'inclure :
+                        <ul class="text-start mt-2">
+                            <li>Ce que vous faisiez quand le bug est apparu</li>
+                            <li>Ce qui s'est passé</li>
+                            <li>Ce qui aurait dû se passer</li>
+                            <li>Votre navigateur et système d'exploitation</li>
+                        </ul>
+                        {% else %}
+                        Please remember to include:
+                        <ul class="text-start mt-2">
+                            <li>What you were doing when the bug occurred</li>
+                            <li>What happened</li>
+                            <li>What should have happened</li>
+                            <li>Your browser and operating system</li>
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
