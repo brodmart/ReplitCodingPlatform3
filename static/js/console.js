@@ -7,22 +7,27 @@ class InteractiveConsole {
         this.inputHistory = [];
         this.historyIndex = -1;
         this.currentInput = '';
+        this.isEnabled = true;
 
+        // Initialize DOM elements
         this.consoleElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
 
         if (!this.consoleElement || !this.inputElement) {
-            console.error('Failed to initialize console - elements not found');
-            return;
+            throw new Error('Console elements not found');
         }
 
+        // Initialize console state
         this.setupEventListeners();
         this.clear();
+        this.enable();
     }
 
     setupEventListeners() {
         // Input handling
         this.inputElement.addEventListener('keydown', (e) => {
+            if (!this.isEnabled) return;
+
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 const input = this.inputElement.value.trim();
@@ -83,6 +88,8 @@ class InteractiveConsole {
     }
 
     handleInput(input) {
+        if (!this.isEnabled) return;
+
         // Add to history if not empty and different from last entry
         if (input && (!this.inputHistory.length || this.inputHistory[this.inputHistory.length - 1] !== input)) {
             this.inputHistory.push(input);
@@ -96,6 +103,12 @@ class InteractiveConsole {
 
         // Clear input field
         this.inputElement.value = '';
+
+        // Handle special commands
+        if (input.toLowerCase() === 'clear') {
+            this.clear();
+            return;
+        }
     }
 
     setError(message) {
@@ -114,16 +127,24 @@ class InteractiveConsole {
     }
 
     enable() {
+        this.isEnabled = true;
         if (this.inputElement) {
             this.inputElement.disabled = false;
+            this.inputElement.placeholder = "Type commands here...";
             this.inputElement.focus();
         }
     }
 
     disable() {
+        this.isEnabled = false;
         if (this.inputElement) {
             this.inputElement.disabled = true;
+            this.inputElement.placeholder = "Console is disabled...";
         }
+    }
+
+    getOutputBuffer() {
+        return this.outputBuffer;
     }
 }
 
