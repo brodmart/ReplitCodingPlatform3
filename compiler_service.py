@@ -60,9 +60,11 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
         with open(project_file, 'w') as f:
             f.write(project_content)
 
-        # Log source code size
+        # Log source code size and content for debugging
         source_size = os.path.getsize(source_file)
         logger.debug(f"Source code size: {source_size} bytes")
+        with open(source_file, 'r') as f:
+            logger.debug(f"Source code content:\n{f.read()}")
 
         compile_cmd = [
             'dotnet',
@@ -90,6 +92,7 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
                 'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1'
             })
 
+            logger.debug("Executing compilation process with environment variables set")
             compile_process = subprocess.run(
                 compile_cmd,
                 capture_output=True,
@@ -106,49 +109,76 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
             if compile_process.returncode != 0:
                 error_msg = compile_process.stderr if compile_process.stderr else "Unknown compilation error occurred"
                 logger.error(f"Compilation failed with return code {compile_process.returncode}")
-                logger.error(f"Compilation error: {error_msg}")
+                logger.error(f"Compilation error output: {error_msg}")
                 return False, format_csharp_error(error_msg)
+
+            # Verify executable was created
+            if not executable.exists():
+                error_msg = "Compilation completed but executable not found"
+                logger.error(error_msg)
+                return False, error_msg
 
             logger.debug("Compilation successful")
             return True, ""
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             error_msg = f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
             logger.error(error_msg)
             return False, error_msg
 
     except Exception as e:
-        error_msg = f"Fatal compilation error: {str(e)}"
-        logger.error(error_msg, exc_info=True)
+        error_msg = f"Fatal compilation error: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
         return False, error_msg
 
 def format_csharp_error(error_msg: str) -> str:
     """Format C# compilation errors to be more user-friendly"""
     try:
+        # Extract specific error information
         if "error CS" in error_msg:
-            parts = error_msg.split("): ")
-            if len(parts) > 1:
-                error_code = parts[0].split("error CS")[1].strip()
-                error_desc = parts[1].strip()
-                line_num = error_msg.split('(')[1].split(',')[0]
+            # Get the error code and line number
+            error_parts = error_msg.split(": ", 1)
+            if len(error_parts) > 1:
+                error_location = error_parts[0]
+                error_description = error_parts[1]
 
-                common_errors = {
-                    "1525": "Code structure issue. Check for missing semicolons or braces.",
-                    "1002": "Missing closing curly brace '}'",
-                    "1001": "Missing opening curly brace '{'",
-                    "0117": "Method must have a return type. Did you forget 'void' or 'int'?",
-                    "0161": "'Console.WriteLine' can only be used inside a method",
-                    "0103": "Name does not exist in current context. Check for typos.",
-                    "0234": "Missing using directive or assembly reference",
-                    "0246": "Missing required namespace declaration"
-                }
+                # Extract line number if available
+                line_num = None
+                if "(" in error_location:
+                    line_start = error_location.find("(") + 1
+                    line_end = error_location.find(",")
+                    if line_end == -1:
+                        line_end = error_location.find(")")
+                    if line_end != -1:
+                        try:
+                            line_num = int(error_location[line_start:line_end])
+                        except ValueError:
+                            pass
 
-                friendly_msg = common_errors.get(error_code, error_desc)
-                return f"Line {line_num}: {friendly_msg}"
+                # Get the error code
+                if "error CS" in error_location:
+                    error_code = error_location.split("error CS")[1].split()[0]
 
-        return error_msg
-    except:
-        return error_msg
+                    # Common error messages dictionary
+                    common_errors = {
+                        "1002": "Missing closing curly brace '}'",
+                        "1001": "Missing opening curly brace '{'",
+                        "1003": "Syntax error - unexpected symbol",
+                        "1513": "Invalid main method declaration",
+                        "1525": "Invalid expression or statement",
+                        "0117": "Method must have a return type",
+                        "0116": "Constructor must have a name",
+                        "0103": "Name does not exist in current context",
+                        "0246": "The type or namespace could not be found"
+                    }
+
+                    friendly_msg = common_errors.get(error_code, error_description)
+                    return f"Line {line_num}: {friendly_msg}" if line_num else friendly_msg
+
+        return f"Compilation Error: {error_msg}"
+    except Exception as e:
+        logger.error(f"Error formatting C# error message: {str(e)}")
+        return f"Compilation Error: {error_msg}"
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with enhanced error handling and logging"""
@@ -226,16 +256,19 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'metrics': metrics
                     }
 
+            logger.error(f"Unsupported language: {language}")
             return {
                 'success': False,
-                'error': f"Unsupported language: {language}"
+                'error': f"Unsupported language: {language}",
+                'metrics': metrics
             }
 
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
         return {
             'success': False,
-            'error': f"An unexpected error occurred: {str(e)}",
+            'error': error_msg,
             'metrics': metrics
         }
 
@@ -247,7 +280,10 @@ def format_runtime_error(error_msg: str) -> str:
             "System.IndexOutOfRangeException": "Array index out of bounds. Check array access.",
             "System.DivideByZeroException": "Division by zero detected.",
             "System.StackOverflowException": "Stack overflow. Check for infinite recursion.",
-            "System.OutOfMemoryException": "Out of memory. Reduce data size or optimize memory usage."
+            "System.OutOfMemoryException": "Out of memory. Reduce data size or optimize memory usage.",
+            "System.InvalidOperationException": "Invalid operation. Check the logic of your operations.",
+            "System.ArgumentException": "Invalid argument provided to a method.",
+            "System.FormatException": "Invalid format. Check string conversions and formatting."
         }
 
         for error_type, message in common_errors.items():
@@ -257,7 +293,6 @@ def format_runtime_error(error_msg: str) -> str:
         return f"Runtime Error: {error_msg}"
     except:
         return f"Runtime Error: {error_msg}"
-
 
 def format_execution_error(error_msg: str) -> str:
     """Format general execution errors to be more user-friendly"""
