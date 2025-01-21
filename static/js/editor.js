@@ -1,7 +1,6 @@
 // Editor state and configuration
 const editorState = {
     editor: null,
-    terminal: null,
     isExecuting: false,
     currentLanguage: 'cpp',
     templates: {
@@ -57,16 +56,16 @@ async function initializeEditor() {
             }
         });
 
-        // Load saved content or set template
+        // Set up event listeners
+        setupEventListeners();
+
+        // Load initial content
         const savedContent = localStorage.getItem('editorContent');
         if (savedContent) {
             editorState.editor.setValue(savedContent);
         } else {
-            setEditorTemplate(editorState.currentLanguage, true);
+            setEditorTemplate(editorState.currentLanguage);
         }
-
-        // Set up event listeners
-        setupEventListeners();
 
         // Mark editor as initialized
         editorElement.classList.add('CodeMirror-initialized');
@@ -111,6 +110,8 @@ function setupEventListeners() {
 // Handle language change
 function handleLanguageChange(event) {
     const newLanguage = event.target.value;
+
+    // Update current language
     editorState.currentLanguage = newLanguage;
 
     // Update editor mode
@@ -118,22 +119,27 @@ function handleLanguageChange(event) {
         'cpp': 'text/x-c++src',
         'csharp': 'text/x-csharp'
     };
-    editorState.editor.setOption('mode', modes[newLanguage] || modes.cpp);
 
-    // Set template if editor is empty
+    editorState.editor.setOption('mode', modes[newLanguage]);
+
+    // Only set template if editor is empty or has default template content
     const currentContent = editorState.editor.getValue().trim();
-    if (!currentContent) {
-        setEditorTemplate(newLanguage, false);
+    const isDefaultTemplate = Object.values(editorState.templates).some(template => 
+        currentContent === template.trim()
+    );
+
+    if (!currentContent || isDefaultTemplate) {
+        setEditorTemplate(newLanguage);
     }
 }
 
 // Set editor template
-function setEditorTemplate(language, isInitial = false) {
+function setEditorTemplate(language) {
     const template = editorState.templates[language] || editorState.templates.cpp;
-    if (isInitial || !editorState.editor.getValue().trim()) {
-        editorState.editor.setValue(template);
-        editorState.editor.setCursor(editorState.editor.lineCount() - 2, 4);
-    }
+    editorState.editor.setValue(template);
+    // Place cursor after the comment line in main
+    const cursorLine = language === 'cpp' ? 5 : 7;
+    editorState.editor.setCursor(cursorLine, 4);
 }
 
 // Run code
