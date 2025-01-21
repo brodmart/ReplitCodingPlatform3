@@ -1,185 +1,11 @@
-// Initialize variables
-let editor = null;
-let consoleInstance = null;
-let isExecuting = false;
-
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        await initializeEditor();
-        console.log('Editor initialized successfully');
-    } catch (error) {
-        console.error('Failed to initialize editor:', error);
-        showError('Failed to initialize editor. Please refresh the page.');
-    }
-});
-
-async function initializeEditor() {
-    // Initialize CodeMirror
-    const editorElement = document.getElementById('editor');
-    if (!editorElement) {
-        throw new Error('Editor element not found');
-    }
-
-    editor = CodeMirror.fromTextArea(editorElement, {
-        mode: 'text/x-c++src',
-        theme: 'dracula',
-        lineNumbers: true,
-        autoCloseBrackets: true,
-        matchBrackets: true,
-        indentUnit: 4,
-        tabSize: 4,
-        lineWrapping: true,
-        extraKeys: {
-            "Tab": function(cm) {
-                if (cm.somethingSelected()) {
-                    cm.indentSelection("add");
-                } else {
-                    cm.replaceSelection("    ", "end");
-                }
-            },
-            "Ctrl-Enter": executeCode,
-            "Cmd-Enter": executeCode
-        }
-    });
-
-    // Initialize console
-    await initializeConsole();
-
-    // Set up event listeners
-    setupEventListeners();
-
-    // Set initial content
-    const savedContent = localStorage.getItem('editorContent');
-    if (savedContent) {
-        editor.setValue(savedContent);
-    } else {
-        setEditorTemplate('cpp');
-    }
-
-    editor.refresh();
-}
-
-async function initializeConsole() {
-    const outputElement = document.getElementById('consoleOutput');
-    const inputElement = document.getElementById('consoleInput');
-
-    if (!outputElement || !inputElement) {
-        throw new Error('Console elements not found');
-    }
-
-    consoleInstance = new InteractiveConsole({
-        outputElement: outputElement,
-        inputElement: inputElement,
-        onCommand: handleConsoleCommand,
-        onInput: handleConsoleInput
-    });
-}
-
-function setupEventListeners() {
-    // Run button handler
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', executeCode);
-    }
-
-    // Language select handler
-    const languageSelect = document.getElementById('languageSelect');
-    if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const language = this.value;
-            updateEditorMode(language);
-            setEditorTemplate(language);
-        });
-    }
-
-    // Clear console button
-    const clearButton = document.getElementById('clearConsole');
-    if (clearButton) {
-        clearButton.addEventListener('click', () => {
-            consoleInstance?.clear();
-        });
-    }
-
-    // Auto-save editor content
-    editor.on('change', function() {
-        localStorage.setItem('editorContent', editor.getValue());
-    });
-}
-
-async function executeCode() {
-    if (!editor || !consoleInstance || isExecuting) return;
-
-    isExecuting = true;
-    const runButton = document.getElementById('runButton');
-
-    try {
-        if (runButton) {
-            runButton.disabled = true;
-            runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
-        }
-
-        const code = editor.getValue().trim();
-        if (!code) {
-            throw new Error('No code to execute');
-        }
-
-        const languageSelect = document.getElementById('languageSelect');
-        const language = languageSelect ? languageSelect.value : 'cpp';
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
-        }
-
-        consoleInstance.clear();
-        consoleInstance.appendOutput('Compiling and running code...\n');
-
-        const response = await fetch('/activities/run_code', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ code, language })
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-            consoleInstance.appendSuccess('Compilation successful!\n');
-            if (result.output) {
-                consoleInstance.appendOutput(result.output);
-            }
-        } else {
-            consoleInstance.appendError(result.error);
-        }
-    } catch (error) {
-        console.error('Error executing code:', error);
-        consoleInstance.appendError(`Error: ${error.message}`);
-    } finally {
-        isExecuting = false;
-        if (runButton) {
-            runButton.disabled = false;
-            runButton.innerHTML = 'Run';
-        }
-    }
-}
-
-function updateEditorMode(language) {
-    const modes = {
-        'cpp': 'text/x-c++src',
-        'csharp': 'text/x-csharp'
-    };
-    editor.setOption('mode', modes[language] || modes.cpp);
-}
-
-function setEditorTemplate(language) {
-    const templates = {
-        'cpp': `#include <iostream>
+// Editor state and configuration
+const editorState = {
+    editor: null,
+    terminal: null,
+    isExecuting: false,
+    currentLanguage: 'cpp',
+    templates: {
+        cpp: `#include <iostream>
 using namespace std;
 
 int main() {
@@ -187,7 +13,7 @@ int main() {
     cout << "Hello World!" << endl;
     return 0;
 }`,
-        'csharp': `using System;
+        csharp: `using System;
 
 class Program 
 {
@@ -197,32 +23,187 @@ class Program
         Console.WriteLine("Hello World!");
     }
 }`
-    };
+    }
+};
 
-    if (editor) {
-        const template = templates[language] || templates.cpp;
-        editor.setValue(template);
-        editor.setCursor(editor.lineCount() - 2, 0);
+// Initialize editor with proper error handling
+async function initializeEditor() {
+    try {
+        const editorElement = document.getElementById('editor');
+        if (!editorElement) {
+            throw new Error('Editor element not found');
+        }
+
+        // Initialize CodeMirror with error handling
+        editorState.editor = CodeMirror.fromTextArea(editorElement, {
+            mode: 'text/x-c++src',
+            theme: 'dracula',
+            lineNumbers: true,
+            autoCloseBrackets: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: true,
+            extraKeys: {
+                "Tab": function(cm) {
+                    if (cm.somethingSelected()) {
+                        cm.indentSelection("add");
+                    } else {
+                        cm.replaceSelection("    ", "end");
+                    }
+                },
+                "Ctrl-Enter": runCode,
+                "Cmd-Enter": runCode
+            }
+        });
+
+        // Load saved content or set template
+        loadSavedContent();
+
+        // Set up event listeners
+        setupEventListeners();
+
+        // Mark editor as initialized
+        editorElement.classList.add('CodeMirror-initialized');
+        console.log('Editor initialized successfully');
+
+    } catch (error) {
+        console.error('Editor initialization failed:', error);
+        showError('Failed to initialize editor: ' + error.message);
     }
 }
 
-async function handleConsoleCommand(command) {
-    if (!editor || !consoleInstance) return;
+// Set up event listeners
+function setupEventListeners() {
+    // Run button
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', runCode);
+    }
+
+    // Language selector
+    const languageSelect = document.getElementById('languageSelect');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', handleLanguageChange);
+    }
+
+    // Clear console button
+    const clearButton = document.getElementById('clearConsole');
+    if (clearButton && editorState.terminal) {
+        clearButton.addEventListener('click', () => {
+            editorState.terminal.clear();
+        });
+    }
+
+    // Auto-save editor content
+    editorState.editor.on('change', () => {
+        localStorage.setItem('editorContent', editorState.editor.getValue());
+    });
+}
+
+// Handle language change
+function handleLanguageChange(event) {
+    const newLanguage = event.target.value;
+    editorState.currentLanguage = newLanguage;
+
+    // Update editor mode
+    const modes = {
+        'cpp': 'text/x-c++src',
+        'csharp': 'text/x-csharp'
+    };
+    editorState.editor.setOption('mode', modes[newLanguage] || modes.cpp);
+
+    // Set template if editor is empty
+    if (!editorState.editor.getValue().trim()) {
+        setEditorTemplate(newLanguage);
+    }
+}
+
+// Load saved content or template
+function loadSavedContent() {
+    const savedContent = localStorage.getItem('editorContent');
+    if (savedContent) {
+        editorState.editor.setValue(savedContent);
+    } else {
+        setEditorTemplate(editorState.currentLanguage);
+    }
+    editorState.editor.refresh();
+}
+
+// Set editor template
+function setEditorTemplate(language) {
+    const template = editorState.templates[language] || editorState.templates.cpp;
+    editorState.editor.setValue(template);
+    editorState.editor.setCursor(editorState.editor.lineCount() - 2, 4);
+}
+
+// Run code
+async function runCode() {
+    if (editorState.isExecuting) return;
+
+    const runButton = document.getElementById('runButton');
+    editorState.isExecuting = true;
+    const terminal = window.terminal; // Access the terminal instance
 
     try {
-        const response = await executeCommand(command);
-        consoleInstance.appendOutput(response);
+        if (runButton) {
+            runButton.disabled = true;
+            runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+        }
+
+        const code = editorState.editor.getValue().trim();
+        if (!code) {
+            throw new Error('No code to execute');
+        }
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
+        if (terminal) {
+            terminal.write('\r\nCompiling and running code...\r\n');
+        }
+
+        const response = await fetch('/activities/run_code', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ 
+                code, 
+                language: editorState.currentLanguage 
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
+            if (result.output) {
+                terminal?.write(result.output + '\r\n');
+            }
+        } else {
+            terminal?.write('\x1b[31mError: ' + result.error + '\x1b[0m\r\n');
+        }
     } catch (error) {
-        consoleInstance.appendOutput(`Error: ${error.message}`, 'error');
+        console.error('Error executing code:', error);
+        terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
+    } finally {
+        editorState.isExecuting = false;
+        if (runButton) {
+            runButton.disabled = false;
+            runButton.innerHTML = 'Run';
+        }
     }
 }
 
-async function handleConsoleInput(input) {
-    if (activeProcess) {
-        activeProcess.sendInput(input);
-    }
-}
-
+// Show error message
 function showError(message) {
     const errorDiv = document.createElement('div');
     errorDiv.className = 'alert alert-danger';
@@ -231,54 +212,15 @@ function showError(message) {
     setTimeout(() => errorDiv.remove(), 5000);
 }
 
-async function executeCommand(command) {
-    const languageSelect = document.getElementById('languageSelect');
-    const language = languageSelect ? languageSelect.value : 'cpp';
+// Export initialization function
+window.initializeEditor = initializeEditor;
 
+// Initialize everything when the DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
     try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
-        }
-
-        const response = await fetch('/execute_command', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ command, language })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to execute command');
-        }
-
-        return response.text();
+        await initializeEditor();
     } catch (error) {
-        console.error('Execute command error:', error);
-        throw error;
+        console.error('Failed to initialize editor:', error);
+        showError('Failed to initialize editor. Please refresh the page.');
     }
-}
-
-waitForConsoleElements = function waitForConsoleElements(maxRetries = 10, interval = 100) {
-    return new Promise((resolve, reject) => {
-        let attempts = 0;
-
-        const checkElements = () => {
-            const output = document.getElementById('consoleOutput');
-            const input = document.getElementById('consoleInput');
-
-            if (output && input) {
-                resolve({ output, input });
-            } else if (attempts >= maxRetries) {
-                reject(new Error('Console elements not found after maximum retries'));
-            } else {
-                attempts++;
-                setTimeout(checkElements, interval);
-            }
-        };
-
-        checkElements();
-    });
-};
+});

@@ -14,17 +14,16 @@
     .editor-container, .console-container {
         height: 750px !important;
     }
-    .console-output {
-        height: calc(750px - 40px) !important;
-        background-color: #1e1e1e;
-        padding: 8px;
-    }
     #terminal-container {
         height: 100%;
         background-color: #1e1e1e;
+        padding: 8px;
     }
     .xterm {
         padding: 8px;
+    }
+    .CodeMirror {
+        height: 100% !important;
     }
 </style>
 {% endblock %}
@@ -70,14 +69,55 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Load CodeMirror first -->
+<!-- Load CodeMirror -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
 <!-- Load Xterm.js -->
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
-<!-- Load console.js before editor.js -->
+<!-- Load our scripts -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
-<!-- Then load editor.js -->
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+
+<script>
+// Initialize components when DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Initialize editor first
+        await initializeEditor();
+
+        // Initialize terminal
+        const terminal = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: 'Consolas, Monaco, monospace',
+            theme: {
+                background: '#1e1e1e',
+                foreground: '#d4d4d4'
+            }
+        });
+
+        const terminalContainer = document.getElementById('terminal-container');
+        terminal.open(terminalContainer);
+
+        // Add fit addon
+        const fitAddon = new FitAddon.FitAddon();
+        terminal.loadAddon(fitAddon);
+        fitAddon.fit();
+
+        // Handle terminal resize
+        window.addEventListener('resize', () => fitAddon.fit());
+
+        console.log('Components initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize components:', error);
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger';
+        errorDiv.textContent = 'Failed to initialize components. Please refresh the page.';
+        document.body.insertBefore(errorDiv, document.body.firstChild);
+    }
+});
+</script>
 {% endblock %}
