@@ -3,6 +3,7 @@ const editorState = {
     editor: null,
     isExecuting: false,
     currentLanguage: 'cpp',
+    isInitialized: false,
     templates: {
         cpp: `#include <iostream>
 using namespace std;
@@ -28,6 +29,12 @@ class Program
 // Initialize editor with proper error handling
 async function initializeEditor() {
     try {
+        // Prevent multiple initializations
+        if (editorState.isInitialized) {
+            console.log('Editor already initialized');
+            return;
+        }
+
         const editorElement = document.getElementById('editor');
         if (!editorElement) {
             throw new Error('Editor element not found');
@@ -60,12 +67,15 @@ async function initializeEditor() {
         setupEventListeners();
 
         // Set initial template only if editor is empty
-        if (!editorState.editor.getValue()) {
+        const savedContent = localStorage.getItem('editorContent');
+        if (!savedContent) {
             setEditorTemplate(editorState.currentLanguage);
+        } else {
+            editorState.editor.setValue(savedContent);
         }
 
         // Mark editor as initialized
-        editorElement.classList.add('CodeMirror-initialized');
+        editorState.isInitialized = true;
         console.log('Editor initialized successfully');
 
     } catch (error) {
@@ -123,10 +133,16 @@ function handleLanguageChange(event) {
     // Set the new mode
     editorState.editor.setOption('mode', modes[newLanguage]);
 
-    // Clear editor and set new template
-    editorState.editor.setValue('');
-    editorState.editor.clearHistory();
-    setEditorTemplate(newLanguage);
+    // Check if there's existing content
+    const currentContent = editorState.editor.getValue().trim();
+    const isTemplateContent = Object.values(editorState.templates).some(template => 
+        currentContent === template.trim()
+    );
+
+    // Only set new template if current content is empty or is a template
+    if (!currentContent || isTemplateContent) {
+        setEditorTemplate(newLanguage);
+    }
 
     // Force a refresh to ensure proper rendering
     editorState.editor.refresh();
@@ -139,6 +155,10 @@ function setEditorTemplate(language) {
         console.error('Template not found for language:', language);
         return;
     }
+
+    // Clear any existing content
+    editorState.editor.setValue('');
+    editorState.editor.clearHistory();
 
     // Set template content
     editorState.editor.setValue(template);
