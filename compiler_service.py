@@ -68,31 +68,38 @@ def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMet
         metrics.log_status("Starting optimized C# compilation")
         compile_start = time.time()
 
-        env = os.environ.copy()
-        env.update(MONO_OPTIMIZATIONS)
+        try:
+            logger.debug("Executing compilation command")
+            compile_process = subprocess.run(
+                compile_cmd,
+                capture_output=True,
+                text=True,
+                timeout=MAX_COMPILATION_TIME,
+                env={
+                    'MONO_GC_PARAMS': 'max-heap-size=512M',
+                    'MONO_THREADS_PER_CPU': '2',
+                    'PATH': os.environ['PATH']
+                }
+            )
 
-        compile_process = subprocess.Popen(
-            compile_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            preexec_fn=set_resource_limits,
-            env=env
-        )
+            compile_time = time.time() - compile_start
+            logger.debug(f"Compilation completed in {compile_time:.2f}s")
 
-        stdout, stderr = compile_process.communicate(timeout=MAX_COMPILATION_TIME)
-        compile_time = time.time() - compile_start
-        metrics.compilation_time = compile_time
+            if compile_process.returncode != 0:
+                logger.error(f"Compilation failed: {compile_process.stderr}")
+                return False, compile_process.stderr
 
-        if compile_process.returncode != 0:
-            return False, format_csharp_error(stderr)
+            logger.debug("Compilation successful, preparing execution")
+            os.chmod(executable, 0o755)
+            return True, ""
 
-        # Set executable permissions
-        os.chmod(executable, 0o755)
-        return True, ""
+        except subprocess.TimeoutExpired:
+            logger.error(f"Compilation timed out after {MAX_COMPILATION_TIME}s")
+            return False, f"Compilation timed out after {MAX_COMPILATION_TIME} seconds."
+        except Exception as e:
+            logger.error(f"Compilation error: {str(e)}")
+            return False, f"Compilation error: {str(e)}"
 
-    except subprocess.TimeoutExpired:
-        return False, "Compilation timed out. The code might be too complex or contain infinite loops."
     except Exception as e:
         return False, f"Compilation error: {str(e)}"
 
@@ -138,46 +145,65 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
                 # Execute with optimized mono runtime
                 metrics.log_status("Starting program execution")
-                env = os.environ.copy()
-                env.update(MONO_OPTIMIZATIONS)
-
-                run_process = subprocess.Popen(
-                    ['mono', '--server', '-O=all', str(executable)],
-                    stdin=subprocess.PIPE if input_data else None,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    env=env
-                )
-
+                start_time = time.time()
                 try:
-                    stdout, stderr = run_process.communicate(
+                    run_cmd = ['mono', executable]
+                    run_process = subprocess.run(
+                        run_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=MAX_EXECUTION_TIME,
                         input=input_data,
-                        timeout=MAX_EXECUTION_TIME
+                        env={
+                            'MONO_GC_PARAMS': 'major=marksweep-par,nursery-size=64m',
+                            'MONO_THREADS_PER_CPU': '2',
+                            'MONO_MIN_HEAP_SIZE': '128M',
+                            'MONO_MAX_HEAP_SIZE': f'{MEMORY_LIMIT}M'
+                        }
                     )
+                    run_time = time.time() - start_time
+                    total_time = time.time() - metrics.start_time
 
-                    metrics.execution_time = time.time() - (metrics.start_time + metrics.compilation_time)
-
-                    if stderr:
+                    if run_process.returncode != 0:
                         return {
                             'success': False,
-                            'error': format_runtime_error(stderr),
-                            'metrics': metrics.to_dict()
+                            'output': run_process.stdout,
+                            'error': run_process.stderr,
+                            'metrics': {
+                                'compilation_time': metrics.compilation_time,
+                                'execution_time': run_time,
+                                'total_time': total_time
+                            }
                         }
 
                     return {
                         'success': True,
-                        'output': stdout.strip() if stdout else "",
+                        'output': run_process.stdout.strip() if run_process.stdout else "",
+                        'metrics': {
+                            'compilation_time': metrics.compilation_time,
+                            'execution_time': run_time,
+                            'total_time': total_time
+                        }
+                    }
+
+                except subprocess.TimeoutExpired as e:
+                    elapsed_time = time.time() - start_time
+                    logger.error(f"Execution timed out after {elapsed_time:.2f}s")
+                    return {
+                        'success': False,
+                        'error': f"Execution timed out after {elapsed_time:.2f} seconds. For large files, try breaking down the code into smaller functions.",
+                        'metrics': {
+                            'time_elapsed': elapsed_time
+                        }
+                    }
+                except Exception as e:
+                    logger.error(f"Runtime error: {str(e)}")
+                    return {
+                        'success': False,
+                        'error': f"Runtime error: {str(e)}",
                         'metrics': metrics.to_dict()
                     }
 
-                except subprocess.TimeoutExpired:
-                    run_process.kill()
-                    return {
-                        'success': False,
-                        'error': "Execution timed out. Check for infinite loops.",
-                        'metrics': metrics.to_dict()
-                    }
 
             elif language.lower() == 'cpp':
                 # Enhanced C++ compilation
