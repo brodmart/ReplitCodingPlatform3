@@ -3,6 +3,7 @@ Optimization analyzer for compiler service performance.
 Provides automated suggestions for improving system performance.
 """
 import logging
+import psutil
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
@@ -19,17 +20,59 @@ class OptimizationSuggestion:
     recommendation: str
     metrics: Dict[str, Any]
 
+class ResourceMonitor:
+    def __init__(self):
+        self.cpu_history: List[float] = []
+        self.memory_history: List[float] = []
+        self.sample_interval = 1  # seconds
+        self.history_size = 60    # Keep last 60 samples
+
+    def get_current_usage(self) -> Dict[str, float]:
+        """Get current CPU and memory usage"""
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
+
+        self.cpu_history.append(cpu_percent)
+        self.memory_history.append(memory.percent)
+
+        # Keep history size bounded
+        if len(self.cpu_history) > self.history_size:
+            self.cpu_history.pop(0)
+        if len(self.memory_history) > self.history_size:
+            self.memory_history.pop(0)
+
+        return {
+            'cpu_percent': cpu_percent,
+            'memory_percent': memory.percent,
+            'memory_available': memory.available / (1024 * 1024)  # MB
+        }
+
+    def get_load_level(self) -> str:
+        """Determine current load level based on resource usage"""
+        if not self.cpu_history or not self.memory_history:
+            return 'normal'
+
+        avg_cpu = sum(self.cpu_history) / len(self.cpu_history)
+        avg_memory = sum(self.memory_history) / len(self.memory_history)
+
+        if avg_cpu > 80 or avg_memory > 80:
+            return 'high'
+        elif avg_cpu > 60 or avg_memory > 60:
+            return 'medium'
+        return 'normal'
+
 class PerformanceOptimizer:
     def __init__(self):
         self.memory_threshold = 80  # Percentage
-        self.cpu_threshold = 70  # Percentage
+        self.cpu_threshold = 70     # Percentage
         self.compile_time_threshold = 2.0  # seconds
         self.suggestions_history: List[OptimizationSuggestion] = []
+        self.resource_monitor = ResourceMonitor()
         self._init_metrics()
 
     def _init_metrics(self):
-        """Initialize metrics with proper typing"""
-        self.language_metrics: Dict[str, Dict[str, Union[int, float, Dict[str, int]]]] = {
+        """Initialize metrics tracking"""
+        self.language_metrics: Dict[str, Dict[str, Any]] = {
             lang: {
                 'total_executions': 0,
                 'failed_executions': 0,
@@ -43,16 +86,17 @@ class PerformanceOptimizer:
     def analyze_compiler_metrics(self, metrics: Dict[str, Any]) -> List[OptimizationSuggestion]:
         """Analyze compiler performance metrics and generate optimization suggestions."""
         suggestions = []
+        current_usage = self.resource_monitor.get_current_usage()
 
         # Analyze memory usage
-        if metrics.get('memory_used', 0) > self.memory_threshold:
+        if current_usage['memory_percent'] > self.memory_threshold:
             suggestions.append(OptimizationSuggestion(
                 category='memory',
                 priority=5,
                 issue='High memory utilization detected',
                 impact='Risk of compilation failures and system instability',
                 recommendation='Consider increasing worker memory limits or implementing request queuing',
-                metrics={'current_usage': metrics.get('memory_used', 0)}
+                metrics={'current_usage': current_usage['memory_percent']}
             ))
 
         # Analyze compilation times
@@ -71,39 +115,78 @@ class PerformanceOptimizer:
         language = metrics.get('language', 'unknown')
         self._update_language_metrics(language, metrics)
 
-        # Analyze error patterns
-        if metrics.get('error_type'):
-            error_suggestion = self._analyze_error_patterns(language, metrics)
-            if error_suggestion:
-                suggestions.append(error_suggestion)
-
         return suggestions
 
-    def _update_language_metrics(self, language: str, metrics: Dict[str, Any]) -> None:
-        """Update language-specific performance metrics."""
-        if language not in self.language_metrics:
-            self._init_metrics()
+    def get_recommended_thread_count(self) -> int:
+        """Determine optimal thread count based on current load"""
+        load_level = self.resource_monitor.get_load_level()
+        cpu_count = psutil.cpu_count() or 4
 
-        lang_stats = self.language_metrics[language]
-        lang_stats['total_executions'] = int(lang_stats['total_executions']) + 1
+        if load_level == 'high':
+            return max(2, cpu_count // 2)  # Reduce threads under high load
+        elif load_level == 'medium':
+            return max(2, cpu_count - 1)   # Use most cores but leave one free
+        else:
+            return cpu_count               # Use all cores under normal load
+
+    def _update_language_metrics(self, language: str, metrics: Dict[str, Any]) -> None:
+        """Update language-specific performance metrics"""
+        if language not in self.language_metrics:
+            return
+
+        stats = self.language_metrics[language]
+        stats['total_executions'] += 1
 
         if not metrics.get('success', True):
-            lang_stats['failed_executions'] = int(lang_stats['failed_executions']) + 1
+            stats['failed_executions'] += 1
             error_type = metrics.get('error_type', 'unknown')
-            lang_stats['common_errors'][error_type] = lang_stats['common_errors'].get(error_type, 0) + 1
+            stats['common_errors'][error_type] += 1
 
         # Update running averages
-        current_avg = float(lang_stats['avg_compile_time'])
+        current_avg = float(stats['avg_compile_time'])
         new_time = float(metrics.get('compilation_time', 0.0))
-        total_execs = int(lang_stats['total_executions'])
-        lang_stats['avg_compile_time'] = (
-            (current_avg * (total_execs - 1) + new_time) / total_execs
-        )
+        total_execs = stats['total_executions']
+        stats['avg_compile_time'] = ((current_avg * (total_execs - 1) + new_time) / total_execs)
 
         # Track peak memory
-        current_peak = float(lang_stats['peak_memory'])
         new_peak = float(metrics.get('peak_memory', 0.0))
-        lang_stats['peak_memory'] = max(current_peak, new_peak)
+        stats['peak_memory'] = max(float(stats['peak_memory']), new_peak)
+
+    def get_system_health_report(self) -> Dict[str, Any]:
+        """Generate comprehensive system health report"""
+        current_usage = self.resource_monitor.get_current_usage()
+        load_level = self.resource_monitor.get_load_level()
+
+        report = {
+            'current_state': {
+                'cpu_usage': current_usage['cpu_percent'],
+                'memory_usage': current_usage['memory_percent'],
+                'available_memory_mb': current_usage['memory_available'],
+                'load_level': load_level,
+                'recommended_threads': self.get_recommended_thread_count()
+            },
+            'languages': {},
+            'system_health': {
+                'memory_status': 'healthy' if current_usage['memory_percent'] < self.memory_threshold else 'critical',
+                'cpu_status': 'healthy' if current_usage['cpu_percent'] < self.cpu_threshold else 'critical',
+            }
+        }
+
+        # Add language-specific metrics
+        for language, metrics in self.language_metrics.items():
+            total_execs = metrics['total_executions']
+            failed_execs = metrics['failed_executions']
+
+            if total_execs > 0:
+                success_rate = 1 - (failed_execs / total_execs)
+                report['languages'][language] = {
+                    'success_rate': success_rate,
+                    'avg_compile_time': metrics['avg_compile_time'],
+                    'peak_memory': metrics['peak_memory'],
+                    'common_errors': dict(metrics['common_errors'])
+                }
+
+        return report
 
     def _analyze_error_patterns(self, language: str, metrics: Dict[str, Any]) -> Optional[OptimizationSuggestion]:
         """Analyze error patterns and generate relevant suggestions."""
@@ -139,40 +222,3 @@ class PerformanceOptimizer:
             'libstdc++': 'Verify system library compatibility and container configuration'
         }
         return recommendations.get(error_type, 'Review system logs and monitoring data')
-
-    def get_system_health_report(self) -> Dict[str, Any]:
-        """Generate comprehensive system health report with optimization suggestions."""
-        report = {
-            'languages': {},
-            'system_health': {
-                'memory_status': 'healthy',
-                'cpu_status': 'healthy',
-                'compiler_status': 'healthy'
-            },
-            'optimization_suggestions': []
-        }
-
-        # Analyze per-language metrics
-        for language, metrics in self.language_metrics.items():
-            total_execs = int(metrics['total_executions'])
-            failed_execs = int(metrics['failed_executions'])
-
-            failure_rate = failed_execs / total_execs if total_execs > 0 else 0
-
-            report['languages'][language] = {
-                'success_rate': 1 - failure_rate,
-                'avg_compile_time': float(metrics['avg_compile_time']),
-                'peak_memory': float(metrics['peak_memory']),
-                'common_errors': dict(metrics['common_errors'])
-            }
-
-            # Generate language-specific suggestions
-            if failure_rate > 0.05:  # More than 5% failure rate
-                report['optimization_suggestions'].append({
-                    'category': 'compiler',
-                    'priority': 4,
-                    'issue': f'High failure rate in {language}',
-                    'recommendation': 'Review error patterns and implement preventive measures'
-                })
-
-        return report

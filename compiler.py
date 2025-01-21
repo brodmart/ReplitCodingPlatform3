@@ -16,6 +16,7 @@ from threading import Lock, Thread, Event
 import hashlib
 import json
 from dataclasses import dataclass, asdict, field
+from optimization_analyzer import ResourceMonitor, PerformanceOptimizer
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -33,8 +34,11 @@ CACHE_VERSION = "1.0"     # Increment when cache format changes
 # Added constants for performance optimizations
 COMPILER_WARMUP_ENABLED = True
 WARMUP_CACHE_SIZE = 50  # Maximum number of cached compilations
-THREAD_POOL_MIN_SIZE = max(2, os.cpu_count() // 2)
-THREAD_POOL_MAX_SIZE = max(4, os.cpu_count())
+THREAD_POOL_SIZES = {
+    'high': lambda cpu_count: max(2, cpu_count // 2),
+    'medium': lambda cpu_count: max(2, cpu_count - 1),
+    'normal': lambda cpu_count: cpu_count
+}
 
 # Create cache directories
 os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
@@ -148,10 +152,44 @@ class ProcessMonitor(Thread):
         self.stopped.set()
         self._terminate_process()
 
+class CompilerResourceManager:
+    """Manages compiler resources and thread allocation dynamically"""
+    def __init__(self):
+        self.resource_monitor = ResourceMonitor()
+        self.performance_optimizer = PerformanceOptimizer()
+        self._thread_pool = None
+        self._pool_lock = Lock()
+
+    def get_thread_pool(self) -> ThreadPoolExecutor:
+        """Get or create thread pool with optimal size based on current load"""
+        with self._pool_lock:
+            if not self._thread_pool or self._thread_pool._shutdown:
+                cpu_count = os.cpu_count() or 4
+                load_level = self.resource_monitor.get_load_level()
+                optimal_size = THREAD_POOL_SIZES[load_level](cpu_count)
+                self._thread_pool = ThreadPoolExecutor(max_workers=optimal_size)
+            return self._thread_pool
+
+    def get_system_metrics(self) -> Dict[str, Any]:
+        """Get current system metrics"""
+        return self.resource_monitor.get_current_usage()
+
+    def should_throttle(self) -> bool:
+        """Check if compilation requests should be throttled"""
+        metrics = self.resource_monitor.get_current_usage()
+        return metrics['memory_percent'] > 85 or metrics['cpu_percent'] > 90
+
+# Create global resource manager
+compiler_resources = CompilerResourceManager()
+
 def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, timeout: int, retry_count: int = 0) -> List[subprocess.CompletedProcess]:
-    """Run compilation in parallel for multiple files using process pool with retry mechanism"""
+    """Run compilation in parallel for multiple files using process pool with retry mechanism and resource awareness"""
     def compile_worker(cmd: list):
         try:
+            if compiler_resources.should_throttle():
+                logger.warning("System under high load, applying throttling")
+                time.sleep(1)  # Add delay before processing
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
@@ -162,7 +200,6 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
                 preexec_fn=os.setsid
             )
 
-            # Set up process monitor
             monitor = ProcessMonitor(process, timeout=timeout)
             monitor.start()
 
@@ -170,7 +207,7 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
             while process.poll() is None:
                 if time.time() - start_time > timeout:
                     os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                    raise subprocess.TimeoutExpired(cmd, timeout)
+                    raise subprocess.TimeoutExpired(cmd=cmd, timeout=timeout)  # Pass cmd here
                 time.sleep(0.1)
 
             stdout, stderr = process.communicate()
@@ -183,8 +220,9 @@ def run_parallel_compilation(files_to_compile: List[str], cwd: str, env: dict, t
         except Exception as e:
             logger.error(f"Compilation worker error: {e}")
             raise
+
     try:
-        with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        with compiler_resources.get_thread_pool() as executor:
             futures = []
             for file_path in files_to_compile:
                 cmd = [
@@ -342,8 +380,8 @@ def get_optimized_environment() -> Dict[str, str]:
         'COMPlus_TC_QuickJit': '1',
         'LC_ALL': 'C',
         'LANG': 'C',
-        'DOTNET_ThreadPool_MinThreads': str(THREAD_POOL_MIN_SIZE),
-        'DOTNET_ThreadPool_MaxThreads': str(THREAD_POOL_MAX_SIZE),
+        'DOTNET_ThreadPool_MinThreads': str(THREAD_POOL_SIZES['normal'](MAX_WORKERS)),
+        'DOTNET_ThreadPool_MaxThreads': str(THREAD_POOL_SIZES['normal'](MAX_WORKERS)),
         'DOTNET_JitMinOpts': '1',
         'DOTNET_TieredCompilation': '1',
         'DOTNET_ReadyToRun': '1',
@@ -538,6 +576,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None, 
 
                         # Run compilation in parallel process with retry and monitoring
                         metrics.log_status("Compilation started")
+                        compile_start = time.time() #Re-assign compile_start here to fix issue #2
                         compile_process = run_parallel_compilation(
                             [str(project_file)], #Passing as a single element list
                             str(project_dir),
