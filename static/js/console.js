@@ -3,53 +3,68 @@
  */
 class InteractiveConsole {
     constructor() {
+        if (!document.getElementById('consoleOutput') || !document.getElementById('consoleInput')) {
+            throw new Error('Console elements not found during initialization');
+        }
+
         this.outputBuffer = [];
         this.inputHistory = [];
         this.historyIndex = -1;
         this.currentInput = '';
         this.isEnabled = true;
         this.isWaitingForInput = false;
-        this.maxBufferSize = 1000; // Maximum number of lines to keep in buffer
+        this.maxBufferSize = 1000;
 
         // Initialize DOM elements
         this.consoleElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
 
-        if (!this.consoleElement || !this.inputElement) {
-            throw new Error('Console elements not found');
-        }
-
         // Initialize console state
-        this.setupEventListeners();
         this.clear();
+        this.setupEventListeners();
         this.enable();
+
+        // Indicate successful initialization
+        console.log('Console initialized successfully');
     }
 
     setupEventListeners() {
         try {
+            if (!this.inputElement) {
+                throw new Error('Input element not available for event setup');
+            }
+
             // Input handling
             this.inputElement.addEventListener('keydown', (e) => {
                 if (!this.isEnabled) return;
 
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    const input = this.inputElement.value.trim();
-                    if (input) {
-                        this.handleInput(input);
-                    }
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    this.navigateHistory(-1);
-                } else if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    this.navigateHistory(1);
-                } else if (e.key === 'Tab') {
-                    e.preventDefault();
-                    this.handleTabCompletion();
-                } else if (e.ctrlKey && e.key === 'c') {
-                    if (this.isWaitingForInput) {
-                        this.handleInterrupt();
-                    }
+                switch(e.key) {
+                    case 'Enter':
+                        if (!e.shiftKey) {
+                            e.preventDefault();
+                            const input = this.inputElement.value.trim();
+                            if (input) {
+                                this.handleInput(input);
+                            }
+                        }
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateHistory(-1);
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateHistory(1);
+                        break;
+                    case 'Tab':
+                        e.preventDefault();
+                        this.handleTabCompletion();
+                        break;
+                    case 'c':
+                        if (e.ctrlKey && this.isWaitingForInput) {
+                            this.handleInterrupt();
+                        }
+                        break;
                 }
             });
 
@@ -67,7 +82,7 @@ class InteractiveConsole {
             });
 
         } catch (error) {
-            console.error('Failed to set up event listeners:', error);
+            console.error('Error in console event setup:', error);
             throw error;
         }
     }
@@ -265,5 +280,9 @@ class InteractiveConsole {
     }
 }
 
-// Export to window object
-window.InteractiveConsole = InteractiveConsole;
+// Export to window object and handle initialization errors
+try {
+    window.InteractiveConsole = InteractiveConsole;
+} catch (error) {
+    console.error('Failed to export InteractiveConsole:', error);
+}

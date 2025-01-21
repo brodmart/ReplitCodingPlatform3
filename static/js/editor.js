@@ -27,7 +27,6 @@ function initializeComponents() {
             lineWrapping: true,
             viewportMargin: Infinity,
             gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
-            lint: true,
             extraKeys: {
                 "Tab": function(cm) {
                     if (cm.somethingSelected()) {
@@ -43,29 +42,36 @@ function initializeComponents() {
             },
             autoCloseTags: true,
             foldGutter: true,
-            matchTags: {bothTags: true},
-            highlightSelectionMatches: {showToken: /\w/, annotateScrollbar: true}
+            matchTags: {bothTags: true}
         });
 
         editor.on('change', function() {
             // Auto-save content
             localStorage.setItem('editorContent', editor.getValue());
-
-            // Reset error markers when code changes
-            editor.clearGutter("CodeMirror-lint-markers");
         });
 
         editor.getWrapperElement().classList.add('CodeMirror-initialized');
 
-        // Wait for console elements before initializing console
+        // Initialize console after editor is ready
+        initializeConsole();
+
+    } catch (error) {
+        console.error('Failed to initialize components:', error);
+        showError('Failed to initialize editor. Please refresh the page.');
+    }
+}
+
+function initializeConsole() {
+    try {
+        // Check if Console class is loaded
+        if (typeof InteractiveConsole === 'undefined') {
+            throw new Error('Console class not loaded');
+        }
+
+        // Wait for console elements before initializing
         waitForConsoleElements()
             .then(() => {
-                if (typeof InteractiveConsole === 'undefined') {
-                    throw new Error('InteractiveConsole class not loaded');
-                }
                 consoleInstance = new InteractiveConsole();
-
-                // Set up event listeners after both components are initialized
                 setupEventListeners();
                 setInitialEditorState();
 
@@ -79,10 +85,9 @@ function initializeComponents() {
                 console.error('Failed to initialize console:', error);
                 showError('Failed to initialize console. Please refresh the page.');
             });
-
     } catch (error) {
-        console.error('Failed to initialize components:', error);
-        showError('Failed to initialize editor. Please refresh the page.');
+        console.error('Error in console initialization:', error);
+        showError('Failed to initialize console. Please refresh the page.');
     }
 }
 
