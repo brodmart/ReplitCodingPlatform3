@@ -75,6 +75,10 @@ args = "Analyze W3Schools"
 task = "workflow.run"
 args = "Test Large Code Compilation"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "C# Compiler"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -278,6 +282,20 @@ with open('test.cs', 'r') as f:
 result = compile_and_run(code, 'csharp')
 print(result)
 '"""
+
+[[workflows.workflow]]
+name = "C# Compiler"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "dotnet build HelloWorld.csproj && dotnet run --project HelloWorld.csproj"
 
 [[ports]]
 localPort = 5000
