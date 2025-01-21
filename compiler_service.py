@@ -1,6 +1,3 @@
-"""
-Compiler service for code execution and testing.
-"""
 import subprocess
 import tempfile
 import os
@@ -26,9 +23,6 @@ MAX_EXECUTION_TIME = 15    # seconds
 MEMORY_LIMIT = 512        # MB
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 
-# Create cache directory if it doesn't exist
-os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
-
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
     Compile and run code with enhanced error handling and logging
@@ -53,57 +47,63 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             # Set up C# project structure
             source_file = temp_path / "Program.cs"
             project_file = temp_path / "program.csproj"
+            bin_dir = temp_path / "bin" / "Release" / "net7.0" / "linux-x64"
             logger.debug(f"Setting up C# project structure in {temp_path}")
 
-            # Write source code with proper namespace and class structure
-            if 'namespace' not in code and 'class Program' not in code:
-                modified_code = f"""using System;
+            # Create bin directory structure
+            os.makedirs(bin_dir, exist_ok=True)
 
-class Program 
-{{
-    static void Main() 
-    {{
-        try
-        {{
-            {code}
-        }}
-        catch (Exception e)
-        {{
-            Console.WriteLine($"Runtime Error: {{e.Message}}");
-        }}
-    }}
-}}
-"""
-            else:
-                modified_code = code
-
+            # Write source code
             logger.debug(f"Writing source code to {source_file}")
             with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(modified_code)
+                f.write(code)
 
-            # Create minimal project file
+            # Create project file
             project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
-</Project>
-"""
+</Project>"""
             logger.debug(f"Writing project file to {project_file}")
             with open(project_file, 'w', encoding='utf-8') as f:
                 f.write(project_content)
 
-            # Build and run
             try:
+                # First restore packages
+                logger.debug("Restoring NuGet packages...")
+                restore_cmd = ['dotnet', 'restore', str(project_file)]
+                restore_process = subprocess.run(
+                    restore_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=str(temp_path)
+                )
+
+                if restore_process.returncode != 0:
+                    logger.error(f"Package restore failed: {restore_process.stderr}")
+                    return {
+                        'success': False,
+                        'error': f"Package restore failed: {restore_process.stderr}",
+                        'metrics': metrics
+                    }
+
                 # Compile
                 compile_start = time.time()
                 compile_cmd = [
-                    'dotnet',
-                    'build',
+                    'dotnet', 'publish',
                     str(project_file),
-                    '--configuration', 'Release'
+                    '--configuration', 'Release',
+                    '--runtime', 'linux-x64',
+                    '--self-contained', 'false',
+                    '--output', str(bin_dir),
+                    '-nologo'
                 ]
 
                 logger.debug(f"Executing build command: {' '.join(compile_cmd)}")
@@ -112,7 +112,8 @@ class Program
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path)
+                    cwd=str(temp_path),
+                    env=os.environ.copy()  # Use current environment
                 )
 
                 metrics['compilation_time'] = time.time() - compile_start
@@ -125,10 +126,28 @@ class Program
                         'metrics': metrics
                     }
 
-                # Run the compiled program
-                run_cmd = ['dotnet', 'run', '--project', str(project_file), '--no-build']
-                logger.debug(f"Running program with command: {' '.join(run_cmd)}")
+                # Verify compilation output
+                executable = bin_dir / "program"
+                dll_path = bin_dir / "program.dll"
 
+                if dll_path.exists():
+                    logger.debug(f"Found program.dll at {dll_path}")
+                    run_cmd = ['dotnet', str(dll_path)]
+                elif executable.exists():
+                    logger.debug(f"Found executable at {executable}")
+                    os.chmod(executable, 0o755)
+                    run_cmd = [str(executable)]
+                else:
+                    logger.error(f"No executable found in {bin_dir}")
+                    logger.debug(f"Directory contents: {list(bin_dir.glob('*'))}")
+                    return {
+                        'success': False,
+                        'error': "Build succeeded but no executable found",
+                        'metrics': metrics
+                    }
+
+                # Run the compiled program
+                logger.debug(f"Running program with command: {' '.join(run_cmd)}")
                 run_process = subprocess.run(
                     run_cmd,
                     input=input_data.encode() if input_data else None,
@@ -137,6 +156,9 @@ class Program
                     timeout=MAX_EXECUTION_TIME,
                     cwd=str(temp_path)
                 )
+
+                metrics['execution_time'] = time.time() - (compile_start + metrics['compilation_time'])
+                metrics['total_time'] = time.time() - metrics['start_time']
 
                 if run_process.returncode != 0:
                     logger.error(f"Execution failed: {run_process.stderr}")
@@ -152,9 +174,9 @@ class Program
                     'metrics': metrics
                 }
 
-            except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired as e:
                 phase = "compilation" if time.time() - compile_start < MAX_COMPILATION_TIME else "execution"
-                error_msg = f"{phase.capitalize()} timed out"
+                error_msg = f"{phase.capitalize()} timed out after {MAX_COMPILATION_TIME if phase == 'compilation' else MAX_EXECUTION_TIME} seconds"
                 logger.error(error_msg)
                 return {
                     'success': False,
@@ -187,14 +209,11 @@ class Program
 def format_csharp_error(error_msg: str) -> str:
     """Format C# compilation errors to be more user-friendly"""
     try:
-        # Extract specific error information
         if "error CS" in error_msg:
-            # Get the error code and line number
             error_parts = error_msg.split(": ", 1)
             if len(error_parts) > 1:
                 error_description = error_parts[1]
                 return f"Compilation Error: {error_description}"
-
         return f"Compilation Error: {error_msg}"
     except Exception as e:
         logger.error(f"Error formatting C# error message: {str(e)}")
@@ -215,7 +234,6 @@ def format_runtime_error(error_msg: str) -> str:
         for error_type, message in common_errors.items():
             if error_type in error_msg:
                 return f"Runtime Error: {message}"
-
         return f"Runtime Error: {error_msg}"
     except Exception:
         return f"Runtime Error: {error_msg}"

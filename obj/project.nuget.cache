@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "0QP+OqOdNZ0tfxrbVf8N6rE0Sqyzv7ue0OrJD4NF6DOepG8um+JAdtAIXC6OXNAKJZhq2favI/EgzrjBPruiyg==",
+  "dgSpecHash": "zp5MC87X2+BPwJns6dWGeDY9cdPn7GrZKi1sSP6M2ttBrDlYpb9RP/ZusKzktk4gDcT2yqSa+VIwt2opBag1EQ==",
   "success": true,
-  "projectFilePath": "/home/runner/workspace/test.csproj",
+  "projectFilePath": "/home/runner/workspace/test_minimal.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }

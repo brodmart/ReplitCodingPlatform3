@@ -349,7 +349,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python3 -c \"from compiler_service import compile_and_run; result = compile_and_run(open('test.cs').read(), 'csharp'); print(result)\""
+args = "python3 -c \"from compiler import compile_and_run; result = compile_and_run(open('test.cs').read(), 'csharp'); print(result)\""
 
 [[ports]]
 localPort = 5000

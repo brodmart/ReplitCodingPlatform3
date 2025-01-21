@@ -45,14 +45,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         # Create compiler cache directory if it doesn't exist
         os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
 
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tempfile.TemporaryDirectory(prefix="compile_", dir=COMPILER_CACHE_DIR) as temp_dir:
             if language == 'csharp':
                 # Set up project structure
                 project_dir = Path(temp_dir)
                 source_file = project_dir / "Program.cs"
                 project_file = project_dir / "program.csproj"
-                bin_dir = project_dir / "bin" / "Debug" / "net7.0"
-                executable = bin_dir / "program"
+                bin_dir = project_dir / "bin" / "Release" / "net7.0" / "linux-x64"
+
+                # Write source code
+                logger.debug(f"Writing source code to {source_file}")
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
 
                 # Create project file with proper configuration
                 project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -71,22 +75,19 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 with open(project_file, 'w', encoding='utf-8') as f:
                     f.write(project_content)
 
-                logger.debug(f"Writing source code to {source_file}")
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
-
                 # Create bin directory if it doesn't exist
                 os.makedirs(bin_dir, exist_ok=True)
 
                 # Enhanced compilation command
                 compile_cmd = [
                     'dotnet',
-                    'build',
+                    'publish',
                     str(project_file),
-                    '--output',
-                    str(bin_dir),
-                    '/p:GenerateFullPaths=true',
-                    '/consoleloggerparameters:NoSummary'
+                    '--configuration', 'Release',
+                    '--runtime', 'linux-x64',
+                    '--self-contained', 'false',
+                    '--output', str(bin_dir),
+                    '-nologo'
                 ]
 
                 logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
@@ -98,8 +99,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     env.update({
                         'DOTNET_CLI_HOME': str(project_dir),
                         'DOTNET_NOLOGO': '1',
-                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
-                        'DOTNET_ROLL_FORWARD': 'Major'
+                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
                     })
 
                     compile_process = subprocess.run(
@@ -125,9 +125,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         }
 
                     # Verify the executable exists
-                    if not executable.exists():
-                        error_msg = f"Compilation succeeded but executable not found at {executable}"
+                    dll_path = bin_dir / "program.dll"
+                    executable = bin_dir / "program"
+
+                    if dll_path.exists():
+                        logger.debug(f"Found program.dll at {dll_path}")
+                        run_cmd = ['dotnet', str(dll_path)]
+                    elif executable.exists():
+                        logger.debug(f"Found executable at {executable}")
+                        os.chmod(executable, 0o755)
+                        run_cmd = [str(executable)]
+                    else:
+                        error_msg = f"Compilation succeeded but no executable found in {bin_dir}"
                         logger.error(error_msg)
+                        logger.debug(f"Directory contents: {list(bin_dir.glob('*'))}")
                         return {
                             'success': False,
                             'error': error_msg,
@@ -136,12 +147,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             }
                         }
 
-                    logger.debug("Compilation successful, preparing execution")
-                    run_cmd = ['dotnet', str(executable)]
+                    logger.debug("Running program with command: {' '.join(run_cmd)}")
                     run_start = time.time()
 
                     run_process = subprocess.run(
                         run_cmd,
+                        input=input_data.encode() if input_data else None,
                         capture_output=True,
                         text=True,
                         timeout=MAX_EXECUTION_TIME,

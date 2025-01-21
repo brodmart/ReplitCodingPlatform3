@@ -20,14 +20,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from utils.backup import DatabaseBackup
 from routes.static_routes import get_user_language  # Import the centralized language function
-from compiler_service import (
-    compile_and_run,
-    cleanup_session,
-    send_input,
-    get_output,
-    active_sessions,
-    session_lock
-)
+from compiler import compile_and_run  # Updated import to use new compiler
 
 # Initialize scheduler for backups
 scheduler = BackgroundScheduler()
@@ -40,19 +33,11 @@ atexit.register(lambda: scheduler.shutdown())
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
 
-
 # Create temp directory
 TEMP_DIR = os.path.join(os.getcwd(), 'temp')
 if not os.path.exists(TEMP_DIR):
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.chmod(TEMP_DIR, 0o755)
-
-def log_api_request(start_time, client_ip, endpoint, status_code):
-    """Log API request details"""
-    duration = time.time() - start_time
-    logger.info(f"API Request - Client: {client_ip}, Endpoint: {endpoint}, Status: {status_code}, Duration: {duration:.2f}s")
-
-
 
 @activities.route('/activities/submit_confidence', methods=['POST'])
 @login_required
@@ -154,25 +139,12 @@ def run_code():
         logger.debug(f"Executing {language} code, length: {len(code)}")
         logger.debug(f"Code preview: {code[:200]}...")  # Log first 200 chars for debugging
 
-        # Execute the code with automatic interactive detection
+        # Execute the code using the new compiler implementation
         result = compile_and_run(
             code=code,
             language=language,
-            compile_timeout=30,
-            execution_timeout=60
+            input_data=None  # Add input data support if needed
         )
-
-        logger.debug(f"Execution result: {result}")
-
-        if result.get('interactive', False):
-            # Handle interactive program
-            logger.debug("Interactive program detected")
-            session_id = result.get('session_id')
-            return jsonify({
-                'success': True,
-                'interactive': True,
-                'session_id': session_id
-            })
 
         # Store submission if activity_id is provided
         if activity_id:
