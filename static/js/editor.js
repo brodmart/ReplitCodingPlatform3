@@ -50,23 +50,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const language = languageSelect.value;
             console.log('Language changed to:', language);
 
-            // Update editor mode based on language
+            // Always update the editor mode and template when switching languages
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-
-            // Get current code and templates
-            const currentCode = editor.getValue().trim();
-
-            // Check if current code matches any template
-            const cppTemplate = getTemplateForLanguage('cpp');
-            const csharpTemplate = getTemplateForLanguage('csharp');
-
-            // Update code if it's empty, matches the other language's template,
-            // or matches the current language's template
-            if (!currentCode || 
-                currentCode === cppTemplate || 
-                currentCode === csharpTemplate) {
-                editor.setValue(getTemplateForLanguage(language));
-            }
+            editor.setValue(getTemplateForLanguage(language));
         });
     }
 

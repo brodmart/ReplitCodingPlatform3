@@ -345,43 +345,32 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
             if language.lower() == 'csharp':
                 try:
-                    # C# specific compilation with proper Mono configuration
+                    # C# specific compilation with optimized Mono configuration
                     source_file = temp_path / "program.cs"
                     executable = temp_path / "program.exe"
 
-                    # Enhanced C# code preprocessing
+                    # Enhanced C# code preprocessing - minimal wrapper
                     modified_code = code
-
-                    # Check if code already has basic requirements
-                    has_namespace = 'namespace' in code
-                    has_class = 'class' in code
-                    has_using_system = 'using System;' in code
-
-                    # Only add using System if not present
-                    if not has_using_system:
-                        modified_code = "using System;\n" + modified_code
-
-                    # Only wrap in namespace and class if neither exists
-                    if not has_namespace and not has_class:
-                        modified_code = f"""namespace ConsoleApp 
+                    if 'namespace' not in code and 'class' not in code:
+                        modified_code = f"""using System;
+class Program 
 {{
-    class Program 
-    {{
-        {modified_code}
-    }}
+    {modified_code}
 }}"""
 
                     # Write the code with proper encoding
                     with open(source_file, 'w', encoding='utf-8') as f:
                         f.write(modified_code)
 
-                    # Enhanced compilation command
+                    # Optimized compilation command with faster settings
                     compile_cmd = [
                         'mcs',
                         '-optimize+',
                         '-debug-',
-                        '-reference:System.Core.dll',
+                        '-noconfig',  # Skip reading the default config file
+                        '-nostdlib+', # Only reference essential libraries
                         '-reference:System.dll',
+                        '-reference:System.Core.dll',
                         str(source_file),
                         '-out:' + str(executable)
                     ]
@@ -390,7 +379,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         compile_cmd,
                         capture_output=True,
                         text=True,
-                        timeout=20
+                        timeout=10  # Reduced timeout for compilation
                     )
 
                     if compile_process.returncode != 0:
@@ -401,15 +390,15 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
                     os.chmod(executable, 0o755)
 
-                    # Enhanced environment for better console handling
+                    # Optimized Mono runtime settings
                     env = os.environ.copy()
-                    env['MONO_IOMAP'] = 'all'
-                    env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                    env['MONO_DEBUG'] = 'handle-sigint'
+                    env['MONO_GC_PARAMS'] = 'mode=throughput'  # Faster GC
+                    env['MONO_THREADS_PER_CPU'] = '2'
+                    env['MONO_MIN_THREADS'] = '4'
 
                     # Run with mono
                     process = subprocess.Popen(
-                        ['mono', str(executable)],
+                        ['mono', '--gc=sgen', str(executable)],  # Use sgen GC for better performance
                         stdin=subprocess.PIPE if input_data else None,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
@@ -418,18 +407,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                except subprocess.TimeoutExpired as e:
-                    return {
-                        'success': False,
-                        'error': f"C# compilation timed out: {str(e)}"
-                    }
-                except Exception as e:
-                    return {
-                        'success': False,
-                        'error': f"C# compilation error: {str(e)}"
-                    }
-
-                try:
                     stdout, stderr = process.communicate(
                         input=input_data,
                         timeout=30
@@ -465,6 +442,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     return {
                         'success': False,
                         'error': "Execution timeout after 30 seconds"
+                    }
+                except Exception as e:
+                    return {
+                        'success': False,
+                        'error': f"C# compilation error: {str(e)}"
                     }
                 finally:
                     try:
@@ -528,7 +510,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'success': False,
                         'error': f"C++ compilation error: {str(e)}"
                     }
-                
+
 
             else:
                 return {
@@ -575,9 +557,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'error': "Execution timeout after 30 seconds"
                 }
             finally:
-                if 'monitor' in locals():
-                    monitor.stop()
-                    monitor.join()
                 try:
                     if process.poll() is None:
                         os.killpg(os.getpgid(process.pid), signal.SIGTERM)
