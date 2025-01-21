@@ -11,6 +11,7 @@ from typing import Dict, Optional, Any
 from pathlib import Path
 import psutil
 import time
+import re
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -87,7 +88,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     '--runtime', 'linux-x64',
                     '--self-contained', 'false',
                     '--output', str(bin_dir),
-                    '-nologo'
+                    '-nologo',
+                    '/p:GenerateFullPaths=true',
+                    '/consoleloggerparameters:NoSummary'
                 ]
 
                 logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
@@ -102,6 +105,26 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
                     })
 
+                    # First restore packages
+                    logger.debug("Restoring NuGet packages...")
+                    restore_cmd = ['dotnet', 'restore', str(project_file)]
+                    restore_process = subprocess.run(
+                        restore_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=str(project_dir),
+                        env=env
+                    )
+
+                    if restore_process.returncode != 0:
+                        logger.error(f"Package restore failed: {restore_process.stderr}")
+                        return {
+                            'success': False,
+                            'error': f"Package restore failed: {restore_process.stderr}",
+                            'metrics': {'compilation_time': time.time() - compile_start}
+                        }
+
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
@@ -115,10 +138,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     logger.debug(f"Compilation completed in {compile_time:.2f}s")
 
                     if compile_process.returncode != 0:
-                        logger.error(f"Compilation failed: {compile_process.stderr}")
+                        error_msg = format_csharp_error(compile_process.stderr)
+                        logger.error(f"Compilation failed: {error_msg}")
                         return {
                             'success': False,
-                            'error': compile_process.stderr,
+                            'error': error_msg,
                             'metrics': {
                                 'compilation_time': compile_time
                             }
@@ -147,7 +171,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             }
                         }
 
-                    logger.debug("Running program with command: {' '.join(run_cmd)}")
+                    logger.debug(f"Running program with command: {' '.join(run_cmd)}")
                     run_start = time.time()
 
                     run_process = subprocess.run(
@@ -166,10 +190,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     logger.debug(f"Execution completed in {run_time:.2f}s")
 
                     if run_process.returncode != 0:
-                        logger.error(f"Execution failed: {run_process.stderr}")
+                        error_msg = format_runtime_error(run_process.stderr)
+                        logger.error(f"Execution failed: {error_msg}")
                         return {
                             'success': False,
-                            'error': run_process.stderr,
+                            'error': error_msg,
                             'metrics': {
                                 'compilation_time': compile_time,
                                 'execution_time': run_time,
@@ -215,3 +240,35 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'success': False,
             'error': error_msg
         }
+
+def format_csharp_error(error_msg: str) -> str:
+    """Format C# compilation errors to be more user-friendly"""
+    try:
+        if "error CS" in error_msg:
+            # Extract the error code and message
+            match = re.search(r'error CS\d+:(.+?)(?:\r|\n|$)', error_msg)
+            if match:
+                return f"Compilation Error: {match.group(1).strip()}"
+        return f"Compilation Error: {error_msg.strip()}"
+    except Exception as e:
+        logger.error(f"Error formatting C# error message: {str(e)}")
+        return f"Compilation Error: {error_msg}"
+
+def format_runtime_error(error_msg: str) -> str:
+    """Format runtime errors to be more user-friendly"""
+    try:
+        common_errors = {
+            "System.NullReferenceException": "Attempted to use a null object",
+            "System.IndexOutOfRangeException": "Array index out of bounds",
+            "System.DivideByZeroException": "Division by zero detected",
+            "System.InvalidOperationException": "Invalid operation",
+            "System.ArgumentException": "Invalid argument provided",
+            "System.FormatException": "Invalid format"
+        }
+
+        for error_type, message in common_errors.items():
+            if error_type in error_msg:
+                return f"Runtime Error: {message}"
+        return f"Runtime Error: {error_msg}"
+    except Exception:
+        return f"Runtime Error: {error_msg}"
