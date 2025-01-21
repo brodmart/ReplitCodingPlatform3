@@ -12,6 +12,7 @@ from pathlib import Path
 import psutil
 import time
 import re
+import glob
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -22,6 +23,32 @@ MAX_COMPILATION_TIME = 30  # Increased from 10 to 30 seconds for large files
 MAX_EXECUTION_TIME = 15    # Execution timeout remains at 15 seconds
 MEMORY_LIMIT = 512        # MB
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
+
+def find_icu_path():
+    """Find ICU library path in Nix store"""
+    try:
+        # Look for ICU library directory in Nix store
+        possible_paths = glob.glob("/nix/store/*/lib/icu*")
+        if possible_paths:
+            icu_dir = os.path.dirname(possible_paths[0])
+            logger.debug(f"Found ICU library path: {icu_dir}")
+            return icu_dir
+
+        # Look for ICU data directory in Nix store
+        data_paths = glob.glob("/nix/store/*/share/icu")
+        if data_paths:
+            logger.debug(f"Found ICU data path: {data_paths[0]}")
+            return data_paths[0]
+
+        # Fallback to system path
+        if os.path.exists("/usr/share/icu"):
+            return "/usr/share/icu"
+
+        logger.warning("No ICU path found, using invariant globalization")
+        return None
+    except Exception as e:
+        logger.error(f"Error finding ICU path: {e}")
+        return None
 
 class CompilationTimeout(Exception):
     """Raised when compilation exceeds time limit"""
@@ -59,8 +86,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Create project file with proper configuration
-                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                # Find ICU path
+                icu_path = find_icu_path()
+                use_invariant = icu_path is None
+
+                # Create project file with enhanced console support
+                project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
@@ -69,9 +100,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishReadyToRun>false</PublishReadyToRun>
     <SelfContained>false</SelfContained>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <InvariantGlobalization>{str(use_invariant).lower()}</InvariantGlobalization>
     <DebugType>embedded</DebugType>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
+    <UseSystemConsole>true</UseSystemConsole>
+    <UseAppHost>false</UseAppHost>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <StripSymbols>true</StripSymbols>
   </PropertyGroup>
 </Project>"""
 
@@ -93,6 +128,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     '--output', str(bin_dir),
                     '-nologo',
                     '/p:GenerateFullPaths=true',
+                    '/p:UseAppHost=false',
+                    '/p:UseSystemConsole=true',
                     '/consoleloggerparameters:NoSummary'
                 ]
 
@@ -102,20 +139,42 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 try:
                     # Set up enhanced compilation environment
                     env = os.environ.copy()
-                    env.update({
+                    env_updates = {
                         'DOTNET_CLI_HOME': str(project_dir),
                         'DOTNET_NOLOGO': '1',
                         'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
-                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
+                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': str(int(use_invariant)),
                         'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'false',
                         'DOTNET_MULTILEVEL_LOOKUP': '0',
                         'DOTNET_CLI_UI_LANGUAGE': 'en-US',
                         'COMPlus_EnableDiagnostics': '0',
                         'DOTNET_ROOT': '/usr/share/dotnet',
-                        'ICU_DATA': '/usr/share/icu',
                         'LC_ALL': 'en_US.UTF-8',
-                        'LANG': 'en_US.UTF-8'
-                    })
+                        'LANG': 'en_US.UTF-8',
+                        'TERM': 'xterm-256color',
+                        'COLUMNS': '80',
+                        'LINES': '25'
+                    }
+
+                    if icu_path:
+                        if '/lib/icu' in icu_path:
+                            # If we found the library path, set LD_LIBRARY_PATH
+                            env_updates['LD_LIBRARY_PATH'] = f"{icu_path}:{env.get('LD_LIBRARY_PATH', '')}"
+                            # Also try to find and set ICU_DATA
+                            icu_data = glob.glob("/nix/store/*/share/icu")
+                            if icu_data:
+                                env_updates['ICU_DATA'] = icu_data[0]
+                        else:
+                            # If we found the data path, set ICU_DATA
+                            env_updates['ICU_DATA'] = icu_path
+                            # Try to find and set LD_LIBRARY_PATH
+                            lib_paths = glob.glob("/nix/store/*/lib/icu*")
+                            if lib_paths:
+                                lib_dir = os.path.dirname(lib_paths[0])
+                                env_updates['LD_LIBRARY_PATH'] = f"{lib_dir}:{env.get('LD_LIBRARY_PATH', '')}"
+
+                    env.update(env_updates)
+                    logger.debug(f"Environment variables set: {env_updates}")
 
                     # First restore packages
                     logger.debug("Restoring NuGet packages...")

@@ -1,6 +1,8 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using System.Text;
+using System.Threading;
 
 class Program 
 {
@@ -8,33 +10,40 @@ class Program
     {
         try
         {
-            // Test Unicode strings
-            string unicodeText = "Hello • こんにちは • Bonjour";
-            Console.WriteLine($"Unicode test: {unicodeText}");
+            Console.OutputEncoding = Encoding.UTF8;
+            Console.InputEncoding = Encoding.UTF8;
 
-            // Test array operations
-            int[] numbers = { 1, 2, 3, 4, 5 };
-            double average = numbers.Average();
-            Console.WriteLine($"Array average: {average:F2}");
+            // Test console colors
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("Testing console features:");
+            Console.ResetColor();
 
-            // Test culture-specific formatting
-            double amount = 1234567.89;
-            Console.WriteLine($"Currency format: {amount:C2}");
+            // Test Unicode output
+            Console.WriteLine("Unicode symbols: ★ ■ ● ▲ ▼");
 
-            // Test exception handling
-            object nullObj = null;
-            try 
+            // Test number formatting
+            Console.WriteLine($"Number: {123456.789:N2}");
+
+            // Test console buffer and window
+            Console.WriteLine($"Buffer Width: {Console.BufferWidth}");
+            Console.WriteLine($"Window Width: {Console.WindowWidth}");
+
+            // Test cursor positioning
+            Console.WriteLine("Testing cursor position...");
+            Thread.Sleep(500);
+
+            // Basic animation
+            for (int i = 0; i < 3; i++)
             {
-                Console.WriteLine(nullObj.ToString());
+                Console.Write(".");
+                Thread.Sleep(300);
             }
-            catch (NullReferenceException)
-            {
-                Console.WriteLine("Successfully caught null reference exception");
-            }
+            Console.WriteLine("\nDone!");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 }
