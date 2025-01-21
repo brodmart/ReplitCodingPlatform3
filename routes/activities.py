@@ -45,7 +45,10 @@ def execute_code():
                 'error': 'Unsupported language'
             }), 400
 
-        logger.debug(f"Executing {language} code of length {len(code)}")
+        # Add detailed request logging
+        logger.debug(f"Executing {language} code of length {len(code)} bytes")
+        logger.debug(f"Code preview (first 200 chars): {code[:200]}")
+        logger.debug(f"Request headers: {dict(request.headers)}")
 
         # Add detailed execution status logging
         logger.info(f"Starting code execution - Language: {language}, Code size: {len(code)} bytes")
@@ -56,15 +59,11 @@ def execute_code():
         # Enhanced metrics logging
         execution_time = time.time() - start_time
         logger.info(f"Code execution completed in {execution_time:.2f}s")
+        logger.debug(f"Compilation result: {result}")
 
-        if 'metrics' in result:
-            metrics = result['metrics']
-            logger.info(f"Compilation time: {metrics.get('compilation_time', 0):.2f}s")
-            logger.info(f"Execution time: {metrics.get('execution_time', 0):.2f}s")
-            logger.info(f"Total time: {metrics.get('total_time', 0):.2f}s")
-
-            for time_stamp, status in metrics.get('status_updates', []):
-                logger.debug(f"[{time_stamp:.2f}s] {status}")
+        if not result.get('success', False):
+            error_msg = result.get('error', 'An unknown error occurred')
+            logger.error(f"Execution failed with error: {error_msg}")
 
         return jsonify(result)
 
