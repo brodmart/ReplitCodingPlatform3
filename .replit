@@ -91,6 +91,10 @@ args = "Test C# Basic"
 task = "workflow.run"
 args = "Test Updated Compiler"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test C# Performance"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -350,6 +354,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 -c \"from compiler import compile_and_run; result = compile_and_run(open('test.cs').read(), 'csharp'); print(result)\""
+
+[[workflows.workflow]]
+name = "Test C# Performance"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 test_compiler_performance.py"
 
 [[ports]]
 localPort = 5000
