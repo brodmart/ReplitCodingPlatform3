@@ -58,7 +58,12 @@ async function initializeEditor() {
         });
 
         // Load saved content or set template
-        loadSavedContent();
+        const savedContent = localStorage.getItem('editorContent');
+        if (savedContent) {
+            editorState.editor.setValue(savedContent);
+        } else {
+            setEditorTemplate(editorState.currentLanguage, true);
+        }
 
         // Set up event listeners
         setupEventListeners();
@@ -85,13 +90,15 @@ function setupEventListeners() {
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', handleLanguageChange);
+        // Set initial language
+        editorState.currentLanguage = languageSelect.value;
     }
 
     // Clear console button
     const clearButton = document.getElementById('clearConsole');
-    if (clearButton && editorState.terminal) {
+    if (clearButton && window.terminal) {
         clearButton.addEventListener('click', () => {
-            editorState.terminal.clear();
+            window.terminal.clear();
         });
     }
 
@@ -114,27 +121,19 @@ function handleLanguageChange(event) {
     editorState.editor.setOption('mode', modes[newLanguage] || modes.cpp);
 
     // Set template if editor is empty
-    if (!editorState.editor.getValue().trim()) {
-        setEditorTemplate(newLanguage);
+    const currentContent = editorState.editor.getValue().trim();
+    if (!currentContent) {
+        setEditorTemplate(newLanguage, false);
     }
-}
-
-// Load saved content or template
-function loadSavedContent() {
-    const savedContent = localStorage.getItem('editorContent');
-    if (savedContent) {
-        editorState.editor.setValue(savedContent);
-    } else {
-        setEditorTemplate(editorState.currentLanguage);
-    }
-    editorState.editor.refresh();
 }
 
 // Set editor template
-function setEditorTemplate(language) {
+function setEditorTemplate(language, isInitial = false) {
     const template = editorState.templates[language] || editorState.templates.cpp;
-    editorState.editor.setValue(template);
-    editorState.editor.setCursor(editorState.editor.lineCount() - 2, 4);
+    if (isInitial || !editorState.editor.getValue().trim()) {
+        editorState.editor.setValue(template);
+        editorState.editor.setCursor(editorState.editor.lineCount() - 2, 4);
+    }
 }
 
 // Run code
@@ -143,7 +142,6 @@ async function runCode() {
 
     const runButton = document.getElementById('runButton');
     editorState.isExecuting = true;
-    const terminal = window.terminal; // Access the terminal instance
 
     try {
         if (runButton) {
@@ -161,8 +159,9 @@ async function runCode() {
             throw new Error('CSRF token not found');
         }
 
-        if (terminal) {
-            terminal.write('\r\nCompiling and running code...\r\n');
+        // Use the global terminal instance
+        if (window.terminal) {
+            window.terminal.write('\r\nCompiling and running code...\r\n');
         }
 
         const response = await fetch('/activities/run_code', {
@@ -184,16 +183,16 @@ async function runCode() {
         const result = await response.json();
 
         if (result.success) {
-            terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
+            window.terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
             if (result.output) {
-                terminal?.write(result.output + '\r\n');
+                window.terminal?.write(result.output + '\r\n');
             }
         } else {
-            terminal?.write('\x1b[31mError: ' + result.error + '\x1b[0m\r\n');
+            window.terminal?.write('\x1b[31mError: ' + result.error + '\x1b[0m\r\n');
         }
     } catch (error) {
         console.error('Error executing code:', error);
-        terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
+        window.terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
     } finally {
         editorState.isExecuting = false;
         if (runButton) {

@@ -107,8 +107,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         terminal.loadAddon(fitAddon);
         fitAddon.fit();
 
+        // Store terminal instance globally
+        window.terminal = terminal;
+
         // Handle terminal resize
         window.addEventListener('resize', () => fitAddon.fit());
+
+        // Add input handling
+        terminal.onData(data => {
+            // Handle terminal input if needed
+        });
 
         console.log('Components initialized successfully');
     } catch (error) {
