@@ -29,6 +29,12 @@ MAX_WORKERS = os.cpu_count() or 4
 MAX_RETRIES = 2
 CACHE_VERSION = "1.0"     # Increment when cache format changes
 
+# Added constants for performance optimizations
+COMPILER_WARMUP_ENABLED = True
+WARMUP_CACHE_SIZE = 50  # Maximum number of cached compilations
+THREAD_POOL_MIN_SIZE = max(2, os.cpu_count() // 2)
+THREAD_POOL_MAX_SIZE = max(4, os.cpu_count())
+
 # Create cache directories
 os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
 NUGET_CACHE = os.path.join(COMPILER_CACHE_DIR, 'nuget')
@@ -222,6 +228,40 @@ def find_dotnet_path():
         logger.error(f"Error finding dotnet path: {e}")
         return None
 
+def preallocate_compilation_buffers():
+    """Pre-allocate buffers for compilation to reduce memory fragmentation"""
+    try:
+        # Pre-allocate common buffer sizes
+        buffer_sizes = [4096, 8192, 16384, 32768]
+        buffers = []
+        for size in buffer_sizes:
+            buffers.append(bytearray(size))
+        return buffers
+    except Exception as e:
+        logger.warning(f"Failed to preallocate buffers: {e}")
+        return []
+
+def warmup_compiler():
+    """Warm up the compiler with common code patterns"""
+    if not COMPILER_WARMUP_ENABLED:
+        return
+
+    warmup_code = """
+using System;
+class Program {
+    static void Main() {
+        Console.WriteLine("Warmup");
+    }
+}"""
+
+    try:
+        logger.debug("Warming up compiler...")
+        compile_and_run(warmup_code, 'csharp')
+        logger.debug("Compiler warmup complete")
+    except Exception as e:
+        logger.warning(f"Compiler warmup failed: {e}")
+
+
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
     Optimized compile and run with enhanced caching and parallel compilation
@@ -283,8 +323,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'COMPlus_TieredCompilation': '1',
             'COMPlus_TC_QuickJit': '1',
             'LC_ALL': 'C',
-            'LANG': 'C'
+            'LANG': 'C',
+            'DOTNET_ThreadPool_MinThreads': str(THREAD_POOL_MIN_SIZE),
+            'DOTNET_ThreadPool_MaxThreads': str(THREAD_POOL_MAX_SIZE),
+            'DOTNET_JitMinOpts': '1',
+            'DOTNET_TieredCompilation': '1',
+            'DOTNET_ReadyToRun': '1',
+            'DOTNET_TC_QuickJit': '1',
+            'DOTNET_SYSTEM_THREADING_POOLASYNCVALUETASKS': '1',
+            'DOTNET_SYSTEM_THREADING_TASKS_FAST_FLOW': '1'
         })
+
+        warmup_compiler()
 
         with tempfile.TemporaryDirectory(prefix='compile_', dir=COMPILER_CACHE_DIR) as temp_dir:
             if language == 'csharp':
