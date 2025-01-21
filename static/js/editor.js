@@ -159,11 +159,27 @@ async function runCode() {
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        let result;
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // Handle non-JSON responses (like HTML redirects)
+            if (response.status === 401) {
+                throw new Error('Authentication required. Please log in to continue.');
+            }
+            throw new Error('Invalid response from server. Please try again.');
         }
 
-        const result = await response.json();
+        result = await response.json();
+
+        if (!response.ok) {
+            if (response.status === 401 && result.auth_required) {
+                // Redirect to login page with return URL
+                window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+                return;
+            }
+            throw new Error(result.error || `HTTP error! status: ${response.status}`);
+        }
+
         console.log('Received response:', result);
 
         if (result.success) {

@@ -1,7 +1,7 @@
 """
 Activity routes with curriculum compliance integration and enhanced learning features
 """
-from flask import Blueprint, jsonify, request, render_template, abort, session, current_app
+from flask import Blueprint, jsonify, request, render_template, abort, session, current_app, redirect, url_for
 from flask_login import login_required, current_user
 from utils.curriculum_checker import CurriculumChecker
 from models import db, CodingActivity, Student, StudentProgress, CodeSubmission
@@ -13,6 +13,16 @@ import time
 logger = logging.getLogger(__name__)
 activities_bp = Blueprint('activities', __name__)
 curriculum_checker = CurriculumChecker()
+
+def handle_auth_error(error_msg="Authentication required"):
+    """Handle authentication errors with JSON response"""
+    if request.is_json:
+        return jsonify({
+            'success': False,
+            'error': error_msg,
+            'auth_required': True
+        }), 401
+    return redirect(url_for('auth.login', next=request.url))
 
 @activities_bp.route('/activities/execute', methods=['POST'])
 @login_required
@@ -117,6 +127,11 @@ def run_code():
             'success': False,
             'error': str(e)
         }), 500
+
+# Add error handler for unauthorized access
+@activities_bp.errorhandler(401)
+def unauthorized_error(error):
+    return handle_auth_error()
 
 def get_user_language():
     """Get user's current language preference"""
