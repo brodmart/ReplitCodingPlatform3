@@ -343,7 +343,149 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
 
-            if language.lower() == 'cpp':
+            if language.lower() == 'csharp':
+                try:
+                    # C# specific compilation with proper Mono configuration
+                    source_file = temp_path / "program.cs"
+                    executable = temp_path / "program.exe"
+
+                    # Enhanced C# code preprocessing
+                    modified_code = code
+
+                    # Only add namespace if not present
+                    if 'namespace' not in code:
+                        modified_code = """using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ConsoleApplication {
+    public class Program {
+""" + code + """
+    }
+}"""
+
+                    # Write the code with proper encoding
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(modified_code)
+
+                    # Enhanced compilation command
+                    compile_cmd = [
+                        'mcs',
+                        '-optimize+',
+                        '-debug-',
+                        '-reference:System.Core.dll',
+                        '-reference:System.dll',
+                        str(source_file),
+                        '-out:' + str(executable)
+                    ]
+
+                    compile_process = subprocess.run(
+                        compile_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=20
+                    )
+
+                    if compile_process.returncode != 0:
+                        return {
+                            'success': False,
+                            'error': format_csharp_error(compile_process.stderr)
+                        }
+
+                    os.chmod(executable, 0o755)
+
+                    # Enhanced environment for better console handling
+                    env = os.environ.copy()
+                    env['MONO_IOMAP'] = 'all'
+                    env['MONO_TRACE_LISTENER'] = 'Console.Out'
+                    env['MONO_DEBUG'] = 'handle-sigint'
+                    env['MONO_THREADS_PER_CPU'] = '2'
+                    env['MONO_GC_PARAMS'] = 'mode=throughput'
+
+                    # Add proper console window support
+                    env['TERM'] = 'xterm'
+                    env['COLUMNS'] = '80'
+                    env['LINES'] = '25'
+
+                    # Run with mono, using Popen for interactive I/O
+                    process = subprocess.Popen(
+                        ['mono', str(executable)],
+                        stdin=subprocess.PIPE if input_data else None,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        bufsize=1,
+                        env=env,
+                        preexec_fn=os.setsid
+                    )
+
+                    # Set up process monitor
+                    monitor = ProcessMonitor(process, timeout=30)
+                    monitor.start()
+
+                except subprocess.TimeoutExpired as e:
+                    return {
+                        'success': False,
+                        'error': f"C# compilation timed out: {str(e)}"
+                    }
+                except Exception as e:
+                    return {
+                        'success': False,
+                        'error': f"C# compilation error: {str(e)}"
+                    }
+
+                try:
+                    stdout, stderr = process.communicate(
+                        input=input_data,
+                        timeout=30
+                    )
+
+                    if stderr and stderr.strip():
+                        logger.error(f"Program stderr: {stderr}")
+                        error_msg = format_runtime_error(stderr)
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
+
+                    if process.returncode != 0:
+                        error_msg = stderr if stderr else "Program failed with no error message"
+                        logger.error(f"Program failed: {error_msg}")
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
+
+                    output = stdout.strip() if stdout else ""
+                    return {
+                        'success': True,
+                        'output': output
+                    }
+
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    except:
+                        pass
+                    return {
+                        'success': False,
+                        'error': "Execution timeout after 30 seconds"
+                    }
+                finally:
+                    if 'monitor' in locals():
+                        monitor.stop()
+                        monitor.join()
+                    try:
+                        if process.poll() is None:
+                            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                            process.wait(timeout=1)
+                    except:
+                        pass
+
+            elif language.lower() == 'cpp':
                 try:
                     # C++ specific compilation
                     source_file = temp_path / "program.cpp"
@@ -398,77 +540,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'error': f"C++ compilation error: {str(e)}"
                     }
 
-            elif language.lower() == 'csharp':
-                try:
-                    # C# specific compilation with proper Mono configuration
-                    source_file = temp_path / "program.cs"
-                    executable = temp_path / "program.exe"
-
-                    # Only add namespaces if they're not present
-                    if "using System;" not in code:
-                        code = "using System;\n" + code
-
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write(code)
-
-                    # Enhanced compilation command for C#
-                    compile_cmd = [
-                        'mcs',
-                        '-optimize+',
-                        '-debug-',
-                        '-reference:System.Core.dll',
-                        '-reference:System.dll',
-                        str(source_file),
-                        '-out:' + str(executable)
-                    ]
-
-                    compile_process = subprocess.run(
-                        compile_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=20
-                    )
-
-                    if compile_process.returncode != 0:
-                        error_msg = compile_process.stderr
-                        formatted_error = format_csharp_error(error_msg)
-                        return {
-                            'success': False,
-                            'error': formatted_error
-                        }
-
-                    os.chmod(executable, 0o755)
-
-                    # Set up environment for mono execution
-                    env = os.environ.copy()
-                    env['MONO_IOMAP'] = 'all'
-                    env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                    env['MONO_DEBUG'] = 'handle-sigint'
-                    env['MONO_THREADS_PER_CPU'] = '2'
-                    env['MONO_GC_PARAMS'] = 'mode=throughput'
-
-                    # Run with mono
-                    process = subprocess.Popen(
-                        ['mono', str(executable)],
-                        stdin=subprocess.PIPE if input_data else None,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        text=True,
-                        env=env,
-                        preexec_fn=os.setsid
-                    )
-
-                except subprocess.TimeoutExpired as e:
-                    return {
-                        'success': False,
-                        'error': f"C# compilation timed out: {str(e)}"
-                    }
-                except Exception as e:
-                    return {
-                        'success': False,
-                        'error': f"C# compilation error: {str(e)}"
-                    }
-
             else:
                 return {
                     'success': False,
@@ -477,9 +548,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
             # Common execution code for both languages
             try:
-                monitor = ProcessMonitor(process, timeout=30)
-                monitor.start()
-
                 stdout, stderr = process.communicate(
                     input=input_data,
                     timeout=30
@@ -554,7 +622,10 @@ def format_csharp_error(error_msg: str) -> str:
                     "1001": "Syntax Error: Missing opening curly brace '{'",
                     "1513": "Error: Invalid statement. Make sure you're inside a method.",
                     "0117": "Error: Method must have a return type. Did you forget 'void' or 'int'?",
-                    "0161": "Error: 'Console.WriteLine' can only be used inside a method"
+                    "0161": "Error: 'Console.WriteLine' can only be used inside a method",
+                    "0103": "Error: The name does not exist in the current context. Check for typos or missing 'using' statements.",
+                    "0234": "Error: The type or namespace name could not be found. Are you missing an assembly reference?",
+                    "0116": "Error: A namespace cannot directly contain a method. Wrap your code in a class."
                 }
 
                 friendly_msg = error_messages.get(error_code, error_desc)
