@@ -154,7 +154,7 @@ namespace ConsoleApplication {
         env = os.environ.copy()
         env['MONO_IOMAP'] = 'all'
         env['MONO_TRACE_LISTENER'] = 'Console.Out'
-        env['MONO_DEBUG'] = 'yes'
+        env['MONO_DEBUG'] = 'explicit-null-checks,handle-sigint'
         env['MONO_THREADS_PER_CPU'] = '2'
         env['MONO_GC_PARAMS'] = 'mode=throughput'
 
