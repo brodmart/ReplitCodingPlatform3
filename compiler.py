@@ -118,13 +118,15 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     )
 
                     if restore_process.returncode != 0:
-                        logger.error(f"Package restore failed: {restore_process.stderr}")
+                        error_msg = restore_process.stderr or "Package restore failed with no error message"
+                        logger.error(f"Package restore failed: {error_msg}")
                         return {
                             'success': False,
-                            'error': f"Package restore failed: {restore_process.stderr}",
+                            'error': f"Package restore failed: {error_msg}",
                             'metrics': {'compilation_time': time.time() - compile_start}
                         }
 
+                    # Run compilation
                     compile_process = subprocess.run(
                         compile_cmd,
                         capture_output=True,
@@ -138,7 +140,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     logger.debug(f"Compilation completed in {compile_time:.2f}s")
 
                     if compile_process.returncode != 0:
-                        error_msg = format_csharp_error(compile_process.stderr)
+                        error_output = compile_process.stderr or compile_process.stdout
+                        error_msg = format_csharp_error(error_output)
                         logger.error(f"Compilation failed: {error_msg}")
                         return {
                             'success': False,
@@ -186,7 +189,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
                     run_time = time.time() - run_start
                     total_time = time.time() - start_time
-
                     logger.debug(f"Execution completed in {run_time:.2f}s")
 
                     if run_process.returncode != 0:
@@ -212,7 +214,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         }
                     }
 
-                except subprocess.TimeoutExpired as e:
+                except subprocess.TimeoutExpired:
                     elapsed_time = time.time() - start_time
                     phase = "compilation" if elapsed_time < MAX_COMPILATION_TIME else "execution"
                     error_msg = f"{phase.capitalize()} timed out after {elapsed_time:.2f} seconds"
@@ -244,6 +246,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 def format_csharp_error(error_msg: str) -> str:
     """Format C# compilation errors to be more user-friendly"""
     try:
+        if not error_msg:
+            return "Compilation Error: No error message provided by the compiler"
+
         if "error CS" in error_msg:
             # Extract the error code and message
             match = re.search(r'error CS\d+:(.+?)(?:\r|\n|$)', error_msg)
@@ -257,6 +262,9 @@ def format_csharp_error(error_msg: str) -> str:
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors to be more user-friendly"""
     try:
+        if not error_msg:
+            return "Runtime Error: No error message provided by the runtime"
+
         common_errors = {
             "System.NullReferenceException": "Attempted to use a null object",
             "System.IndexOutOfRangeException": "Array index out of bounds",
