@@ -40,23 +40,53 @@ function initializeComponents() {
 
         editor.getWrapperElement().classList.add('CodeMirror-initialized');
 
-        // Initialize console after editor
-        if (typeof InteractiveConsole === 'undefined') {
-            throw new Error('InteractiveConsole class not loaded');
-        }
-        consoleInstance = new InteractiveConsole();
+        // Wait for console elements before initializing console
+        waitForConsoleElements()
+            .then(() => {
+                // Initialize console after editor
+                if (typeof InteractiveConsole === 'undefined') {
+                    throw new Error('InteractiveConsole class not loaded');
+                }
+                consoleInstance = new InteractiveConsole();
 
-        // Set up event listeners after both components are initialized
-        setupEventListeners();
-        setInitialEditorState();
+                // Set up event listeners after both components are initialized
+                setupEventListeners();
+                setInitialEditorState();
+            })
+            .catch(error => {
+                console.error('Failed to initialize console:', error);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'alert alert-danger';
+                errorMessage.textContent = 'Failed to initialize console. Please refresh the page.';
+                document.body.insertBefore(errorMessage, document.body.firstChild);
+            });
 
     } catch (error) {
-        console.error('Failed to initialize:', error);
+        console.error('Failed to initialize components:', error);
         const errorMessage = document.createElement('div');
         errorMessage.className = 'alert alert-danger';
         errorMessage.textContent = 'Failed to initialize editor. Please refresh the page.';
         document.body.insertBefore(errorMessage, document.body.firstChild);
     }
+}
+
+function waitForConsoleElements(retries = 10) {
+    return new Promise((resolve, reject) => {
+        const check = (attempts) => {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const consoleInput = document.getElementById('consoleInput');
+
+            if (consoleOutput && consoleInput) {
+                resolve();
+            } else if (attempts <= 0) {
+                reject(new Error('Console elements not found after maximum retries'));
+            } else {
+                console.log('Console elements not ready, retrying in 100ms...');
+                setTimeout(() => check(attempts - 1), 100);
+            }
+        };
+        check(retries);
+    });
 }
 
 function setupEventListeners() {
@@ -80,14 +110,6 @@ function setupEventListeners() {
             setEditorTemplate(language);
         });
     }
-
-    // Add keyboard shortcut for running code
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isExecuting) {
-            e.preventDefault();
-            executeCode();
-        }
-    });
 }
 
 function setInitialEditorState() {
@@ -179,7 +201,6 @@ function updateEditorMode(language) {
 
 function setEditorTemplate(language) {
     if (!editor) return;
-
     const template = getTemplateForLanguage(language);
     editor.setValue(template);
     editor.setCursor(editor.lineCount() - 2, 0); // Position cursor at second to last line
