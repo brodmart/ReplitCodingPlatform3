@@ -120,23 +120,24 @@ function handleLanguageChange(event) {
         'csharp': 'text/x-csharp'
     };
 
+    // Clear the editor completely
+    editorState.editor.setValue('');
+
+    // Set the new mode
     editorState.editor.setOption('mode', modes[newLanguage]);
 
-    // Only set template if editor is empty or has default template content
-    const currentContent = editorState.editor.getValue().trim();
-    const isDefaultTemplate = Object.values(editorState.templates).some(template => 
-        currentContent === template.trim()
-    );
+    // Set the new template
+    setEditorTemplate(newLanguage);
 
-    if (!currentContent || isDefaultTemplate) {
-        setEditorTemplate(newLanguage);
-    }
+    // Force a refresh to ensure proper rendering
+    editorState.editor.refresh();
 }
 
 // Set editor template
 function setEditorTemplate(language) {
     const template = editorState.templates[language] || editorState.templates.cpp;
     editorState.editor.setValue(template);
+
     // Place cursor after the comment line in main
     const cursorLine = language === 'cpp' ? 5 : 7;
     editorState.editor.setCursor(cursorLine, 4);
