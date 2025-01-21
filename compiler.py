@@ -6,28 +6,27 @@ import tempfile
 import os
 import logging
 import traceback
+import signal
 from typing import Dict, Optional, Any
-from compiler_service import compile_and_run as service_compile_and_run
+from pathlib import Path
+import psutil
+import time
+from threading import Thread, Event
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class CompilerError(Exception):
-    """Raised when compilation fails"""
-    pass
-
-class ExecutionError(Exception):
-    """Raised when execution fails"""
+class CompilationTimeout(Exception):
+    """Raised when compilation exceeds time limit"""
     pass
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Compile and run code for testing purposes.
-    This is a wrapper around the more detailed compiler_service implementation.
+    Compile and run code with strict timeouts and process management.
     """
     if not code or not language:
-        logger.error("Invalid input parameters: code or language is missing")
+        logger.error("Invalid input parameters")
         return {
             'success': False,
             'output': '',
@@ -37,37 +36,82 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     try:
         logger.debug(f"Attempting to compile and run {language} code")
         logger.debug(f"Code length: {len(code)} characters")
-        logger.debug(f"Code content:\n{code}")
 
-        result = service_compile_and_run(code, language, input_data)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            if language == 'csharp':
+                source_file = os.path.join(temp_dir, "program.cs")
+                executable = os.path.join(temp_dir, "program.exe")
 
-        logger.debug(f"Compilation result: {result}")
+                # Write code to file
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
 
-        if not result.get('success', False):
-            logger.error(f"Compilation/execution failed: {result.get('error', 'Unknown error')}")
-            logger.error(f"Full result: {result}")
+                # Compile with strict timeout
+                compile_cmd = [
+                    'mcs',
+                    '-optimize+',
+                    '-debug-',
+                    source_file,
+                    '-out:' + executable
+                ]
 
-        return result
+                try:
+                    # Use timeout parameter directly in check_output
+                    compile_process = subprocess.run(
+                        compile_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=10  # Strict 10 second timeout
+                    )
 
-    except subprocess.TimeoutExpired as e:
-        logger.error(f"Execution timeout: {str(e)}")
-        return {
-            'success': False,
-            'output': '',
-            'error': "Code execution timed out. Check for infinite loops."
-        }
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Process error: {str(e)}, Output: {e.output}")
-        return {
-            'success': False,
-            'output': '',
-            'error': f"Process error: {str(e)}"
-        }
+                    if compile_process.returncode != 0:
+                        logger.error(f"Compilation failed: {compile_process.stderr}")
+                        return {
+                            'success': False,
+                            'error': compile_process.stderr
+                        }
+
+                    # Set execute permission
+                    os.chmod(executable, 0o755)
+
+                    # Run with strict timeout
+                    run_cmd = ['mono', executable]
+                    run_process = subprocess.run(
+                        run_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=5  # Strict 5 second timeout
+                    )
+
+                    return {
+                        'success': run_process.returncode == 0,
+                        'output': run_process.stdout,
+                        'error': run_process.stderr if run_process.returncode != 0 else None
+                    }
+
+                except subprocess.TimeoutExpired as e:
+                    logger.error("Process timed out")
+                    return {
+                        'success': False,
+                        'error': "Compilation or execution timed out. Check for infinite loops."
+                    }
+
+                except Exception as e:
+                    logger.error(f"Compilation/execution error: {str(e)}")
+                    return {
+                        'success': False,
+                        'error': str(e)
+                    }
+
+            else:
+                return {
+                    'success': False,
+                    'error': f"Unsupported language: {language}"
+                }
+
     except Exception as e:
-        logger.error(f"Unexpected error in compile_and_run: {str(e)}")
-        logger.error(traceback.format_exc())
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         return {
             'success': False,
-            'output': '',
-            'error': "Code execution service encountered an error. Please try again."
+            'error': f"An unexpected error occurred: {str(e)}"
         }
