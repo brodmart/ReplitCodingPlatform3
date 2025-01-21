@@ -145,8 +145,6 @@ async function executeCode() {
     }
 
     const runButton = document.getElementById('runButton') || document.getElementById('runCode');
-    const consoleOutput = document.getElementById('consoleOutput');
-    const languageSelect = document.getElementById('languageSelect');
 
     try {
         isExecuting = true;
@@ -157,20 +155,27 @@ async function executeCode() {
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
         }
 
-        // Clear previous output
+        // Clear previous output and show compiling message
         if (consoleInstance) {
             consoleInstance.clear();
             consoleInstance.appendOutput('Compiling and running code...\n', 'console-info');
         }
 
         const code = editor.getValue().trim();
+        const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
 
         // Get CSRF token
-        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
+        const tokenInput = document.querySelector('input[name="csrf_token"]');
+        if (!tokenInput) {
+            throw new Error('CSRF token element not found');
         }
+        const csrfToken = tokenInput.value;
+        if (!csrfToken) {
+            throw new Error('CSRF token is empty');
+        }
+
+        console.log('Executing code with language:', language);
 
         const response = await fetch('/activities/run_code', {
             method: 'POST',
@@ -184,16 +189,25 @@ async function executeCode() {
             })
         });
 
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
+        console.log('Execution result:', result);
 
         if (result.success) {
-            if (consoleInstance && result.output) {
+            if (consoleInstance) {
                 // Clear the "Compiling..." message
                 consoleInstance.clear();
 
                 // Show compilation success and output
                 consoleInstance.appendOutput('Compilation successful\n', 'console-success');
-                consoleInstance.appendOutput(result.output);
+                if (result.output) {
+                    consoleInstance.appendOutput(result.output);
+                } else {
+                    consoleInstance.appendOutput('No output generated\n');
+                }
             }
         } else {
             throw new Error(result.error || 'Failed to execute code');
@@ -212,6 +226,7 @@ async function executeCode() {
     }
 }
 
+// Helper function to escape HTML for safe display
 function escapeHtml(unsafe) {
     return unsafe
         .replace(/&/g, "&amp;")
@@ -221,18 +236,15 @@ function escapeHtml(unsafe) {
         .replace(/'/g, "&#039;");
 }
 
-// Placeholder functions for syntax checking -  Replace with actual implementation
+// Syntax checking placeholder functions
 function checkCppSyntax(code) {
-    // Implement C++ syntax checking logic here.  Return an array of error objects:  [{line: 10, message: "Syntax error"}, ...]
     return [];
 }
 
 function checkCSharpSyntax(code) {
-    // Implement C# syntax checking logic here. Return an array of error objects:  [{line: 10, message: "Syntax error"}, ...]
     return [];
 }
 
 function showHelp() {
-    //Implement help functionality here.  Alert for now.
     alert("Help: Ctrl+Space for autocomplete, Ctrl+/ for commenting, Ctrl+F for find.");
 }
