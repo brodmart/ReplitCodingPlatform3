@@ -67,8 +67,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRun>false</PublishReadyToRun>
     <SelfContained>false</SelfContained>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <DebugType>embedded</DebugType>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
 </Project>"""
 
@@ -79,7 +82,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 # Create bin directory if it doesn't exist
                 os.makedirs(bin_dir, exist_ok=True)
 
-                # Enhanced compilation command
+                # Enhanced compilation command with proper environment setup
                 compile_cmd = [
                     'dotnet',
                     'publish',
@@ -102,7 +105,16 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     env.update({
                         'DOTNET_CLI_HOME': str(project_dir),
                         'DOTNET_NOLOGO': '1',
-                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
+                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
+                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',
+                        'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'false',
+                        'DOTNET_MULTILEVEL_LOOKUP': '0',
+                        'DOTNET_CLI_UI_LANGUAGE': 'en-US',
+                        'COMPlus_EnableDiagnostics': '0',
+                        'DOTNET_ROOT': '/usr/share/dotnet',
+                        'ICU_DATA': '/usr/share/icu',
+                        'LC_ALL': 'en_US.UTF-8',
+                        'LANG': 'en_US.UTF-8'
                     })
 
                     # First restore packages

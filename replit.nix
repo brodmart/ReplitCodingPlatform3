@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.icu
     pkgs.dotnet-sdk
     pkgs.iana-etc
     pkgs.glibcLocales
