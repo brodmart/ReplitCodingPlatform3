@@ -85,24 +85,38 @@ def is_interactive_code(code: str, language: str) -> bool:
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session for the given code"""
     try:
-        # Add Console.Out.Flush() after WriteLine statements
-        code_lines = code.split('\n')
-        modified_code = []
-        for line in code_lines:
-            modified_code.append(line)
-            if 'Console.WriteLine' in line:
-                indent = len(line) - len(line.lstrip())
-                modified_code.append(' ' * indent + 'Console.Out.Flush();')
+        # Enhanced C# code preprocessing
+        if language == 'csharp':
+            # Add Console.Out.Flush() after WriteLine statements
+            code_lines = code.split('\n')
+            modified_code = []
+            for line in code_lines:
+                modified_code.append(line)
+                if 'Console.WriteLine' in line or 'Console.Write(' in line:
+                    indent = len(line) - len(line.lstrip())
+                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
-        # Add automatic flush after Console.Write
-        for line in code_lines:
-            if 'Console.Write(' in line and not 'Console.WriteLine' in line:
-                indent = len(line) - len(line.lstrip())
-                modified_code.append(' ' * indent + 'Console.Out.Flush();')
+            # Add automatic flush after every Console operation
+            for i, line in enumerate(code_lines):
+                if 'Console.' in line and not line.strip().startswith('//'):
+                    indent = len(line) - len(line.lstrip())
+                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
-        code = '\n'.join(modified_code)
+            code = '\n'.join(modified_code)
 
-        # Compile the code
+            # Ensure proper namespace structure
+            if 'namespace' not in code:
+                code = """using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ConsoleApplication {
+""" + code + "\n}"
+
+        # Compile the code with enhanced options
         source_file = Path(session.temp_dir) / "program.cs"
         executable = Path(session.temp_dir) / "program.exe"
 
@@ -114,6 +128,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             '-optimize+',
             '-debug-',
             '-unsafe-',
+            '-reference:System.Core.dll',
+            '-reference:System.dll',
             str(source_file),
             '-out:' + str(executable)
         ]
@@ -134,11 +150,13 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         os.chmod(executable, 0o755)
 
-        # Start the process with environment variables for better output handling
+        # Enhanced environment variables for better console handling
         env = os.environ.copy()
-        env['MONO_IOMAP'] = 'all'  # Improve Mono I/O handling
-        env['MONO_THREADS_PER_CPU'] = '2'  # Limit thread usage
-        env['MONO_GC_PARAMS'] = 'mode=throughput'  # Optimize GC for console apps
+        env['MONO_IOMAP'] = 'all'
+        env['MONO_TRACE_LISTENER'] = 'Console.Out'
+        env['MONO_DEBUG'] = 'yes'
+        env['MONO_THREADS_PER_CPU'] = '2'
+        env['MONO_GC_PARAMS'] = 'mode=throughput'
 
         run_cmd = ['mono', '--debug', str(executable)]
         session.process = subprocess.Popen(
@@ -304,32 +322,134 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'error': "Code size exceeds maximum limit (1MB). Please reduce the size of your code."
                 }
 
+            # Enhanced namespace handling for C#
             required_namespaces = [
                 "using System;",
                 "using System.IO;",
                 "using System.Collections.Generic;",
-                "using System.Linq;"
+                "using System.Linq;",
+                "using System.Text;",
+                "using System.Threading.Tasks;"
             ]
 
-            # Check and add missing namespaces at the start of the file
-            existing_code = code
+            # Check if the code already contains a namespace declaration
+            has_namespace = "namespace" in code
+
+            # Add missing namespaces only if they're not already present
             namespace_code = ""
             for namespace in required_namespaces:
-                if namespace not in existing_code:
+                if namespace not in code:
                     namespace_code += namespace + "\n"
 
-            code = namespace_code + code
+            # If no namespace is defined, wrap the code in a default namespace
+            if not has_namespace:
+                code = namespace_code + "\nnamespace ConsoleApplication {\n" + code + "\n}"
+            else:
+                code = namespace_code + code
 
-            # Add automatic Console.Out.Flush() after WriteLine statements
-            code_lines = code.split('\n')
-            modified_code = []
-            for line in code_lines:
-                modified_code.append(line)
-                if 'Console.WriteLine' in line or 'Console.Write(' in line:
-                    indent = len(line) - len(line.lstrip())
-                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
+            # Improved compilation command with enhanced options
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                source_file = temp_path / "program.cs"
+                executable = temp_path / "program.exe"
 
-            code = '\n'.join(modified_code)
+                # Write code to file
+                with open(source_file, 'w') as f:
+                    f.write(code)
+
+                compile_cmd = [
+                    'mcs',
+                    '-optimize+',
+                    '-debug-',
+                    '-unsafe-',
+                    '-reference:System.Core.dll',
+                    '-reference:System.dll',
+                    str(source_file),
+                    '-out:' + str(executable)
+                ]
+
+                try:
+                    compile_process = subprocess.run(
+                        compile_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=20
+                    )
+                except subprocess.TimeoutExpired:
+                    return {
+                        'success': False,
+                        'error': "Compilation timeout after 20 seconds"
+                    }
+
+                if compile_process.returncode != 0:
+                    error_msg = compile_process.stderr
+                    formatted_error = format_csharp_error(error_msg)
+                    return {
+                        'success': False,
+                        'error': formatted_error
+                    }
+
+                os.chmod(executable, 0o755)
+
+                try:
+                    env = os.environ.copy()
+                    env['MONO_IOMAP'] = 'all'
+                    env['MONO_TRACE_LISTENER'] = 'Console.Out'
+                    env['MONO_DEBUG'] = 'yes'
+
+                    process = subprocess.Popen(
+                        ['mono', '--debug', str(executable)],
+                        stdin=subprocess.PIPE if input_data else None,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        bufsize=1,
+                        env=env,
+                        preexec_fn=os.setsid
+                    )
+
+                    monitor = ProcessMonitor(process, timeout=20)
+                    monitor.start()
+
+                    try:
+                        stdout, stderr = process.communicate(
+                            input=input_data,
+                            timeout=20
+                        )
+                    except subprocess.TimeoutExpired:
+                        return {
+                            'success': False,
+                            'error': "Execution timeout after 20 seconds. Check for infinite loops."
+                        }
+                    finally:
+                        monitor.stop()
+                        monitor.join()
+                        try:
+                            if process.poll() is None:
+                                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                                process.wait(timeout=1)
+                        except:
+                            pass
+
+                    if process.returncode == 0:
+                        output = stdout.strip() if stdout else "No output generated. If you expected output, ensure Console.WriteLine statements are used and properly flushed."
+                        return {
+                            'success': True,
+                            'output': output
+                        }
+                    else:
+                        error_msg = format_runtime_error(stderr) if stderr else "Program failed with no error message"
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
+
+                except Exception as e:
+                    logger.error(f"Execution error: {e}", exc_info=True)
+                    return {
+                        'success': False,
+                        'error': format_execution_error(str(e))
+                    }
 
         # Check if code is interactive
         interactive = is_interactive_code(code, language)
