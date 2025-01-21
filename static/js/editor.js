@@ -56,13 +56,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Run button handler
+    // Run button handler with debounce
     if (runButton) {
+        let executionTimeout;
         runButton.addEventListener('click', async function(e) {
             e.preventDefault();
-            if (!isExecuting) {
-                await executeCode();
+            if (isExecuting) {
+                console.log('Already executing code');
+                return;
             }
+
+            // Clear any existing timeout
+            if (executionTimeout) {
+                clearTimeout(executionTimeout);
+            }
+
+            const now = Date.now();
+            if (now - lastExecution < 2000) { // 2 second cooldown
+                console.log('Execution throttled');
+                return;
+            }
+
+            await executeCode();
         });
     }
 
@@ -100,7 +115,7 @@ class Program
     return ''; // Default empty template
 }
 
-// Execute Code Function
+// Execute Code Function with improved error handling
 async function executeCode() {
     if (!editor || !isConsoleReady || isExecuting) {
         console.error('Execute prevented:', {
@@ -115,8 +130,12 @@ async function executeCode() {
     const consoleOutput = document.getElementById('consoleOutput');
     const languageSelect = document.getElementById('languageSelect');
 
+    let executionTimeout;
+
     try {
         isExecuting = true;
+        lastExecution = Date.now();
+
         if (runButton) {
             runButton.disabled = true;
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Running...';
@@ -136,7 +155,16 @@ async function executeCode() {
             throw new Error('CSRF token not found. Please refresh the page.');
         }
 
-        const response = await fetch('/activities/run_code', {
+        // Set execution timeout - 60 seconds for C#, 30 for others
+        const timeoutDuration = language === 'csharp' ? 60000 : 30000;
+        const timeoutPromise = new Promise((_, reject) => {
+            executionTimeout = setTimeout(() => {
+                reject(new Error('Execution timeout'));
+            }, timeoutDuration);
+        });
+
+        // Execute code with timeout
+        const executionPromise = fetch('/activities/run_code', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -147,6 +175,9 @@ async function executeCode() {
                 language: language
             })
         });
+
+        const response = await Promise.race([executionPromise, timeoutPromise]);
+        clearTimeout(executionTimeout);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -168,7 +199,9 @@ async function executeCode() {
         console.error('Error executing code:', error);
         if (consoleOutput) {
             let displayError = error.message;
-            if (error.message.includes('HTTP error!')) {
+            if (error.message.includes('timeout')) {
+                displayError = 'Code execution timed out. Please check for infinite loops or reduce the code complexity.';
+            } else if (error.message.includes('HTTP error!')) {
                 displayError = 'Code execution service is unavailable. Please try again in a moment.';
             }
             consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(displayError)}</div>`;
@@ -178,6 +211,9 @@ async function executeCode() {
         if (runButton) {
             runButton.disabled = false;
             runButton.innerHTML = 'Run';
+        }
+        if (executionTimeout) {
+            clearTimeout(executionTimeout);
         }
     }
 }

@@ -141,6 +141,12 @@ class InteractiveConsole {
             await this.cleanupConsole();
             console.log('Starting new session...');
 
+            // Show compilation progress
+            this.appendToConsole('Starting compilation...', 'info');
+            if (language === 'csharp' && code.length > 10000) {
+                this.appendToConsole('Large C# code detected, compilation may take longer...', 'info');
+            }
+
             const success = await this.startSession(code, language);
             if (!success) {
                 throw new Error('Failed to start program execution');
@@ -307,17 +313,18 @@ class InteractiveConsole {
                 throw new Error(data.error || 'Failed to get output');
             }
 
-            // Handle output if present
             if (data.output) {
                 console.log('Received output:', data.output);
                 this.appendToConsole(data.output);
                 this.emptyPollCount = 0;
-
-                // Reset poll interval when we get output
                 this.currentPollInterval = this.baseDelay;
 
-                // If output contains input prompt, force input state
-                if (data.output.includes('Enter') || data.output.includes('Input')) {
+                // Enhanced input detection for C#
+                if (data.output.includes('Enter') || 
+                    data.output.includes('Input') ||
+                    data.output.includes('Entrez') ||
+                    data.output.includes('Saisissez') ||
+                    data.output.toLowerCase().includes('choix')) {
                     data.waiting_for_input = true;
                 }
             } else {
@@ -331,36 +338,28 @@ class InteractiveConsole {
                 return;
             }
 
-            // Prevent rapid state changes
+            // Handle input state changes
             if (data.waiting_for_input !== this.isWaitingForInput) {
                 console.log('Input state change requested:', data.waiting_for_input);
 
-                // Clear any pending state updates
                 if (this.stateUpdateTimer) {
                     clearTimeout(this.stateUpdateTimer);
                 }
 
-                // If enabling input, do it immediately
                 if (data.waiting_for_input) {
                     this.setInputState(true);
-                    this.inputElement.style.display = 'block';
-                    this.inputLine.style.display = 'flex';
                     this.inputElement.focus();
                 } else {
-                    // Only disable input if we've received all output
                     this.stateUpdateTimer = setTimeout(() => {
-                        // Double check we're not waiting for more output
                         if (!this.isWaitingForInput && this.emptyPollCount > 1) {
                             this.setInputState(false);
                         }
-                    }, 2000); // Longer wait to ensure we catch all output
+                    }, 2000);
                 }
             }
 
-            // Adjust polling interval based on state and output
-            const nextPollDelay = this.isWaitingForInput ? 2000 : // Longer delay when waiting for input
-                this.emptyPollCount > this.maxEmptyPolls ? 1000 : // Medium delay when no output
-                    this.currentPollInterval; // Base delay when actively receiving output
+            // Adjust polling interval based on state
+            const nextPollDelay = this.calculateNextPollDelay(data);
 
             if (this.isSessionValid) {
                 console.log(`Scheduling next poll with interval: ${nextPollDelay}ms`);
@@ -373,6 +372,18 @@ class InteractiveConsole {
         } finally {
             this.polling = false;
         }
+    }
+
+    calculateNextPollDelay(data) {
+        if (this.isWaitingForInput) {
+            return 2000; // Longer delay when waiting for input
+        }
+
+        if (this.emptyPollCount > this.maxEmptyPolls) {
+            return Math.min(this.currentPollInterval * 1.5, 2000); // Gradually increase delay
+        }
+
+        return this.baseDelay; // Base delay for active output
     }
 
     handlePollError(error) {
@@ -430,7 +441,7 @@ class InteractiveConsole {
         if (!this.inputElement) {
             return;
         }
-        
+
         // Ensure console respects parent container width
         const consoleContainer = document.querySelector('.console-container');
         if (consoleContainer) {
