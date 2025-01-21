@@ -4,6 +4,14 @@
 <!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.css">
+
+<!-- Add CSRF token meta tag -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<meta name="interface-lang" content="{{ lang }}">
+
 <style>
     .editor-container {
         flex: 1;
@@ -24,10 +32,6 @@
         flex-direction: column;
         min-width: 60%;
     }
-    .editor-container {
-        flex: 1;
-        min-width: 35%;
-    }
     .CodeMirror {
         height: 100% !important;
         font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
@@ -47,7 +51,7 @@
         overflow-y: auto;
         white-space: pre-wrap;
         word-wrap: break-word;
-        margin-bottom: 40px; /* Space for input line */
+        margin-bottom: 40px;
         padding: 8px;
     }
     .console-input-line {
@@ -80,12 +84,6 @@
     .console-input-field:focus {
         background-color: #3d3d3d;
     }
-    .console-input {
-        color: #569cd6;
-    }
-    .console-output {
-        color: #d4d4d4;
-    }
     .card {
         height: 100%;
         margin: 0;
@@ -107,6 +105,15 @@
         justify-content: space-between;
         align-items: center;
     }
+    .ansi-red { color: #f44747; }
+    .ansi-green { color: #6a9955; }
+    .ansi-yellow { color: #dcdcaa; }
+    .ansi-blue { color: #569cd6; }
+    .ansi-magenta { color: #c586c0; }
+    .ansi-cyan { color: #4ec9b0; }
+    .ansi-white { color: #d4d4d4; }
+    .ansi-bold { font-weight: bold; }
+    .ansi-italic { font-style: italic; }
 </style>
 {% endblock %}
 
@@ -168,11 +175,32 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- CodeMirror Scripts -->
+<!-- Required base scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+
+<!-- CodeMirror language modes -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-<!-- Load console.js first -->
+
+<!-- CodeMirror addons -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldgutter.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
+
+<!-- Initialize console before editor -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
-<!-- Then initialize the editor -->
+<script>
+// Ensure console.js is loaded before proceeding
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof InteractiveConsole === 'undefined') {
+        console.error('Console class not loaded');
+        return;
+    }
+});
+</script>
+
+<!-- Then initialize editor -->
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 {% endblock %}
