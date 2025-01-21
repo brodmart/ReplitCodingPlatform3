@@ -19,37 +19,23 @@ import select
 import io
 import resource
 
-# Configure detailed logging
-logging.basicConfig(level=logging.DEBUG)
+# Configure detailed logging with line numbers
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]'
+)
 logger = logging.getLogger(__name__)
 
-# Performance tuning constants - Optimized for large files
-MAX_COMPILATION_TIME = 60  # Increased from 20 to 60 seconds for large files
+# Performance tuning constants
+MAX_COMPILATION_TIME = 60  
 MAX_EXECUTION_TIME = 30
-MEMORY_LIMIT = 1024  # Increased from 512MB to 1GB for large compilations
+MEMORY_LIMIT = 1024  # MB
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 MAX_CODE_SIZE = 10 * 1024 * 1024  # 10MB max file size
 
-# Enhanced compilation settings
-MONO_OPTIMIZATIONS = {
-    'MONO_GC_PARAMS': 'mode=throughput,major=marksweep-conc,nursery-size=64m',
-    'MONO_THREADS_PER_CPU': '4',  # Increased thread count
-    'MONO_GC_DEBUG': 'clear-at-gc',
-    'MONO_ENV_OPTIONS': '--gc=sgen',
-    'MONO_IMAGE_CACHE_CONTROL': 'precache-assemblies'
-}
-
-def set_resource_limits():
-    """Set resource limits for compilation process"""
-    # 1GB virtual memory limit
-    resource.setrlimit(resource.RLIMIT_AS, (MEMORY_LIMIT * 1024 * 1024, MEMORY_LIMIT * 1024 * 1024))
-    # CPU time limit
-    resource.setrlimit(resource.RLIMIT_CPU, (MAX_COMPILATION_TIME, MAX_COMPILATION_TIME))
-
 def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMetrics') -> Tuple[bool, str]:
-    """Compile C# code with optimized settings"""
+    """Compile C# code with enhanced logging"""
     try:
-        # Enhanced compilation flags for better performance
         compile_cmd = [
             'mcs',
             '-optimize+',
@@ -59,93 +45,91 @@ def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMet
             '-parallel+',
             '-warnaserror-',
             '-nowarn:219,414',
-            '-define:RELEASE',
-            '-platform:anycpu',
             str(source_file),
             '-out:' + str(executable)
         ]
 
-        metrics.log_status("Starting optimized C# compilation")
+        logger.debug(f"Starting C# compilation with command: {' '.join(compile_cmd)}")
+        metrics.log_status("Starting C# compilation")
         compile_start = time.time()
 
         try:
-            logger.debug("Executing compilation command")
+            # Write source code to log for debugging
+            with open(source_file, 'r', encoding='utf-8') as f:
+                logger.debug(f"Source code contents:\n{f.read()}")
+
             compile_process = subprocess.run(
                 compile_cmd,
                 capture_output=True,
                 text=True,
-                timeout=MAX_COMPILATION_TIME,
-                env={
-                    'MONO_GC_PARAMS': 'max-heap-size=512M',
-                    'MONO_THREADS_PER_CPU': '2',
-                    'PATH': os.environ['PATH']
-                }
+                timeout=MAX_COMPILATION_TIME
             )
 
             compile_time = time.time() - compile_start
+            metrics.compilation_time = compile_time
+
             logger.debug(f"Compilation completed in {compile_time:.2f}s")
+            logger.debug(f"Compilation stdout: {compile_process.stdout}")
+            logger.debug(f"Compilation stderr: {compile_process.stderr}")
 
             if compile_process.returncode != 0:
-                logger.error(f"Compilation failed: {compile_process.stderr}")
-                return False, compile_process.stderr
+                logger.error(f"Compilation failed with return code {compile_process.returncode}")
+                logger.error(f"Compilation error: {compile_process.stderr}")
+                return False, compile_process.stderr if compile_process.stderr else "Unknown compilation error occurred"
 
-            logger.debug("Compilation successful, preparing execution")
+            logger.debug("Compilation successful")
             os.chmod(executable, 0o755)
             return True, ""
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             logger.error(f"Compilation timed out after {MAX_COMPILATION_TIME}s")
-            return False, f"Compilation timed out after {MAX_COMPILATION_TIME} seconds."
+            return False, f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
+
         except Exception as e:
-            logger.error(f"Compilation error: {str(e)}")
+            logger.error(f"Unexpected compilation error: {str(e)}", exc_info=True)
             return False, f"Compilation error: {str(e)}"
 
     except Exception as e:
-        return False, f"Compilation error: {str(e)}"
+        logger.error(f"Fatal compilation error: {str(e)}", exc_info=True)
+        return False, f"Fatal compilation error: {str(e)}"
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced compile and run function with optimizations for large C# files"""
+    """Compile and run code with enhanced logging"""
     metrics = CompilationMetrics()
+    logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
 
     if not code or not language:
+        logger.error("Invalid input parameters")
         return {
             'success': False,
+            'output': '',
             'error': "Code and language are required"
         }
 
-    if len(code) > MAX_CODE_SIZE:
-        return {
-            'success': False,
-            'error': f"Code size exceeds maximum limit of {MAX_CODE_SIZE/1024/1024}MB"
-        }
-
     try:
-        metrics.log_status(f"Processing {language} code of size {len(code)} bytes")
+        # Create compiler cache directory if it doesn't exist
         os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+            if language == 'csharp':
+                source_file = os.path.join(temp_dir, "program.cs")
+                executable = os.path.join(temp_dir, "program.exe")
 
-            if language.lower() == 'csharp':
-                source_file = temp_path / "program.cs"
-                executable = temp_path / "program.exe"
-
-                # Write code with proper encoding
-                with open(source_file, 'w', encoding='utf-8-sig') as f:
+                logger.debug(f"Writing code to {source_file}")
+                with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Compile code
-                success, error_msg = compile_csharp(source_file, executable, metrics)
+                success, error_msg = compile_csharp(Path(source_file), Path(executable), metrics)
+
                 if not success:
+                    logger.error(f"Compilation failed: {error_msg}")
                     return {
                         'success': False,
                         'error': error_msg,
                         'metrics': metrics.to_dict()
                     }
 
-                # Execute with optimized mono runtime
-                metrics.log_status("Starting program execution")
-                start_time = time.time()
+                logger.debug("Starting program execution")
                 try:
                     run_cmd = ['mono', executable]
                     run_process = subprocess.run(
@@ -153,7 +137,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         capture_output=True,
                         text=True,
                         timeout=MAX_EXECUTION_TIME,
-                        input=input_data,
                         env={
                             'MONO_GC_PARAMS': 'major=marksweep-par,nursery-size=64m',
                             'MONO_THREADS_PER_CPU': '2',
@@ -161,137 +144,46 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             'MONO_MAX_HEAP_SIZE': f'{MEMORY_LIMIT}M'
                         }
                     )
-                    run_time = time.time() - start_time
-                    total_time = time.time() - metrics.start_time
+
+                    run_time = time.time() - metrics.start_time - metrics.compilation_time
 
                     if run_process.returncode != 0:
+                        logger.error(f"Execution failed: {run_process.stderr}")
                         return {
                             'success': False,
                             'output': run_process.stdout,
                             'error': run_process.stderr,
-                            'metrics': {
-                                'compilation_time': metrics.compilation_time,
-                                'execution_time': run_time,
-                                'total_time': total_time
-                            }
+                            'metrics': metrics.to_dict()
                         }
 
+                    logger.debug(f"Execution completed successfully in {run_time:.2f}s")
                     return {
                         'success': True,
                         'output': run_process.stdout.strip() if run_process.stdout else "",
-                        'metrics': {
-                            'compilation_time': metrics.compilation_time,
-                            'execution_time': run_time,
-                            'total_time': total_time
-                        }
-                    }
-
-                except subprocess.TimeoutExpired as e:
-                    elapsed_time = time.time() - start_time
-                    logger.error(f"Execution timed out after {elapsed_time:.2f}s")
-                    return {
-                        'success': False,
-                        'error': f"Execution timed out after {elapsed_time:.2f} seconds. For large files, try breaking down the code into smaller functions.",
-                        'metrics': {
-                            'time_elapsed': elapsed_time
-                        }
-                    }
-                except Exception as e:
-                    logger.error(f"Runtime error: {str(e)}")
-                    return {
-                        'success': False,
-                        'error': f"Runtime error: {str(e)}",
                         'metrics': metrics.to_dict()
                     }
 
-
-            elif language.lower() == 'cpp':
-                # Enhanced C++ compilation
-                source_file = temp_path / "program.cpp"
-                executable = temp_path / "program"
-
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
-
-                # Optimized compilation flags for C++
-                compile_cmd = [
-                    'g++',
-                    '-std=c++17',
-                    '-O2',
-                    '-march=native',
-                    '-flto',
-                    str(source_file),
-                    '-o',
-                    str(executable)
-                ]
-
-                compile_process = subprocess.Popen(
-                    compile_cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    preexec_fn=os.setsid
-                )
-
-                monitor = ProcessMonitor(compile_process, timeout=60)
-                monitor.start()
-
-                stdout, stderr = compile_process.communicate()
-
-                if compile_process.returncode != 0:
+                except subprocess.TimeoutExpired as e:
+                    logger.error("Execution timed out", exc_info=True)
                     return {
                         'success': False,
-                        'error': stderr
+                        'error': f"Execution timed out after {MAX_EXECUTION_TIME} seconds",
+                        'metrics': metrics.to_dict()
                     }
-
-                # Set executable permissions
-                os.chmod(executable, 0o755)
-
-                # Run with optimized environment
-                process = subprocess.Popen(
-                    [str(executable)],
-                    stdin=subprocess.PIPE if input_data else None,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    preexec_fn=os.setsid
-                )
-
-                monitor = ProcessMonitor(process, timeout=30)
-                monitor.start()
-                stdout, stderr = process.communicate(input=input_data)
-
-                if stderr and stderr.strip():
-                    return {
-                        'success': False,
-                        'error': stderr
-                    }
-
-                return {
-                    'success': True,
-                    'output': stdout.strip() if stdout else ""
-                }
 
             else:
-                return {'success': False, 'error': 'Unsupported language'}
-
-    except subprocess.TimeoutExpired:
-        metrics.log_status("Process timed out")
-        return {
-            'success': False,
-            'error': "Process timed out. Check for infinite loops or excessive computation.",
-            'metrics': metrics.to_dict()
-        }
+                return {
+                    'success': False,
+                    'error': f"Unsupported language: {language}"
+                }
 
     except Exception as e:
-        logger.error(f"Unexpected error during compilation or execution: {e}")
-        logger.error(traceback.format_exc())
+        logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         return {
             'success': False,
             'error': f"An unexpected error occurred: {str(e)}",
             'metrics': metrics.to_dict()
         }
-
 
 class CompilationMetrics:
     """Track compilation and execution metrics"""
