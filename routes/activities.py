@@ -17,7 +17,7 @@ curriculum_checker = CurriculumChecker()
 @activities_bp.route('/activities/execute', methods=['POST'])
 @login_required
 def execute_code():
-    """Execute submitted code with enhanced CodeMirror integration"""
+    """Execute submitted code with enhanced error handling and metrics"""
     try:
         if not request.is_json:
             logger.error("Invalid request format - not JSON")
@@ -46,28 +46,26 @@ def execute_code():
             }), 400
 
         logger.debug(f"Executing {language} code of length {len(code)}")
-        logger.debug(f"Code content:\n{code}")
 
-        # Add detailed compilation status logging
-        logger.info("Starting compilation process...")
+        # Add detailed execution status logging
+        logger.info(f"Starting code execution - Language: {language}, Code size: {len(code)} bytes")
+        start_time = time.time()
+
         result = compile_and_run(code, language, input_data)
 
-        # Log compilation metrics
+        # Enhanced metrics logging
+        execution_time = time.time() - start_time
+        logger.info(f"Code execution completed in {execution_time:.2f}s")
+
         if 'metrics' in result:
             metrics = result['metrics']
             logger.info(f"Compilation time: {metrics.get('compilation_time', 0):.2f}s")
             logger.info(f"Execution time: {metrics.get('execution_time', 0):.2f}s")
-            logger.info(f"Peak memory: {metrics.get('peak_memory', 0):.1f}MB")
+            logger.info(f"Total time: {metrics.get('total_time', 0):.2f}s")
 
             for time_stamp, status in metrics.get('status_updates', []):
                 logger.debug(f"[{time_stamp:.2f}s] {status}")
 
-        if not result.get('success', False):
-            error_msg = result.get('error', 'An error occurred')
-            logger.error(f"Execution failed: {error_msg}")
-            return jsonify(result)
-
-        logger.info("Code execution completed successfully")
         return jsonify(result)
 
     except Exception as e:
