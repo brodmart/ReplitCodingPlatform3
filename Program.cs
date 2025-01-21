@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 class Program
 {
@@ -40,56 +41,35 @@ class Program
 
     static void Main()
     {
+        Console.OutputEncoding = Encoding.UTF8;
         bool quitter = false;
 
         while (!quitter)
         {
-            try
+            AfficherEtudiants();
+            AfficherMenu();
+
+            var choix = LireChoixMenu();
+            switch (choix)
             {
-                Console.Clear();
-                AfficherEtudiants();
-                Console.Out.Flush();
-
-                AfficherMenu();
-                Console.Out.Flush();
-
-                var choix = LireChoixMenu();
-
-                switch (choix)
-                {
-                    case 1:
-                        AjouterRetard();
-                        break;
-                    case 2:
-                        VerifierDetentions();
-                        break;
-                    case 3:
-                        ConfirmerDetention();
-                        break;
-                    case 4:
-                        AjouterNouvelEtudiant();
-                        break;
-                    case 5:
-                        quitter = true;
-                        break;
-                    default:
-                        Console.WriteLine("Choix invalide. Essayez encore.");
-                        Console.Out.Flush();
-                        break;
-                }
-
-                if (!quitter)
-                {
-                    Console.WriteLine("\nAppuyez sur une touche pour continuer...");
-                    Console.Out.Flush();
-                    Console.ReadKey(true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Une erreur s'est produite: {ex.Message}");
-                Console.Out.Flush();
-                System.Threading.Thread.Sleep(2000);
+                case 1:
+                    AjouterRetard();
+                    break;
+                case 2:
+                    VerifierDetentions();
+                    break;
+                case 3:
+                    ConfirmerDetention();
+                    break;
+                case 4:
+                    AjouterNouvelEtudiant();
+                    break;
+                case 5:
+                    quitter = true;
+                    break;
+                default:
+                    Console.WriteLine("Choix invalide. Essayez encore.");
+                    break;
             }
         }
     }
@@ -103,13 +83,11 @@ class Program
         Console.WriteLine("4. Ajouter un nouvel etudiant");
         Console.WriteLine("5. Quitter");
         Console.Write("Votre choix: ");
-        Console.Out.Flush();
     }
 
     static int LireChoixMenu()
     {
         string input = Console.ReadLine() ?? "";
-        Console.Out.Flush();
         return int.TryParse(input, out int choix) ? choix : 0;
     }
 
@@ -123,21 +101,18 @@ class Program
         foreach (var etudiant in Etudiants.OrderBy(e => e.Nom))
         {
             Console.WriteLine($"{etudiant.Nom,-15} {etudiant.Retards,-15} {etudiant.Points,-10} {etudiant.DetentionsPrises,-15}");
-            Console.Out.Flush();
         }
     }
 
     static void AjouterRetard()
     {
         Console.Write("\nEntrez le nom de l'etudiant: ");
-        Console.Out.Flush();
         string nom = Console.ReadLine() ?? "";
         var etudiant = Etudiants.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
 
         if (etudiant != null)
         {
             Console.Write("Entrez le nombre de minutes de retard: ");
-            Console.Out.Flush();
             if (int.TryParse(Console.ReadLine(), out int minutesRetard))
             {
                 int points = CalculerPoints(minutesRetard);
@@ -147,18 +122,15 @@ class Program
                 Console.WriteLine($"\n{etudiant.Nom} a ete en retard de {minutesRetard} minutes.");
                 Console.WriteLine($"{points} points ajoutes.");
                 Console.WriteLine("Impression du billet de retard...");
-                Console.Out.Flush();
             }
             else
             {
                 Console.WriteLine("\nEntree invalide pour les minutes. Essayez encore.");
-                Console.Out.Flush();
             }
         }
         else
         {
             Console.WriteLine("\nEtudiant non trouve.");
-            Console.Out.Flush();
         }
     }
 
@@ -170,7 +142,6 @@ class Program
         Console.WriteLine("-------------------------------------");
         Console.WriteLine($"{"Nom",-15} {"Points",-10} {"Detentions Prises",-15}");
         Console.WriteLine(new string('-', 40));
-        Console.Out.Flush();
 
         if (!besoinDetention.Any())
         {
@@ -183,13 +154,11 @@ class Program
                 Console.WriteLine($"{etudiant.Nom,-15} {etudiant.Points,-10} {etudiant.DetentionsPrises,-15}");
             }
         }
-        Console.Out.Flush();
     }
 
     static void ConfirmerDetention()
     {
         Console.Write("\nEntrez le nom de l'etudiant: ");
-        Console.Out.Flush();
         string nom = Console.ReadLine() ?? "";
         var etudiant = Etudiants.FirstOrDefault(e => e.Nom.Equals(nom, StringComparison.OrdinalIgnoreCase));
 
@@ -211,19 +180,16 @@ class Program
         {
             Console.WriteLine("\nEtudiant non trouve.");
         }
-        Console.Out.Flush();
     }
 
     static void AjouterNouvelEtudiant()
     {
         Console.Write("\nEntrez le nom du nouvel etudiant: ");
-        Console.Out.Flush();
         string nom = Console.ReadLine() ?? "";
 
         if (string.IsNullOrWhiteSpace(nom))
         {
             Console.WriteLine("\nLe nom ne peut pas être vide.");
-            Console.Out.Flush();
             return;
         }
 
@@ -234,10 +200,8 @@ class Program
         else
         {
             Etudiants.Add(new Etudiant(nom));
-            Etudiants = Etudiants.OrderBy(e => e.Nom).ToList();
-            Console.WriteLine($"\nEtudiant {nom} ajoute et trie.");
+            Console.WriteLine($"\nEtudiant {nom} ajoute.");
         }
-        Console.Out.Flush();
     }
 
     static int CalculerPoints(int minutesRetard)
