@@ -1,49 +1,21 @@
 using System;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
 
-class Program 
+namespace InvariantTest
 {
-    static void Main() 
+    class Program 
     {
-        try
+        static void Main() 
         {
-            Console.OutputEncoding = Encoding.UTF8;
-            Console.InputEncoding = Encoding.UTF8;
+            Console.WriteLine("Testing invariant globalization...");
 
-            // Test console colors
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Testing console features:");
-            Console.ResetColor();
+            // Test number formatting in invariant culture
+            double number = 1234.56;
+            Console.WriteLine($"Number format: {number:N2}");
 
-            // Test Unicode output
-            Console.WriteLine("Unicode symbols: ★ ■ ● ▲ ▼");
-
-            // Test number formatting
-            Console.WriteLine($"Number: {123456.789:N2}");
-
-            // Test console buffer and window
-            Console.WriteLine($"Buffer Width: {Console.BufferWidth}");
-            Console.WriteLine($"Window Width: {Console.WindowWidth}");
-
-            // Test cursor positioning
-            Console.WriteLine("Testing cursor position...");
-            Thread.Sleep(500);
-
-            // Basic animation
-            for (int i = 0; i < 3; i++)
-            {
-                Console.Write(".");
-                Thread.Sleep(300);
-            }
-            Console.WriteLine("\nDone!");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error: {ex.Message}");
-            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Test date formatting in invariant culture
+            DateTime now = DateTime.Now;
+            Console.WriteLine($"Date format: {now:G}");
         }
     }
 }

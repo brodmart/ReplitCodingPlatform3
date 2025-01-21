@@ -40,11 +40,7 @@ def find_icu_path():
             logger.debug(f"Found ICU data path: {data_paths[0]}")
             return data_paths[0]
 
-        # Fallback to system path
-        if os.path.exists("/usr/share/icu"):
-            return "/usr/share/icu"
-
-        logger.warning("No ICU path found, using invariant globalization")
+        logger.info("No ICU path found, using invariant globalization")
         return None
     except Exception as e:
         logger.error(f"Error finding ICU path: {e}")
@@ -86,11 +82,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Find ICU path
-                icu_path = find_icu_path()
-                use_invariant = icu_path is None
+                # Always use invariant globalization
+                logger.info("Enabling invariant globalization mode for C# compiler")
+                use_invariant = True
 
-                # Create project file with enhanced console support
+                # Create project file with enhanced console support and invariant globalization
                 project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -98,9 +94,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
     <SelfContained>false</SelfContained>
-    <InvariantGlobalization>{str(use_invariant).lower()}</InvariantGlobalization>
+    <InvariantGlobalization>true</InvariantGlobalization>
     <DebugType>embedded</DebugType>
     <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
     <UseSystemConsole>true</UseSystemConsole>
@@ -120,11 +116,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 # Enhanced compilation command with proper environment setup
                 compile_cmd = [
                     'dotnet',
-                    'publish',
+                    'build',
                     str(project_file),
                     '--configuration', 'Release',
                     '--runtime', 'linux-x64',
-                    '--self-contained', 'false',
+                    '--no-self-contained',
                     '--output', str(bin_dir),
                     '-nologo',
                     '/p:GenerateFullPaths=true',
@@ -143,35 +139,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'DOTNET_CLI_HOME': str(project_dir),
                         'DOTNET_NOLOGO': '1',
                         'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
-                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': str(int(use_invariant)),
+                        'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT': '1',  # Always use invariant mode
                         'DOTNET_SYSTEM_GLOBALIZATION_PREDEFINED_CULTURES_ONLY': 'false',
                         'DOTNET_MULTILEVEL_LOOKUP': '0',
                         'DOTNET_CLI_UI_LANGUAGE': 'en-US',
                         'COMPlus_EnableDiagnostics': '0',
                         'DOTNET_ROOT': '/usr/share/dotnet',
-                        'LC_ALL': 'en_US.UTF-8',
-                        'LANG': 'en_US.UTF-8',
+                        'LC_ALL': 'C',  # Use C locale for invariant behavior
+                        'LANG': 'C',    # Use C locale for invariant behavior
                         'TERM': 'xterm-256color',
                         'COLUMNS': '80',
                         'LINES': '25'
                     }
-
-                    if icu_path:
-                        if '/lib/icu' in icu_path:
-                            # If we found the library path, set LD_LIBRARY_PATH
-                            env_updates['LD_LIBRARY_PATH'] = f"{icu_path}:{env.get('LD_LIBRARY_PATH', '')}"
-                            # Also try to find and set ICU_DATA
-                            icu_data = glob.glob("/nix/store/*/share/icu")
-                            if icu_data:
-                                env_updates['ICU_DATA'] = icu_data[0]
-                        else:
-                            # If we found the data path, set ICU_DATA
-                            env_updates['ICU_DATA'] = icu_path
-                            # Try to find and set LD_LIBRARY_PATH
-                            lib_paths = glob.glob("/nix/store/*/lib/icu*")
-                            if lib_paths:
-                                lib_dir = os.path.dirname(lib_paths[0])
-                                env_updates['LD_LIBRARY_PATH'] = f"{lib_dir}:{env.get('LD_LIBRARY_PATH', '')}"
 
                     env.update(env_updates)
                     logger.debug(f"Environment variables set: {env_updates}")
