@@ -26,6 +26,12 @@ async function executeCode() {
 
         isExecuting = true;
         const code = editor.getValue().trim();
+
+        // Add code size validation
+        if (code.length > 1000000) { // 1MB limit
+            throw new Error('Code size exceeds maximum limit of 1MB');
+        }
+
         const languageSelect = document.getElementById('languageSelect');
         const language = languageSelect ? languageSelect.value : 'cpp';
 
@@ -104,10 +110,17 @@ async function executeCode() {
             }
         } else {
             let errorMessage = result.error;
+
+            // Format C# compilation errors for better readability
+            if (language === 'csharp' && errorMessage.includes('error CS')) {
+                errorMessage = formatCSharpError(errorMessage);
+            }
+
             if (errorMessage === 'Missing required fields') {
                 console.error('Missing fields in request:', payload);
                 errorMessage = 'Required information is missing. Please check your code and try again.';
             }
+
             throw new Error(errorMessage || 'Failed to execute code');
         }
     } catch (error) {
@@ -118,6 +131,8 @@ async function executeCode() {
                 displayError = 'Code execution service is unavailable. Please try again in a moment.';
             } else if (error.message.includes('Invalid response format')) {
                 displayError = 'Server returned an unexpected response. Please try again.';
+            } else if (error.message.includes('exceeds maximum limit')) {
+                displayError = 'Code size is too large. Please reduce the size of your code.';
             }
             consoleOutput.innerHTML = `<div class="console-error">Error: ${escapeHtml(displayError)}</div>`;
         }
@@ -128,6 +143,21 @@ async function executeCode() {
             runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
         }
     }
+}
+
+// Helper function to format C# errors
+function formatCSharpError(errorMsg) {
+    try {
+        // Extract line number and error message
+        const match = errorMsg.match(/\((\d+),(\d+)\):\s*(error\s*CS\d+):\s*(.+)/);
+        if (match) {
+            const [_, line, column, errorCode, message] = match;
+            return `${errorCode} at line ${line}, column ${column}:\n${message}`;
+        }
+    } catch (e) {
+        console.error('Error formatting C# error:', e);
+    }
+    return errorMsg;
 }
 
 // Helper function to escape HTML and prevent XSS
@@ -207,7 +237,12 @@ document.addEventListener('DOMContentLoaded', function() {
         languageSelect.addEventListener('change', () => {
             const language = languageSelect.value;
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
-            editor.setValue(getTemplateForLanguage(language));
+
+            // Only reset code if it's empty or contains the template
+            const currentCode = editor.getValue().trim();
+            if (!currentCode || currentCode === getTemplateForLanguage(language === 'cpp' ? 'csharp' : 'cpp')) {
+                editor.setValue(getTemplateForLanguage(language));
+            }
         });
     }
 
