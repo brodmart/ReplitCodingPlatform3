@@ -53,14 +53,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update editor mode based on language
             editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
 
-            // Always update the template when switching languages
+            // Get current code and templates
             const currentCode = editor.getValue().trim();
-            const newTemplate = getTemplateForLanguage(language);
-            const otherLangTemplate = getTemplateForLanguage(language === 'cpp' ? 'csharp' : 'cpp');
 
-            // Update code if it's empty or matches the other language's template
-            if (!currentCode || currentCode === otherLangTemplate) {
-                editor.setValue(newTemplate);
+            // Check if current code matches any template
+            const cppTemplate = getTemplateForLanguage('cpp');
+            const csharpTemplate = getTemplateForLanguage('csharp');
+
+            // Update code if it's empty, matches the other language's template,
+            // or matches the current language's template
+            if (!currentCode || 
+                currentCode === cppTemplate || 
+                currentCode === csharpTemplate) {
+                editor.setValue(getTemplateForLanguage(language));
             }
         });
     }
@@ -98,14 +103,11 @@ int main() {
     } else if (language === 'csharp') {
         return `using System;
 
-namespace ConsoleApp 
+class Program 
 {
-    class Program 
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Hello World!");
-        }
+        Console.WriteLine("Hello World!");
     }
 }`;
     }
