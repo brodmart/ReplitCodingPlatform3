@@ -304,18 +304,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'error': "Code size exceeds maximum limit (1MB). Please reduce the size of your code."
                 }
 
-            # Add basic code structure check with better error messages
-            if 'class Program' not in code:
-                return {
-                    'success': False,
-                    'error': "Missing 'class Program' declaration. Your code must contain a Program class."
-                }
-            if 'static void Main' not in code:
-                return {
-                    'success': False,
-                    'error': "Missing 'static void Main' method. Your code must contain a Main method as the entry point."
-                }
-
             required_namespaces = [
                 "using System;",
                 "using System.IO;",
@@ -323,30 +311,25 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 "using System.Linq;"
             ]
 
-            # Check and add missing namespaces
+            # Check and add missing namespaces at the start of the file
             existing_code = code
+            namespace_code = ""
             for namespace in required_namespaces:
                 if namespace not in existing_code:
-                    code = namespace + "\n" + code
+                    namespace_code += namespace + "\n"
 
-            # Add automatic Console.Out.Flush() after WriteLine
+            code = namespace_code + code
+
+            # Add automatic Console.Out.Flush() after WriteLine statements
             code_lines = code.split('\n')
             modified_code = []
             for line in code_lines:
                 modified_code.append(line)
-                # Only add flush after WriteLine
-                if 'Console.WriteLine' in line:
-                    indent = len(line) - len(line.lstrip())
-                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
-
-            # Add automatic flush after Console.Write
-            for line in code_lines:
-                if 'Console.Write(' in line and not 'Console.WriteLine' in line:
+                if 'Console.WriteLine' in line or 'Console.Write(' in line:
                     indent = len(line) - len(line.lstrip())
                     modified_code.append(' ' * indent + 'Console.Out.Flush();')
 
             code = '\n'.join(modified_code)
-
 
         # Check if code is interactive
         interactive = is_interactive_code(code, language)
