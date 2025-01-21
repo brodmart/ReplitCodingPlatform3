@@ -352,20 +352,41 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     # Enhanced C# code preprocessing
                     modified_code = code
 
-                    # Only add namespace if not present
-                    if 'namespace' not in code:
-                        modified_code = """using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+                    # Check if code already has namespace and class
+                    has_namespace = 'namespace' in code
+                    has_class = 'class Program' in code or 'class MainProgram' in code
+                    has_using_system = 'using System;' in code
 
-namespace ConsoleApplication {
-    public class Program {
-""" + code + """
+                    # Build the code structure as needed
+                    if not has_using_system:
+                        modified_code = "using System;\n" + modified_code
+
+                    if not has_namespace and not has_class:
+                        # Wrap in both namespace and class if neither exists
+                        modified_code = f"""namespace ConsoleApp
+{{
+    class MainProgram
+    {{
+        {modified_code}
+    }}
+}}"""
+                    elif not has_namespace:
+                        # Wrap only in namespace if class exists
+                        modified_code = f"""namespace ConsoleApp
+{{
+    {modified_code}
+}}"""
+                    elif not has_class:
+                        # Wrap only in class if namespace exists
+                        modified_code = modified_code.replace("namespace", """class MainProgram
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+        }
     }
-}"""
+
+namespace""")
 
                     # Write the code with proper encoding
                     with open(source_file, 'w', encoding='utf-8') as f:
@@ -405,12 +426,7 @@ namespace ConsoleApplication {
                     env['MONO_THREADS_PER_CPU'] = '2'
                     env['MONO_GC_PARAMS'] = 'mode=throughput'
 
-                    # Add proper console window support
-                    env['TERM'] = 'xterm'
-                    env['COLUMNS'] = '80'
-                    env['LINES'] = '25'
-
-                    # Run with mono, using Popen for interactive I/O
+                    # Run with mono
                     process = subprocess.Popen(
                         ['mono', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
