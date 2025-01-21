@@ -85,9 +85,6 @@
 // Initialize components when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
     try {
-        // Initialize editor first
-        await initializeEditor();
-
         // Initialize terminal
         const terminal = new Terminal({
             cursorBlink: true,
@@ -118,6 +115,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             // Handle terminal input if needed
         });
 
+        console.log('Terminal initialized successfully');
+        await initializeEditor(); //Call after terminal is initialized.
         console.log('Components initialized successfully');
     } catch (error) {
         console.error('Failed to initialize components:', error);
