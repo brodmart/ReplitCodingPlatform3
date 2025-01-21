@@ -9,6 +9,7 @@ class InteractiveConsole {
         this.currentInput = '';
         this.isEnabled = true;
         this.isWaitingForInput = false;
+        this.maxBufferSize = 1000; // Maximum number of lines to keep in buffer
 
         // Initialize DOM elements
         this.consoleElement = document.getElementById('consoleOutput');
@@ -42,6 +43,13 @@ class InteractiveConsole {
                 } else if (e.key === 'ArrowDown') {
                     e.preventDefault();
                     this.navigateHistory(1);
+                } else if (e.key === 'Tab') {
+                    e.preventDefault();
+                    this.handleTabCompletion();
+                } else if (e.ctrlKey && e.key === 'c') {
+                    if (this.isWaitingForInput) {
+                        this.handleInterrupt();
+                    }
                 }
             });
 
@@ -50,10 +58,45 @@ class InteractiveConsole {
             if (clearButton) {
                 clearButton.addEventListener('click', () => this.clear());
             }
+
+            // Handle paste events
+            this.inputElement.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text');
+                this.handlePaste(text);
+            });
+
         } catch (error) {
             console.error('Failed to set up event listeners:', error);
             throw error;
         }
+    }
+
+    handlePaste(text) {
+        // Handle multi-line paste
+        const lines = text.split('\n');
+        if (lines.length > 1) {
+            // If multi-line, execute each line sequentially
+            lines.forEach(line => {
+                this.inputElement.value = line.trim();
+                this.handleInput(line.trim());
+            });
+        } else {
+            // Single line paste
+            this.inputElement.value = text;
+        }
+    }
+
+    handleTabCompletion() {
+        // Implement command completion logic here
+        const input = this.inputElement.value;
+        // Add completion logic based on available commands/context
+    }
+
+    handleInterrupt() {
+        this.appendOutput('^C', 'interrupt');
+        this.isWaitingForInput = false;
+        this.enable();
     }
 
     navigateHistory(direction) {
@@ -74,6 +117,12 @@ class InteractiveConsole {
         this.inputElement.value = this.historyIndex === -1 ? 
             this.currentInput : 
             this.inputHistory[this.historyIndex];
+
+        // Move cursor to end of input
+        setTimeout(() => {
+            this.inputElement.selectionStart = this.inputElement.value.length;
+            this.inputElement.selectionEnd = this.inputElement.value.length;
+        }, 0);
     }
 
     appendOutput(text, className = '') {
@@ -86,17 +135,38 @@ class InteractiveConsole {
             line.className = `console-line ${className}`;
 
             if (typeof text === 'object') {
-                line.textContent = JSON.stringify(text, null, 2);
+                // Pretty print objects
+                line.innerHTML = `<pre>${JSON.stringify(text, null, 2)}</pre>`;
             } else {
-                line.textContent = String(text);
+                // Handle ANSI color codes
+                line.innerHTML = this.processAnsiCodes(String(text));
             }
 
             this.consoleElement.appendChild(line);
             this.consoleElement.scrollTop = this.consoleElement.scrollHeight;
+
+            // Manage buffer size
             this.outputBuffer.push({ text, className });
+            if (this.outputBuffer.length > this.maxBufferSize) {
+                this.outputBuffer.shift();
+                // Remove oldest line from DOM
+                if (this.consoleElement.firstChild) {
+                    this.consoleElement.removeChild(this.consoleElement.firstChild);
+                }
+            }
         } catch (error) {
             console.error('Error appending output:', error);
         }
+    }
+
+    processAnsiCodes(text) {
+        // Convert ANSI color codes to CSS classes
+        return text
+            .replace(/\x1b\[31m/g, '<span class="ansi-red">')
+            .replace(/\x1b\[32m/g, '<span class="ansi-green">')
+            .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
+            .replace(/\x1b\[0m/g, '</span>')
+            .replace(/\n/g, '<br>');
     }
 
     handleInput(input) {
@@ -106,6 +176,9 @@ class InteractiveConsole {
             // Add to history if not empty and different from last entry
             if (input && (!this.inputHistory.length || this.inputHistory[this.inputHistory.length - 1] !== input)) {
                 this.inputHistory.push(input);
+                if (this.inputHistory.length > 50) { // Limit history size
+                    this.inputHistory.shift();
+                }
             }
 
             // Reset history navigation
@@ -122,10 +195,22 @@ class InteractiveConsole {
                 this.clear();
                 return;
             }
+
+            // Emit input event for program to handle
+            this.emitInput(input);
+
         } catch (error) {
             console.error('Error handling input:', error);
             this.setError('Failed to process input');
         }
+    }
+
+    emitInput(input) {
+        // Create and dispatch a custom event
+        const event = new CustomEvent('console-input', {
+            detail: { input: input }
+        });
+        document.dispatchEvent(event);
     }
 
     setError(message) {
@@ -155,7 +240,7 @@ class InteractiveConsole {
             }
             this.isEnabled = true;
             this.inputElement.disabled = false;
-            this.inputElement.placeholder = "Type commands here...";
+            this.inputElement.placeholder = "Type your input here...";
             this.inputElement.focus();
         } catch (error) {
             console.error('Error enabling console:', error);

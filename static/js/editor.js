@@ -15,8 +15,9 @@ function initializeComponents() {
             throw new Error('Editor element not found');
         }
 
+        // Enhanced CodeMirror initialization with better language support
         editor = CodeMirror.fromTextArea(editorElement, {
-            mode: 'text/x-c++src',
+            mode: 'text/x-c++src', // Default to C++
             theme: 'dracula',
             lineNumbers: true,
             autoCloseBrackets: true,
@@ -25,6 +26,8 @@ function initializeComponents() {
             tabSize: 4,
             lineWrapping: true,
             viewportMargin: Infinity,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-lint-markers"],
+            lint: true,
             extraKeys: {
                 "Tab": function(cm) {
                     if (cm.somethingSelected()) {
@@ -34,8 +37,22 @@ function initializeComponents() {
                     }
                 },
                 "Ctrl-Enter": executeCode,
-                "Cmd-Enter": executeCode
-            }
+                "Cmd-Enter": executeCode,
+                "Ctrl-/": "toggleComment",
+                "Cmd-/": "toggleComment"
+            },
+            autoCloseTags: true,
+            foldGutter: true,
+            matchTags: {bothTags: true},
+            highlightSelectionMatches: {showToken: /\w/, annotateScrollbar: true}
+        });
+
+        editor.on('change', function() {
+            // Auto-save content
+            localStorage.setItem('editorContent', editor.getValue());
+
+            // Reset error markers when code changes
+            editor.clearGutter("CodeMirror-lint-markers");
         });
 
         editor.getWrapperElement().classList.add('CodeMirror-initialized');
@@ -43,7 +60,6 @@ function initializeComponents() {
         // Wait for console elements before initializing console
         waitForConsoleElements()
             .then(() => {
-                // Initialize console after editor
                 if (typeof InteractiveConsole === 'undefined') {
                     throw new Error('InteractiveConsole class not loaded');
                 }
@@ -52,22 +68,29 @@ function initializeComponents() {
                 // Set up event listeners after both components are initialized
                 setupEventListeners();
                 setInitialEditorState();
+
+                // Restore previous content if any
+                const savedContent = localStorage.getItem('editorContent');
+                if (savedContent) {
+                    editor.setValue(savedContent);
+                }
             })
             .catch(error => {
                 console.error('Failed to initialize console:', error);
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'alert alert-danger';
-                errorMessage.textContent = 'Failed to initialize console. Please refresh the page.';
-                document.body.insertBefore(errorMessage, document.body.firstChild);
+                showError('Failed to initialize console. Please refresh the page.');
             });
 
     } catch (error) {
         console.error('Failed to initialize components:', error);
-        const errorMessage = document.createElement('div');
-        errorMessage.className = 'alert alert-danger';
-        errorMessage.textContent = 'Failed to initialize editor. Please refresh the page.';
-        document.body.insertBefore(errorMessage, document.body.firstChild);
+        showError('Failed to initialize editor. Please refresh the page.');
     }
+}
+
+function showError(message) {
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'alert alert-danger';
+    errorMessage.textContent = message;
+    document.body.insertBefore(errorMessage, document.body.firstChild);
 }
 
 function waitForConsoleElements(retries = 10) {
@@ -81,7 +104,6 @@ function waitForConsoleElements(retries = 10) {
             } else if (attempts <= 0) {
                 reject(new Error('Console elements not found after maximum retries'));
             } else {
-                console.log('Console elements not ready, retrying in 100ms...');
                 setTimeout(() => check(attempts - 1), 100);
             }
         };
@@ -101,23 +123,37 @@ function setupEventListeners() {
         });
     }
 
-    // Language select handler
+    // Language select handler with improved mode switching
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', function() {
             const language = this.value;
             updateEditorMode(language);
             setEditorTemplate(language);
+
+            // Store selected language
+            localStorage.setItem('selectedLanguage', language);
         });
     }
+
+    // Add keyboard shortcuts listener
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + S to prevent default save
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            // Auto-save is already happening on change
+        }
+    });
 }
 
 function setInitialEditorState() {
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
-        const initialLanguage = languageSelect.value || 'cpp';
-        updateEditorMode(initialLanguage);
-        setEditorTemplate(initialLanguage);
+        // Restore previously selected language or default to cpp
+        const savedLanguage = localStorage.getItem('selectedLanguage') || 'cpp';
+        languageSelect.value = savedLanguage;
+        updateEditorMode(savedLanguage);
+        setEditorTemplate(savedLanguage);
     }
 }
 
@@ -178,12 +214,20 @@ async function executeCode() {
             if (result.output) {
                 consoleInstance.appendOutput(result.output);
             }
+
+            // Highlight any warnings
+            if (result.warnings) {
+                result.warnings.forEach(warning => {
+                    const line = warning.line - 1;
+                    editor.addLineClass(line, 'background', 'line-warning');
+                });
+            }
         } else {
-            throw new Error(result.error || 'Failed to execute code');
+            handleCompilationError(result.error);
         }
     } catch (error) {
         console.error('Error executing code:', error);
-        consoleInstance.setError(error.message);
+        handleExecutionError(error.message);
     } finally {
         isExecuting = false;
         if (runButton) {
@@ -194,9 +238,49 @@ async function executeCode() {
     }
 }
 
+function handleCompilationError(error) {
+    // Clear previous error markers
+    editor.clearGutter("CodeMirror-lint-markers");
+
+    // Parse error message to extract line number if available
+    const errorMatch = error.match(/line (\d+)/i);
+    if (errorMatch) {
+        const lineNum = parseInt(errorMatch[1]) - 1;
+        const marker = document.createElement('div');
+        marker.className = 'CodeMirror-lint-marker CodeMirror-lint-marker-error';
+        marker.title = error;
+        editor.setGutterMarker(lineNum, "CodeMirror-lint-markers", marker);
+        editor.addLineClass(lineNum, 'background', 'line-error');
+    }
+
+    consoleInstance.setError(error);
+}
+
+function handleExecutionError(error) {
+    consoleInstance.setError(`Runtime Error: ${error}`);
+}
+
 function updateEditorMode(language) {
     if (!editor) return;
-    editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+
+    const modes = {
+        'cpp': 'text/x-c++src',
+        'csharp': 'text/x-csharp'
+    };
+
+    editor.setOption('mode', modes[language] || modes.cpp);
+
+    // Update lint options based on language
+    editor.setOption('lint', {
+        'cpp': {
+            esversion: 6,
+            asi: true
+        },
+        'csharp': {
+            esversion: 6,
+            asi: true
+        }
+    }[language] || {});
 }
 
 function setEditorTemplate(language) {
