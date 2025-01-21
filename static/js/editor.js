@@ -42,15 +42,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Get language select and set initial template
     const languageSelect = document.getElementById('languageSelect');
-    const initialLanguage = languageSelect ? languageSelect.value : 'cpp';
-    setEditorTemplate(initialLanguage);
-
-    // Language change handler
     if (languageSelect) {
-        languageSelect.addEventListener('change', function() {
-            const language = languageSelect.value;
+        const initialLanguage = languageSelect.value;
+        updateEditorMode(initialLanguage);
+        setEditorTemplate(initialLanguage);
+
+        // Language change handler with debugging
+        languageSelect.addEventListener('change', function(event) {
+            const language = event.target.value;
+            console.log('Language changed to:', language);
             updateEditorMode(language);
             setEditorTemplate(language);
+
+            // Force editor refresh after mode change
+            editor.refresh();
         });
     }
 
@@ -100,17 +105,26 @@ class Program
 }
 
 function setEditorTemplate(language) {
-    if (!editor) return;
+    if (!editor) {
+        console.error('Editor not initialized');
+        return;
+    }
 
     const currentCode = editor.getValue().trim();
     if (!currentCode) {
-        editor.setValue(getTemplateForLanguage(language));
+        const template = getTemplateForLanguage(language);
+        console.log('Setting template for', language, ':', template);
+        editor.setValue(template);
     }
 }
 
 function updateEditorMode(language) {
-    if (!editor) return;
+    if (!editor) {
+        console.error('Editor not initialized');
+        return;
+    }
 
+    console.log('Updating editor mode for:', language);
     if (language === 'cpp') {
         editor.setOption('mode', 'text/x-c++src');
     } else if (language === 'csharp') {
