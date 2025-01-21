@@ -2,12 +2,15 @@
 Optimization analyzer for compiler service performance.
 Provides automated suggestions for improving system performance.
 """
+import json
 import logging
-import psutil
+import time
+from pathlib import Path
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from collections import defaultdict
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +72,7 @@ class PerformanceOptimizer:
         self.suggestions_history: List[OptimizationSuggestion] = []
         self.resource_monitor = ResourceMonitor()
         self._init_metrics()
+        self.optimization_analyzer = OptimizationAnalyzer() #Added this line
 
     def _init_metrics(self):
         """Initialize metrics tracking"""
@@ -114,8 +118,30 @@ class PerformanceOptimizer:
         # Track language-specific patterns
         language = metrics.get('language', 'unknown')
         self._update_language_metrics(language, metrics)
+        
+        # Incorporate historical analysis
+        historical_analysis = self.optimization_analyzer.analyze_performance()
+        if historical_analysis["bottlenecks"]:
+            for bottleneck in historical_analysis["bottlenecks"]:
+                suggestions.append(OptimizationSuggestion(
+                    category='compiler',
+                    priority=3,
+                    issue=bottleneck,
+                    impact='Potential performance issue based on historical data',
+                    recommendation=self._get_historical_recommendation(bottleneck),
+                    metrics=historical_analysis
+                ))
 
         return suggestions
+
+    def _get_historical_recommendation(self, bottleneck: str) -> str:
+        recommendations = {
+            "Slow compilation times": "Review compiler flags and optimization levels, consider caching.",
+            "Low cache utilization": "Improve caching strategy, analyze code for frequently used components.",
+            "Slow execution times": "Profile execution, optimize algorithms, consider parallel processing."
+        }
+        return recommendations.get(bottleneck, "Investigate further")
+
 
     def get_recommended_thread_count(self) -> int:
         """Determine optimal thread count based on current load"""
@@ -222,3 +248,73 @@ class PerformanceOptimizer:
             'libstdc++': 'Verify system library compatibility and container configuration'
         }
         return recommendations.get(error_type, 'Review system logs and monitoring data')
+
+
+class OptimizationAnalyzer:
+    def __init__(self):
+        self.metrics_file = Path("compiler_metrics.json")
+        self.metrics_history: List[Dict] = []
+        self.load_metrics()
+
+    def load_metrics(self):
+        """Load existing metrics if available"""
+        if self.metrics_file.exists():
+            try:
+                with open(self.metrics_file, 'r') as f:
+                    self.metrics_history = json.load(f)
+            except json.JSONDecodeError:
+                self.metrics_history = []
+
+    def save_metrics(self):
+        """Save metrics to file"""
+        with open(self.metrics_file, 'w') as f:
+            json.dump(self.metrics_history, f, indent=2)
+
+    def record_metrics(self, metrics: Dict):
+        """Record new compilation metrics"""
+        metrics['timestamp'] = time.time()
+        self.metrics_history.append(metrics)
+        self.save_metrics()
+
+    def analyze_performance(self) -> Dict:
+        """Analyze performance metrics and identify bottlenecks"""
+        if not self.metrics_history:
+            return {"status": "No metrics available", "bottlenecks": []}
+
+        recent_metrics = self.metrics_history[-10:]  # Last 10 compilations
+
+        analysis = {
+            "avg_compilation_time": sum(m.get('compilation_time', 0) for m in recent_metrics) / len(recent_metrics) if recent_metrics else 0,
+            "avg_execution_time": sum(m.get('execution_time', 0) for m in recent_metrics) / len(recent_metrics) if recent_metrics else 0,
+            "cache_hit_rate": sum(1 for m in recent_metrics if m.get('cached', False)) / len(recent_metrics) if recent_metrics else 0,
+            "bottlenecks": []
+        }
+
+        # Identify bottlenecks
+        if analysis["avg_compilation_time"] > 2.0:
+            analysis["bottlenecks"].append("Slow compilation times")
+        if analysis["cache_hit_rate"] < 0.5:
+            analysis["bottlenecks"].append("Low cache utilization")
+        if analysis["avg_execution_time"] > 1.0:
+            analysis["bottlenecks"].append("Slow execution times")
+
+        return analysis
+
+if __name__ == "__main__":
+    optimizer = PerformanceOptimizer()
+    # Example usage:
+    sample_metrics = {'language': 'cpp', 'compilation_time': 1.5, 'success': True, 'peak_memory': 512}
+    suggestions = optimizer.analyze_compiler_metrics(sample_metrics)
+    report = optimizer.get_system_health_report()
+    print("Optimization Suggestions:", suggestions)
+    print("\nSystem Health Report:", report)
+    analyzer = OptimizationAnalyzer()
+    analysis = analyzer.analyze_performance()
+    print("\nPerformance Analysis:")
+    print(f"Average compilation time: {analysis['avg_compilation_time']:.2f}s")
+    print(f"Average execution time: {analysis['avg_execution_time']:.2f}s")
+    print(f"Cache hit rate: {analysis['cache_hit_rate']*100:.1f}%")
+    if analysis["bottlenecks"]:
+        print("\nIdentified bottlenecks:")
+        for bottleneck in analysis["bottlenecks"]:
+            print(f"- {bottleneck}")

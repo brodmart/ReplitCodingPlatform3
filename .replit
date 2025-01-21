@@ -107,6 +107,10 @@ args = "Test Updated C# Service"
 task = "workflow.run"
 args = "Test Compiler Warmup"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Analyze Performance"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -422,6 +426,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 test_compiler_warmup.py"
+
+[[workflows.workflow]]
+name = "Analyze Performance"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 optimization_analyzer.py"
 
 [[ports]]
 localPort = 5000

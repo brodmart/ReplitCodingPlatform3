@@ -1,10 +1,83 @@
 import time
-from compiler import compile_and_run, run_parallel_compilation
+import statistics
+from compiler import compile_and_run
 import logging
 import os
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+def test_basic_compilation():
+    """Test basic Hello World compilation performance"""
+    code = """
+using System;
+class Program {
+    static void Main() {
+        Console.WriteLine("Hello World!");
+    }
+}
+"""
+    times = []
+    for _ in range(5):
+        start = time.time()
+        result = compile_and_run(code, "csharp")
+        times.append(time.time() - start)
+        assert result['success'], f"Compilation failed: {result.get('error', 'Unknown error')}"
+        assert "Hello World!" in result['output'], "Expected output not found"
+
+    avg_time = statistics.mean(times)
+    print(f"Average compilation time: {avg_time:.2f}s")
+    return avg_time
+
+def test_cached_compilation():
+    """Test cached compilation performance"""
+    code = """
+using System;
+class Program {
+    static void Main() {
+        Console.WriteLine("Testing cache!");
+    }
+}
+"""
+    # First compilation to warm up cache
+    result1 = compile_and_run(code, "csharp")
+    assert result1['success'], f"Initial compilation failed: {result1.get('error', 'Unknown error')}"
+
+    # Test cached compilation performance
+    times = []
+    for _ in range(5):
+        start = time.time()
+        result = compile_and_run(code, "csharp")
+        times.append(time.time() - start)
+        assert result['success'], f"Cached compilation failed: {result.get('error', 'Unknown error')}"
+        assert "Testing cache!" in result['output'], "Expected output not found"
+
+    avg_time = statistics.mean(times)
+    print(f"Average cached compilation time: {avg_time:.2f}s")
+    return avg_time
+
+def test_complex_compilation():
+    """Test compilation with more complex code"""
+    code = """
+using System;
+using System.Linq;
+class Program {
+    static void Main() {
+        var numbers = Enumerable.Range(1, 100).ToArray();
+        var sum = numbers.Where(x => x % 2 == 0).Sum();
+        Console.WriteLine($"Sum of even numbers: {sum}");
+    }
+}
+"""
+    start = time.time()
+    result = compile_and_run(code, "csharp")
+    compilation_time = time.time() - start
+
+    assert result['success'], f"Complex compilation failed: {result.get('error', 'Unknown error')}"
+    assert "Sum of even numbers: 2550" in result['output'], "Expected output not found"
+
+    print(f"Complex compilation time: {compilation_time:.2f}s")
+    return compilation_time
 
 def test_compilation_performance():
     logger.info("Starting compilation performance test")
@@ -125,5 +198,14 @@ namespace TestProgram_{i}
             logger.warning(f"Failed to cleanup temp directory: {e}")
 
 if __name__ == "__main__":
-    test_compilation_performance()  # Run original test
-    test_parallel_compilation_performance()  # Run parallel test
+    print("Running compiler performance tests...")
+    basic_time = test_basic_compilation()
+    cached_time = test_cached_compilation()
+    complex_time = test_complex_compilation()
+    test_compilation_performance()
+    test_parallel_compilation_performance()
+
+    print("\nPerformance Summary:")
+    print(f"Basic compilation: {basic_time:.2f}s")
+    print(f"Cached compilation: {cached_time:.2f}s")
+    print(f"Complex compilation: {complex_time:.2f}s")
