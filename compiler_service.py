@@ -34,7 +34,7 @@ COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 MAX_CODE_SIZE = 10 * 1024 * 1024  # 10MB max file size
 
 def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMetrics') -> Tuple[bool, str]:
-    """Compile C# code with enhanced logging"""
+    """Compile C# code with detailed error logging"""
     try:
         compile_cmd = [
             'mcs',
@@ -54,10 +54,13 @@ def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMet
         compile_start = time.time()
 
         try:
-            # Write source code to log for debugging
+            # Log source code for debugging
             with open(source_file, 'r', encoding='utf-8') as f:
-                logger.debug(f"Source code contents:\n{f.read()}")
+                source_content = f.read()
+                logger.debug(f"Source code length: {len(source_content)} bytes")
+                logger.debug(f"First 500 chars of source:\n{source_content[:500]}")
 
+            # Run compilation with detailed output capture
             compile_process = subprocess.run(
                 compile_cmd,
                 capture_output=True,
@@ -68,30 +71,38 @@ def compile_csharp(source_file: Path, executable: Path, metrics: 'CompilationMet
             compile_time = time.time() - compile_start
             metrics.compilation_time = compile_time
 
+            # Log all compilation outputs
             logger.debug(f"Compilation completed in {compile_time:.2f}s")
-            logger.debug(f"Compilation stdout: {compile_process.stdout}")
-            logger.debug(f"Compilation stderr: {compile_process.stderr}")
+            logger.debug(f"Return code: {compile_process.returncode}")
+            if compile_process.stdout:
+                logger.debug(f"Compilation stdout:\n{compile_process.stdout}")
+            if compile_process.stderr:
+                logger.debug(f"Compilation stderr:\n{compile_process.stderr}")
 
             if compile_process.returncode != 0:
+                error_msg = compile_process.stderr if compile_process.stderr else "Unknown compilation error occurred"
                 logger.error(f"Compilation failed with return code {compile_process.returncode}")
-                logger.error(f"Compilation error: {compile_process.stderr}")
-                return False, compile_process.stderr if compile_process.stderr else "Unknown compilation error occurred"
+                logger.error(f"Error message: {error_msg}")
+                return False, error_msg
 
-            logger.debug("Compilation successful")
+            logger.debug("Compilation successful, setting executable permissions")
             os.chmod(executable, 0o755)
             return True, ""
 
         except subprocess.TimeoutExpired as e:
-            logger.error(f"Compilation timed out after {MAX_COMPILATION_TIME}s")
-            return False, f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
+            error_msg = f"Compilation timed out after {MAX_COMPILATION_TIME}s"
+            logger.error(error_msg)
+            return False, error_msg
 
         except Exception as e:
-            logger.error(f"Unexpected compilation error: {str(e)}", exc_info=True)
-            return False, f"Compilation error: {str(e)}"
+            error_msg = f"Unexpected compilation error: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return False, error_msg
 
     except Exception as e:
-        logger.error(f"Fatal compilation error: {str(e)}", exc_info=True)
-        return False, f"Fatal compilation error: {str(e)}"
+        error_msg = f"Fatal compilation error: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return False, error_msg
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with enhanced logging"""
