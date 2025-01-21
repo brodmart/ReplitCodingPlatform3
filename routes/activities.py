@@ -8,6 +8,7 @@ from models import db, CodingActivity, Student, StudentProgress, CodeSubmission
 import logging
 from datetime import datetime
 from compiler import compile_and_run
+import time
 
 logger = logging.getLogger(__name__)
 activities_bp = Blueprint('activities', __name__)
@@ -81,44 +82,35 @@ def execute_code():
 def run_code():
     """Execute student code submission with activity tracking"""
     try:
+        start_time = time.time()
+        logger.debug("Starting code execution request")
+
+        if not request.is_json:
+            logger.error("Invalid request format - not JSON")
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
         data = request.get_json()
         if not data:
-            logger.error("No JSON data in request")
+            logger.error("Empty request data")
             return jsonify({'success': False, 'error': 'Missing request data'}), 400
 
-        code = data.get('code')
-        activity_id = data.get('activity_id')
-        language = data.get('language', 'cpp')
+        code = data.get('code', '').strip()
+        language = data.get('language', 'cpp').lower()
+
+        logger.debug(f"Request received - Language: {language}, Code length: {len(code)}")
+        logger.debug(f"Code preview (first 200 chars): {code[:200]}")
 
         if not code:
             logger.error("No code provided in request")
             return jsonify({'success': False, 'error': 'Code cannot be empty'}), 400
 
         # Execute the code
-        logger.debug(f"Executing {language} code for activity {activity_id}")
+        logger.debug("Calling compile_and_run")
         result = compile_and_run(code, language)
-        logger.debug(f"Execution result: {result}")
 
-        # Only store submission if activity_id is provided
-        if activity_id:
-            try:
-                submission = CodeSubmission(
-                    student_id=current_user.id,
-                    activity_id=activity_id,
-                    code=code,
-                    language=language,
-                    success=result.get('success', False),
-                    output=result.get('output', ''),
-                    error=result.get('error', ''),
-                    submitted_at=datetime.utcnow()
-                )
-                db.session.add(submission)
-                db.session.commit()
-                logger.info(f"Stored submission for activity {activity_id}")
-            except Exception as e:
-                logger.error(f"Failed to store submission: {str(e)}")
-                # Continue with execution result even if storage fails
-                pass
+        execution_time = time.time() - start_time
+        logger.debug(f"Execution completed in {execution_time:.2f}s")
+        logger.debug(f"Compilation result: {result}")
 
         return jsonify(result)
 

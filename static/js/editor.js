@@ -173,9 +173,11 @@ async function runCode() {
     if (editorState.isExecuting) return;
 
     const runButton = document.getElementById('runButton');
+    const terminal = window.terminal;
     editorState.isExecuting = true;
 
     try {
+        console.time('codeExecution');  // Add timing
         if (runButton) {
             runButton.disabled = true;
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
@@ -186,16 +188,15 @@ async function runCode() {
             throw new Error('No code to execute');
         }
 
+        terminal?.write('\r\nCompiling and running code...\r\n');
+        console.log('Code length:', code.length, 'bytes');  // Log code size
+
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
             throw new Error('CSRF token not found');
         }
 
-        // Use the global terminal instance
-        if (window.terminal) {
-            window.terminal.write('\r\nCompiling and running code...\r\n');
-        }
-
+        console.log('Sending request to server...');  // Log request start
         const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
@@ -208,24 +209,33 @@ async function runCode() {
             })
         });
 
+        console.log('Received server response');  // Log response received
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const result = await response.json();
+        console.log('Parsed response:', result);  // Log parsed result
 
         if (result.success) {
-            window.terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
+            terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
             if (result.output) {
-                window.terminal?.write(result.output + '\r\n');
+                terminal?.write(result.output + '\r\n');
+            }
+            if (result.metrics) {  // Log performance metrics if available
+                console.log('Compilation metrics:', result.metrics);
             }
         } else {
-            window.terminal?.write('\x1b[31mError: ' + result.error + '\x1b[0m\r\n');
+            terminal?.write('\x1b[31mError: ' + result.error + '\x1b[0m\r\n');
+            if (result.metrics) {
+                console.log('Error metrics:', result.metrics);
+            }
         }
     } catch (error) {
         console.error('Error executing code:', error);
-        window.terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
+        terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
     } finally {
+        console.timeEnd('codeExecution');  // End timing
         editorState.isExecuting = false;
         if (runButton) {
             runButton.disabled = false;
