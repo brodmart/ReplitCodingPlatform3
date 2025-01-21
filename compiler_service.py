@@ -395,10 +395,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     env = os.environ.copy()
                     env['MONO_IOMAP'] = 'all'
                     env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                    env['MONO_DEBUG'] = 'yes'
+                    # Set specific debug options that work with interactive console
+                    env['MONO_DEBUG'] = 'explicit-null-checks,handle-sigint'
+                    env['MONO_THREADS_PER_CPU'] = '2'
 
+                    # Enhanced process setup for interactive console
                     process = subprocess.Popen(
-                        ['mono', '--debug', str(executable)],
+                        ['mono', str(executable)],
                         stdin=subprocess.PIPE if input_data else None,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
@@ -408,18 +411,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         preexec_fn=os.setsid
                     )
 
-                    monitor = ProcessMonitor(process, timeout=20)
+                    monitor = ProcessMonitor(process, timeout=30)  # Increased timeout for interactive apps
                     monitor.start()
 
                     try:
                         stdout, stderr = process.communicate(
                             input=input_data,
-                            timeout=20
+                            timeout=30  # Increased timeout
                         )
                     except subprocess.TimeoutExpired:
                         return {
                             'success': False,
-                            'error': "Execution timeout after 20 seconds. Check for infinite loops."
+                            'error': "Execution timeout after 30 seconds. For interactive programs, use Console.ReadLine() to get user input."
                         }
                     finally:
                         monitor.stop()
@@ -432,10 +435,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                             pass
 
                     if process.returncode == 0:
-                        output = stdout.strip() if stdout else "No output generated. If you expected output, ensure Console.WriteLine statements are used and properly flushed."
+                        output = stdout.strip() if stdout else ""
+                        if not output:
+                            output = "Program is waiting for input. Use Console.ReadLine() to read user input."
                         return {
                             'success': True,
-                            'output': output
+                            'output': output,
+                            'interactive': True if 'Console.ReadLine' in code else False
                         }
                     else:
                         error_msg = format_runtime_error(stderr) if stderr else "Program failed with no error message"
