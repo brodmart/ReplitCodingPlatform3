@@ -95,6 +95,14 @@ args = "Test Updated Compiler"
 task = "workflow.run"
 args = "Test C# Performance"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Simple Compiler"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Updated C# Service"
+
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -293,9 +301,9 @@ task = "shell.exec"
 args = """
 python3 -c '
 from compiler_service import compile_and_run
-with open('test.cs', 'r') as f:
+with open(\"test_large.cs\", \"r\") as f:
     code = f.read()
-result = compile_and_run(code, 'csharp')
+result = compile_and_run(code, \"csharp\")
 print(result)
 '"""
 
@@ -368,6 +376,34 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 test_compiler_performance.py"
+
+[[workflows.workflow]]
+name = "Test Simple Compiler"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -c \"from compiler_simple import compile_and_run; result = compile_and_run(open('test_simple.cs').read()); print(result)\""
+
+[[workflows.workflow]]
+name = "Test Updated C# Service"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 test_updated_compiler.py"
 
 [[ports]]
 localPort = 5000

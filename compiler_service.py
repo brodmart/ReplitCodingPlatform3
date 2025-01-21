@@ -28,6 +28,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     Compile and run code with enhanced error handling and logging
     """
     metrics = {'start_time': time.time()}
+    compile_start = time.time()  # Initialize compile_start at function start
     logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
 
     if not code or not language:
@@ -47,7 +48,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             # Set up C# project structure
             source_file = temp_path / "Program.cs"
             project_file = temp_path / "program.csproj"
-            bin_dir = temp_path / "bin" / "Release" / "net7.0" / "linux-x64"
+            bin_dir = temp_path / "bin" / "Release" / "net7.0"
             logger.debug(f"Setting up C# project structure in {temp_path}")
 
             # Create bin directory structure
@@ -58,16 +59,14 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(code)
 
-            # Create project file
+            # Create project file with simpler configuration
             project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <SelfContained>false</SelfContained>
   </PropertyGroup>
 </Project>"""
             logger.debug(f"Writing project file to {project_file}")
@@ -94,16 +93,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'metrics': metrics
                     }
 
-                # Compile
-                compile_start = time.time()
+                # Compile using simpler build command
                 compile_cmd = [
-                    'dotnet', 'publish',
+                    'dotnet', 'build',
                     str(project_file),
                     '--configuration', 'Release',
-                    '--runtime', 'linux-x64',
-                    '--self-contained', 'false',
-                    '--output', str(bin_dir),
-                    '-nologo'
+                    '--nologo'
                 ]
 
                 logger.debug(f"Executing build command: {' '.join(compile_cmd)}")
@@ -112,8 +107,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path),
-                    env=os.environ.copy()  # Use current environment
+                    cwd=str(temp_path)
                 )
 
                 metrics['compilation_time'] = time.time() - compile_start
@@ -126,20 +120,10 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'metrics': metrics
                     }
 
-                # Verify compilation output
-                executable = bin_dir / "program"
-                dll_path = bin_dir / "program.dll"
-
-                if dll_path.exists():
-                    logger.debug(f"Found program.dll at {dll_path}")
-                    run_cmd = ['dotnet', str(dll_path)]
-                elif executable.exists():
-                    logger.debug(f"Found executable at {executable}")
-                    os.chmod(executable, 0o755)
-                    run_cmd = [str(executable)]
-                else:
-                    logger.error(f"No executable found in {bin_dir}")
-                    logger.debug(f"Directory contents: {list(bin_dir.glob('*'))}")
+                # Use simpler execution approach
+                dll_path = temp_path / "bin" / "Release" / "net7.0" / "program.dll"
+                if not dll_path.exists():
+                    logger.error(f"No executable found in {dll_path.parent}")
                     return {
                         'success': False,
                         'error': "Build succeeded but no executable found",
@@ -147,6 +131,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 # Run the compiled program
+                run_cmd = ['dotnet', str(dll_path)]
                 logger.debug(f"Running program with command: {' '.join(run_cmd)}")
                 run_process = subprocess.run(
                     run_cmd,
@@ -261,7 +246,7 @@ def is_interactive_code(code: str, language: str) -> bool:
         return 'cin' in code_lower or 'getline' in code_lower
     elif language == 'csharp':
         return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
-    return False
+    return False  # Default case for unsupported languages
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session for the given code"""
