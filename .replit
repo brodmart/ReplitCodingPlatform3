@@ -65,7 +65,7 @@ args = "Seed Database"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Run C# Program"
+args = "Interactive C# Console"
 
 [[workflows.workflow]]
 name = "Flask Server"
@@ -223,7 +223,7 @@ task = "shell.exec"
 args = "python scripts/seed_activities.py"
 
 [[workflows.workflow]]
-name = "Run C# Program"
+name = "Interactive C# Console"
 author = "agent"
 
 [workflows.workflow.metadata]
