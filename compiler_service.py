@@ -85,22 +85,18 @@ def is_interactive_code(code: str, language: str) -> bool:
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session for the given code"""
     try:
+        # Set up files
+        source_file = Path(session.temp_dir) / "program.cs"
+        executable = Path(session.temp_dir) / "program.exe"
+
         # Enhanced C# code preprocessing
         if language == 'csharp':
-            # Add Console.Out.Flush() after WriteLine statements
-            code_lines = code.split('\n')
-            modified_code = []
-            for line in code_lines:
-                modified_code.append(line)
-                if 'Console.Write' in line and not line.strip().startswith('//'):
-                    indent = len(line) - len(line.lstrip())
-                    modified_code.append(' ' * indent + 'Console.Out.Flush();')
+            # Do not modify the original code
+            modified_code = code
 
-            code = '\n'.join(modified_code)
-
-            # Ensure proper namespace structure
+            # Only add namespace if not present
             if 'namespace' not in code:
-                code = """using System;
+                modified_code = """using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -110,99 +106,111 @@ using System.Threading.Tasks;
 namespace ConsoleApplication {
 """ + code + "\n}"
 
-        # Compile the code with enhanced options
-        source_file = Path(session.temp_dir) / "program.cs"
-        executable = Path(session.temp_dir) / "program.exe"
+            # Write the code with proper encoding
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(modified_code)
 
-        with open(source_file, 'w') as f:
-            f.write(code)
+            # Enhanced compilation command
+            compile_cmd = [
+                'mcs',
+                '-optimize+',
+                '-debug+',
+                '-reference:System.Core.dll',
+                '-reference:System.dll',
+                str(source_file),
+                '-out:' + str(executable)
+            ]
 
-        compile_cmd = [
-            'mcs',
-            '-optimize+',
-            '-debug-',
-            '-unsafe-',
-            '-reference:System.Core.dll',
-            '-reference:System.dll',
-            str(source_file),
-            '-out:' + str(executable)
-        ]
-
-        compile_process = subprocess.run(
-            compile_cmd,
-            capture_output=True,
-            text=True,
-            timeout=20
-        )
-
-        if compile_process.returncode != 0:
-            cleanup_session(session.session_id)
-            return {
-                'success': False,
-                'error': compile_process.stderr
-            }
-
-        os.chmod(executable, 0o755)
-
-        # Enhanced environment variables for better console handling
-        env = os.environ.copy()
-        env['MONO_IOMAP'] = 'all'
-        env['MONO_TRACE_LISTENER'] = 'Console.Out'
-        env['MONO_DEBUG'] = 'explicit-null-checks,handle-sigint'
-        env['MONO_THREADS_PER_CPU'] = '2'
-        env['MONO_GC_PARAMS'] = 'mode=throughput'
-
-        run_cmd = ['mono', '--debug', str(executable)]
-        session.process = subprocess.Popen(
-            run_cmd,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            env=env,
-            preexec_fn=os.setsid
-        )
-
-        # Start output monitoring thread with enhanced buffering
-        def monitor_output():
             try:
-                while session.process and session.process.poll() is None:
-                    # Use select with a shorter timeout for more responsive output
-                    readable, _, _ = select.select([session.process.stdout, session.process.stderr], [], [], 0.1)
+                compile_process = subprocess.run(
+                    compile_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=20
+                )
 
-                    for stream in readable:
-                        line = stream.readline()
-                        if line:
-                            if stream == session.process.stdout:
-                                session.stdout_buffer.append(line)
-                                logger.debug(f"Output received: {line.strip()}")
-                                # Consider more prompt patterns
-                                if any(prompt in line.lower() for prompt in [
-                                    'input', 'enter', 'type', '?', ':', '>', 
-                                    'choix', 'votre choix', 'choisir'
-                                ]):
-                                    session.waiting_for_input = True
-                            else:
-                                session.stderr_buffer.append(line)
-                                logger.debug(f"Error output: {line.strip()}")
-                            session.last_activity = time.time()
+                if compile_process.returncode != 0:
+                    return {
+                        'success': False,
+                        'error': format_csharp_error(compile_process.stderr)
+                    }
+
+                os.chmod(executable, 0o755)
+
+                # Enhanced environment for better console handling
+                env = os.environ.copy()
+                env['MONO_IOMAP'] = 'all'
+                env['MONO_TRACE_LISTENER'] = 'Console.Out'
+                env['MONO_DEBUG'] = 'handle-sigint,explicit-null-checks'
+                env['MONO_THREADS_PER_CPU'] = '2'
+                env['MONO_GC_PARAMS'] = 'mode=throughput'
+
+                # Add proper console window support
+                env['TERM'] = 'xterm'
+                env['COLUMNS'] = '80'
+                env['LINES'] = '25'
+
+                # Run with mono and support for Console.Clear()
+                process = subprocess.Popen(
+                    ['mono', '--debug', str(executable)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    env=env,
+                    preexec_fn=os.setsid
+                )
+
+                session.process = process
+
+                # Start monitoring thread for real-time output
+                def monitor_output():
+                    try:
+                        while process.poll() is None:
+                            readable, _, _ = select.select(
+                                [process.stdout, process.stderr], [], [], 0.1)
+
+                            for stream in readable:
+                                line = stream.readline()
+                                if line:
+                                    if stream == process.stdout:
+                                        if '\x1b[2J\x1b[H' in line:  # Console.Clear() sequence
+                                            session.stdout_buffer = []  # Clear buffer
+                                        else:
+                                            session.stdout_buffer.append(line)
+
+                                        # Check for input prompts in a more comprehensive way
+                                        if any(prompt in line.lower() for prompt in [
+                                            'input', 'enter', 'type', '?', ':', '>', 
+                                            'choix', 'votre choix', 'choisir'
+                                        ]):
+                                            session.waiting_for_input = True
+                                    else:
+                                        session.stderr_buffer.append(line)
+                                    session.last_activity = time.time()
+
+                    except Exception as e:
+                        logger.error(f"Error in monitor_output: {e}")
+
+                session.output_thread = Thread(target=monitor_output)
+                session.output_thread.daemon = True
+                session.output_thread.start()
+
+                return {
+                    'success': True,
+                    'session_id': session.session_id,
+                    'interactive': True
+                }
+
             except Exception as e:
-                logger.error(f"Error in monitor_output: {e}")
-
-        session.output_thread = Thread(target=monitor_output)
-        session.output_thread.daemon = True
-        session.output_thread.start()
-
-        return {
-            'success': True,
-            'session_id': session.session_id,
-            'interactive': True
-        }
-
+                logger.error(f"Error executing C# code: {e}")
+                return {
+                    'success': False,
+                    'error': str(e)
+                }
     except Exception as e:
-        logger.error(f"Error starting interactive session: {e}")
-        cleanup_session(session.session_id)
+        logger.error(f"Error in start_interactive_session: {e}")
         return {
             'success': False,
             'error': str(e)
@@ -604,7 +612,7 @@ def format_csharp_error(error_msg: str) -> str:
                 friendly_msg = error_messages.get(error_code, error_desc)
                 # Add line number context to help locate the issue
                 line_num = error_msg.split('(')[1].split(',')[0]
-                return f"Compilation Error (CS{error_code}) at line {line_num}:\n{friendly_msg}\n\nTip: Check the code structure around this line and ensure all statements are properly enclosed in methods.\n\nOriginal Error: {error_desc}"
+                return f"Error (CS{error_code}) at line {line_num}:\n{friendly_msg}"
 
         return error_msg
     except Exception:
