@@ -23,34 +23,43 @@ namespace StudentTracker
             }
         }
 
-        static List<Student> Students = new List<Student>
-        {
-            new Student("Abdirahman"),
-            new Student("Alexander"),
-            new Student("Alexandre"),
-            new Student("Ali"),
-            new Student("Ben"),
-            new Student("Deshi"),
-            new Student("Fidel"),
-            new Student("Haaroon"),
-            new Student("Jakub"),
-            new Student("Kadija"),
-            new Student("Karl-Hendz"),
-            new Student("Mohamed"),
-            new Student("Mohamed Houssam")
-        };
+        private static List<Student> Students = new List<Student>();
 
         static void Main(string[] args)
         {
-            bool quit = false;
+            InitializeStudents();
+            RunMainLoop();
+        }
 
+        private static void InitializeStudents()
+        {
+            Students.AddRange(new[]
+            {
+                new Student("Abdirahman"),
+                new Student("Alexander"),
+                new Student("Alexandre"),
+                new Student("Ali"),
+                new Student("Ben"),
+                new Student("Deshi"),
+                new Student("Fidel"),
+                new Student("Haaroon"),
+                new Student("Jakub"),
+                new Student("Kadija"),
+                new Student("Karl-Hendz"),
+                new Student("Mohamed"),
+                new Student("Mohamed Houssam")
+            });
+        }
+
+        private static void RunMainLoop()
+        {
+            bool quit = false;
             while (!quit)
             {
                 DisplayStudents();
                 DisplayMenu();
 
-                string input = Console.ReadLine();
-                if (int.TryParse(input, out int choice))
+                if (int.TryParse(Console.ReadLine(), out int choice))
                 {
                     switch (choice)
                     {
@@ -81,7 +90,7 @@ namespace StudentTracker
             }
         }
 
-        static void DisplayMenu()
+        private static void DisplayMenu()
         {
             Console.WriteLine("\nMenu:");
             Console.WriteLine("1. Add a late arrival for a student");
@@ -92,7 +101,7 @@ namespace StudentTracker
             Console.Write("Your choice: ");
         }
 
-        static void DisplayStudents()
+        private static void DisplayStudents()
         {
             Console.WriteLine("\nStudents and Points:");
             Console.WriteLine("-----------------------");
@@ -105,7 +114,7 @@ namespace StudentTracker
             }
         }
 
-        static void AddLate()
+        private static void AddLate()
         {
             Console.Write("\nEnter student name: ");
             string name = Console.ReadLine();
@@ -132,7 +141,7 @@ namespace StudentTracker
             }
         }
 
-        static void CheckDetentions()
+        private static void CheckDetentions()
         {
             var needsDetention = Students.Where(e => e.NeedsDetention);
 
@@ -152,7 +161,7 @@ namespace StudentTracker
             }
         }
 
-        static void ConfirmDetention()
+        private static void ConfirmDetention()
         {
             Console.Write("\nEnter student name: ");
             string name = Console.ReadLine();
@@ -177,7 +186,7 @@ namespace StudentTracker
             }
         }
 
-        static void AddNewStudent()
+        private static void AddNewStudent()
         {
             Console.Write("\nEnter new student name: ");
             string name = Console.ReadLine();
@@ -199,7 +208,7 @@ namespace StudentTracker
             }
         }
 
-        static int CalculatePoints(int minutesLate)
+        private static int CalculatePoints(int minutesLate)
         {
             if (minutesLate <= 1)
                 return 0;
