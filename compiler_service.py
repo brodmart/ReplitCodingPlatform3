@@ -33,14 +33,12 @@ COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 # Ensure compiler cache directory exists with proper permissions
 os.makedirs(COMPILER_CACHE_DIR, mode=0o755, exist_ok=True)
 
-def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[bool, str]:
+def compile_csharp(source_file: Path, project_dir: Path, metrics: Dict) -> Tuple[bool, str]:
     """Compile C# code with detailed error logging"""
     try:
-        logger.debug(f"Setting up C# project in directory: {source_file.parent}")
+        logger.debug(f"Setting up C# project in directory: {project_dir}")
 
         # Create project structure
-        project_dir = source_file.parent
-        project_file = project_dir / "temp.csproj"
         bin_dir = project_dir / "bin" / "Debug" / "net7.0"
         os.makedirs(bin_dir, exist_ok=True)
 
@@ -58,6 +56,7 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
   </PropertyGroup>
 </Project>"""
 
+        project_file = project_dir / "project.csproj"
         logger.debug(f"Creating project file: {project_file}")
         with open(project_file, 'w') as f:
             f.write(project_content)
@@ -65,8 +64,6 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
         # Log source code size and content for debugging
         source_size = os.path.getsize(source_file)
         logger.debug(f"Source code size: {source_size} bytes")
-        with open(source_file, 'r') as f:
-            logger.debug(f"Source code content:\n{f.read()}")
 
         compile_cmd = [
             'dotnet',
@@ -113,7 +110,7 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
                 return False, format_csharp_error(error_msg)
 
             # Verify executable exists
-            output_dll = bin_dir / "temp.dll"
+            output_dll = bin_dir / "project.dll"
             if not output_dll.exists():
                 error_msg = "Compilation completed but output DLL not found"
                 logger.error(error_msg)
@@ -131,6 +128,185 @@ def compile_csharp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[
         error_msg = f"Fatal compilation error: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_msg)
         return False, error_msg
+
+def compile_cpp(source_file: Path, executable: Path, metrics: Dict) -> Tuple[bool, str]:
+    """Compile C++ code with detailed error logging"""
+    try:
+        logger.debug(f"Compiling C++ file: {source_file}")
+        compile_cmd = [
+            'g++',
+            '-std=c++17',
+            '-O2',
+            str(source_file),
+            '-o',
+            str(executable),
+            '-Wall'
+        ]
+
+        logger.debug(f"Starting C++ compilation with command: {' '.join(compile_cmd)}")
+        compile_start = time.time()
+
+        compile_process = subprocess.run(
+            compile_cmd,
+            capture_output=True,
+            text=True,
+            timeout=MAX_COMPILATION_TIME
+        )
+
+        compile_time = time.time() - compile_start
+        metrics['compilation_time'] = compile_time
+
+        if compile_process.returncode != 0:
+            error_msg = compile_process.stderr
+            logger.error(f"C++ compilation failed: {error_msg}")
+            return False, error_msg
+
+        # Make executable
+        os.chmod(executable, 0o755)
+        return True, ""
+
+    except subprocess.TimeoutExpired:
+        error_msg = f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
+        logger.error(error_msg)
+        return False, error_msg
+    except Exception as e:
+        error_msg = f"Fatal compilation error: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
+        return False, error_msg
+
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
+    """Compile and run code with enhanced error handling and logging"""
+    metrics = {'start_time': time.time()}
+    logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
+
+    if not code or not language:
+        return {
+            'success': False,
+            'error': "No code or language specified",
+            'metrics': metrics
+        }
+
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            if language == 'csharp':
+                # Set up C# project structure
+                source_file = temp_path / "Program.cs"
+
+                logger.debug(f"Writing C# code to {source_file}")
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
+
+                success, error_msg = compile_csharp(source_file, temp_path, metrics)
+                if not success:
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'metrics': metrics
+                    }
+
+                # Execute the compiled C# program
+                try:
+                    run_cmd = ['dotnet', str(temp_path / "bin" / "Debug" / "net7.0" / "project.dll")]
+                    logger.debug(f"Running C# with command: {' '.join(run_cmd)}")
+
+                    run_process = subprocess.run(
+                        run_cmd,
+                        input=input_data.encode() if input_data else None,
+                        capture_output=True,
+                        text=True,
+                        timeout=MAX_EXECUTION_TIME
+                    )
+
+                    metrics['execution_time'] = time.time() - metrics['start_time'] - metrics['compilation_time']
+
+                    if run_process.returncode != 0:
+                        logger.error(f"C# execution failed: {run_process.stderr}")
+                        return {
+                            'success': False,
+                            'error': run_process.stderr,
+                            'metrics': metrics
+                        }
+
+                    return {
+                        'success': True,
+                        'output': run_process.stdout,
+                        'metrics': metrics
+                    }
+
+                except subprocess.TimeoutExpired:
+                    return {
+                        'success': False,
+                        'error': f"Execution timed out after {MAX_EXECUTION_TIME} seconds",
+                        'metrics': metrics
+                    }
+
+            elif language == 'cpp':
+                # Set up C++ compilation
+                source_file = temp_path / "program.cpp"
+                executable = temp_path / "program"
+
+                logger.debug(f"Writing C++ code to {source_file}")
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
+
+                success, error_msg = compile_cpp(source_file, executable, metrics)
+                if not success:
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'metrics': metrics
+                    }
+
+                # Execute the compiled C++ program
+                try:
+                    logger.debug(f"Running C++ executable: {executable}")
+                    run_process = subprocess.run(
+                        [str(executable)],
+                        input=input_data.encode() if input_data else None,
+                        capture_output=True,
+                        text=True,
+                        timeout=MAX_EXECUTION_TIME
+                    )
+
+                    metrics['execution_time'] = time.time() - metrics['start_time'] - metrics['compilation_time']
+
+                    if run_process.returncode != 0:
+                        logger.error(f"C++ execution failed: {run_process.stderr}")
+                        return {
+                            'success': False,
+                            'error': run_process.stderr,
+                            'metrics': metrics
+                        }
+
+                    return {
+                        'success': True,
+                        'output': run_process.stdout,
+                        'metrics': metrics
+                    }
+
+                except subprocess.TimeoutExpired:
+                    return {
+                        'success': False,
+                        'error': f"Execution timed out after {MAX_EXECUTION_TIME} seconds",
+                        'metrics': metrics
+                    }
+
+            return {
+                'success': False,
+                'error': f"Unsupported language: {language}",
+                'metrics': metrics
+            }
+
+    except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
+        return {
+            'success': False,
+            'error': error_msg,
+            'metrics': metrics
+        }
 
 def format_csharp_error(error_msg: str) -> str:
     """Format C# compilation errors to be more user-friendly"""
@@ -180,98 +356,6 @@ def format_csharp_error(error_msg: str) -> str:
     except Exception as e:
         logger.error(f"Error formatting C# error message: {str(e)}")
         return f"Compilation Error: {error_msg}"
-
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Compile and run code with enhanced error handling and logging"""
-    metrics = {'start_time': time.time()}
-    logger.debug(f"Starting compile_and_run for {language} code, length: {len(code)} bytes")
-
-    if not code or not language:
-        return {
-            'success': False,
-            'error': "No code or language specified",
-            'metrics': metrics
-        }
-
-    try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            if language == 'csharp':
-                # Set up project structure
-                project_dir = Path(temp_dir)
-                source_file = project_dir / "Program.cs"
-                executable = project_dir / "bin" / "Debug" / "net7.0" / "temp"
-
-                logger.debug(f"Writing code to {source_file}")
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
-
-                success, error_msg = compile_csharp(source_file, executable, metrics)
-
-                if not success:
-                    return {
-                        'success': False,
-                        'error': error_msg,
-                        'metrics': metrics
-                    }
-
-                try:
-                    run_cmd = ['dotnet', str(executable.parent / "temp.dll")]
-                    logger.debug(f"Running with command: {' '.join(run_cmd)}")
-
-                    run_process = subprocess.run(
-                        run_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=MAX_EXECUTION_TIME,
-                        env={
-                            'DOTNET_CLI_HOME': temp_dir,
-                            'DOTNET_NOLOGO': '1',
-                            'DOTNET_CLI_TELEMETRY_OPTOUT': '1'
-                        }
-                    )
-
-                    metrics['execution_time'] = time.time() - metrics['start_time'] - metrics['compilation_time']
-
-                    if run_process.returncode != 0:
-                        logger.error(f"Execution failed with return code {run_process.returncode}")
-                        logger.error(f"Error output: {run_process.stderr}")
-                        return {
-                            'success': False,
-                            'error': format_runtime_error(run_process.stderr),
-                            'metrics': metrics
-                        }
-
-                    logger.debug("Execution completed successfully")
-                    return {
-                        'success': True,
-                        'output': run_process.stdout,
-                        'metrics': metrics
-                    }
-
-                except subprocess.TimeoutExpired:
-                    error_msg = f"Execution timed out after {MAX_EXECUTION_TIME} seconds"
-                    logger.error(error_msg)
-                    return {
-                        'success': False,
-                        'error': error_msg,
-                        'metrics': metrics
-                    }
-
-            logger.error(f"Unsupported language: {language}")
-            return {
-                'success': False,
-                'error': f"Unsupported language: {language}",
-                'metrics': metrics
-            }
-
-    except Exception as e:
-        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        logger.error(error_msg)
-        return {
-            'success': False,
-            'error': error_msg,
-            'metrics': metrics
-        }
 
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors to be more user-friendly"""
