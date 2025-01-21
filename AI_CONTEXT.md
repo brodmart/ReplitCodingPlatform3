@@ -1,9 +1,7 @@
 # AI Session Context Guide
 Last Updated: January 21, 2025
 
-## Quick Start for AI Sessions:
-
-### Project Philosophy:
+## Project Philosophy:
 - The project must maintain nimbleness and efficiency as a top priority
 - Avoid heavy frameworks or complex dependencies unless absolutely necessary
 - Prefer lightweight, modular solutions that can be easily maintained
@@ -72,7 +70,6 @@ The project uses a PostgreSQL database for curriculum storage:
    - Document new architectural choices
    - Record reasons for technical decisions
    - Track changes in system design
-
    Latest Decision (January 20, 2025):
    Database-Driven Development Approach
    - Decision: Adapt models to match existing database schema
