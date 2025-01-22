@@ -27,12 +27,13 @@ class InteractiveConsole {
         this.retryAttempts = 3;
         this.retryDelay = 1000; // ms
         this.errorCount = 0;
-        this.webSocket = null;
+        this.webSocket = null; // This is no longer used
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
+        this.socket = null; // Socket.IO object
 
         this.setupEventListeners();
-        this.setupWebSocket();
+        this.setupSocketIO(); // Use Socket.IO instead of raw WebSocket
         this.clear();
         this.enable();
     }
@@ -95,56 +96,49 @@ class InteractiveConsole {
         });
     }
 
-    setupWebSocket() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/console/ws`;
+    setupSocketIO() {
+        // Connect to Socket.IO endpoint
+        this.socket = io();
 
-        this.webSocket = new WebSocket(wsUrl);
-
-        this.webSocket.onopen = () => {
-            console.debug('WebSocket connection established');
+        this.socket.on('connect', () => {
+            console.debug('SocketIO connection established');
             this.reconnectAttempts = 0;
 
-            // If we have an active session, register it with the WebSocket
+            // If we have an active session, register it
             if (this.sessionId) {
-                this.webSocket.send(JSON.stringify({
-                    type: 'register_session',
+                this.socket.emit('register_session', {
                     session_id: this.sessionId
-                }));
+                });
             }
-        };
+        });
 
-        this.webSocket.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'output') {
-                this.processAndAppendOutput(data.output);
-                this.isWaitingForInput = data.waiting_for_input || false;
-                if (this.isWaitingForInput) {
-                    this.enable();
-                    this.inputElement.focus();
-                }
-            } else if (data.type === 'session_ended') {
-                this.handleSessionEnd();
+        this.socket.on('output', (data) => {
+            this.processAndAppendOutput(data.output);
+            this.isWaitingForInput = data.waiting_for_input || false;
+            if (this.isWaitingForInput) {
+                this.enable();
+                this.inputElement.focus();
             }
-        };
+        });
 
-        this.webSocket.onclose = () => {
-            console.debug('WebSocket connection closed');
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                setTimeout(() => {
-                    this.reconnectAttempts++;
-                    this.setupWebSocket();
-                }, this.retryDelay * Math.pow(2, this.reconnectAttempts));
-            }
-        };
+        this.socket.on('session_ended', () => {
+            this.handleSessionEnd();
+        });
 
-        this.webSocket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            // Fall back to polling if WebSocket fails
+        this.socket.on('disconnect', () => {
+            console.debug('SocketIO connection lost');
+            // Fall back to polling if connection is lost
             if (!this.pollInterval && this.sessionId) {
                 this.startPollingOutput();
             }
-        };
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('SocketIO connection error:', error);
+            if (!this.pollInterval && this.sessionId) {
+                this.startPollingOutput();
+            }
+        });
     }
 
     async handleEnterKey() {
@@ -155,13 +149,12 @@ class InteractiveConsole {
             let retryCount = 0;
             while (retryCount < this.retryAttempts) {
                 try {
-                    // Try WebSocket first
-                    if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
-                        this.webSocket.send(JSON.stringify({
-                            type: 'input',
+                    // Try Socket.IO first
+                    if (this.socket && this.socket.connected) {
+                        this.socket.emit('input', {
                             session_id: this.sessionId,
                             input: input + '\n'
-                        }));
+                        });
                         this.appendOutput(input + '\n', 'console-input user-input');
                         this.isWaitingForInput = false;
                         return;
@@ -214,10 +207,10 @@ class InteractiveConsole {
 
     async handleCtrlC() {
         if (this.sessionId) {
-            if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
-                this.webSocket.send(JSON.stringify({ type: 'interrupt' }));
+            if (this.socket && this.socket.connected) {
+                this.socket.emit('interrupt');
                 this.appendOutput('^C\n', 'console-input');
-                this.handleSessionEnd(); // Handle session end through WebSocket
+                this.handleSessionEnd(); // Handle session end through Socket.IO
             } else {
                 try {
                     const response = await fetch('/activities/terminate_session', {
@@ -459,12 +452,9 @@ class InteractiveConsole {
     setSession(sessionId) {
         this.sessionId = sessionId;
         if (sessionId) {
-            // Register session with WebSocket if available
-            if (this.webSocket && this.webSocket.readyState === WebSocket.OPEN) {
-                this.webSocket.send(JSON.stringify({
-                    type: 'register_session',
-                    session_id: sessionId
-                }));
+            // Register session with Socket.IO if available
+            if (this.socket && this.socket.connected) {
+                this.socket.emit('register_session', { session_id: sessionId });
             } else {
                 this.startPollingOutput();
             }
@@ -473,8 +463,8 @@ class InteractiveConsole {
                 clearInterval(this.pollInterval);
                 this.pollInterval = null;
             }
-            if (this.webSocket) {
-                this.webSocket.close();
+            if (this.socket) {
+                this.socket.close();
             }
         }
     }
@@ -490,11 +480,14 @@ class InteractiveConsole {
         }
         this.enable();
         this.appendOutput('\nSession ended.\n', 'console-info');
-        if (this.webSocket) {
-            this.webSocket.close();
+        if (this.socket) {
+            this.socket.close();
         }
     }
 }
+
+// Web Console I/O Handler
+console.debug('Initializing web console...');
 
 // Export to window object
 if (typeof window !== 'undefined') {
