@@ -1,0 +1,44 @@
+2025-01-22 23:12:10,726 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:12:10,728 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:12:10,734 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:12:10,735 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:12:10,749 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:12:10,751 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:12:10,757 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:12:10,777 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:12:10,864 - app:63 - INFO - Database initialized
+2025-01-22 23:12:10,876 - app:63 - INFO - Database initialized
+2025-01-22 23:12:10,887 - app:63 - INFO - Database initialized
+2025-01-22 23:12:10,890 - app:63 - INFO - Database initialized
+2025-01-22 23:12:11,478 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:12:11,479 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:12:11,521 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:12:11,526 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:12:11,561 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:12:11,597 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:12:11,709 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:12:11,709 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:12:11,747 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:12:11,881 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:12:11,884 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:12:11,913 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:12:12,601 - app:86 - INFO - Database tables created
+2025-01-22 23:12:12,602 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:12:12,645 - app:86 - INFO - Database tables created
+2025-01-22 23:12:12,646 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:12:12,660 - __main__:47 - INFO - Starting ICS3U curriculum import process...
+2025-01-22 23:12:12,702 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+2025-01-22 23:12:12,704 - __main__:23 - INFO - Starting database table creation...
+2025-01-22 23:12:12,762 - app:86 - INFO - Database tables created
+2025-01-22 23:12:12,765 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:12:12,765 - __main__:22 - INFO - Starting Flask server with SocketIO on port 5000
+2025-01-22 23:12:12,769 - werkzeug:96 - WARNING -  * Debugger is active!
+2025-01-22 23:12:12,779 - werkzeug:96 - INFO -  * Debugger PIN: 527-541-843
+2025-01-22 23:12:12,909 - app:86 - INFO - Database tables created
+2025-01-22 23:12:12,913 - __main__:30 - INFO - Existing tables: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress']
+2025-01-22 23:12:12,917 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:12:12,970 - __main__:47 - INFO - Starting ICS3U curriculum import process...
+2025-01-22 23:12:13,011 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+2025-01-22 23:12:13,105 - app:95 - DEBUG - Rendering console page
+2025-01-22 23:12:13,109 - __main__:37 - INFO - Tables after creation: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress']
+2025-01-22 23:12:13,111 - __main__:46 - INFO - Database tables created successfully!

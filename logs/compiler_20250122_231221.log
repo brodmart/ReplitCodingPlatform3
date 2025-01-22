@@ -1,0 +1,23 @@
+2025-01-22 23:12:21,037 - compiler:30 - INFO - Starting compilation for session test_interactive_-958825091173155752
+2025-01-22 23:12:21,037 - compiler_service:982 - DEBUG - Starting compilation for code length: 318, language: csharp
+2025-01-22 23:12:21,038 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:12:21,038 - compiler_service:585 - DEBUG - Session ID: test_interactive_-958825091173155752
+2025-01-22 23:12:21,038 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:12:21,038 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_0c5hznej
+2025-01-22 23:12:21,320 - compiler:30 - INFO - Starting compilation for session test_interactive_-5272270634450826168
+2025-01-22 23:12:21,321 - compiler_service:982 - DEBUG - Starting compilation for code length: 318, language: csharp
+2025-01-22 23:12:21,322 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:12:21,322 - compiler_service:585 - DEBUG - Session ID: test_interactive_-5272270634450826168
+2025-01-22 23:12:21,322 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:12:21,322 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_r44ns_gt
+2025-01-22 23:12:21,744 - compiler:30 - INFO - Starting compilation for session test_interactive_-3221642521271696992
+2025-01-22 23:12:21,746 - compiler_service:982 - DEBUG - Starting compilation for code length: 298, language: cpp
+2025-01-22 23:12:21,747 - compiler_service:584 - INFO - Starting interactive session for cpp
+2025-01-22 23:12:21,747 - compiler_service:585 - DEBUG - Session ID: test_interactive_-3221642521271696992
+2025-01-22 23:12:21,748 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:12:21,748 - compiler_service:929 - DEBUG - Created C++ project in /tmp/compiler_env_cpp_xhpdhujp
+2025-01-22 23:12:22,461 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: Enter your name: 
+2025-01-22 23:12:25,565 - compiler:57 - INFO - Session test_interactive_-958825091173155752 state changed to: session_started
+2025-01-22 23:12:25,700 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name: 
+2025-01-22 23:12:25,814 - compiler:57 - INFO - Session test_interactive_-5272270634450826168 state changed to: session_started
+2025-01-22 23:12:25,925 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name: 

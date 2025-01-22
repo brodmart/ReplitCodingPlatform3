@@ -10,14 +10,14 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_wtf.csrf import CSRFProtect
 from compiler_service import compile_and_run, send_input, get_output, cleanup_session
-from utils.compiler_logger import compiler_logger
+from utils.compiler_logger import CompilerLogger
 from utils.logging_config import setup_logging
 from utils.socketio_logger import log_socket_event, track_connection, track_session, log_error
 
 # Initialize loggers
 logger = setup_logging('app')
 socketio_logger = setup_logging('socketio')
-compiler_logger = setup_logging('compiler')
+compiler_logger = CompilerLogger()
 db_logger = setup_logging('database')
 
 # Initialize Socket.IO with enhanced configuration

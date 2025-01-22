@@ -1,0 +1,10 @@
+2025-01-22 23:12:15,047 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:12:15,057 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:12:15,169 - app:63 - INFO - Database initialized
+2025-01-22 23:12:15,411 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:12:15,412 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:12:15,423 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:12:16,410 - app:86 - INFO - Database tables created
+2025-01-22 23:12:16,417 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:12:16,421 - __main__:22 - INFO - Starting Flask server with SocketIO on port 5000
+2025-01-22 23:12:16,424 - werkzeug:96 - INFO -  * Restarting with stat
