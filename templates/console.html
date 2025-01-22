@@ -122,8 +122,8 @@ class Program {
             extraKeys: {"Ctrl-Space": "autocomplete"}
         });
 
-        // Initialize console
-        const console = new MyInteractiveConsole();
+        // Initialize console with correct class name
+        const console = new InteractiveConsole();
 
         // Run button handler
         document.getElementById('runButton').addEventListener('click', () => {
