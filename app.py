@@ -260,27 +260,36 @@ def setup_websocket_handlers():
             logger.info(f"Starting compilation for {language}")
             result = compile_and_run(code, language)
 
+            logger.debug(f"Compilation result: {result}")
+
             if result['success']:
                 session_id = result.get('session_id')
                 if session_id:
                     session['console_session_id'] = session_id
                     track_session(session_id, active=True)
 
-                emit('compilation_result', {
-                    'success': True,
-                    'interactive': result.get('interactive', False),
-                    'output': result.get('output', ''),
-                    'session_id': session_id
-                })
+                # For non-interactive programs, send output immediately
+                if not result.get('interactive') and result.get('output'):
+                    emit('output', {
+                        'output': result.get('output', ''),
+                        'waiting_for_input': False
+                    })
 
-                # If there's immediate output, send it
+                # For interactive programs, wait for initial prompt
                 if result.get('interactive'):
+                    time.sleep(0.1)  # Small delay to ensure output is ready
                     output = get_output(session_id)
                     if output and output.get('success'):
                         emit('output', {
                             'output': output.get('output', ''),
                             'waiting_for_input': output.get('waiting_for_input', False)
                         })
+
+                emit('compilation_result', {
+                    'success': True,
+                    'interactive': result.get('interactive', False),
+                    'session_id': session_id
+                })
             else:
                 emit('compilation_result', {
                     'success': False,
