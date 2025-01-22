@@ -76,6 +76,55 @@ Key Points:
    - Support for all valid C# console features
 
 
+## Development Guidelines
+1. Focus on performance optimization and minimal resource usage
+2. Maintain nimbleness and efficiency as top priorities
+3. Avoid heavy frameworks unless absolutely necessary
+4. Prefer lightweight, modular solutions
+5. Regular testing and performance monitoring
+
+## Systematic Debugging Approach
+1. **Frontend-Backend Analysis Pattern**:
+   - Always analyze both frontend and backend components
+   - Identify where the communication chain breaks
+   - Verify each step of the data flow
+
+2. **Structured Bottleneck Analysis**:
+   Frontend Verification:
+   - Socket.IO connection status
+   - Event emission confirmation
+   - Event listener setup
+   - Console log monitoring
+   - UI state updates
+
+   Backend Verification:
+   - Socket.IO event reception
+   - Handler execution flow
+   - Service integration points
+   - Data processing steps
+   - Response emission
+
+3. **Progressive Debug Logging**:
+   - Add detailed logging at each critical point
+   - Track data transformation between layers
+   - Monitor timing and performance metrics
+   - Log both success and failure paths
+
+4. **Common Bottleneck Patterns**:
+   - Socket.IO event mismatches
+   - Data serialization issues
+   - Async/await flow breaks
+   - Memory/resource constraints
+   - Service integration gaps
+
+5. **Resolution Strategy**:
+   - Identify the exact break point
+   - Add comprehensive logging
+   - Make atomic, focused fixes
+   - Verify the entire chain
+   - Document the solution pattern
+
+
 ## Database Information
 - Database Name: ICS3U Curriculum Database
 - Connection: Managed through DATABASE_URL environment variable
@@ -85,13 +134,6 @@ Key Points:
   * strands: Stores curriculum strands
   * overall_expectations: Stores overall expectations
   * specific_expectations: Stores specific expectations
-
-## Development Guidelines
-1. Focus on performance optimization and minimal resource usage
-2. Maintain nimbleness and efficiency as top priorities
-3. Avoid heavy frameworks unless absolutely necessary
-4. Prefer lightweight, modular solutions
-5. Regular testing and performance monitoring
 
 ## Current Objective
 Optimize C# compiler service for faster compilation and execution:
