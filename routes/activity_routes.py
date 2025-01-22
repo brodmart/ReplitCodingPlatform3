@@ -3,7 +3,6 @@ Activity routes with curriculum compliance integration and enhanced learning fea
 """
 import os
 import logging
-import time
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from werkzeug.exceptions import RequestTimeout
@@ -14,14 +13,14 @@ from datetime import datetime
 from routes.static_routes import get_user_language
 from compiler import compile_and_run, get_template
 from flask import make_response
-import atexit
-from apscheduler.schedulers.background import BackgroundScheduler
-import threading
 
+# Create Blueprint
 activities = Blueprint('activities', __name__, template_folder='../templates')
-logger = logging.getLogger(__name__)
 
-# Add route for getting code templates
+# Configure logging for debugging compilation process
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 @activities.route('/activities/get_template', methods=['POST'])
 @login_required
 def get_template_code():
@@ -192,16 +191,18 @@ def run_code():
         elif language in ['c++', 'cpp']:
             language = 'cpp'
 
-        logger.debug(f"Executing {language} code, length: {len(code)}")
-        logger.debug(f"Code preview: {code[:200]}...")
+        logger.debug(f"Starting compilation process for {language}")
+        logger.debug(f"Code to compile: {code[:200]}...")
 
         try:
             # Execute with timeout
+            logger.debug("Calling compile_and_run")
             result = compile_and_run(
                 code=code,
                 language=language,
                 input_data=None
             )
+            logger.debug(f"Compilation result: {result}")
 
             # Ensure result is properly formatted
             if not isinstance(result, dict):
@@ -457,6 +458,7 @@ def view_enhanced_activity(activity_id):
 
 
 #Cleanup inactive sessions periodically
+import threading
 session_lock = threading.Lock()
 active_sessions = {}
 def cleanup_old_sessions():
@@ -474,9 +476,11 @@ def cleanup_old_sessions():
         logger.error(f"Error in cleanup_old_sessions: {e}", exc_info=True)
 
 # Register cleanup on application shutdown
+import atexit
 atexit.register(cleanup_old_sessions)
 
 # Add periodic cleanup
+from apscheduler.schedulers.background import BackgroundScheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_old_sessions, 'interval', minutes=5)
 scheduler.start()

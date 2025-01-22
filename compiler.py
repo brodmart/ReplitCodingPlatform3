@@ -112,12 +112,15 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 )
 
             elif language == 'csharp':
+                logger.debug("Starting C# compilation process")
                 source_file = temp_path / "Program.cs"
+                logger.debug(f"Writing source to: {source_file}")
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
                 # Create optimized project file
                 project_file = temp_path / "program.csproj"
+                logger.debug(f"Creating project file: {project_file}")
                 project_content = """<Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
                     <OutputType>Exe</OutputType>
@@ -130,21 +133,32 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
                 with open(project_file, 'w', encoding='utf-8') as f:
                     f.write(project_content)
+                logger.debug("Project file created successfully")
 
                 # Compile C# code
+                logger.debug("Starting dotnet build process")
                 compile_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
+                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release', '-v', 'd'],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME
                 )
 
+                logger.debug(f"Build process completed with return code: {compile_process.returncode}")
+                if compile_process.stdout:
+                    logger.debug(f"Build output: {compile_process.stdout}")
+                if compile_process.stderr:
+                    logger.debug(f"Build errors: {compile_process.stderr}")
+
                 if compile_process.returncode != 0:
+                    error_msg = format_csharp_error(compile_process.stderr)
+                    logger.error(f"C# compilation failed: {error_msg}")
                     return {
                         'success': False,
-                        'error': format_csharp_error(compile_process.stderr)
+                        'error': error_msg
                     }
 
+                logger.debug("Starting program execution")
                 process = subprocess.run(
                     ['dotnet', 'run', '--project', str(project_file), '--no-build'],
                     input=input_data.encode() if input_data else None,
@@ -528,22 +542,33 @@ def format_cpp_error(error_msg: str) -> str:
     return "\n".join(error_lines) if error_lines else error_msg.strip()
 
 def format_csharp_error(error_msg: str) -> str:
-    """Format C# error messages"""
+    """Format C# error messages with improved detail"""
     if not error_msg:
         return "Unknown C# compilation error"
+
+    logger.debug(f"Formatting C# error message: {error_msg}")
 
     # Extract relevant error information
     error_lines = []
     for line in error_msg.splitlines():
         if "error CS" in line:
-            # Extract just the error message
-            parts = line.split(': ', 1)
-            if len(parts) > 1:
-                error_lines.append(f"Compilation Error: {parts[1].strip()}")
+            # Extract error code and message
+            match = re.search(r'error (CS\d+):\s*(.+?)(\[|$)', line)
+            if match:
+                error_code, message = match.group(1), match.group(2)
+                error_lines.append(f"Compilation Error ({error_code}): {message.strip()}")
+            else:
+                # If regex doesn't match, include the whole error line
+                error_lines.append(f"Compilation Error: {line.strip()}")
         elif "Unhandled exception" in line:
             error_lines.append("Runtime Error: Program crashed during execution")
+        elif "Build FAILED" in line or "error MSB" in line:
+            # Include MSBuild errors
+            error_lines.append(f"Build Error: {line.strip()}")
 
-    return "\n".join(error_lines) if error_lines else error_msg.strip()
+    formatted_error = "\n".join(error_lines) if error_lines else error_msg.strip()
+    logger.debug(f"Formatted error message: {formatted_error}")
+    return formatted_error
 
 def get_cache_key(code: str) -> str:
     """Generate a unique cache key for the code"""
