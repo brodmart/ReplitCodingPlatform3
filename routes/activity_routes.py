@@ -12,7 +12,7 @@ from models import CodingActivity, StudentProgress, CodeSubmission
 from extensions import limiter
 from datetime import datetime
 from routes.static_routes import get_user_language
-from compiler import compile_and_run
+from compiler import compile_and_run, get_template
 from flask import make_response
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -20,6 +20,65 @@ import threading
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
+
+# Add route for getting code templates
+@activities.route('/activities/get_template', methods=['POST'])
+@login_required
+def get_template_code():
+    """Get template code for selected language"""
+    try:
+        if not request.is_json:
+            logger.error("Invalid request format - not JSON")
+            return jsonify({
+                'success': False,
+                'error': 'Invalid request format'
+            }), 400
+
+        data = request.get_json()
+        if not data:
+            logger.error("Empty request data")
+            return jsonify({
+                'success': False,
+                'error': 'Missing request data'
+            }), 400
+
+        language = data.get('language', '').lower()
+        if not language:
+            logger.error("No language specified")
+            return jsonify({
+                'success': False,
+                'error': 'Language is required'
+            }), 400
+
+        if language not in ['cpp', 'csharp']:
+            logger.error(f"Unsupported language: {language}")
+            return jsonify({
+                'success': False,
+                'error': f'Unsupported language: {language}'
+            }), 400
+
+        template = get_template(language)
+        if not template:
+            logger.debug(f"Using default template for {language}")
+            # Return default templates if no template is found
+            default_templates = {
+                'cpp': '''#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}''',
+                'csharp': '''using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}'''
+            }
+            template = default_templates.get(language)
+
+        response = jsonify({
+            'success': True,
+            'template': template
+        })
+        return response
+
+    except Exception as e:
+        logger.error(f"Error getting template: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 # Create temp directory
 TEMP_DIR = os.path.join(os.getcwd(), 'temp')

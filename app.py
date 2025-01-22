@@ -27,13 +27,13 @@ def register_blueprints(app):
     with app.app_context():
         # Import blueprints here to avoid circular dependencies and early loading
         from routes.auth_routes import auth
-        from routes.activities import activities_bp
+        from routes.activity_routes import activities  # Use the consolidated activity routes
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
         from routes.curriculum_routes import curriculum_bp
 
         app.register_blueprint(auth)
-        app.register_blueprint(activities_bp)
+        app.register_blueprint(activities)  # Register the consolidated activities blueprint
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
         app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
@@ -80,6 +80,8 @@ def create_app():
         'DEFAULT_LANGUAGE': 'fr',
         'SESSION_PERMANENT': True,
         'PERMANENT_SESSION_LIFETIME': 31536000,
+        'WTF_CSRF_ENABLED': True,
+        'WTF_CSRF_TIME_LIMIT': None  # No time limit for CSRF tokens
     })
 
     try:

@@ -4,7 +4,6 @@ const editorState = {
     isExecuting: false,
     currentLanguage: 'cpp',
     isInitialized: false,
-    terminal: null,
     currentSession: null,
     isWaitingForInput: false,
     inputBuffer: '',
@@ -43,9 +42,7 @@ async function initializeEditor() {
                     } else {
                         cm.replaceSelection("    ", "end");
                     }
-                },
-                "Ctrl-Enter": runCode,
-                "Cmd-Enter": runCode
+                }
             }
         });
 
@@ -59,8 +56,16 @@ async function initializeEditor() {
         // Set up event listeners
         setupEventListeners();
 
-        // Try to load template
-        await setEditorTemplate(editorState.currentLanguage);
+        // Try to load template with default fallback
+        try {
+            await setEditorTemplate(editorState.currentLanguage);
+        } catch (error) {
+            console.warn('Failed to load template, using default:', error);
+            const defaultTemplate = editorState.currentLanguage === 'cpp' 
+                ? '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}\n'
+                : 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}\n';
+            editorState.editor.setValue(defaultTemplate);
+        }
 
         // Mark editor as initialized
         editorState.isInitialized = true;
@@ -68,7 +73,7 @@ async function initializeEditor() {
 
     } catch (error) {
         console.error('Editor initialization failed:', error);
-        showError('Failed to initialize editor: ' + error.message);
+        throw error; // Re-throw to be caught by the DOM ready handler
     }
 }
 
@@ -118,8 +123,14 @@ function setupEventListeners() {
 
 // Handle language change
 async function handleLanguageChange(event) {
+    if (!event.target) return;
+
     try {
         const newLanguage = event.target.value;
+        if (!newLanguage) {
+            throw new Error('Invalid language selection');
+        }
+
         console.log('Language changed to:', newLanguage);
 
         if (newLanguage === editorState.currentLanguage) return;
@@ -130,22 +141,31 @@ async function handleLanguageChange(event) {
         await setEditorTemplate(newLanguage);
     } catch (error) {
         console.error('Error changing language:', error);
-        showError('Failed to change language: ' + error.message);
+        showError(`Failed to change language: ${error.message}`);
     }
 }
 
 // Set editor template with improved error handling
 async function setEditorTemplate(language) {
+    if (!language) {
+        throw new Error('Language parameter is required');
+    }
+
     console.log('Setting template for language:', language);
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
         const response = await fetch('/activities/get_template', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({ language: language })
+            body: JSON.stringify({ language })
         });
 
         if (!response.ok) {
@@ -154,26 +174,23 @@ async function setEditorTemplate(language) {
         }
 
         const data = await response.json();
-        if (data.success && data.template) {
-            editorState.editor.setValue(data.template);
-            editorState.editor.clearHistory();
-
-            // Position cursor appropriately based on language
-            const cursorLine = language === 'cpp' ? 4 : 6;
-            editorState.editor.setCursor(cursorLine, 4);
-        } else {
+        if (!data.success) {
             throw new Error(data.error || 'Failed to get template');
         }
+
+        if (!data.template) {
+            throw new Error('Template not found');
+        }
+
+        editorState.editor.setValue(data.template);
+        editorState.editor.clearHistory();
+
+        // Position cursor appropriately based on language
+        const cursorLine = language === 'cpp' ? 4 : 6;
+        editorState.editor.setCursor(cursorLine, 4);
     } catch (error) {
         console.error('Error setting template:', error);
-        // Use default template if fetch fails
-        const defaultTemplate = language === 'cpp' 
-            ? '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}\n'
-            : 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}\n';
-
-        editorState.editor.setValue(defaultTemplate);
-        editorState.editor.clearHistory();
-        throw error;
+        throw error; // Re-throw to allow fallback template in initializeEditor
     }
 }
 
