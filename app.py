@@ -7,6 +7,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_wtf.csrf import CSRFProtect
+from compiler_service import compile_and_run, send_input, get_output
+from utils.compiler_logger import compiler_logger
 
 # Configure logging
 logging.basicConfig(
@@ -75,7 +77,6 @@ def create_app():
 
 def setup_websocket_handlers():
     """Setup WebSocket event handlers for console I/O"""
-    from compiler_service import compile_and_run, send_input, get_output
 
     @socketio.on('connect')
     def handle_connect():
@@ -94,41 +95,49 @@ def setup_websocket_handlers():
     def handle_compile_and_run(data):
         """Handle code compilation and execution"""
         try:
+            # Extract code and validate
             code = data.get('code')
             if not code:
                 logger.error("No code provided")
                 emit('error', {'message': 'No code provided'})
                 return
 
-            logger.info("Compiling and running C# code...")
+            logger.info("Starting code compilation and execution...")
             logger.debug(f"Code to compile: {code}")
+
+            # Attempt compilation
             result = compile_and_run(code, 'csharp')
-            logger.debug(f"Compilation result: {result}")
+            logger.info(f"Compilation result: {result}")
 
             if result.get('success'):
                 session_id = result.get('session_id')
                 if session_id:
+                    # Store session ID and emit success
                     session['console_session_id'] = session_id
+                    logger.info(f"Compilation successful, session_id: {session_id}")
                     emit('compilation_result', {
                         'success': True,
                         'session_id': session_id
                     })
 
-                # Get initial output immediately after successful compilation
-                logger.info(f"Getting initial output for session {session_id}")
-                output = get_output(session_id)
-                logger.info(f"Initial output received: {output}")
+                    # Get initial output immediately after successful compilation
+                    logger.info(f"Getting initial output for session {session_id}")
+                    output = get_output(session_id)
+                    logger.info(f"Initial output received: {output}")
 
-                if output and output.get('success'):
-                    logger.info(f"Emitting initial output: {output.get('output')}")
-                    emit('output', {
-                        'output': output.get('output', ''),
-                        'waiting_for_input': output.get('waiting_for_input', False)
-                    }, broadcast=False)  # Ensure output goes only to the requesting client
+                    if output and output.get('success'):
+                        logger.info(f"Emitting initial output: {output.get('output')}")
+                        emit('output', {
+                            'output': output.get('output', ''),
+                            'waiting_for_input': output.get('waiting_for_input', False)
+                        })
+                    else:
+                        error_msg = 'Failed to get program output'
+                        logger.error(f"{error_msg}: {output}")
+                        emit('error', {'message': error_msg})
                 else:
-                    error_msg = 'Failed to get program output'
-                    logger.error(f"{error_msg}: {output}")
-                    emit('error', {'message': error_msg})
+                    logger.error("No session ID in successful compilation result")
+                    emit('error', {'message': 'Compilation succeeded but no session created'})
             else:
                 error = result.get('error', 'Compilation failed')
                 logger.error(f"Compilation failed: {error}")
@@ -154,7 +163,7 @@ def setup_websocket_handlers():
                 return
 
             logger.debug(f"Sending input '{input_text}' to session {session_id}")
-            result = send_input(session_id, input_text)
+            result = send_input(session_id, input_text + '\n')
             logger.debug(f"Send input result: {result}")
 
             if result and result.get('success'):
@@ -164,7 +173,7 @@ def setup_websocket_handlers():
                     emit('output', {
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
-                    }, broadcast=False)  # Ensure output goes only to the requesting client
+                    })
                 else:
                     logger.error(f"Failed to get output after input: {output}")
                     emit('error', {'message': 'Failed to get program output'})
