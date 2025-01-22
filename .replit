@@ -432,7 +432,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python test_interactive_console.py"
+args = "python test_web_console_io.py -v"
 
 [[ports]]
 localPort = 5000

@@ -116,3 +116,162 @@
     ]
   }
 }
+2025-01-22 17:53:47,641 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_3210489019011631090
+2025-01-22 17:53:51,422 - utils.compiler_logger - ERROR - Compilation error in session test_interactive_3210489019011631090: {
+  "total_errors": 3,
+  "error_patterns": {
+    "CompilerError:CS1513": 1,
+    "CompilerError:CS1529": 1,
+    "CompilerError:CS1022": 1
+  },
+  "most_common": [
+    "CompilerError:CS1513",
+    1
+  ],
+  "frequent_patterns": {},
+  "recent_errors": [
+    {
+      "error_type": "CompilerError",
+      "message": "Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile_ri79taox/Project_ri79taox.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_ri79taox/Program.cs",
+      "line": 19,
+      "column": 1,
+      "code": "CS1022",
+      "timestamp": "2025-01-22T17:53:51.397384"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile_ri79taox/Project_ri79taox.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_ri79taox/Program.cs",
+      "line": 8,
+      "column": 9,
+      "code": "CS1529",
+      "timestamp": "2025-01-22T17:53:51.397375"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "} expected [/tmp/compiler_cache/compile_ri79taox/Project_ri79taox.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_ri79taox/Program.cs",
+      "line": 7,
+      "column": 27,
+      "code": "CS1513",
+      "timestamp": "2025-01-22T17:53:51.397354"
+    }
+  ],
+  "error_categories": {
+    "CompilerError": 3
+  },
+  "recommendations": {
+    "CS1513": [
+      "Check for missing closing braces '}'",
+      "Ensure all blocks are properly closed",
+      "Verify code block structure"
+    ]
+  }
+}
+2025-01-22 17:53:53,861 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_7194173910203464031
+2025-01-22 17:53:54,083 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-7737962132600789317
+2025-01-22 17:53:56,420 - utils.compiler_logger - ERROR - Compilation error in session test_interactive_-7737962132600789317: {
+  "total_errors": 3,
+  "error_patterns": {
+    "CompilerError:CS1513": 1,
+    "CompilerError:CS1529": 1,
+    "CompilerError:CS1022": 1
+  },
+  "most_common": [
+    "CompilerError:CS1513",
+    1
+  ],
+  "frequent_patterns": {},
+  "recent_errors": [
+    {
+      "error_type": "CompilerError",
+      "message": "Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile___uyng8q/Project_uyng8q.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile___uyng8q/Program.cs",
+      "line": 19,
+      "column": 1,
+      "code": "CS1022",
+      "timestamp": "2025-01-22T17:53:56.417099"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile___uyng8q/Project_uyng8q.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile___uyng8q/Program.cs",
+      "line": 8,
+      "column": 9,
+      "code": "CS1529",
+      "timestamp": "2025-01-22T17:53:56.417090"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "} expected [/tmp/compiler_cache/compile___uyng8q/Project_uyng8q.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile___uyng8q/Program.cs",
+      "line": 7,
+      "column": 27,
+      "code": "CS1513",
+      "timestamp": "2025-01-22T17:53:56.417069"
+    }
+  ],
+  "error_categories": {
+    "CompilerError": 3
+  },
+  "recommendations": {
+    "CS1513": [
+      "Check for missing closing braces '}'",
+      "Ensure all blocks are properly closed",
+      "Verify code block structure"
+    ]
+  }
+}
+2025-01-22 17:53:56,424 - utils.compiler_logger - ERROR - Compilation error in session test_interactive_7194173910203464031: {
+  "total_errors": 3,
+  "error_patterns": {
+    "CompilerError:CS1513": 1,
+    "CompilerError:CS1529": 1,
+    "CompilerError:CS1022": 1
+  },
+  "most_common": [
+    "CompilerError:CS1513",
+    1
+  ],
+  "frequent_patterns": {},
+  "recent_errors": [
+    {
+      "error_type": "CompilerError",
+      "message": "Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile_n5pnu4sc/Project_n5pnu4sc.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_n5pnu4sc/Program.cs",
+      "line": 19,
+      "column": 1,
+      "code": "CS1022",
+      "timestamp": "2025-01-22T17:53:56.420770"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile_n5pnu4sc/Project_n5pnu4sc.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_n5pnu4sc/Program.cs",
+      "line": 8,
+      "column": 9,
+      "code": "CS1529",
+      "timestamp": "2025-01-22T17:53:56.420760"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "} expected [/tmp/compiler_cache/compile_n5pnu4sc/Project_n5pnu4sc.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_n5pnu4sc/Program.cs",
+      "line": 7,
+      "column": 27,
+      "code": "CS1513",
+      "timestamp": "2025-01-22T17:53:56.420735"
+    }
+  ],
+  "error_categories": {
+    "CompilerError": 3
+  },
+  "recommendations": {
+    "CS1513": [
+      "Check for missing closing braces '}'",
+      "Ensure all blocks are properly closed",
+      "Verify code block structure"
+    ]
+  }
+}

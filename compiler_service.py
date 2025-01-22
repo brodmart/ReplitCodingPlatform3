@@ -1,37 +1,36 @@
 import os
 import pty
 import select
-import subprocess
-import tempfile
-import logging
-import traceback
 import signal
-import json
-from typing import Dict, Optional, Any, List, Union
+import logging
+import tempfile
+import threading
+import subprocess
+from typing import Dict, Any, Optional, List, Union
+from threading import Lock, Thread, Event
 from pathlib import Path
 import psutil
 import time
 import shutil
-from threading import Lock, Thread, Event
+from dataclasses import dataclass, field, asdict
+from datetime import datetime
 import hashlib
-import uuid
 import fcntl
 import termios
 import struct
 import errno
 import re
-from dataclasses import dataclass, field, asdict
-from datetime import datetime
+import json
+import traceback
+import uuid
 
-# Configure logging with more detailed format
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
-    handlers=[
-        logging.FileHandler('compiler.log'),
-        logging.StreamHandler()
-    ]
-)
+# Configure logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+                    handlers=[
+                        logging.FileHandler('compiler.log'),
+                        logging.StreamHandler()
+                    ])
 logger = logging.getLogger(__name__)
 
 # Add specialized loggers for different aspects
@@ -311,24 +310,96 @@ def get_code_hash(code: str, language: str) -> str:
     hasher.update(f"{code}{language}".encode())
     return hasher.hexdigest()
 
+@dataclass
 class CompilerSession:
-    """Enhanced session handler for interactive compilation."""
+    """Manages a single compilation/execution session"""
+
     def __init__(self, session_id: str, temp_dir: str):
-        self.session_id: str = session_id
-        self.temp_dir: str = temp_dir
+        self.session_id = session_id
+        self.temp_dir = temp_dir
         self.process: Optional[subprocess.Popen] = None
-        self.last_activity: float = time.time()
-        self.stdout_buffer: List[str] = []
-        self.stderr_buffer: List[str] = []
-        self.waiting_for_input: bool = False
-        self.output_thread: Optional[Thread] = None
         self.master_fd: Optional[int] = None
         self.slave_fd: Optional[int] = None
-        self.partial_line: str = ""  # Buffer for partial output lines
-        self.metrics = CompilationMetrics(time.time()) # Initialize metrics here
+        self.output_thread: Optional[Thread] = None
+        self.output_buffer: List[str] = []
+        self.waiting_for_input = False
+        self.last_activity = threading.Event()
+        self.stop_event = threading.Event()
+        self.metrics = CompilationMetrics(time.time())
         self.error_tracker = ErrorTracker()
+        self.partial_line: str = ""  # Buffer for partial output lines
 
+    def is_active(self) -> bool:
+        """Check if the session is still active"""
+        return (self.process is not None and 
+                self.process.poll() is None and 
+                not self.stop_event.is_set())
 
+    def cleanup(self) -> None:
+        """Cleanup session resources"""
+        self.stop_event.set()
+
+        if self.process and self.process.poll() is None:
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+
+        # Close PTY file descriptors
+        for fd in (self.master_fd, self.slave_fd):
+            if fd is not None:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+
+        if self.output_thread and self.output_thread.is_alive():
+            self.output_thread.join(timeout=1)
+
+        if os.path.exists(self.temp_dir):
+            try:
+                shutil.rmtree(self.temp_dir)
+            except OSError as e:
+                logger.error(f"Failed to remove temp directory: {e}")
+
+# Global session management
+active_sessions: Dict[str, CompilerSession] = {}
+session_lock = Lock()
+
+def get_or_create_session(session_id: Optional[str] = None) -> CompilerSession:
+    """Get existing session or create new one"""
+    with session_lock:
+        if session_id and session_id in active_sessions:
+            session = active_sessions[session_id]
+            if session.is_active():
+                return session
+            else:
+                cleanup_session(session_id)
+
+        # Create new session
+        new_session_id = session_id or str(uuid.uuid4())
+        temp_dir = tempfile.mkdtemp(prefix=f'compiler_session_{new_session_id}_')
+        session = CompilerSession(new_session_id, temp_dir)
+        active_sessions[new_session_id] = session
+        return session
+
+def cleanup_session(session_id: str) -> None:
+    """Clean up resources for a session"""
+    with session_lock:
+        if session_id in active_sessions:
+            session = active_sessions[session_id]
+            session.cleanup()
+            del active_sessions[session_id]
+            logger.debug(f"Session {session_id} cleaned up successfully")
+
+def cleanup_inactive_sessions() -> None:
+    """Clean up inactive sessions"""
+    with session_lock:
+        inactive = [sid for sid, session in active_sessions.items() 
+                   if not session.is_active()]
+        for session_id in inactive:
+            cleanup_session(session_id)
 
 def create_pty() -> tuple[int, int]:
     """Create a new PTY pair with proper settings"""
@@ -336,12 +407,12 @@ def create_pty() -> tuple[int, int]:
 
     # Set raw mode on the master side
     term_attrs = termios.tcgetattr(master_fd)
-    term_attrs[3] = term_attrs[3] & ~(termios.ECHO | termios.ICANON)  # Turn off ECHO and ICANON
-    term_attrs[0] = term_attrs[0] | termios.BRKINT | termios.PARMRK  # Enable break and parity signals
+    term_attrs[3] = term_attrs[3] & ~(termios.ECHO | termios.ICANON)
+    term_attrs[0] = term_attrs[0] | termios.BRKINT | termios.PARMRK
     termios.tcsetattr(master_fd, termios.TCSANOW, term_attrs)
 
-    # Set window size to ensure proper output formatting
-    winsize = struct.pack("HHHH", 24, 80, 0, 0)  # rows, cols, xpixel, ypixel
+    # Set window size
+    winsize = struct.pack("HHHH", 24, 80, 0, 0)
     fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
 
     # Set non-blocking mode
@@ -351,37 +422,26 @@ def create_pty() -> tuple[int, int]:
     return master_fd, slave_fd
 
 def clean_terminal_output(output: str) -> str:
-    """Clean terminal control sequences from output with enhanced pattern matching"""
-    # Remove ANSI color codes and control sequences
-    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)  # Enhanced ANSI pattern
-    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)  # Additional controls
-    cleaned = re.sub(r'\x1b[=>]', '', cleaned)  # Terminal mode sequences
+    """Clean terminal control sequences from output"""
+    # Remove ANSI codes
+    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
+    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
+    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
 
-    # Clean C#-specific artifacts
-    cleaned = re.sub(r'Microsoft.+?Copyright.+?\n', '', cleaned, flags=re.MULTILINE | re.DOTALL)
-    cleaned = re.sub(r'Build started.+?Build succeeded.+?\n', '', cleaned, flags=re.MULTILINE | re.DOTALL)
-    cleaned = re.sub(r'\[0K', '', cleaned)  # Remove EL (Erase in Line) sequences
-
-    # Normalize line endings and whitespace while preserving prompts
-    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)  # Normalize line endings
-    cleaned = re.sub(r'^\s*\n', '', cleaned)  # Remove empty lines at start
-    cleaned = re.sub(r'\n\s*$', '\n', cleaned)  # Clean trailing whitespace
-    cleaned = re.sub(r'\s*=\s*$', '', cleaned)  # Remove trailing equals signs
-    cleaned = re.sub(r'[\n\r]+', '\n', cleaned)  # Collapse multiple newlines
-
-    # Preserve important prompts
-    cleaned = re.sub(r'(?<=:)\s+(?=\w)', ' ', cleaned)  # Normalize spacing after colons
-    cleaned = re.sub(r'(?<=[>:])\s+$', ' ', cleaned)  # Keep space after prompts
-
-    # Clean up remaining control characters while preserving prompts
+    # Clean up other control characters while preserving prompts
     cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
+
+    # Normalize line endings
+    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
+    cleaned = re.sub(r'^\s*\n', '', cleaned)
+    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
 
     return cleaned.strip()
 
 def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_size: int = 1024) -> None:
     """Enhanced output monitoring with proper buffer handling"""
     try:
-        while process.poll() is None:
+        while not session.stop_event.is_set() and process.poll() is None:
             readable = []
             if session.master_fd is not None:
                 try:
@@ -412,7 +472,7 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                                 for line in lines:
                                     cleaned = clean_terminal_output(line)
                                     if cleaned:  # Only append non-empty output
-                                        session.stdout_buffer.append(cleaned)
+                                        session.output_buffer.append(cleaned)
                                         logger.debug(f"Raw output received: {cleaned}")
 
                                         # Enhanced input prompt detection
@@ -450,8 +510,7 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                     continue
 
             time.sleep(0.05)  # Small delay to prevent CPU overuse
-            session.last_activity = time.time()
-
+            session.last_activity.set()
     except Exception as e:
         logger.error(f"Error in monitor_output: {traceback.format_exc()}")
     finally:
@@ -459,7 +518,7 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
         if session.partial_line:
             cleaned = clean_terminal_output(session.partial_line)
             if cleaned:
-                session.stdout_buffer.append(cleaned)
+                session.output_buffer.append(cleaned)
                 logger.debug(f"Final partial line: {cleaned}")
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
@@ -513,7 +572,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     error_summary = session.error_tracker.get_summary()
                     logger.error("4. Compilation failed")
                     logger.error(f"4.1 Error summary: {json.dumps(error_summary, indent=2)}")
-                    cleanup_session(session.session_id)
+                    session.cleanup()
                     return {
                         'success': False,
                         'error': json.dumps(error_summary, indent=2),
@@ -568,7 +627,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 }
 
             except subprocess.TimeoutExpired:
-                cleanup_session(session.session_id)
+                session.cleanup()
                 logger.error("C# compilation timed out")
                 return {
                     'success': False,
@@ -594,7 +653,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             if compile_process.returncode != 0:
                 error_msg = compile_process.stderr
                 logger.error(f"C++ compilation failed: {error_msg}")
-                cleanup_session(session.session_id)
+                session.cleanup()
                 return {
                     'success': False,
                     'error': f"Compilation Error: {error_msg}",
@@ -641,7 +700,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
             except Exception as e:
                 logger.error(f"Error starting C++ process: {e}")
-                cleanup_session(session.session_id)
+                session.cleanup()
                 return {
                     'success': False,
                     'error': f"Process Error: {str(e)}",
@@ -657,7 +716,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
     except Exception as e:
         if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
+            session.cleanup()
         logger.error(f"Error in start_interactive_session: {traceback.format_exc()}")
         return {
             'success': False,
@@ -702,43 +761,40 @@ def get_output(session_id: str) -> Dict[str, Any]:
     try:
         if not session.process:
             logger.error("No active process")
-            return {'success': False, 'error': 'No active process'}
+            return {'success': False, 'error':'No active process'}
 
         # Ensure we give the process time to produce output
         time.sleep(0.1)
 
-        # Check if process has ended
+        # Check if process has terminated
         if session.process.poll() is not None:
-            output = ''.join(session.stdout_buffer)
-            logger.debug(f"Process ended, final output: {output}")
-            session.metrics.end_time = time.time()
-            cleanup_session(session_id)
+            logger.debug(f"Process terminated with exit code: {session.process.poll()}")
+            error_output = session.process.stderr.read() if session.process.stderr else ""
             return {
-                'success': True,
-                'output': output,
-                'session_ended': True,
-                'metrics': session.metrics.to_dict()
+                'success': False,
+                'error': f'Process terminated: {error_output}',
+                'exit_code': session.process.poll()
             }
 
-        # Return accumulated output
-        output = ''.join(session.stdout_buffer)
-        if output:
-            logger.debug(f"Returning output: {output.strip()}")
-        # Keep the buffer for context but remove already processed output
-        if len(session.stdout_buffer) > 10:
-            session.stdout_buffer = session.stdout_buffer[-10:]
+        # Get accumulated output
+        output_lines = session.output_buffer.copy()
+        session.output_buffer.clear()
+
+        # Format output
+        output_text = "\n".join(output_lines) if output_lines else ""
 
         return {
             'success': True,
-            'output': output,
-            'waiting_for_input': session.waiting_for_input,
-            'session_ended': False,
-            'metrics': session.metrics.to_dict()
+            'output': output_text,
+            'waiting_for_input': session.waiting_for_input
         }
 
     except Exception as e:
-        logger.error(f"Error getting output: {str(e)}")
-        return {'success': False, 'error': str(e)}
+        logger.error(f"Error getting output: {traceback.format_exc()}")
+        return {
+            'success': False,
+            'error': f'Error getting output: {str(e)}'
+        }
 
 # Add active_sessions at the top level after other imports
 active_sessions: Dict[str, CompilerSession] = {}
@@ -746,54 +802,13 @@ session_lock = Lock()
 
 def cleanup_session(session_id: str) -> None:
     """Clean up resources for a session with proper PTY cleanup"""
-    if session_id in active_sessions:
-        session = active_sessions[session_id]
-        logger.debug(f"Cleaning up session {session_id}")
-        try:
-            # Cleanup process
-            if session.process and session.process.poll() is None:
-                try:
-                    session.process.terminate()
-                    session.process.wait(timeout=1)
-                except subprocess.TimeoutExpired:
-                    os.killpg(os.getpgid(session.process.pid), signal.SIGKILL)
-                session.process = None
-
-            # Close PTY file descriptors
-            if session.master_fd is not None:
-                try:
-                    os.close(session.master_fd)
-                except OSError:
-                    pass
-                session.master_fd = None
-            if session.slave_fd is not None:
-                try:
-                    os.close(session.slave_fd)
-                except OSError:
-                    pass
-                session.slave_fd = None
-
-            # Stop output monitoring thread
-            if session.output_thread and session.output_thread.is_alive():
-                # Signal thread to stop
-                session.output_thread.join(timeout=1)
-                session.output_thread = None
-
-            # Cleanup temp directory
-            if session.temp_dir and os.path.exists(session.temp_dir):
-                try:
-                    shutil.rmtree(session.temp_dir)
-                except OSError as e:
-                    logger.error(f"Error cleaning up temp directory: {e}")
-
-            # Remove from active sessions
+    with session_lock:
+        if session_id in active_sessions:
+            session = active_sessions[session_id]
+            session.cleanup()
             del active_sessions[session_id]
             logger.debug(f"Session {session_id} cleaned up successfully")
-        except Exception as e:
-            logger.error(f"Error during session cleanup: {str(e)}")
-            # Ensure session is removed from active sessions even if cleanup fails
-            if session_id in active_sessions:
-                del active_sessions[session_id]
+
 
 # Constants for timeouts and intervals
 MAX_COMPILATION_TIME = 30  # seconds
@@ -804,28 +819,53 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     """Create an isolated environment for compilation and execution"""
     logger.debug(f"Creating isolated environment for {language}")
 
-    # Create temp directory with unique prefix for each compilation
-    temp_dir = Path(tempfile.mkdtemp(prefix='compiler_cache/compile_'))
+    # Create temp directory with unique name
+    temp_dir = Path(tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR))
     logger.debug(f"Created temp directory: {temp_dir}")
 
     if language == 'csharp':
-        # Generate unique project name
-        project_name = f"Project_{temp_dir.name.split('_')[-1]}"
+        project_name = Path(temp_dir).name
 
         # Write source code
         source_file = temp_dir / "Program.cs"
         logger.debug(f"Writing C# source code to {source_file}")
-        with open(source_file, 'w', encoding='utf-8') as f:
-            # Wrap code in namespace to avoid conflicts
-            wrapped_code = f"""namespace {project_name}
+
+        # Check if code already has required structure
+        stripped_code = code.strip()
+        has_class = "class Program" in stripped_code
+        has_main = "static void Main" in stripped_code or "static async Task Main" in stripped_code
+
+        # Only add missing structure
+        if not has_class and not has_main:
+            processed_code = f"""using System;
+            
+public class Program 
 {{
-    public class Program
+    public static void Main() 
     {{
-        {code}
+        {stripped_code}
     }}
 }}"""
-            f.write(wrapped_code)
-        logger.debug("Source code written successfully")
+        elif not has_class:
+            processed_code = f"""using System;
+            
+public class Program 
+{{
+    {stripped_code}
+}}"""
+        elif not has_main:
+            # Preserve existing class but add Main method
+            processed_code = stripped_code.replace("class Program", 
+                """class Program 
+{
+    public static void Main() 
+    {""") + "\n    }\n}"
+        else:
+            processed_code = stripped_code
+
+        with open(source_file, 'w', encoding='utf-8') as f:
+            f.write(processed_code)
+        logger.debug(f"Source code written successfully:\n{processed_code}")
 
         # Create project file
         project_file = temp_dir / f"{project_name}.csproj"
@@ -836,25 +876,22 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="Program.cs" />
-  </ItemGroup>
 </Project>"""
-        with open(project_file, 'w', encoding='utf-8') as f:
+        with open(project_file, 'w') as f:
             f.write(project_content)
         logger.debug("Project file created successfully")
 
         return temp_dir, project_name
 
     elif language == 'cpp':
-        # Write source code
+        # Write source code directly for C++
         source_file = temp_dir / "program.cpp"
         with open(source_file, 'w', encoding='utf-8') as f:
             f.write(code)
+
         return temp_dir, "program"
+
     else:
         raise ValueError(f"Unsupported language: {language}")
 
@@ -879,24 +916,7 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None) 
         }
 
     try:
-        # Create or get session
-        session = None
-        if session_id:
-            with session_lock:
-                if session_id in active_sessions:
-                    session = active_sessions[session_id]
-                else:
-                    temp_dir = tempfile.mkdtemp(prefix=f'compiler_session_{session_id}_')
-                    session = CompilerSession(session_id, temp_dir)
-                    active_sessions[session_id] = session
-        else:
-            # Generate new session ID for interactive code
-            session_id = str(uuid.uuid4())
-            temp_dir = tempfile.mkdtemp(prefix=f'compiler_session_{session_id}_')
-            session = CompilerSession(session_id, temp_dir)
-            with session_lock:
-                active_sessions[session_id] = session
-
+        session = get_or_create_session(session_id)
         return start_interactive_session(session, code, language)
 
     except Exception as e:
@@ -925,61 +945,62 @@ def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
     except Exception as e:
         logger.error(f"Error during cleanup of {temp_dir}: {e}")
 
-def format_csharp_error(error_output: str) -> List[CompilationError]:
-    """Enhanced C# error parsing with improved pattern matching"""
+def format_csharp_error(error_output: str) -> Dict[str, Any]:
+    """Format C# compiler error output into structured data"""
+    logger.debug(f"Raw error output:\n{error_output}")
+
+    error_info = {
+        'error_type': 'CompilerError',
+        'message': error_output,
+        'file': '',
+        'line': 0,
+        'column': 0,
+        'code': '',
+        'timestamp': datetime.now().isoformat()
+    }
+
+    try:
+        # Look for error patterns like: (line,col): error CS#### message
+        match = re.search(r'\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', error_output)
+        if match:
+            error_info.update({
+                'line': int(match.group(1)),
+                'column': int(match.group(2)),
+                'code': match.group(3),
+                'message': match.group(4)
+            })
+            logger.debug(f"Parsed error details: {error_info}")
+    except Exception as e:
+        logger.error(f"Error parsing compiler output: {e}")
+
+    return error_info
+
+def parse_csharp_errors(error_output: str) -> List[CompilationError]:
+    """Parse C# compiler errors into structured format"""
     errors = []
+    try:
+        # Split output into lines and look for error patterns
+        error_lines = error_output.split('\n')
+        for line in error_lines:
+            # Skip empty lines and warnings
+            if not line.strip() or 'warning' in line.lower():
+                continue
 
-    # More comprehensive error pattern matching
-    patterns = [
-        r'(.*?)\((\d+),(\d+)\):\s*(warning|error)\s*(CS\d+):\s*(.+?)(?=\[|$)',  # Standard format
-        r'(.*?):\s*(warning|error)\s*(CS\d+):\s*(.+)',  # Alternate format
-        r'Unhandled\s+Exception:\s*([^:]+):\s*(.+)'  # Runtime exception format
-    ]
-
-    for line in error_output.splitlines():
-        line = line.strip()
-        if not line:
-            continue
-
-        for pattern in patterns:
-            match = re.search(pattern, line)
+            # Parse error line
+            match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
             if match:
-                try:
-                    if len(match.groups()) == 6:  # Standard format
-                        file_path, line_num, col_num, level, code, message = match.groups()
-                        error = CompilationError(
-                            error_type=level,
-                            message=message.strip(),
-                            file=os.path.basename(file_path),
-                            line=int(line_num),
-                            column=int(col_num),
-                            code=code
-                        )
-                    elif len(match.groups()) == 4:  # Alternate format
-                        file_path, level, code, message = match.groups()
-                        error = CompilationError(
-                            error_type=level,
-                            message=message.strip(),
-                            file=os.path.basename(file_path) if file_path else "unknown",
-                            line=0,
-                            column=0,
-                            code=code
-                        )
-                    else:  # Runtime exception
-                        exc_type, message = match.groups()
-                        error = CompilationError(
-                            error_type="runtime_error",
-                            message=message.strip(),
-                            file="runtime",
-                            line=0,
-                            column=0,
-                            code=exc_type.replace(".", "_")
-                        )
-                    errors.append(error)
-                    error_logger.error(f"Compilation {error.error_type}: {error.to_dict()}")
-                except Exception as e:
-                    error_logger.error(f"Error parsing compilation output: {e}")
-                break
+                errors.append(CompilationError(
+                    error_type='CompilerError',
+                    message=match.group(5),
+                    file=match.group(1),
+                    line=int(match.group(2)),
+                    column=int(match.group(3)),
+                    code=match.group(4)
+                ))
+                logger.debug(f"Found error: {errors[-1]}")
+
+    except Exception as e:
+        logger.error(f"Error parsing compiler errors: {e}")
 
     return errors
 
@@ -1066,3 +1087,5 @@ CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
 os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
 _compilation_cache = {}
 _cache_lock = Lock()
+
+import uuid

@@ -3,9 +3,10 @@ import logging
 import time
 import uuid
 import tempfile
+from pathlib import Path
 from compiler_service import (
-    compile_and_run, start_interactive_session, 
-    send_input, get_output, CompilerSession,
+    compile_and_run, start_interactive_session,
+    send_input, get_output, get_or_create_session,
     cleanup_session
 )
 
@@ -13,46 +14,28 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class TestWebConsoleIO(unittest.TestCase):
-    """Comprehensive test suite for web console I/O functionality"""
+    """Test suite for web console I/O functionality"""
 
     def setUp(self):
         """Set up test environment"""
         self.temp_dir = tempfile.mkdtemp(prefix='test_console_')
         self.active_sessions = set()
-        self.session = None
 
     def tearDown(self):
         """Clean up test environment"""
-        if self.session and self.session.session_id in self.active_sessions:
-            cleanup_session(self.session.session_id)
-            self.active_sessions.remove(self.session.session_id)
-
-    def create_session(self, code, language):
-        """Helper to create a new session"""
-        session_id = str(uuid.uuid4())
-        self.session = CompilerSession(session_id, self.temp_dir)
-        result = start_interactive_session(self.session, code, language)
-
-        if result['success']:
-            self.active_sessions.add(session_id)
-            # Wait for process to fully initialize
-            time.sleep(1)
-
-        return result
+        for session_id in self.active_sessions:
+            cleanup_session(session_id)
+        Path(self.temp_dir).rmdir()
 
     def verify_interactive_session(self, code: str, language: str, test_cases: list) -> bool:
-        """
-        Verify interactive I/O session with multiple test cases
-
-        Args:
-            code: Source code to run
-            language: Programming language ('cpp' or 'csharp')
-            test_cases: List of dicts containing input and expected output
-        """
+        """Verify interactive I/O session with multiple test cases"""
         logger.info(f"Testing {language} interactive session with {len(test_cases)} test cases")
 
         # Start session
-        result = self.create_session(code, language)
+        session = get_or_create_session()
+        self.active_sessions.add(session.session_id)
+
+        result = start_interactive_session(session, code, language)
         self.assertTrue(result['success'], f"Failed to start {language} session")
         self.assertTrue(result['interactive'], "Session should be interactive")
 
@@ -61,47 +44,40 @@ class TestWebConsoleIO(unittest.TestCase):
             for i, test_case in enumerate(test_cases):
                 logger.info(f"Running test case {i + 1}/{len(test_cases)}")
 
-                # Get current output with retries
-                max_retries = 3
-                retry_count = 0
-                while retry_count < max_retries:
-                    time.sleep(0.5)  # Wait for I/O processing
-                    output = get_output(self.session.session_id)
-                    if output['success']:
-                        break
-                    retry_count += 1
-                    time.sleep(0.5)  # Wait before retry
-
+                # Get current output
+                output = self._get_output_with_retry(session.session_id)
                 self.assertTrue(output['success'], f"Failed to get output for case {i}")
+                self.assertTrue(output.get('waiting_for_input', False),
+                              f"{language} program not waiting for input as expected")
 
-                # Verify waiting for input state
-                self.assertTrue(output.get('waiting_for_input', False), 
-                              f"{language} program not waiting for input as expected for case {i}")
-
-                # Send input and verify with retries
+                # Send input
                 logger.info(f"Sending input: {test_case['input']}")
-                input_result = send_input(self.session.session_id, test_case['input'])
+                input_result = send_input(session.session_id, test_case['input'])
                 self.assertTrue(input_result['success'], f"Failed to send input for case {i}")
 
-                # Wait and get final output with retries
-                retry_count = 0
-                while retry_count < max_retries:
-                    time.sleep(0.5)
-                    final_output = get_output(self.session.session_id)
-                    if final_output['success'] and test_case['expected'] in final_output['output']:
-                        break
-                    retry_count += 1
-                    time.sleep(0.5)
-
-                self.assertTrue(final_output['success'], f"Failed to get final output for case {i}")
-                self.assertIn(test_case['expected'], final_output['output'], 
-                            f"Expected '{test_case['expected']}' not found in output: {final_output['output']}")
+                # Verify output
+                final_output = self._get_output_with_retry(session.session_id, 
+                                                         expected=test_case['expected'])
+                self.assertTrue(final_output['success'], 
+                              f"Failed to get final output for case {i}")
+                self.assertIn(test_case['expected'], final_output['output'],
+                            f"Expected '{test_case['expected']}' not found in output")
 
             return True
-
         except Exception as e:
             logger.error(f"Error in verify_interactive_session: {str(e)}")
             return False
+
+    def _get_output_with_retry(self, session_id: str, expected: str = None, 
+                             max_retries: int = 3) -> dict:
+        """Get output with retries"""
+        for retry in range(max_retries):
+            time.sleep(0.5)
+            output = get_output(session_id)
+            if output['success'] and (expected is None or expected in output['output']):
+                return output
+            time.sleep(0.5)
+        return output
 
     def test_cpp_basic_io(self):
         """Test C++ basic input/output interactions"""
