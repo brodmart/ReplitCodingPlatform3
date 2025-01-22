@@ -7,7 +7,7 @@ from utils.curriculum_checker import CurriculumChecker
 from models import db, CodingActivity, Student, StudentProgress, CodeSubmission
 import logging
 from datetime import datetime
-from compiler import compile_and_run
+from compiler import compile_and_run, get_template # Importing get_template
 import time
 
 logger = logging.getLogger(__name__)
@@ -385,4 +385,46 @@ def execute_code():
         return jsonify({
             'success': False,
             'error': f"An error occurred while executing your code: {str(e)}"
+        }), 500
+
+@activities_bp.route('/activities/get_template', methods=['POST'])
+@login_required
+def get_template():
+    """Get template code for selected language"""
+    try:
+        if not request.is_json:
+            return jsonify({
+                'success': False,
+                'error': 'Invalid request format'
+            }), 400
+
+        data = request.get_json()
+        language = data.get('language', '').lower()
+
+        if not language:
+            return jsonify({
+                'success': False,
+                'error': 'Language not specified'
+            }), 400
+
+        # Import get_template from compiler module
+        from compiler import get_template
+        template_code = get_template(language)
+
+        if not template_code:
+            return jsonify({
+                'success': False,
+                'error': f'Template not found for language: {language}'
+            }), 404
+
+        return jsonify({
+            'success': True,
+            'template': template_code
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting template: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': f"An error occurred while getting the template: {str(e)}"
         }), 500

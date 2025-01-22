@@ -410,9 +410,8 @@
                                 {% if lang == 'fr' %}Stratégie d'Apprentissage{% else %}Learning Strategy{% endif %}
                             </h5>
                             <select class="form-select bg-dark text-light" id="strategySelect">
-                                <option value="visual">{% if lang == 'fr' %}Visuel{% else %}Visual Learner{% endif %}</option>
-                                <option value="verbal">{% if lang == 'fr' %}Verbal{% else %}Verbal Learner{% endif %}</option>
-                                <option value="active">{% if lang == 'fr' %}Pratique{% else %}Active Learner{% endif %}</option>
+                                <option value="csharp">{% if lang == 'fr' %}C#{% else %}C#{% endif %}</option>
+                                <option value="cpp">{% if lang == 'fr' %}C++{% else %}C++{% endif %}</option>
                             </select>
                         </div>
 
@@ -790,7 +789,7 @@ document.addEventListener('DOMContentLoaded', function() {
             1: lang === 'fr' ?
                 'Commencez par comprendre les entrées et sorties requises.' :
                 'Start by understanding the required inputs and outputs.',
-            2: lang === 'fr' ?
+            2: lang=== 'fr' ?
                 'Pensez à décomposer le problème en plus petites étapes.' :
                 'Consider breaking down the problem into smaller steps.',
             3: lang === 'fr' ?
@@ -890,5 +889,43 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTaskSteps();
     updateReflectionPrompt();
 });
+
+function switchLanguage(language) {
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+
+    fetch('/activities/get_template', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+        },
+        body: JSON.stringify({ language: language })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && editor) {
+            editor.setValue(data.template);
+            // Update CodeMirror mode based on language
+            editor.setOption('mode', language === 'cpp' ? 'text/x-c++src' : 'text/x-csharp');
+        } else {
+            console.error('Failed to get template:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching template:', error);
+    });
+}
+
+// Add language switch handler to strategy selector
+const languageSelect = document.getElementById('strategySelect');
+if (languageSelect) {
+    languageSelect.addEventListener('change', function(e) {
+        const language = e.target.value === 'cpp' ? 'cpp' : 'csharp';
+        switchLanguage(language);
+    });
+}
+
 </script>
+
 {% endblock %}
