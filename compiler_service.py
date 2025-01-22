@@ -21,7 +21,10 @@ import errno
 import re
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
@@ -190,11 +193,12 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                 logger.debug(f"Final partial line: {cleaned}")
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
-    """Start an interactive session with improved isolation and I/O handling"""
+    """Start an interactive session with improved error handling and logging"""
     try:
         logger.info("=== Interactive Session Initialization ===")
         logger.info(f"1. Starting interactive session for {language}")
         logger.debug(f"1.1 Session ID: {session.session_id}")
+        logger.debug(f"1.2 Code preview:\n{code[:200]}...")  # Log first 200 chars of code
 
         # Create isolated environment
         logger.info("2. Creating isolated environment")
@@ -202,7 +206,101 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         session.temp_dir = str(temp_dir)
         logger.debug(f"2.1 Temporary directory created: {temp_dir}")
 
-        if language == 'cpp':
+        if language == 'csharp':
+            try:
+                project_file = Path(session.temp_dir) / f"{project_name}.csproj"
+                logger.info("3. Starting C# compilation")
+                logger.debug(f"3.1 Project file: {project_file}")
+
+                # Enhanced compilation command with better error handling
+                compile_cmd = [
+                    'dotnet', 'build',
+                    str(project_file),
+                    '--configuration', 'Release',
+                    '--nologo',
+                    '/p:GenerateFullPaths=true',
+                    '/consoleloggerparameters:NoSummary;Verbosity=detailed'
+                ]
+                logger.debug(f"3.2 Compilation command: {' '.join(compile_cmd)}")
+
+                # Run compilation with timeout
+                compile_process = subprocess.run(
+                    compile_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=str(session.temp_dir)
+                )
+
+                # Log compilation output for debugging
+                logger.debug(f"3.3 Compilation stdout:\n{compile_process.stdout}")
+                logger.debug(f"3.4 Compilation stderr:\n{compile_process.stderr}")
+
+                if compile_process.returncode != 0:
+                    error_msg = format_csharp_error(compile_process.stderr or compile_process.stdout)
+                    logger.error("4. Compilation failed")
+                    logger.error(f"4.1 Error output: {error_msg}")
+                    cleanup_session(session.session_id)
+                    return {
+                        'success': False,
+                        'error': error_msg
+                    }
+
+                logger.info("4. Compilation successful")
+                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
+                logger.debug(f"4.1 DLL path: {dll_path}")
+
+                # Create PTY for interactive I/O
+                logger.info("5. Setting up interactive console")
+                master_fd, slave_fd = create_pty()
+                session.master_fd = master_fd
+                session.slave_fd = slave_fd
+                logger.debug(f"5.1 PTY created: master_fd={master_fd}, slave_fd={slave_fd}")
+
+                # Start the program with PTY support
+                process = subprocess.Popen(
+                    ['dotnet', str(dll_path)],
+                    stdin=slave_fd,
+                    stdout=slave_fd,
+                    stderr=subprocess.PIPE,
+                    preexec_fn=os.setsid,
+                    text=True,
+                    cwd=str(session.temp_dir),
+                    env={
+                        **os.environ,
+                        'DOTNET_CONSOLE_ENCODING': 'utf-8',
+                        'TERM': 'xterm-256color',
+                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true'
+                    }
+                )
+
+                time.sleep(0.5)
+
+                os.close(slave_fd)  # Close slave fd after process start
+                session.process = process
+                logger.debug(f"C# Process started with PID: {process.pid}")
+
+                # Start output monitoring
+                session.output_thread = Thread(target=monitor_output, args=(process, session))
+                session.output_thread.daemon = True
+                session.output_thread.start()
+                logger.debug("Output monitoring thread started")
+
+                return {
+                    'success': True,
+                    'session_id': session.session_id,
+                    'interactive': True
+                }
+
+            except subprocess.TimeoutExpired:
+                cleanup_session(session.session_id)
+                logger.error("C# compilation timed out")
+                return {
+                    'success': False,
+                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
+                }
+
+        elif language == 'cpp':
             # Write code to temp file
             source_file = Path(session.temp_dir) / "program.cpp"
             with open(source_file, 'w', encoding='utf-8') as f:
@@ -269,94 +367,6 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 return {
                     'success': False,
                     'error': f"Process Error: {str(e)}"
-                }
-
-        elif language == 'csharp':
-            try:
-                project_file = Path(session.temp_dir) / f"{project_name}.csproj"
-                logger.info("3. Starting C# compilation")
-                logger.debug(f"3.1 Project file: {project_file}")
-
-                # Compile with better error handling
-                compile_cmd = [
-                    'dotnet', 'build',
-                    str(project_file),
-                    '--configuration', 'Release',
-                    '--nologo',
-                    '/p:GenerateFullPaths=true',
-                    '/consoleloggerparameters:NoSummary'
-                ]
-                logger.debug(f"3.2 Compilation command: {' '.join(compile_cmd)}")
-
-                compile_process = subprocess.run(
-                    compile_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME,
-                    cwd=str(session.temp_dir)
-                )
-
-                if compile_process.returncode != 0:
-                    logger.error("4. Compilation failed")
-                    logger.error(f"4.1 Error output: {compile_process.stderr}")
-                    cleanup_session(session.session_id)
-                    return {
-                        'success': False,
-                        'error': format_csharp_error(compile_process.stderr)
-                    }
-
-                logger.info("4. Compilation successful")
-                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
-                logger.debug(f"4.1 DLL path: {dll_path}")
-
-                # Create PTY for interactive I/O
-                logger.info("5. Setting up interactive console")
-                master_fd, slave_fd = create_pty()
-                session.master_fd = master_fd
-                session.slave_fd = slave_fd
-                logger.debug(f"5.1 PTY created: master_fd={master_fd}, slave_fd={slave_fd}")
-
-                # Start the program with PTY support
-                process = subprocess.Popen(
-                    ['dotnet', str(dll_path)],
-                    stdin=slave_fd,
-                    stdout=slave_fd,
-                    stderr=subprocess.PIPE,
-                    preexec_fn=os.setsid,
-                    text=True,
-                    cwd=str(session.temp_dir),
-                    env={
-                        **os.environ,
-                        'DOTNET_CONSOLE_ENCODING': 'utf-8',
-                        'TERM': 'xterm-256color',
-                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true'
-                    }
-                )
-
-                time.sleep(0.5)
-
-                os.close(slave_fd)  # Close slave fd after process start
-                session.process = process
-                logger.debug(f"C# Process started with PID: {process.pid}")
-
-                # Start output monitoring
-                session.output_thread = Thread(target=monitor_output, args=(process, session))
-                session.output_thread.daemon = True
-                session.output_thread.start()
-                logger.debug("Output monitoring thread started")
-
-                return {
-                    'success': True,
-                    'session_id': session.session_id,
-                    'interactive': True
-                }
-
-            except subprocess.TimeoutExpired:
-                cleanup_session(session.session_id)
-                logger.error("C# compilation timed out")
-                return {
-                    'success': False,
-                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
                 }
 
         else:
@@ -575,21 +585,31 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
 
         # Write source code with better namespace handling
         logger.debug(f"Writing C# source code to {source_file}")
-        with open(source_file, 'w', encoding='utf-8') as f:
-            # Wrap user code in proper namespace to avoid conflicts
-            wrapped_code = f"""namespace {project_name}
+        try:
+            # Check if code already has a namespace
+            if "namespace" not in code:
+                wrapped_code = f"""namespace {project_name}
 {{
     public class Program
     {{
         {code.strip()}
     }}
 }}"""
-            f.write(wrapped_code)
-            logger.debug("Source code written successfully")
+            else:
+                # If code already has a namespace, use it as is
+                wrapped_code = code
+
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(wrapped_code)
+                logger.debug(f"Source code written successfully:\n{wrapped_code}")
+        except Exception as e:
+            logger.error(f"Error writing source file: {e}")
+            raise
 
         # Create optimized project file with explicit SDK reference
         logger.debug(f"Creating project file: {project_file}")
-        project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
+        try:
+            project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
@@ -604,10 +624,19 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
   <ItemGroup>
     <Compile Include="Program.cs" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <NoWarn>CS0105</NoWarn>
+  </PropertyGroup>
 </Project>"""
-        with open(project_file, 'w', encoding='utf-8') as f:
-            f.write(project_content)
-            logger.debug("Project file created successfully")
+            with open(project_file, 'w', encoding='utf-8') as f:
+                f.write(project_content)
+                logger.debug("Project file created successfully")
+        except Exception as e:
+            logger.error(f"Error creating project file: {e}")
+            raise
 
         return temp_dir, project_name
 
@@ -769,7 +798,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'metrics': metrics
                 }
 
-        elif language == 'cpp':
+        elif language== 'cpp':
             # Set up C++ compilation
             source_file = os.path.join(temp_dir, "program.cpp")
             executable = os.path.join(temp_dir, "program")
@@ -782,8 +811,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 '-Wall',       # Enable warnings
                 '-pipe',
                 source_file,
-                '-o',
-                executable
+                '-o',                executable
             ]
 
             try:
@@ -811,7 +839,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
-                    timeout=MAXEXECUTION_TIME
+                    timeout=MAX_EXECUTION_TIME
                 )
 
                 if run_process.returncode != 0:
@@ -857,32 +885,24 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         except Exception as e:
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
-def format_csharp_error(error_msg: str) -> str:
-    """Enhanced error message formatting for C# compiler errors"""
-    if not error_msg:
-        return "Unknown error occurred"
+def format_csharp_error(error_output: str) -> str:
+    """Format C# compilation error messages for better readability"""
+    if not error_output:
+        return "Unknown compilation error occurred. Please check syntax and try again."
 
+    # Clean up ANSI color codes and other formatting
+    cleaned = clean_terminal_output(error_output)
+
+    # Extract relevant error information
     error_lines = []
+    for line in cleaned.split('\n'):
+        if '(CS' in line or 'error' in line.lower():
+            error_lines.append(line.strip())
 
-    # Split into lines and process each one
-    for line in error_msg.splitlines():
-        # Look for compiler error pattern
-        if "error CS" in line:
-            # Extract the error message without the file path
-            error_parts = line.split(': ', 1)
-            if len(error_parts) > 1:
-                error_lines.append(f"Compilation Error: {error_parts[1].strip()}")
-        elif "Build failed" in line:
-            error_lines.append("Build failed")
-        elif "error MSB" in line:
-            error_lines.append(f"Build Error: {line.strip()}")
+    if not error_lines:
+        return cleaned.strip() or "Compilation failed with no specific error message"
 
-    if error_lines:
-        return "\n".join(error_lines)
-
-    # If no specific errors found, return a cleaned version of the original message
-    cleaned_msg = error_msg.replace("/home/runner/workspace/", "")
-    return f"Compilation Error: {cleaned_msg.strip()}"
+    return "\n".join(error_lines)
 
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors with improved detail capture"""

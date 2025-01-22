@@ -1,9 +1,12 @@
 using System;
 
-class Program
+namespace TestSimple
 {
-    static void Main()
+    public class Program
     {
-        Console.WriteLine("Hello from C#!");
+        static void Main()
+        {
+            Console.WriteLine("Hello from C#!");
+        }
     }
 }
