@@ -65,32 +65,91 @@ class CompilationMetrics:
     error_count: int = 0
     warning_count: int = 0
     cached: bool = False
-    status_updates: List[tuple[float, str]] = field(default_factory=list)
+    status_updates: List[Dict[str, Any]] = field(default_factory=list)
     successful_builds: int = 0
     total_builds: int = 0
+    stage_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
-    def log_status(self, status: str):
-        current_time = time.time() - self.start_time
-        self.status_updates.append((current_time, status))
-        performance_logger.debug(f"[{current_time:.2f}s] {status}")
+    def start_stage(self, stage_name: str) -> None:
+        """Track metrics for a specific compilation stage"""
+        self.stage_metrics[stage_name] = {
+            'start_time': time.time(),
+            'peak_memory': 0.0,
+            'cpu_usage': 0.0
+        }
+        self._update_system_metrics(stage_name)
+        self.log_status(f"Starting {stage_name}")
 
-    def record_build(self, success: bool):
+    def end_stage(self, stage_name: str) -> None:
+        """End tracking for a compilation stage"""
+        if stage_name in self.stage_metrics:
+            stage = self.stage_metrics[stage_name]
+            stage['end_time'] = time.time()
+            stage['duration'] = stage['end_time'] - stage['start_time']
+            self._update_system_metrics(stage_name)
+            self.log_status(f"Completed {stage_name} in {stage['duration']:.2f}s")
+
+    def _update_system_metrics(self, stage_name: str) -> None:
+        """Update system metrics for the current stage"""
+        try:
+            process = psutil.Process()
+            stage = self.stage_metrics[stage_name]
+            current_memory = process.memory_info().rss / (1024 * 1024)  # MB
+            current_cpu = process.cpu_percent(interval=0.1)
+
+            stage['peak_memory'] = max(stage.get('peak_memory', 0), current_memory)
+            stage['cpu_usage'] = current_cpu
+
+            # Update overall metrics
+            self.peak_memory = max(self.peak_memory, current_memory)
+            if not self.avg_cpu_usage:
+                self.avg_cpu_usage = current_cpu
+            else:
+                self.avg_cpu_usage = (self.avg_cpu_usage + current_cpu) / 2
+        except Exception as e:
+            logger.error(f"Error updating system metrics: {e}")
+
+    def log_status(self, status: str) -> None:
+        """Log a status update with timestamp and metrics"""
+        current_time = time.time()
+        elapsed = current_time - self.start_time
+        status_entry = {
+            'timestamp': current_time,
+            'elapsed': elapsed,
+            'status': status,
+            'memory_mb': psutil.Process().memory_info().rss / (1024 * 1024),
+            'cpu_percent': psutil.Process().cpu_percent(interval=0.1)
+        }
+        self.status_updates.append(status_entry)
+        performance_logger.debug(f"[{elapsed:.2f}s] {status}")
+
+    def record_build(self, success: bool) -> None:
+        """Record build attempt result"""
         self.total_builds += 1
         if success:
             self.successful_builds += 1
 
     def to_dict(self) -> Dict[str, Any]:
+        """Convert metrics to dictionary with enhanced information"""
+        total_time = self.end_time - self.start_time if self.end_time else time.time() - self.start_time
         return {
             'compilation_time': self.compilation_time,
             'execution_time': self.execution_time,
+            'total_time': total_time,
             'peak_memory': self.peak_memory,
             'avg_cpu_usage': self.avg_cpu_usage,
             'error_count': self.error_count,
             'warning_count': self.warning_count,
             'cached': self.cached,
-            'total_time': self.end_time - self.start_time if self.end_time else 0,
-            'status_updates': self.status_updates,
-            'build_success_rate': (self.successful_builds / self.total_builds * 100) if self.total_builds > 0 else 0
+            'build_success_rate': (self.successful_builds / self.total_builds * 100) if self.total_builds > 0 else 0,
+            'stages': {
+                name: {
+                    'duration': metrics.get('duration', 0),
+                    'peak_memory': metrics.get('peak_memory', 0),
+                    'cpu_usage': metrics.get('cpu_usage', 0)
+                }
+                for name, metrics in self.stage_metrics.items()
+            }
         }
 
 class ErrorTracker:
@@ -99,12 +158,47 @@ class ErrorTracker:
         self.errors: List[CompilationError] = []
         self._error_patterns: Dict[str, int] = {}
         self._error_trends: Dict[str, List[datetime]] = {}
+        self.recommendations: Dict[str, List[str]] = {
+            'CS0103': [
+                "Ensure all variables are declared before use",
+                "Check for typos in variable names",
+                "Verify the variable is accessible in the current scope"
+            ],
+            'CS0117': [
+                "Verify the method name exists in the referenced class",
+                "Check for case sensitivity in method names",
+                "Ensure you're calling a public method"
+            ],
+            'CS0234': [
+                "Verify namespace references",
+                "Check 'using' statements",
+                "Ensure required assemblies are referenced"
+            ],
+            'CS1513': [
+                "Check for missing closing braces '}'",
+                "Ensure all blocks are properly closed",
+                "Verify code block structure"
+            ],
+            'CS1002': [
+                "Add missing semicolon at the end of the statement",
+                "Check for missing statement terminators",
+                "Review line endings"
+            ]
+        }
 
     def add_error(self, error: CompilationError):
-        """Add and analyze a new compilation error"""
+        """Add and analyze a new compilation error with enhanced recommendations"""
         self.errors.append(error)
         error_logger.error(f"Compilation error: {error.to_dict()}")
         self._update_patterns(error)
+
+        # Log recommendations
+        if error.code in self.recommendations:
+            recommendations = self.recommendations[error.code]
+            error_logger.info(f"Recommendations for error {error.code}:")
+            for i, rec in enumerate(recommendations, 1):
+                error_logger.info(f"  {i}. {rec}")
+
         # Track error trends
         pattern = f"{error.error_type}:{error.code}"
         if pattern not in self._error_trends:
@@ -113,16 +207,27 @@ class ErrorTracker:
         self._analyze_frequent_patterns(pattern)
 
     def _update_patterns(self, error: CompilationError):
-        """Update error pattern statistics"""
+        """Update error pattern statistics with enhanced tracking"""
         pattern = f"{error.error_type}:{error.code}"
         self._error_patterns[pattern] = self._error_patterns.get(pattern, 0) + 1
 
         if self._error_patterns[pattern] > 5:
             error_logger.warning(f"Frequent error pattern detected: {pattern}")
             self._analyze_frequent_patterns(pattern)
+            self._suggest_automated_fixes(error)
+
+    def _suggest_automated_fixes(self, error: CompilationError):
+        """Suggest automated fixes based on error patterns"""
+        if error.code == 'CS0103':  # Undefined variable
+            error_logger.info("Automated fix suggestion: You might want to declare the variable first")
+            error_logger.info("Example: var undefinedVariable = \"your value\";")
+        elif error.code == 'CS1513':  # Missing closing brace
+            error_logger.info("Automated fix suggestion: Add missing closing brace '}'")
+        elif error.code == 'CS0117':  # No member found
+            error_logger.info("Automated fix suggestion: Check class member visibility (public/private)")
 
     def _analyze_frequent_patterns(self, pattern: str):
-        """Analyze frequency of error patterns"""
+        """Analyze frequency of error patterns with enhanced analytics"""
         if pattern not in self._error_trends:
             return
 
@@ -138,8 +243,12 @@ class ErrorTracker:
             error_logger.critical(f"High-frequency error pattern detected: {pattern}")
             self._recommend_fixes(pattern)
 
+            # Check for potential infinite loops or recursion
+            if len(timestamps) > 10 and avg_time_between_errors < 1:
+                error_logger.critical("Possible infinite loop or recursion detected!")
+
     def _recommend_fixes(self, pattern: str):
-        """Provide recommendations based on error patterns"""
+        """Provide recommendations based on error patterns with enhanced suggestions"""
         common_fixes = {
             'CS0103': "Check for undefined variables and ensure all variables are declared before use",
             'CS0117': "Verify method names and ensure they exist in the referenced class",
@@ -149,26 +258,51 @@ class ErrorTracker:
             'CS1513': "Check for missing closing braces",
             'CS1525': "Check for invalid syntax or missing operators",
             'CS0116': "All methods must have a return type",
-            'CS0165': "Use of unassigned local variable"
+            'CS0165': "Use of unassigned local variable",
+            'CS0428': "Cannot convert method group to non-delegate type",
+            'CS0161': "Not all code paths return a value",
+            'CS0219': "Variable is assigned but never used",
+            'CS0105': "Using directive appeared previously",
+            'CS0168': "Variable declared but never used"
         }
 
         error_code = pattern.split(':')[1]
         if error_code in common_fixes:
             error_logger.info(f"Recommended fix for {error_code}: {common_fixes[error_code]}")
+
+            # Additional context-specific recommendations
+            if error_code == 'CS0103':
+                error_logger.info("Additional context:")
+                error_logger.info("1. Check variable scope - ensure it's declared in the current context")
+                error_logger.info("2. Verify variable name casing - C# is case-sensitive")
+                error_logger.info("3. If it's a class member, ensure proper access modifiers")
         else:
             error_logger.info(f"No specific recommendation available for error code: {error_code}")
 
     def get_summary(self) -> Dict[str, Any]:
-        """Get comprehensive error analysis summary"""
+        """Get comprehensive error analysis summary with enhanced details"""
         frequent_patterns = {k: v for k, v in self._error_patterns.items() if v > 1}
         recent_errors = sorted(self.errors, key=lambda x: x.timestamp, reverse=True)[:5]
+
+        error_categories = {}
+        for error in self.errors:
+            category = error.error_type
+            if category not in error_categories:
+                error_categories[category] = 0
+            error_categories[category] += 1
 
         return {
             'total_errors': len(self.errors),
             'error_patterns': self._error_patterns,
             'most_common': max(self._error_patterns.items(), key=lambda x: x[1]) if self._error_patterns else None,
             'frequent_patterns': frequent_patterns,
-            'recent_errors': [e.to_dict() for e in recent_errors]
+            'recent_errors': [e.to_dict() for e in recent_errors],
+            'error_categories': error_categories,
+            'recommendations': {
+                code: self.recommendations[code]
+                for code in set(error.code for error in self.errors)
+                if code in self.recommendations
+            }
         }
 
 def get_code_hash(code: str, language: str) -> str:
@@ -609,7 +743,7 @@ def get_output(session_id: str) -> Dict[str, Any]:
 def cleanup_session(session_id: str) -> None:
     """Clean up resources for a session with proper PTY cleanup"""
     if session_id in active_sessions:
-        session = active_sessions[session_id]
+        session = activesessions[session_id]
         logger.debug(f"Cleaning up session {session_id}")
         try:
             if session.process and session.process.poll() is None:
@@ -773,12 +907,13 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
             f.write(code)
         return temp_dir, "program"
     else:
-        raise ValueError(f""Unsupported language: {language}")
+        raise ValueError(f"Unsupported language: {language}")  # Fixed string syntax
 
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Enhanced compilation with comprehensive logging and metrics"""
-    metrics = CompilationMetrics(start_time=time.time())
+    start_time = time.time()
+    metrics = CompilationMetrics(start_time=start_time)
     error_tracker = ErrorTracker()
 
     compilation_logger.info(f"=== Starting {language} Compilation ===")
@@ -793,85 +928,71 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         }
 
     try:
-        # Check if code is interactive
-        compilation_logger.info("Checking for interactive code requirements")
-        if is_interactive_code(code, language):
-            compilation_logger.info("Interactive code detected, initializing session")
-            session_id = str(uuid.uuid4())
-            temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
-            session = CompilerSession(session_id, temp_dir)
+        # Record start metrics
+        process = psutil.Process()
+        initial_memory = process.memory_info().rss / (1024 * 1024)  # Convert to MB
+        initial_cpu = process.cpu_percent()
 
+        metrics.log_status("Starting compilation process")
+
+        # Check if code is interactive
+        is_interactive = "Console.ReadLine" in code or "Console.Read" in code
+        compilation_logger.info("Checking for interactive code requirements")
+        if is_interactive:
+            metrics.log_status("Interactive code detected")
+            session_id = str(uuid.uuid4())
+            session = CompilerSession(session_id, "")
             with session_lock:
                 active_sessions[session_id] = session
+            return start_interactive_session(session, code, language)
 
-            try:
-                result = start_interactive_session(session, code, language)
-                if result['success']:
-                    compilation_logger.info("Interactive session started successfully")
-                    result['interactive'] = True
-                    result['session_id'] = session_id
-                else:
-                    error_logger.error(f"Failed to start interactive session: {result.get('error')}")
-                    cleanup_session(session_id)
-                return result
-            except Exception as e:
-                error_logger.error(f"Interactive session error: {traceback.format_exc()}")
-                cleanup_session(session_id)
-                return {
-                    'success': False,
-                    'error': f"Interactive session error: {str(e)}",
-                    'metrics': metrics.to_dict()
-                }
-
-        # Regular compilation workflow
+        # Create isolated environment
         temp_dir, project_name = create_isolated_environment(code, language)
         compilation_logger.info(f"Created isolated environment: {temp_dir}")
+        metrics.start_stage("Compilation")
+        compilation_start = time.time()
 
         if language == 'csharp':
             try:
-                project_file = os.path.join(temp_dir, f"{project_name}.csproj")
+                project_file = Path(temp_dir) / f"{project_name}.csproj"
                 compilation_logger.info("Starting C# compilation process")
 
-                # Enhanced compilation command
+                # Enhanced compilation command with better error handling
                 compile_cmd = [
                     'dotnet', 'build',
-                    project_file,
+                    str(project_file),
                     '--configuration', 'Release',
                     '--nologo',
                     '/p:GenerateFullPaths=true',
                     '/consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed'
                 ]
-
                 compilation_logger.debug(f"Compilation command: {' '.join(compile_cmd)}")
 
-                # Track system metrics during compilation
-                process = psutil.Process()
-
-                # Initial metrics
-                metrics.avg_cpu_usage = process.cpu_percent()
-                metrics.peak_memory = process.memory_info().rss / (1024 * 10024 * 1024)  # MB
-
-                # Run compilation
+                # Run compilation with timeout and monitor performance
+                metrics.log_status("Executing compilation command")
                 compile_process = subprocess.run(
                     compile_cmd,
                     capture_output=True,
                     text=True,
-                    timeout=MAX_COMPILATION_TIME,
-                    cwd=temp_dir
+                    timeout=30,  # 30 second timeout
+                    cwd=str(temp_dir)
                 )
 
-                # Update metrics after compilation
-                metrics.avg_cpu_usage = (metrics.avg_cpu_usage + process.cpu_percent()) / 2
-                current_memory = process.memory_info().rss / (1024 * 1024)  # MB
-                metrics.peak_memory = max(metrics.peak_memory, current_memory)
+                metrics.end_stage("Compilation")
+                # Record compilation metrics
+                metrics.compilation_time = time.time() - compilation_start
+                metrics.peak_memory = (process.memory_info().rss / (1024 * 1024)) - initial_memory
+                metrics.avg_cpu_usage = process.cpu_percent()
 
                 if compile_process.returncode != 0:
                     errors = format_csharp_error(compile_process.stderr or compile_process.stdout)
                     for error in errors:
                         error_tracker.add_error(error)
-
                     error_summary = error_tracker.get_summary()
                     error_logger.error(f"Compilation failed: {error_summary}")
+                    metrics.log_status("Compilation failed")
+                    metrics.error_count = len(errors)
+                    metrics.record_build(False)
 
                     return {
                         'success': False,
@@ -880,45 +1001,39 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'metrics': metrics.to_dict()
                     }
 
-                compilation_logger.info("Compilation successful")
-                dll_path = os.path.join(temp_dir, "bin", "Release", "net7.0", f"{project_name}.dll")
-
-                if not os.path.exists(dll_path):
-                    error_msg = "Compilation succeeded but executable not found"
-                    error_logger.error(error_msg)
-                    return {
-                        'success': False,
-                        'error': error_msg,
-                        'metrics': metrics.to_dict()
-                    }
+                metrics.log_status("Compilation successful")
+                metrics.record_build(True)
+                compilation_logger.info("Compilation completed successfully")
 
                 # Execute the compiled program
-                compilation_logger.info("Starting program execution")
-                run_process = subprocess.run(
-                    ['dotnet', dll_path],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME,
-                    cwd=temp_dir,
-                    env={
-                        **os.environ,
-                        'DOTNET_CONSOLE_ENCODING': 'utf-8'
-                    }
-                )
+                dll_path = Path(temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
+                metrics.start_stage("Execution")
+                execution_start = time.time()
 
-                if run_process.returncode != 0:
-                    error_msg = format_csharp_error(run_process.stderr)
-                    error_logger.error(f"Runtime error: {error_msg}")
-                    return {
-                        'success': False,
-                        'error': f"Runtime Error: {error_msg}",
-                        'metrics': metrics.to_dict()
-                    }
-
+                run_cmd = ['dotnet', str(dll_path)]
+                if input_data:
+                    run_process = subprocess.run(
+                        run_cmd,
+                        input=input_data,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,  # 10 second execution timeout
+                        cwd=str(temp_dir)
+                    )
+                else:
+                    run_process = subprocess.run(
+                        run_cmd,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                        cwd=str(temp_dir)
+                    )
+                metrics.end_stage("Execution")
+                metrics.execution_time = time.time() - execution_start
                 metrics.end_time = time.time()
-                compilation_logger.info("Program executed successfully")
-                performance_logger.info(f"Performance metrics: {metrics.to_dict()}")
+
+                # Clean up
+                cleanup_compilation_files(temp_dir)
 
                 return {
                     'success': True,
@@ -927,106 +1042,53 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 }
 
             except subprocess.TimeoutExpired:
-                error_logger.error("Compilation timeout")
+                error_logger.error("Compilation or execution timed out")
+                metrics.log_status("Process timed out")
+                cleanup_compilation_files(temp_dir)
                 return {
                     'success': False,
-                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds",
+                    'error': "Process timed out",
                     'metrics': metrics.to_dict()
                 }
-
             except Exception as e:
                 error_logger.error(f"Unexpected error: {traceback.format_exc()}")
+                metrics.log_status(f"Error: {str(e)}")
+                cleanup_compilation_files(temp_dir)
                 return {
                     'success': False,
                     'error': str(e),
                     'metrics': metrics.to_dict()
                 }
 
-        elif language == 'cpp':
-            # Set up C++ compilation
-            source_file = os.path.join(temp_dir, "program.cpp")
-            executable = os.path.join(temp_dir, "program")
-
-            # Enhanced compilation command with optimizations
-            compile_cmd = [
-                'g++',
-                '-std=c++17',  # Use modern C++
-                '-O2',         # Optimize
-                '-Wall',       # Enable warnings
-                '-pipe',
-                source_file,
-                '-o', executable
-            ]
-
-            try:
-                # Compile with proper resource limits
-                compile_process = subprocess.run(
-                    compile_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME
-                )
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': f"Compilation Error: {compile_process.stderr}",
-                        'metrics': metrics.to_dict()
-                    }
-
-                # Set executable permissions
-                os.chmod(executable, 0o755)
-
-                # Run the compiled program
-                run_process = subprocess.run(
-                    [executable],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME
-                )
-
-                if run_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': f"Runtime Error: {run_process.stderr}",
-                        'metrics': metrics.to_dict()
-                    }
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'metrics': metrics.to_dict()
-                }
-
-            except subprocess.TimeoutExpired as e:
-                phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
-                return {
-                    'success': False,
-                    'error': f"{phase.capitalize()} timed out",
-                    'metrics': metrics.to_dict()
-                }
-
         else:
-            return {
-                'success': False,
-                'error': f"Unsupported language: {language}",
-                'metrics': metrics.to_dict()
-            }
+            cleanup_compilation_files(temp_dir)
+            raise ValueError(f"Unsupported language: {language}")
 
     except Exception as e:
-        error_logger.error(f"General compilation error: {traceback.format_exc()}")
+        error_logger.error(f"Error in compile_and_run: {traceback.format_exc()}")
+        metrics.end_time = time.time()
         return {
             'success': False,
             'error': str(e),
             'metrics': metrics.to_dict()
         }
-    finally:
-        # Clean up temporary directory
-        try:
+
+def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
+    """Clean up temporary compilation files with enhanced logging"""
+    try:
+        if isinstance(temp_dir, str):
+            temp_dir = Path(temp_dir)
+
+        if temp_dir.exists():
+            # Log directory size before cleanup
+            total_size = sum(f.stat().st_size for f in temp_dir.glob('**/*') if f.is_file())
+            logger.debug(f"Cleaning up directory {temp_dir} (size: {total_size/1024:.1f}KB)")
+
+            # Remove all files and subdirectories
             shutil.rmtree(temp_dir)
-        except Exception as e:
-            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
+            logger.debug(f"Successfully removed directory {temp_dir}")
+    except Exception as e:
+        logger.error(f"Error during cleanup of {temp_dir}: {e}")
 
 def format_csharp_error(error_output: str) -> List[CompilationError]:
     """Enhanced C# error parsing with improved pattern matching"""

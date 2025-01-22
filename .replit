@@ -241,7 +241,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "dotnet run --project student_tracker.csproj"
+args = "dotnet run test_interactive.cs"
 
 [[workflows.workflow]]
 name = "Analyze W3Schools"
