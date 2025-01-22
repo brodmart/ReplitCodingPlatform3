@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.css">
 
 <!-- Add CSRF token meta tag -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -547,10 +548,14 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Required scripts -->
+<!-- Core dependencies first -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xterm/3.14.5/xterm.min.js"></script>
+
+<!-- CodeMirror and its addons -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-<!-- Add CodeMirror addons -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/fold/foldcode.min.js"></script>
@@ -558,42 +563,55 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/lint/lint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Load console.js before editor.js -->
+<!-- Our custom scripts loaded last -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+
 <script>
-// Initialize lang variable from meta tag
-const lang = document.querySelector('meta[name="interface-lang"]').content;
-
-// Define taskSteps globally before DOM content loaded
-const taskSteps = {
-    'ICS4U': [
-        { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
-        { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
-        { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
-        { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
-    ],
-    'ICS3U': [
-        { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
-        { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
-        { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
-        { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
-    ],
-    'ICS2O': [
-        { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
-        { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
-        { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
-    ],
-    'TEJ2O': [
-        { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
-        { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
-        { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
-    ]
-};
-
+// Initialize after DOM and all scripts are loaded
 document.addEventListener('DOMContentLoaded', function() {
+    // Ensure Socket.IO is available
+    if (typeof io === 'undefined') {
+        console.error('Socket.IO not loaded');
+        return;
+    }
+
+    // Initialize editor after ensuring dependencies are loaded
+    try {
+        initializeEditor();
+    } catch (error) {
+        console.error('Editor initialization failed:', error);
+    }
+    // Initialize lang variable from meta tag
+    const lang = document.querySelector('meta[name="interface-lang"]').content;
+
+    // Define taskSteps globally before DOM content loaded
+    const taskSteps = {
+        'ICS4U': [
+            { id: 1, text: lang === 'fr' ? 'Analyse avancée du problème' : 'Advanced Problem Analysis' },
+            { id: 2, text: lang === 'fr' ? 'Conception de solution optimisée' : 'Optimized Solution Design' },
+            { id: 3, text: lang === 'fr' ? 'Implémentation avec structures avancées' : 'Implementation with Advanced Structures' },
+            { id: 4, text: lang === 'fr' ? 'Tests et optimisation' : 'Testing and Optimization' }
+        ],
+        'ICS3U': [
+            { id: 1, text: lang === 'fr' ? 'Analyse du problème' : 'Problem Analysis' },
+            { id: 2, text: lang === 'fr' ? 'Planification de la solution' : 'Solution Planning' },
+            { id: 3, text: lang === 'fr' ? 'Implémentation structurée' : 'Structured Implementation' },
+            { id: 4, text: lang === 'fr' ? 'Tests et débogage' : 'Testing and Debugging' }
+        ],
+        'ICS2O': [
+            { id: 1, text: lang === 'fr' ? 'Comprendre les exigences' : 'Understanding Requirements' },
+            { id: 2, text: lang === 'fr' ? 'Création du programme' : 'Program Creation' },
+            { id: 3, text: lang === 'fr' ? 'Test du code' : 'Code Testing' }
+        ],
+        'TEJ2O': [
+            { id: 1, text: lang === 'fr' ? 'Comprendre la syntaxe C++' : 'Understanding C++ Syntax' },
+            { id: 2, text: lang === 'fr' ? 'Écriture du programme' : 'Program Writing' },
+            { id: 3, text: lang === 'fr' ? 'Vérification du code' : 'Code Verification' }
+        ]
+    };
+
     // Initialize CodeMirror
     const editorTextArea = document.getElementById('editor');
     if (editorTextArea) {
