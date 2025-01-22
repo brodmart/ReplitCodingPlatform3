@@ -64,15 +64,9 @@ class InteractiveSession:
         self.output_buffer_size = 8192
         self.encoding = 'utf-8'
 
-def compile_and_run(code: Optional[str] = None, 
-                   language: Optional[str] = None,
-                   input_data: Optional[str] = None,
-                   session_id: Optional[str] = None,
-                   action: Optional[str] = None) -> Dict[str, Any]:
+def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Enhanced compile and run function with interactive session support"""
-
-    if session_id and action:
-        return handle_interactive_session(session_id, action, input_data)
+    logger.info(f"Starting compile_and_run for {language}")
 
     if not code:
         return {
@@ -83,107 +77,11 @@ def compile_and_run(code: Optional[str] = None,
     try:
         # Check if code is interactive
         if is_interactive_code(code, language):
-            logger.info("Starting compile_and_run for interactive code")
+            logger.info("Detected interactive code, starting interactive session")
             return start_interactive_session(code, language)
 
         # Non-interactive compilation and execution
         with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            if language == 'cpp':
-                source_file = temp_path / "program.cpp"
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
-
-                executable = temp_path / "program"
-                compile_process = subprocess.run(
-                    ['g++', '-std=c++17', '-Wall', '-O3', str(source_file), '-o', str(executable)],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME
-                )
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': format_cpp_error(compile_process.stderr)
-                    }
-
-                run_process = subprocess.run(
-                    [str(executable)],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME
-                )
-
-            elif language == 'csharp':
-                source_file = temp_path / "Program.cs"
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
-
-                compile_process = subprocess.run(
-                    ['dotnet', 'build', str(source_file), '--nologo', '-o', str(temp_path)],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME
-                )
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': format_csharp_error(compile_process.stderr)
-                    }
-
-                run_process = subprocess.run(
-                    ['dotnet', 'run', '--project', str(source_file), '--no-build'],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME,
-                    cwd=str(temp_path)
-                )
-
-            if run_process.returncode != 0:
-                return {
-                    'success': False,
-                    'error': run_process.stderr or "Execution failed"
-                }
-
-            return {
-                'success': True,
-                'output': run_process.stdout
-            }
-
-    except subprocess.TimeoutExpired:
-        return {
-            'success': False,
-            'error': "Execution timed out"
-        }
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
-    """Enhanced interactive session startup"""
-    logger.info(f"Starting interactive session for {language}")
-
-    try:
-        session_id = str(uuid.uuid4())
-        logger.debug(f"Session ID: {session_id}")
-
-        # Create PTY with proper terminal settings
-        master_fd, slave_fd = pty.openpty()
-        logger.debug(f"PTY created for {language}: master_fd={master_fd}, slave_fd={slave_fd}")
-
-        # Set terminal size
-        term_size = struct.pack('HHHH', 24, 80, 0, 0)
-        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, term_size)
-
-        with tempfile.TemporaryDirectory(dir=CACHE_DIR) as temp_dir:
             temp_path = Path(temp_dir)
 
             if language == 'cpp':
@@ -205,14 +103,13 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                         'error': format_cpp_error(compile_process.stderr)
                     }
 
-                process = subprocess.Popen(
+                process = subprocess.run(
                     [str(temp_path / "program")],
-                    stdin=slave_fd,
-                    stdout=slave_fd,
-                    stderr=slave_fd,
-                    close_fds=True
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME
                 )
-                logger.debug(f"C++ Process started with PID: {process.pid}")
 
             elif language == 'csharp':
                 source_file = temp_path / "Program.cs"
@@ -248,13 +145,142 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                         'error': format_csharp_error(compile_process.stderr)
                     }
 
+                process = subprocess.run(
+                    ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME,
+                    cwd=str(temp_path)
+                )
+
+            if process.returncode != 0:
+                return {
+                    'success': False,
+                    'error': process.stderr
+                }
+
+            return {
+                'success': True,
+                'output': process.stdout
+            }
+
+    except subprocess.TimeoutExpired as e:
+        logger.error(f"Process timed out: {str(e)}")
+        return {
+            'success': False,
+            'error': "Process timed out"
+        }
+    except Exception as e:
+        logger.error(f"Error in compile_and_run: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
+    """Enhanced interactive session startup"""
+    logger.info(f"Starting interactive session for {language}")
+
+    try:
+        session_id = str(uuid.uuid4())
+        logger.debug(f"Session ID: {session_id}")
+
+        # Create PTY with proper terminal settings
+        master_fd, slave_fd = pty.openpty()
+        logger.debug(f"PTY created for {language}: master_fd={master_fd}, slave_fd={slave_fd}")
+
+        # Set terminal size and attributes
+        term_size = struct.pack('HHHH', 24, 80, 0, 0)
+        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, term_size)
+
+        # Set raw mode for better input handling
+        attr = termios.tcgetattr(slave_fd)
+        attr[0] = attr[0] & ~termios.ICRNL  # Don't translate CR to NL on input
+        attr[1] = attr[1] & ~termios.ONLCR  # Don't translate NL to CRNL on output
+        attr[3] = attr[3] & ~(termios.ICANON | termios.ECHO)  # Raw mode
+        termios.tcsetattr(slave_fd, termios.TCSANOW, attr)
+
+        with tempfile.TemporaryDirectory(dir=CACHE_DIR) as temp_dir:
+            temp_path = Path(temp_dir)
+            unique_id = hashlib.md5(code.encode()).hexdigest()[:8]
+
+            if language == 'cpp':
+                source_file = temp_path / f"program_{unique_id}.cpp"
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
+
+                # Compile with optimizations and warning flags
+                compile_process = subprocess.run(
+                    ['g++', '-std=c++17', '-Wall', '-O2', str(source_file), '-o', str(temp_path / f"program_{unique_id}")],
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME
+                )
+
+                if compile_process.returncode != 0:
+                    return {
+                        'success': False,
+                        'error': format_cpp_error(compile_process.stderr)
+                    }
+
+                process = subprocess.Popen(
+                    [str(temp_path / f"program_{unique_id}")],
+                    stdin=slave_fd,
+                    stdout=slave_fd,
+                    stderr=slave_fd,
+                    close_fds=True
+                )
+                logger.debug(f"C++ Process started with PID: {process.pid}")
+
+            elif language == 'csharp':
+                # Create unique directory for this session
+                session_dir = temp_path / unique_id
+                session_dir.mkdir(exist_ok=True)
+
+                source_file = session_dir / "Program.cs"
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
+
+                # Create optimized project file
+                project_file = session_dir / "program.csproj"
+                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net7.0</TargetFramework>
+                    <ImplicitUsings>enable</ImplicitUsings>
+                    <Nullable>enable</Nullable>
+                    <PublishReadyToRun>true</PublishReadyToRun>
+                    <RootNamespace>InteractiveSession</RootNamespace>
+                    <AssemblyName>InteractiveSession</AssemblyName>
+                  </PropertyGroup>
+                </Project>"""
+
+                with open(project_file, 'w', encoding='utf-8') as f:
+                    f.write(project_content)
+
+                # Compile C# code
+                compile_process = subprocess.run(
+                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=str(session_dir)
+                )
+
+                if compile_process.returncode != 0:
+                    return {
+                        'success': False,
+                        'error': format_csharp_error(compile_process.stderr)
+                    }
+
                 process = subprocess.Popen(
                     ['dotnet', 'run', '--project', str(project_file), '--no-build'],
                     stdin=slave_fd,
                     stdout=slave_fd,
                     stderr=slave_fd,
                     close_fds=True,
-                    cwd=str(temp_path)
+                    cwd=str(session_dir)
                 )
                 logger.debug(f"C# Process started with PID: {process.pid}")
 
@@ -286,7 +312,7 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
             }
 
     except Exception as e:
-        logger.error(f"Error starting interactive session: {e}")
+        logger.error(f"Error starting interactive session: {str(e)}\n{traceback.format_exc()}")
         if 'session_id' in locals() and session_id in active_sessions:
             cleanup_session(session_id)
         return {
