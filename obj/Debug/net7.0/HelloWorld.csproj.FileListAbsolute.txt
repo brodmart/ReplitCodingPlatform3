@@ -2,3 +2,13 @@
 /home/runner/workspace/obj/Debug/net7.0/HelloWorld.AssemblyInfoInputs.cache
 /home/runner/workspace/obj/Debug/net7.0/HelloWorld.AssemblyInfo.cs
 /home/runner/workspace/obj/Debug/net7.0/HelloWorld.csproj.CoreCompileInputs.cache
+/home/runner/workspace/bin/Debug/net7.0/HelloWorld
+/home/runner/workspace/bin/Debug/net7.0/HelloWorld.deps.json
+/home/runner/workspace/bin/Debug/net7.0/HelloWorld.runtimeconfig.json
+/home/runner/workspace/bin/Debug/net7.0/HelloWorld.dll
+/home/runner/workspace/bin/Debug/net7.0/HelloWorld.pdb
+/home/runner/workspace/obj/Debug/net7.0/HelloWorld.dll
+/home/runner/workspace/obj/Debug/net7.0/refint/HelloWorld.dll
+/home/runner/workspace/obj/Debug/net7.0/HelloWorld.pdb
+/home/runner/workspace/obj/Debug/net7.0/HelloWorld.genruntimeconfig.cache
+/home/runner/workspace/obj/Debug/net7.0/ref/HelloWorld.dll
