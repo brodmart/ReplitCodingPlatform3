@@ -55,6 +55,41 @@ Optimizing C# compilation performance by implementing caching and reducing build
    - Individual learning paths based on course curriculum
    - Cross-course progression tracking
 
+## Console Application Compatibility Requirements
+1. **Code Preservation Policy**:
+   - Student code must NEVER be modified to fit the environment
+   - Console applications must run as-is, exactly as they would in standard IDEs
+   - Environment must adapt to support all valid code submissions
+   - No suggestions to modify working code that runs in standard IDEs
+
+2. **Console I/O Support**:
+   - Full support for all C# console operations:
+     * Console.Write and Console.WriteLine
+     * Console.Read and Console.ReadLine
+     * Console.Clear
+     * Console.SetCursorPosition
+     * Console.ForegroundColor and Console.BackgroundColor
+     * All standard console color and formatting options
+   - Interactive input handling must match standard IDE behavior
+   - Support for complex console-based user interfaces
+   - Proper handling of special characters and encoding
+
+3. **Large Application Support**:
+   - Support for reasonable-sized console applications (up to 10MB source code)
+   - Support for extensive console-based applications within standard IDE limits
+   - Full support for class hierarchies and complex data structures
+   - Environment must scale to handle most student applications efficiently
+   - Optimized performance for typical code bases
+   - Support for multiple source files and projects
+
+4. **IDE Compatibility**:
+   - Behavior must match standard C# IDEs (Visual Studio, VS Code)
+   - Consistent console behavior across all supported operations
+   - Proper handling of threading and synchronization
+   - Support for standard debugging output
+   - Identical runtime behavior to desktop IDEs
+   - Support for all valid C# console features
+
 ## Database Information
 - Database Name: ICS3U Curriculum Database
 - Connection: Managed through DATABASE_URL environment variable
@@ -64,7 +99,6 @@ Optimizing C# compilation performance by implementing caching and reducing build
   * strands: Stores curriculum strands
   * overall_expectations: Stores overall expectations
   * specific_expectations: Stores specific expectations
-
 
 ## Development Guidelines
 1. Focus on performance optimization and minimal resource usage

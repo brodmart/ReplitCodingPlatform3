@@ -4,7 +4,7 @@ modules = ["python-3.11", "nix", "postgresql-16", "dotnet-7.0", "dotnet-sdk-7.0"
 channel = "stable-24_05"
 
 [deployment]
-run = ["sh", "-c", "python main.py"]
+run = ["sh", "-c", "python -m http.server 5000"]
 deploymentTarget = "cloudrun"
 
 [deployment.cloudrun]
@@ -21,7 +21,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flask Server"
+args = "File Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
@@ -111,8 +111,16 @@ args = "Test Compiler Warmup"
 task = "workflow.run"
 args = "Analyze Performance"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "View Context"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "View Updated Context"
+
 [[workflows.workflow]]
-name = "Flask Server"
+name = "File Server"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -123,7 +131,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python main.py"
+args = "python -m http.server 5000"
 waitForPort = 5000
 
 [[workflows.workflow]]
@@ -440,6 +448,34 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 optimization_analyzer.py"
+
+[[workflows.workflow]]
+name = "View Context"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cat AI_CONTEXT.md"
+
+[[workflows.workflow]]
+name = "View Updated Context"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cat AI_CONTEXT.md"
 
 [[ports]]
 localPort = 5000
