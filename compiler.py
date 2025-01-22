@@ -3,25 +3,36 @@ import tempfile
 import os
 import logging
 import traceback
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from pathlib import Path
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import hashlib
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
-MAX_COMPILATION_TIME = 15  # Reduced from 20
-MAX_EXECUTION_TIME = 5     # Reduced from 10
-MEMORY_LIMIT = 512        # MB
+MAX_COMPILATION_TIME = 15  # seconds
+MAX_EXECUTION_TIME = 5    # seconds
+MEMORY_LIMIT = 512       # MB
+MAX_PARALLEL_COMPILATIONS = os.cpu_count() or 4
+CACHE_DIR = "/tmp/compiler_cache"
+
+# Ensure cache directory exists
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def get_cache_key(code: str) -> str:
+    """Generate a unique cache key for the code"""
+    return hashlib.sha256(code.encode()).hexdigest()
 
 def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[str] = None) -> Dict[str, Any]:
     """
-    Optimized compiler with minimal overhead
+    Optimized compiler with minimal overhead and improved caching
     """
     metrics = {'start_time': time.time()}
-    logger.info(f"Starting compilation for {language}")
+    logger.debug(f"Starting compilation for code length: {len(code)}")
 
     if not code:
         return {
@@ -30,52 +41,108 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
             'metrics': metrics
         }
 
+    # Check cache first
+    cache_key = get_cache_key(code)
+    cache_path = Path(CACHE_DIR) / cache_key
+
+    if cache_path.exists():
+        logger.debug("Using cached compilation")
+        metrics['cached'] = True
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                # Copy cached files
+                os.system(f'cp -r {cache_path}/* {temp_path}/')
+
+                # Run the cached program
+                run_process = subprocess.run(
+                    ['dotnet', f'{temp_path}/program.dll'],
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME,
+                    cwd=str(temp_path)
+                )
+
+                metrics['compilation_time'] = 0  # Cached, no compilation needed
+                metrics['execution_time'] = time.time() - metrics['start_time']
+                metrics['total_time'] = metrics['execution_time']
+
+                if run_process.returncode != 0:
+                    return {
+                        'success': False,
+                        'error': format_error(run_process.stderr),
+                        'metrics': metrics
+                    }
+
+                return {
+                    'success': True,
+                    'output': run_process.stdout,
+                    'metrics': metrics
+                }
+        except Exception as e:
+            logger.warning(f"Cache use failed, falling back to full compilation: {e}")
+
     # Create temporary directory for compilation
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         source_file = temp_path / "Program.cs"
 
-        # Write source code
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-
         try:
-            # Compile directly with csc for faster compilation
-            compile_start = time.time()
-            compile_process = subprocess.run(
-                ['csc', str(source_file), '/optimize+', '/nologo'],
+            # Write source code
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(code)
+
+            # Create optimized project file
+            project_file = temp_path / "program.csproj"
+            project_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
+</Project>"""
+
+            with open(project_file, 'w', encoding='utf-8') as f:
+                f.write(project_content)
+
+            # Build with optimized settings
+            logger.debug("Starting build process")
+            build_process = subprocess.run(
+                ['dotnet', 'build', str(project_file),
+                 '--configuration', 'Release',
+                 '--nologo',
+                 '/p:GenerateFullPaths=true',
+                 '/consoleloggerparameters:NoSummary'],
                 capture_output=True,
                 text=True,
                 timeout=MAX_COMPILATION_TIME,
                 cwd=str(temp_path)
             )
 
-            metrics['compilation_time'] = time.time() - compile_start
+            metrics['compilation_time'] = time.time() - metrics['start_time']
 
-            if compile_process.returncode != 0:
-                logger.error(f"Build failed: {compile_process.stderr}")
+            if build_process.returncode != 0:
+                logger.error(f"Build failed: {build_process.stderr}")
                 return {
                     'success': False,
-                    'error': format_error(compile_process.stderr),
+                    'error': format_error(build_process.stderr),
                     'metrics': metrics
                 }
 
-            # Run the compiled program
-            logger.info("Starting program execution")
-            run_start = time.time()
-            exe_path = temp_path / "Program.exe"
+            # Cache successful compilation
+            os.makedirs(cache_path, exist_ok=True)
+            os.system(f'cp -r {temp_path}/bin/Release/net7.0/* {cache_path}/')
 
-            if not exe_path.exists():
-                logger.error("Compiled executable not found")
-                return {
-                    'success': False,
-                    'error': "Build succeeded but executable not found",
-                    'metrics': metrics
-                }
-
-            # Run with mono for faster execution
+            # Run the program
+            logger.debug("Starting program execution")
             run_process = subprocess.run(
-                ['mono', str(exe_path)],
+                ['dotnet', 'run', '--project', str(project_file),
+                 '--no-build',
+                 '--configuration', 'Release'],
                 input=input_data.encode() if input_data else None,
                 capture_output=True,
                 text=True,
@@ -83,7 +150,7 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                 cwd=str(temp_path)
             )
 
-            metrics['execution_time'] = time.time() - run_start
+            metrics['execution_time'] = time.time() - (metrics['start_time'] + metrics['compilation_time'])
             metrics['total_time'] = time.time() - metrics['start_time']
 
             if run_process.returncode != 0:
@@ -100,19 +167,18 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                 'metrics': metrics
             }
 
-        except subprocess.TimeoutExpired as e:
-            logger.error(f"Process timed out: {str(e)}")
+        except subprocess.TimeoutExpired:
+            logger.error("Process timed out")
             return {
                 'success': False,
                 'error': "Process timed out",
                 'metrics': metrics
             }
         except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-            logger.error(error_msg)
+            logger.error(f"Unexpected error: {str(e)}")
             return {
                 'success': False,
-                'error': error_msg,
+                'error': f"Unexpected error: {str(e)}",
                 'metrics': metrics
             }
 
@@ -121,7 +187,6 @@ def format_error(error_msg: str) -> str:
     if not error_msg:
         return "Unknown error occurred"
 
-    # Remove file paths and line numbers for cleaner output
     lines = error_msg.splitlines()
     formatted_lines = []
 
@@ -136,13 +201,9 @@ def format_error(error_msg: str) -> str:
 
     return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
 
-import os
-from typing import List, Dict, Any
-from concurrent.futures import ThreadPoolExecutor
-
-def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, Any]]:
+def compile_and_run_parallel(files: List[str], language: str = 'csharp') -> List[Dict[str, Any]]:
     """
-    Compile and run multiple files in parallel
+    Optimized parallel compilation with improved resource management
     """
     logger.info(f"Starting parallel compilation for {len(files)} {language} files")
     start_time = time.time()
@@ -150,46 +211,104 @@ def compile_and_run_parallel(files: List[str], language: str) -> List[Dict[str, 
     if language != 'csharp':
         return [{'success': False, 'error': f'Language {language} not supported for parallel compilation'}]
 
-    with ThreadPoolExecutor(max_workers=os.cpu_count() or 4) as executor:
-        # Read file contents
-        file_contents = {}
-        for file_path in files:
-            logger.debug(f"Reading file: {file_path}")
+    # Read all files first to prevent I/O bottlenecks during compilation
+    file_contents = {}
+    for file_path in files:
+        try:
             with open(file_path, 'r') as f:
                 file_contents[file_path] = f.read()
-        # Submit compilation tasks
-        futures = []
-        for file_path in files:
-            logger.debug(f"Submitting compilation task for: {file_path}")
-            futures.append(
-                executor.submit(
-                    compile_and_run,
-                    code=file_contents[file_path],
-                    language=language,
+        except Exception as e:
+            logger.error(f"Failed to read {file_path}: {e}")
+            return [{'success': False, 'error': f'Failed to read {file_path}: {str(e)}'}]
 
-                )
-            )
+    results = [None] * len(files)
 
-        # Collect results
-        results = []
-        for i, future in enumerate(futures):
+    def compile_file(idx: int, code: str) -> Dict[str, Any]:
+        return idx, compile_and_run(code, language)
+
+    # Use ThreadPoolExecutor with a fixed number of workers
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_COMPILATIONS) as executor:
+        future_to_idx = {
+            executor.submit(compile_file, idx, content): idx
+            for idx, content in enumerate(file_contents.values())
+        }
+
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
             try:
-                logger.debug(f"Waiting for result of file {i+1}/{len(futures)}")
-                result = future.result(timeout=MAX_COMPILATION_TIME * 2)  # Double timeout for safety
-                results.append(result)
+                file_idx, result = future.result(timeout=MAX_COMPILATION_TIME * 2)
+                results[file_idx] = result
                 if result['success']:
-                    logger.info(f"File {i+1} compiled successfully in {result['metrics']['compilation_time']:.2f}s")
+                    logger.info(f"File {idx+1} compiled successfully in {result['metrics']['compilation_time']:.2f}s")
                 else:
-                    logger.error(f"File {i+1} failed: {result.get('error', 'Unknown error')}")
+                    logger.error(f"File {idx+1} failed: {result.get('error', 'Unknown error')}")
             except Exception as e:
                 error_msg = f'Parallel compilation failed: {str(e)}'
                 logger.error(error_msg)
-                results.append({
+                results[idx] = {
                     'success': False,
                     'error': error_msg,
                     'metrics': {'compilation_time': 0, 'execution_time': 0}
-                })
+                }
 
-        total_time = time.time() - start_time
-        logger.info(f"Parallel compilation completed in {total_time:.2f}s")
+    total_time = time.time() - start_time
+    logger.info(f"Parallel compilation completed in {total_time:.2f}s")
+    return results
+
+def run_parallel_compilation(files: List[str], cwd: str, env: Dict[str, str], timeout: int = 30) -> List[subprocess.CompletedProcess]:
+    """Execute parallel compilation of multiple files"""
+    with ThreadPoolExecutor(max_workers=MAX_PARALLEL_COMPILATIONS) as executor:
+        futures = []
+        for file in files:
+            project_file = Path(file).parent / "program.csproj"
+            if not project_file.exists():
+                # Create project file if it doesn't exist
+                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <Configuration>Release</Configuration>
+  </PropertyGroup>
+</Project>"""
+                with open(project_file, 'w', encoding='utf-8') as f:
+                    f.write(project_content)
+
+            # Submit build task
+            futures.append(
+                executor.submit(
+                    subprocess.run,
+                    ['dotnet', 'build', str(project_file),
+                     '--configuration', 'Release',
+                     '--nologo',
+                     '/p:GenerateFullPaths=true',
+                     '/consoleloggerparameters:NoSummary'],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    cwd=cwd,
+                    env=env
+                )
+            )
+
+        # Wait for all compilations to complete
+        results = []
+        for future in as_completed(futures):
+            try:
+                result = future.result(timeout=timeout)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Parallel compilation failed: {e}")
+                # Create a failed result
+                results.append(
+                    subprocess.CompletedProcess(
+                        args=[],
+                        returncode=1,
+                        stdout="",
+                        stderr=str(e)
+                    )
+                )
+
         return results

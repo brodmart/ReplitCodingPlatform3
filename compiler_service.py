@@ -232,10 +232,7 @@ def format_runtime_error(error_msg: str) -> str:
     except Exception:
         return f"Runtime Error: {error_msg}"
 
-# Initialize session management
-active_sessions = {}
-session_lock = Lock()
-
+#rest of the file
 class CompilerSession:
     """Session handler for interactive compilation."""
     def __init__(self, session_id: str, temp_dir: str):
@@ -589,3 +586,7 @@ class ProcessMonitor(Thread):
     def stop(self):
         self.stopped.set()
         self._terminate_process()
+
+# Initialize session management
+active_sessions = {}
+session_lock = Lock()
