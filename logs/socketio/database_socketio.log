@@ -181,3 +181,40 @@
 2025-01-22 23:31:30,071 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.001s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-4
 2025-01-22 23:31:30,072 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.001s - MainProcess:GreenThread-4
 2025-01-22 23:31:30,072 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-4
+2025-01-22 23:31:51,117 - socketio.server:576 - INFO - received event "compile_and_run" from 8pJWCbIr_-MDkad8AAAF [/] - MainProcess:GreenThread-5
+2025-01-22 23:31:51,118 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:31:51.117998 - MainProcess:GreenThread-6
+2025-01-22 23:31:51,118 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-6
+2025-01-22 23:31:51,119 - socketio.server:164 - INFO - emitting event "compilation_start" to 8pJWCbIr_-MDkad8AAAF [/] - MainProcess:GreenThread-6
+2025-01-22 23:31:54,364 - socketio:119 - INFO - Session 141a297f-f245-4ded-bd4f-fdb8a1c0c990 activated. Total active sessions: 1 - MainProcess:GreenThread-6
+2025-01-22 23:31:54,365 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 3.2443149089813232} - MainProcess:GreenThread-6
+2025-01-22 23:31:54,365 - socketio.server:164 - INFO - emitting event "compilation_result" to 8pJWCbIr_-MDkad8AAAF [/] - MainProcess:GreenThread-6
+2025-01-22 23:32:33,280 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:32:33.280676 - MainProcess:GreenThread-5
+2025-01-22 23:32:33,280 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-5
+2025-01-22 23:32:33,754 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:32:33.754772 - MainProcess:GreenThread-11
+2025-01-22 23:32:33,754 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - socketio:108 - INFO - New connection established. Total connections: 3 - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - socketio:110 - DEBUG - Client info: {'sid': '_ECm4cLnDuAlQfwEAAAH', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36'} - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - socketio.server:164 - INFO - emitting event "connection_established" to _ECm4cLnDuAlQfwEAAAH [/] - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-11
+2025-01-22 23:32:34,316 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:32:34.316552 - MainProcess:GreenThread-11
+2025-01-22 23:32:34,316 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-11
+2025-01-22 23:32:34,317 - socketio:113 - INFO - Connection closed. Remaining connections: 2 - MainProcess:GreenThread-11
+2025-01-22 23:32:34,317 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.001s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-11
+2025-01-22 23:32:34,317 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.001s - MainProcess:GreenThread-11
+2025-01-22 23:32:34,317 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-11
+2025-01-22 23:32:34,369 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:32:34.369804 - MainProcess:GreenThread-12
+2025-01-22 23:32:34,369 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,370 - socketio:108 - INFO - New connection established. Total connections: 3 - MainProcess:GreenThread-12
+2025-01-22 23:32:34,370 - socketio:110 - DEBUG - Client info: {'sid': '4QY6QDw1mLo7LZ8ZAAAJ', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,370 - socketio.server:164 - INFO - emitting event "connection_established" to 4QY6QDw1mLo7LZ8ZAAAJ [/] - MainProcess:GreenThread-12
+2025-01-22 23:32:34,370 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,371 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:GreenThread-12
+2025-01-22 23:32:34,371 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-12
+2025-01-22 23:32:34,965 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:32:34.965958 - MainProcess:GreenThread-12
+2025-01-22 23:32:34,966 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,966 - socketio:113 - INFO - Connection closed. Remaining connections: 2 - MainProcess:GreenThread-12
+2025-01-22 23:32:34,966 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.001s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,967 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.001s - MainProcess:GreenThread-12
+2025-01-22 23:32:34,967 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-12

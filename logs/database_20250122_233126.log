@@ -37,3 +37,52 @@
 2025-01-22 23:31:29,892 - app:132 - INFO - Client connected: 8pJWCbIr_-MDkad8AAAF - MainProcess:GreenThread-5
 2025-01-22 23:31:29,894 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"8pJWCbIr_-MDkad8AAAF"}] - MainProcess:GreenThread-5
 2025-01-22 23:31:30,071 - app:141 - INFO - Client disconnected: 1qLcYbdtsctIHfRbAAAD - MainProcess:GreenThread-4
+2025-01-22 23:31:51,116 - engineio.server:39 - INFO - g38NbB22Wkb4Fbu2AAAE: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}] - MainProcess:GreenThread-5
+2025-01-22 23:31:51,118 - app:164 - INFO - Starting csharp code compilation - MainProcess:GreenThread-6
+2025-01-22 23:31:51,118 - app:165 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+} - MainProcess:GreenThread-6
+2025-01-22 23:31:51,119 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet MESSAGE data 2["compilation_start",{"session_id":"141a297f-f245-4ded-bd4f-fdb8a1c0c990","timestamp":1737588711.1187527}] - MainProcess:GreenThread-6
+2025-01-22 23:31:51,119 - compiler_service:982 - DEBUG - Starting compilation for code length: 198, language: csharp - MainProcess:GreenThread-6
+2025-01-22 23:31:51,120 - compiler_service:584 - INFO - Starting interactive session for csharp - MainProcess:GreenThread-6
+2025-01-22 23:31:51,120 - compiler_service:585 - DEBUG - Session ID: 141a297f-f245-4ded-bd4f-fdb8a1c0c990 - MainProcess:GreenThread-6
+2025-01-22 23:31:51,120 - compiler_service:595 - INFO - Creating isolated environment - MainProcess:GreenThread-6
+2025-01-22 23:31:51,120 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_us1rlnc6 - MainProcess:GreenThread-6
+2025-01-22 23:31:53,487 - engineio.server:78 - INFO - FH8KfeguApDWUFmDAAAA: Sending packet PING data None - MainProcess:GreenThread-7
+2025-01-22 23:31:53,562 - engineio.server:39 - INFO - FH8KfeguApDWUFmDAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:31:54,363 - app:184 - INFO - Compilation completed in 3.24s: {'success': True, 'session_id': '141a297f-f245-4ded-bd4f-fdb8a1c0c990', 'interactive': True, 'metrics': {'compilation_time': 0.0, 'execution_time': 0.0, 'total_time': 3.242647886276245, 'peak_memory': 0.0, 'avg_cpu_usage': 0.0, 'error_count': 0, 'warning_count': 0, 'cached': False, 'build_success_rate': 0, 'stages': {}}} - MainProcess:GreenThread-6
+2025-01-22 23:31:54,366 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet MESSAGE data 2["compilation_result",{"success":true,"session_id":"141a297f-f245-4ded-bd4f-fdb8a1c0c990","interactive":true,"metrics":{"compilation_time":3.2443149089813232}}] - MainProcess:GreenThread-6
+2025-01-22 23:31:54,491 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name:
+ - MainProcess:Thread-2 (monitor_output)
+2025-01-22 23:31:54,496 - compiler_service:541 - DEBUG - Output received: Enter your name: - MainProcess:Thread-2 (monitor_output)
+2025-01-22 23:31:54,812 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet PING data None - MainProcess:GreenThread-8
+2025-01-22 23:31:54,892 - engineio.server:39 - INFO - g38NbB22Wkb4Fbu2AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:32:18,562 - engineio.server:78 - INFO - FH8KfeguApDWUFmDAAAA: Sending packet PING data None - MainProcess:GreenThread-9
+2025-01-22 23:32:18,637 - engineio.server:39 - INFO - FH8KfeguApDWUFmDAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:32:19,893 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet PING data None - MainProcess:GreenThread-10
+2025-01-22 23:32:19,968 - engineio.server:39 - INFO - g38NbB22Wkb4Fbu2AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:32:33,281 - app:141 - INFO - Client disconnected: 8pJWCbIr_-MDkad8AAAF - MainProcess:GreenThread-5
+2025-01-22 23:32:33,387 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-3
+2025-01-22 23:32:33,519 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-3
+2025-01-22 23:32:33,743 - engineio.server:78 - INFO - artjG5Isx-3lMootAAAG: Sending packet OPEN data {'sid': 'artjG5Isx-3lMootAAAG', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-11
+2025-01-22 23:32:33,743 - engineio.server:90 - INFO - artjG5Isx-3lMootAAAG: Received request to upgrade to websocket - MainProcess:GreenThread-11
+2025-01-22 23:32:33,744 - engineio.server:219 - INFO - artjG5Isx-3lMootAAAG: Upgrade to websocket successful - MainProcess:GreenThread-11
+2025-01-22 23:32:33,753 - engineio.server:39 - INFO - artjG5Isx-3lMootAAAG: Received packet MESSAGE data 0 - MainProcess:GreenThread-11
+2025-01-22 23:32:33,754 - engineio.server:78 - INFO - artjG5Isx-3lMootAAAG: Sending packet MESSAGE data 0{"sid":"_ECm4cLnDuAlQfwEAAAH"} - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - app:132 - INFO - Client connected: _ECm4cLnDuAlQfwEAAAH - MainProcess:GreenThread-11
+2025-01-22 23:32:33,755 - engineio.server:78 - INFO - artjG5Isx-3lMootAAAG: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"_ECm4cLnDuAlQfwEAAAH"}] - MainProcess:GreenThread-11
+2025-01-22 23:32:34,282 - engineio.server:78 - INFO - CyoTQApMLEthyOXDAAAI: Sending packet OPEN data {'sid': 'CyoTQApMLEthyOXDAAAI', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,282 - engineio.server:90 - INFO - CyoTQApMLEthyOXDAAAI: Received request to upgrade to websocket - MainProcess:GreenThread-12
+2025-01-22 23:32:34,282 - engineio.server:219 - INFO - CyoTQApMLEthyOXDAAAI: Upgrade to websocket successful - MainProcess:GreenThread-12
+2025-01-22 23:32:34,316 - app:141 - INFO - Client disconnected: _ECm4cLnDuAlQfwEAAAH - MainProcess:GreenThread-11
+2025-01-22 23:32:34,368 - engineio.server:39 - INFO - CyoTQApMLEthyOXDAAAI: Received packet MESSAGE data 0 - MainProcess:GreenThread-12
+2025-01-22 23:32:34,369 - engineio.server:78 - INFO - CyoTQApMLEthyOXDAAAI: Sending packet MESSAGE data 0{"sid":"4QY6QDw1mLo7LZ8ZAAAJ"} - MainProcess:GreenThread-12
+2025-01-22 23:32:34,370 - app:132 - INFO - Client connected: 4QY6QDw1mLo7LZ8ZAAAJ - MainProcess:GreenThread-12
+2025-01-22 23:32:34,370 - engineio.server:78 - INFO - CyoTQApMLEthyOXDAAAI: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"4QY6QDw1mLo7LZ8ZAAAJ"}] - MainProcess:GreenThread-12
+2025-01-22 23:32:34,966 - app:141 - INFO - Client disconnected: 4QY6QDw1mLo7LZ8ZAAAJ - MainProcess:GreenThread-12
