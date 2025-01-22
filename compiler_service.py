@@ -192,12 +192,15 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved isolation and I/O handling"""
     try:
-        logger.info(f"Starting interactive session for {language}")
-        logger.debug(f"Session ID: {session.session_id}")
+        logger.info("=== Interactive Session Initialization ===")
+        logger.info(f"1. Starting interactive session for {language}")
+        logger.debug(f"1.1 Session ID: {session.session_id}")
 
         # Create isolated environment
+        logger.info("2. Creating isolated environment")
         temp_dir, project_name = create_isolated_environment(code, language)
         session.temp_dir = str(temp_dir)
+        logger.debug(f"2.1 Temporary directory created: {temp_dir}")
 
         if language == 'cpp':
             # Write code to temp file
@@ -271,14 +274,22 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         elif language == 'csharp':
             try:
                 project_file = Path(session.temp_dir) / f"{project_name}.csproj"
+                logger.info("3. Starting C# compilation")
+                logger.debug(f"3.1 Project file: {project_file}")
 
                 # Compile with better error handling
+                compile_cmd = [
+                    'dotnet', 'build',
+                    str(project_file),
+                    '--configuration', 'Release',
+                    '--nologo',
+                    '/p:GenerateFullPaths=true',
+                    '/consoleloggerparameters:NoSummary'
+                ]
+                logger.debug(f"3.2 Compilation command: {' '.join(compile_cmd)}")
+
                 compile_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file),
-                     '--configuration', 'Release',
-                     '--nologo',
-                     '/p:GenerateFullPaths=true',
-                     '/consoleloggerparameters:NoSummary'],
+                    compile_cmd,
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
@@ -286,22 +297,26 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 )
 
                 if compile_process.returncode != 0:
-                    error_msg = compile_process.stderr
-                    logger.error(f"C# compilation failed: {error_msg}")
+                    logger.error("4. Compilation failed")
+                    logger.error(f"4.1 Error output: {compile_process.stderr}")
                     cleanup_session(session.session_id)
                     return {
                         'success': False,
-                        'error': f"Compilation Error: {error_msg}"
+                        'error': format_csharp_error(compile_process.stderr)
                     }
 
+                logger.info("4. Compilation successful")
+                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
+                logger.debug(f"4.1 DLL path: {dll_path}")
+
                 # Create PTY for interactive I/O
+                logger.info("5. Setting up interactive console")
                 master_fd, slave_fd = create_pty()
                 session.master_fd = master_fd
                 session.slave_fd = slave_fd
-                logger.debug(f"PTY created for C#: master_fd={master_fd}, slave_fd={slave_fd}")
+                logger.debug(f"5.1 PTY created: master_fd={master_fd}, slave_fd={slave_fd}")
 
                 # Start the program with PTY support
-                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
                 process = subprocess.Popen(
                     ['dotnet', str(dll_path)],
                     stdin=slave_fd,
@@ -597,9 +612,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     Compile and run code with optimized performance and enhanced error handling
     """
     metrics = {'start_time': time.time()}
-    logger.info(f"Starting compile_and_run for {language}")
+    logger.info(f"=== Starting C# Compilation Workflow ===")
+    logger.info(f"1. Initializing compilation process for {language}")
+    logger.debug(f"Code length: {len(code)} characters")
 
     if not code or not language:
+        logger.error("2. Validation Failed: Missing code or language specification")
         return {
             'success': False,
             'error': "No code or language specified",
@@ -608,25 +626,32 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
     try:
         # Check if code is interactive
+        logger.info("2. Checking if code requires interactive execution")
         if is_interactive_code(code, language):
-            logger.info("Detected interactive code, starting interactive session")
+            logger.info("3. Interactive code detected, initializing interactive session")
             session_id = str(uuid.uuid4())
+            logger.debug(f"3.1 Created session ID: {session_id}")
             temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
+            logger.debug(f"3.2 Created temporary directory: {temp_dir}")
             session = CompilerSession(session_id, temp_dir)
 
             with session_lock:
                 active_sessions[session_id] = session
+                logger.info("3.3 Session registered in active sessions")
 
             try:
+                logger.info("4. Starting interactive compilation process")
                 result = start_interactive_session(session, code, language)
                 if result['success']:
+                    logger.info("5. Interactive session started successfully")
                     result['interactive'] = True
                     result['session_id'] = session_id
                 else:
+                    logger.error("5. Failed to start interactive session")
                     cleanup_session(session_id)
                 return result
             except Exception as e:
-                logger.error(f"Error in interactive session: {str(e)}\n{traceback.format_exc()}")
+                logger.error(f"5. Error in interactive session: {str(e)}\n{traceback.format_exc()}")
                 cleanup_session(session_id)
                 return {
                     'success': False,
@@ -634,8 +659,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'metrics': metrics
                 }
 
-        # Create isolated environment for compilation
+        # Regular compilation workflow
+        logger.info("3. Creating isolated compilation environment")
         temp_dir, project_name = create_isolated_environment(code, language)
+        logger.debug(f"3.1 Created temporary directory: {temp_dir}")
+        logger.debug(f"3.2 Project name: {project_name}")
 
         if language == 'cpp':
             # Set up C++ compilation
@@ -795,8 +823,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        logger.error(error_msg)
-        return {
+        logger.error(error_msg)        return {
             'success': False,
             'error': error_msg,
             'metrics': metrics
