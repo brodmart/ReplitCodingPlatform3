@@ -17,9 +17,10 @@ class InteractiveConsole {
         this.historyIndex = -1;
         this.inputBuffer = '';
         this.isWaitingForInput = false;
-        this.maxBufferSize = 1000;
+        this.maxBufferSize = 4096;
         this.outputBuffer = [];
         this.sessionId = null;
+        this.pollInterval = null;
 
         this.setupEventListeners();
         this.clear();
@@ -38,15 +39,20 @@ class InteractiveConsole {
                     }
                     break;
                 case 'ArrowUp':
-                    e.preventDefault();
-                    this.navigateHistory(-1);
+                    if (!this.isWaitingForInput) {
+                        e.preventDefault();
+                        this.navigateHistory(-1);
+                    }
                     break;
                 case 'ArrowDown':
-                    e.preventDefault();
-                    this.navigateHistory(1);
+                    if (!this.isWaitingForInput) {
+                        e.preventDefault();
+                        this.navigateHistory(1);
+                    }
                     break;
                 case 'c':
                     if (e.ctrlKey) {
+                        e.preventDefault();
                         this.handleCtrlC();
                     }
                     break;
@@ -58,10 +64,24 @@ class InteractiveConsole {
                     break;
             }
         });
+
+        // Add paste event handler for better input handling
+        this.inputElement.addEventListener('paste', (e) => {
+            if (this.isWaitingForInput) {
+                e.preventDefault();
+                const text = e.clipboardData.getData('text');
+                const lines = text.split('\n');
+                if (lines.length > 0) {
+                    this.inputElement.value = lines[0];
+                    this.handleEnterKey();
+                }
+            }
+        });
     }
 
     async handleEnterKey() {
         const input = this.inputElement.value.trim();
+        this.inputElement.value = '';
 
         if (this.sessionId && this.isWaitingForInput) {
             try {
@@ -73,7 +93,7 @@ class InteractiveConsole {
                     },
                     body: JSON.stringify({
                         session_id: this.sessionId,
-                        input: input
+                        input: input + '\n'  // Add newline for proper input handling
                     })
                 });
 
@@ -81,8 +101,13 @@ class InteractiveConsole {
                     throw new Error('Failed to send input');
                 }
 
-                this.appendOutput(`${input}\n`);
-                this.isWaitingForInput = false;
+                const data = await response.json();
+                if (data.success) {
+                    this.appendOutput(`${input}\n`, 'console-input');
+                    this.isWaitingForInput = false;
+                } else {
+                    this.appendError(`Error: ${data.error}`);
+                }
             } catch (error) {
                 this.appendError(`Error sending input: ${error.message}`);
             }
@@ -95,64 +120,74 @@ class InteractiveConsole {
                 await this.onCommand(input);
             }
         }
-
-        this.inputElement.value = '';
     }
 
-    navigateHistory(direction) {
-        if (!this.history.length) return;
+    startPollingOutput() {
+        if (!this.sessionId) return;
 
-        this.historyIndex += direction;
+        const pollOutput = async () => {
+            if (!this.sessionId) return;
 
-        if (this.historyIndex >= this.history.length) {
-            this.historyIndex = this.history.length - 1;
-        } else if (this.historyIndex < 0) {
-            this.historyIndex = 0;
-        }
+            try {
+                const response = await fetch(`/get_output?session_id=${this.sessionId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to get output');
+                }
 
-        this.inputElement.value = this.history[this.historyIndex];
-        setTimeout(() => {
-            this.inputElement.selectionStart = this.inputElement.value.length;
-            this.inputElement.selectionEnd = this.inputElement.value.length;
-        }, 0);
-    }
+                const data = await response.json();
+                if (data.success) {
+                    if (data.output) {
+                        this.appendOutput(data.output);
+                    }
 
-    handleCtrlC() {
-        if (this.isWaitingForInput) {
-            this.appendOutput('^C\n');
-            this.isWaitingForInput = false;
-            this.enable();
-        }
+                    // Update input state based on server response
+                    if (data.waiting_for_input !== this.isWaitingForInput) {
+                        this.isWaitingForInput = data.waiting_for_input;
+                        if (this.isWaitingForInput) {
+                            this.enable();
+                            this.inputElement.focus();
+                        }
+                    }
+
+                    if (data.session_ended) {
+                        this.sessionId = null;
+                        this.isWaitingForInput = false;
+                        clearInterval(this.pollInterval);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Error polling output:', error);
+            }
+
+            // Continue polling if session is active
+            if (this.sessionId) {
+                this.pollInterval = setTimeout(pollOutput, 100);
+            }
+        };
+
+        // Start polling
+        pollOutput();
     }
 
     appendOutput(text, className = '') {
-        const line = document.createElement('div');
-        line.className = `console-line ${className}`;
+        const processedText = this.processAnsiCodes(String(text));
+        const lines = processedText.split('\n');
 
-        if (typeof text === 'object') {
-            line.innerHTML = `<pre>${JSON.stringify(text, null, 2)}</pre>`;
-        } else {
-            line.innerHTML = this.processAnsiCodes(String(text));
-        }
-
-        this.outputElement.appendChild(line);
-        this.outputElement.scrollTop = this.outputElement.scrollHeight;
-        this.outputBuffer.push({ text, className });
-
-        if (this.outputBuffer.length > this.maxBufferSize) {
-            this.outputBuffer.shift();
-            if (this.outputElement.firstChild) {
-                this.outputElement.removeChild(this.outputElement.firstChild);
+        for (const line of lines) {
+            if (line.trim()) {
+                const lineElement = document.createElement('div');
+                lineElement.className = `console-line ${className}`;
+                lineElement.innerHTML = line;
+                this.outputElement.appendChild(lineElement);
             }
         }
+
+        this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
     processAnsiCodes(text) {
         const ansiColorMap = {
-            '31': 'console-error',
-            '32': 'console-success',
-            '33': 'console-warning',
-            '34': 'console-info',
             '30': 'ansi-black',
             '31': 'ansi-red',
             '32': 'ansi-green',
@@ -161,27 +196,29 @@ class InteractiveConsole {
             '35': 'ansi-magenta',
             '36': 'ansi-cyan',
             '37': 'ansi-white',
+            '90': 'ansi-bright-black',
+            '91': 'ansi-bright-red',
+            '92': 'ansi-bright-green',
+            '93': 'ansi-bright-yellow',
+            '94': 'ansi-bright-blue',
+            '95': 'ansi-bright-magenta',
+            '96': 'ansi-bright-cyan',
+            '97': 'ansi-bright-white',
             '1': 'ansi-bold',
-            '3': 'ansi-italic'
+            '3': 'ansi-italic',
+            '4': 'ansi-underline'
         };
 
         return text
             .replace(/\x1b\[([0-9;]*)m/g, (match, p1) => {
+                if (p1 === '0' || p1 === '') return '</span>';
                 const classes = p1.split(';')
                     .map(code => ansiColorMap[code])
                     .filter(Boolean)
                     .join(' ');
-                return classes ? `<span class="${classes}">` : '</span>';
+                return classes ? `<span class="${classes}">` : '';
             })
-            .replace(/\n/g, '<br>');
-    }
-
-    appendError(message) {
-        this.appendOutput(message, 'console-error');
-    }
-
-    appendSuccess(message) {
-        this.appendOutput(message, 'console-success');
+            .replace(/\r\n|\r|\n/g, '<br>');
     }
 
     clear() {
@@ -209,46 +246,50 @@ class InteractiveConsole {
         }
     }
 
+    handleCtrlC() {
+        if (this.isWaitingForInput) {
+            this.appendOutput('^C\n');
+            this.isWaitingForInput = false;
+            this.enable();
+            // Send termination signal to backend
+            if (this.sessionId) {
+                fetch('/terminate_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify({
+                        session_id: this.sessionId
+                    })
+                }).catch(console.error);
+            }
+        }
+    }
+
+    navigateHistory(direction) {
+        if (!this.history.length) return;
+
+        this.historyIndex += direction;
+
+        if (this.historyIndex >= this.history.length) {
+            this.historyIndex = this.history.length - 1;
+        } else if (this.historyIndex < 0) {
+            this.historyIndex = 0;
+        }
+
+        this.inputElement.value = this.history[this.historyIndex];
+        setTimeout(() => {
+            this.inputElement.selectionStart = this.inputElement.value.length;
+            this.inputElement.selectionEnd = this.inputElement.value.length;
+        }, 0);
+    }
+
     setSession(sessionId) {
         this.sessionId = sessionId;
-    }
-
-    startPollingOutput() {
-        if (!this.sessionId) return;
-
-        const pollOutput = async () => {
-            try {
-                const response = await fetch(`/get_output?session_id=${this.sessionId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to get output');
-                }
-
-                const data = await response.json();
-                if (data.success) {
-                    if (data.output) {
-                        this.appendOutput(data.output);
-                    }
-                    this.isWaitingForInput = data.waiting_for_input;
-
-                    if (data.session_ended) {
-                        this.sessionId = null;
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.error('Error polling output:', error);
-            }
-
-            if (this.sessionId) {
-                setTimeout(pollOutput, 100);
-            }
-        };
-
-        pollOutput();
-    }
-    handleTabCompletion() {
-        // Implement code completion here
-        // This will be similar to W3Schools' implementation
+        if (sessionId) {
+            this.startPollingOutput();
+        }
     }
 }
 

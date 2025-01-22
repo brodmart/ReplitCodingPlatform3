@@ -341,10 +341,10 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(code)
 
-            # Compile C++ code
+            # Compile C++ code with optimized settings
             executable = Path(session.temp_dir) / "program"
             compile_process = subprocess.run(
-                ['g++', '-std=c++17', str(source_file), '-o', str(executable)],
+                ['g++', '-std=c++17', '-O2', str(source_file), '-o', str(executable)],
                 capture_output=True,
                 text=True,
                 timeout=MAX_COMPILATION_TIME
@@ -359,7 +359,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             # Make executable
             executable.chmod(0o755)
 
-            # Start interactive process
+            # Start interactive process with proper PTY support
             process = subprocess.Popen(
                 [str(executable)],
                 stdin=subprocess.PIPE,
@@ -367,31 +367,35 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,  # Line buffering
-                cwd=str(session.temp_dir)
+                cwd=str(session.temp_dir),
+                env={"TERM": "xterm-256color"}  # Proper terminal support
             )
 
             session.process = process
 
-            # Start output monitoring thread
+            # Enhanced output monitoring thread
             def monitor_output():
                 while process.poll() is None:
+                    # Use select with a short timeout for responsive I/O
                     readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
                     for stream in readable:
-                        # Read larger chunks for better output handling
-                        chunk = stream.read(1024)
+                        # Enhanced chunk reading for better performance
+                        chunk = stream.read1(4096) if hasattr(stream, 'read1') else stream.read(4096)
                         if chunk:
                             if stream == process.stdout:
-                                session.stdout_buffer.append(chunk)
-                                # Enhanced prompt detection with larger context
-                                recent_output = ''.join(session.stdout_buffer[-1024:])
-                                if any(prompt in recent_output.lower() for prompt in [
-                                    'input', 'enter', 'type', '?', ':', '>',
-                                    'choice', 'select', 'press', 'continue'
-                                ]):
+                                decoded_chunk = chunk.decode('utf-8', errors='replace')
+                                session.stdout_buffer.append(decoded_chunk)
+                                # Improved input prompt detection
+                                recent_output = ''.join(session.stdout_buffer[-10:])
+                                if (not session.waiting_for_input and 
+                                    any(prompt in recent_output.lower() for prompt in [
+                                        'input', 'enter', 'type', '?', ':', '>',
+                                        'choice', 'select', 'press', 'continue'
+                                    ])):
                                     session.waiting_for_input = True
                             else:
-                                session.stderr_buffer.append(chunk)
+                                session.stderr_buffer.append(chunk.decode('utf-8', errors='replace'))
                             session.last_activity = time.time()
 
             session.output_thread = Thread(target=monitor_output)
@@ -405,39 +409,37 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             }
 
         elif language == 'csharp':
-            # Don't wrap code that already has a Program class
-            if 'class Program' in code:
-                modified_code = code
-            else:
-                modified_code = f"""using System;
-using System.Collections.Generic;
-using System.Linq;
+            # Create optimized project for interactive console support
+            source_file = Path(session.temp_dir) / "Program.cs"
+            project_file = Path(session.temp_dir) / "program.csproj"
+
+            # Add necessary using statements if not present
+            if 'using System;' not in code:
+                code = f"""using System;
+using System.Text;
 using System.Threading;
 using System.Globalization;
-using System.Text;
 
 {code}"""
 
-            # Write code to temp file
-            source_file = Path(session.temp_dir) / "Program.cs"
             with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(modified_code)
+                f.write(code)
 
-            # Create project file for proper console app with console input support
-            project_file = Path(session.temp_dir) / "program.csproj"
+            # Create optimized project file with console support
             project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 </Project>"""
             with open(project_file, 'w', encoding='utf-8') as f:
                 f.write(project_content)
 
             try:
-                # Compile with enhanced settings for console I/O
-                start_time = time.time()
+                # Compile with enhanced console support
                 compile_process = subprocess.run(
                     ['dotnet', 'build', str(project_file),
                      '--configuration', 'Release',
@@ -449,7 +451,6 @@ using System.Text;
                     timeout=MAX_COMPILATION_TIME,
                     cwd=str(session.temp_dir)
                 )
-                compilation_time = time.time() - start_time
 
                 if compile_process.returncode != 0:
                     return {
@@ -457,7 +458,7 @@ using System.Text;
                         'error': format_csharp_error(compile_process.stderr)
                     }
 
-                # Run with enhanced interactive I/O settings
+                # Start the program with enhanced I/O handling
                 dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / "program.dll"
                 process = subprocess.Popen(
                     ['dotnet', str(dll_path)],
@@ -467,32 +468,37 @@ using System.Text;
                     text=True,
                     bufsize=1,  # Line buffering
                     cwd=str(session.temp_dir),
-                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
+                    env={
+                        **os.environ,
+                        'DOTNET_CONSOLE_ENCODING': 'utf-8',
+                        'TERM': 'xterm-256color',
+                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true'
+                    }
                 )
 
                 session.process = process
 
-                # Start output monitoring thread with improved prompt detection
+                # Enhanced output monitoring thread
                 def monitor_output():
                     while process.poll() is None:
                         readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
                         for stream in readable:
-                            # Read larger chunks for better output handling
-                            chunk = stream.read(1024)
+                            chunk = stream.read1(4096) if hasattr(stream, 'read1') else stream.read(4096)
                             if chunk:
                                 if stream == process.stdout:
-                                    session.stdout_buffer.append(chunk)
-                                    # Enhanced prompt detection for both languages
-                                    recent_output = ''.join(session.stdout_buffer[-1024:])
-                                    if any(prompt in recent_output.lower() for prompt in [
-                                        'input', 'enter', 'type', '?', ':', '>',
-                                        'choice', 'select', 'press', 'continue',
-                                        'choix', 'votre choix', 'entrer'
-                                    ]):
+                                    decoded_chunk = chunk.decode('utf-8', errors='replace')
+                                    session.stdout_buffer.append(decoded_chunk)
+                                    # Enhanced prompt detection
+                                    recent_output = ''.join(session.stdout_buffer[-10:])
+                                    if (not session.waiting_for_input and 
+                                        any(prompt in recent_output.lower() for prompt in [
+                                            'input', 'enter', 'type', '?', ':', '>',
+                                            'choice', 'select', 'press', 'continue'
+                                        ])):
                                         session.waiting_for_input = True
                                 else:
-                                    session.stderr_buffer.append(chunk)
+                                    session.stderr_buffer.append(chunk.decode('utf-8', errors='replace'))
                                 session.last_activity = time.time()
 
                 session.output_thread = Thread(target=monitor_output)
@@ -502,8 +508,7 @@ using System.Text;
                 return {
                     'success': True,
                     'session_id': session.session_id,
-                    'interactive': True,
-                    'compilation_time': compilation_time
+                    'interactive': True
                 }
 
             except subprocess.TimeoutExpired:
