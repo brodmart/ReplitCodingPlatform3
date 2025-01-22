@@ -3,8 +3,8 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        this.outputElement = options.outputElement;
-        this.inputElement = options.inputElement;
+        this.outputElement = options.outputElement || document.getElementById('consoleOutput');
+        this.inputElement = options.inputElement || document.getElementById('consoleInput');
         this.language = options.language || 'cpp';
         this.isWaitingForInput = false;
         this.sessionId = null;
@@ -16,12 +16,19 @@ class InteractiveConsole {
             throw new Error('Console requires output and input elements');
         }
 
+        // Initialize Socket.IO with debugging and proper configuration
         this.socket = io({
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000,
-            timeout: 20000
+            timeout: 20000,
+            transports: ['websocket', 'polling'],
+            path: '/socket.io',  // Ensure correct Socket.IO path
+            autoConnect: true    // Enable auto-connect
         });
+
+        // Enable Socket.IO debug logging
+        localStorage.debug = '*';
 
         this.setupSocketHandlers();
         this.setupInputHandlers();
@@ -29,59 +36,81 @@ class InteractiveConsole {
         this.history = [];
         this.historyIndex = -1;
         this.maxBufferSize = 4096;
+
+        // Log successful initialization
+        console.debug('Interactive Console initialized with config:', {
+            language: this.language,
+            outputElement: this.outputElement.id,
+            inputElement: this.inputElement.id
+        });
     }
 
     setupSocketHandlers() {
+        // Basic Socket.IO event handlers with enhanced logging
         this.socket.on('connect', () => {
-            console.debug('Socket.IO connected');
+            console.debug('Socket.IO connected, socket id:', this.socket.id);
             this.appendSystemMessage('Console connected');
+
+            // Reattach to session if exists
             if (this.sessionId) {
-                this.socket.emit('session_start', { session_id: this.sessionId });
+                console.debug('Reattaching to session:', this.sessionId);
+                this.socket.emit('session_start', { 
+                    session_id: this.sessionId,
+                    language: this.language 
+                });
             }
         });
 
-        this.socket.on('disconnect', () => {
-            console.debug('Socket.IO disconnected');
+        this.socket.on('disconnect', (reason) => {
+            console.debug('Socket.IO disconnected:', reason);
             this.appendSystemMessage('Console disconnected. Attempting to reconnect...');
             this.disableInput();
         });
 
-        this.socket.on('error', (error) => {
-            console.error('Socket.IO error:', error);
+        this.socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
             this.appendError(`Connection error: ${error.message}`);
             this.disableInput();
         });
 
+        // Enhanced compilation result handling
         this.socket.on('compilation_result', (result) => {
-            console.debug('Compilation result:', result);
+            console.debug('Received compilation result:', result);
+
             if (result.success) {
                 this.sessionId = result.session_id;
+                console.debug('Compilation successful, session ID:', this.sessionId);
+
                 if (!result.interactive && result.output) {
                     this.appendOutput(result.output);
                 }
             } else {
+                console.error('Compilation failed:', result.error);
                 this.appendError(`Compilation Error: ${result.error}`);
                 this.disableInput();
             }
         });
 
-        // Enhanced output handling
+        // Enhanced output handling with debug logging
         this.socket.on('output', (data) => {
-            console.debug('Received output:', data);
+            console.debug('Received output event:', data);
 
             if (data.error) {
+                console.error('Program error:', data.error);
                 this.appendError(data.error);
                 this.disableInput();
                 return;
             }
 
             if (data.output) {
+                console.debug('Processing output:', {
+                    raw: data.output,
+                    waitingForInput: data.waiting_for_input
+                });
+
                 // Process and clean the output
                 const cleanOutput = this.cleanOutput(data.output);
-                this.outputBuffer += cleanOutput;
-
-                // Process and display the output
-                this.processAndDisplayOutput();
+                this.appendOutput(cleanOutput, 'console-output');
 
                 // Update input state
                 this.isWaitingForInput = data.waiting_for_input || false;
@@ -90,6 +119,30 @@ class InteractiveConsole {
 
             // Auto-scroll to bottom
             this.scrollToBottom();
+        });
+
+        // Log all socket events for debugging
+        this.socket.onAny((eventName, ...args) => {
+            console.debug(`Socket event '${eventName}':`, args);
+        });
+
+        // Reconnection events
+        this.socket.on('reconnect_attempt', (attemptNumber) => {
+            console.debug('Socket.IO reconnection attempt:', attemptNumber);
+        });
+
+        this.socket.on('reconnect', (attemptNumber) => {
+            console.debug('Socket.IO reconnected after attempts:', attemptNumber);
+            this.appendSystemMessage('Console reconnected');
+        });
+
+        this.socket.on('reconnect_error', (error) => {
+            console.error('Socket.IO reconnection error:', error);
+        });
+
+        this.socket.on('reconnect_failed', () => {
+            console.error('Socket.IO reconnection failed');
+            this.appendError('Failed to reconnect to server');
         });
     }
 
@@ -150,6 +203,7 @@ class InteractiveConsole {
         const input = this.inputElement.value;
         if (!input) return;
 
+        console.debug('Handling input:', input);
         this.inputElement.value = '';
         this.isProcessing = true;
 
@@ -162,6 +216,11 @@ class InteractiveConsole {
 
             if (this.sessionId && this.isWaitingForInput) {
                 if (this.socket && this.socket.connected) {
+                    console.debug('Sending input to server:', {
+                        sessionId: this.sessionId,
+                        input: input
+                    });
+
                     // Display the input
                     this.appendOutput(input + '\n', 'console-input');
 
@@ -210,9 +269,11 @@ class InteractiveConsole {
 
     updateInputState() {
         if (this.isWaitingForInput) {
+            console.debug('Enabling input - waiting for user input');
             this.enableInput();
             this.inputElement.focus();
         } else {
+            console.debug('Disabling input - not waiting for input');
             this.disableInput();
         }
     }
@@ -222,6 +283,7 @@ class InteractiveConsole {
 
         try {
             if (this.socket && this.socket.connected) {
+                console.debug('Sending interrupt signal for session:', this.sessionId);
                 this.socket.emit('interrupt', { session_id: this.sessionId });
                 this.appendOutput('^C\n', 'console-input');
                 this.handleSessionEnd();
@@ -235,6 +297,7 @@ class InteractiveConsole {
     }
 
     appendOutput(text, className = 'console-output') {
+        console.debug('Appending output:', { text, className });
         const processedText = this.processAnsiCodes(text);
         const lines = processedText.split('\n');
 
@@ -254,14 +317,17 @@ class InteractiveConsole {
     }
 
     appendError(message) {
+        console.error('Console error:', message);
         this.appendOutput(`Error: ${message}\n`, 'console-error');
     }
 
     appendSystemMessage(message) {
+        console.debug('System message:', message);
         this.appendOutput(`System: ${message}\n`, 'console-system');
     }
 
     clear() {
+        console.debug('Clearing console');
         this.outputElement.innerHTML = '';
         this.outputBuffer = '';
         this.inputBuffer = '';
@@ -285,6 +351,7 @@ class InteractiveConsole {
     }
 
     setLanguage(language) {
+        console.debug('Setting language:', language);
         this.language = language;
     }
 
@@ -309,6 +376,7 @@ class InteractiveConsole {
     }
 
     setSession(sessionId) {
+        console.debug('Setting session:', sessionId);
         this.sessionId = sessionId;
         this.clear();
 
@@ -318,6 +386,7 @@ class InteractiveConsole {
     }
 
     handleSessionEnd() {
+        console.debug('Handling session end');
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.inputBuffer = '';
@@ -365,7 +434,7 @@ class InteractiveConsole {
     }
 }
 
-// Initialize web console
+// Initialize web console with debug logging enabled
 console.debug('Initializing web console...');
 
 // Export to window object
