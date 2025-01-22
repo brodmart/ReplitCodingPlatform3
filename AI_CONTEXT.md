@@ -23,6 +23,13 @@ Optimizing C# compilation performance by implementing caching and reducing build
 - Priority: Improve compiler performance and debugging C# compilation issues
 - Target: Faster compilation and execution times
 
+Critical: All code compilation and I/O interactions MUST happen within the web interface:
+- CodeMirror editor integration is mandatory for code input
+- Console I/O must be handled through the web console implementation
+- No command-line or external IDE compilation is allowed
+- All student interactions must occur through the web interface
+- Compiler service must integrate directly with the web console
+
 ## Core Educational Requirements:
 1. **Multi-Level Curriculum Support**:
    - Support for multiple Ontario curriculum levels:
