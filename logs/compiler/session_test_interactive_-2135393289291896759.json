@@ -1,0 +1,25 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-22T23:47:55.419294",
+    "data": {
+      "code_length": 298,
+      "timestamp": "2025-01-22T23:47:55.419205"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-22T23:47:57.190730",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "[Errno 2] No such file or directory: './/tmp/compiler_test_interactive_-2135393289291896759_qcuo_0u6/program'",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "[Errno 2] No such file or directory: './/tmp/compiler_test_interactive_-2135393289291896759_qcuo_0u6/program'"
+        }
+      },
+      "timestamp": "2025-01-22T23:47:57.190598"
+    }
+  }
+]

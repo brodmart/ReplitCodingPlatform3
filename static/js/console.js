@@ -7,102 +7,78 @@ class InteractiveConsole {
         this.inputElement = options.inputElement || document.getElementById('console-input');
         this.sessionId = null;
         this.isWaitingForInput = false;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5; // Increased from 3 to 5
         this.currentLanguage = 'csharp';
-        this.compilationTimeout = 60000; // Increased from 30s to 60s
+        this.compilationTimeout = 60000; // 60s timeout
 
         if (!this.outputElement || !this.inputElement) {
             console.error('Console initialization failed: Missing required elements');
             throw new Error('Console requires valid output and input elements');
         }
 
-        // Initialize Socket.IO with enhanced configuration and logging
-        this.socket = io({
-            transports: ['websocket'],
-            reconnection: true,
-            reconnectionAttempts: this.maxReconnectAttempts,
-            reconnectionDelay: 2000, // Increased from 1s to 2s
-            timeout: this.compilationTimeout,
-            pingTimeout: 60000,
-            pingInterval: 25000
-        });
-
         console.debug('Initializing Interactive Console...');
+        this.setupSocket();
         this.setupEventHandlers();
         this.clear();
     }
 
-    setupEventHandlers() {
+    setupSocket() {
+        // Initialize Socket.IO with simple configuration
+        this.socket = io({
+            transports: ['websocket'],
+            reconnection: true,
+            reconnectionAttempts: 3,
+            timeout: this.compilationTimeout
+        });
+
         this.socket.on('connect', () => {
-            console.debug('Socket connected successfully');
-            this.reconnectAttempts = 0;
-            this.appendSystemMessage('Connected to console server');
+            console.debug('Socket connected');
+            this.appendSystemMessage('Connected to server');
         });
 
-        this.socket.on('connect_error', (error) => {
-            console.error('Socket connection error:', error);
-            this.appendError(`Connection error: ${error.message}`);
-            this.reconnectAttempts++;
-            console.warn(`Reconnection attempt ${this.reconnectAttempts} of ${this.maxReconnectAttempts}`);
-            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                this.appendError('Maximum reconnection attempts reached. Please refresh the page.');
-                this.socket.disconnect();
-            }
-        });
-
-        this.socket.on('disconnect', (reason) => {
-            console.warn('Socket disconnected:', reason);
-            this.appendSystemMessage(`Disconnected from console server (${reason})`);
-            if (reason === 'io server disconnect') {
-                // Server initiated disconnect, try to reconnect
-                this.socket.connect();
-            }
+        this.socket.on('disconnect', () => {
+            console.debug('Socket disconnected');
+            this.appendSystemMessage('Disconnected from server');
             this.disableInput();
         });
 
+        this.socket.on('error', (error) => {
+            console.error('Socket error:', error);
+            this.appendError(`Server error: ${error.message}`);
+            this.disableInput();
+        });
+    }
+
+    setupEventHandlers() {
         this.socket.on('output', (data) => {
-            console.debug('Received output event:', data);
+            console.debug('Received output:', data);
+
             if (data.error) {
-                console.error('Output error:', data.error);
                 this.appendError(data.error);
                 return;
             }
 
-            if (data.output !== undefined) {
-                console.debug('Processing output:', { output: data.output, waiting: data.waiting_for_input });
-                // Only append non-empty output
-                if (data.output && data.output.trim().length > 0) {
-                    this.appendOutput(data.output);
-                }
-
-                // Always update input state for interactive sessions
-                this.isWaitingForInput = data.waiting_for_input !== false;  // Default to true for interactive
-                this.updateInputState();
+            if (data.output) {
+                this.appendOutput(data.output);
             }
+
+            // Update input state based on server's indication
+            this.isWaitingForInput = data.waiting_for_input;
+            this.updateInputState();
         });
 
         this.socket.on('compilation_result', (data) => {
-            console.debug('Received compilation result:', data);
-
-            // Clear any existing compilation timeout
-            if (this.compilationTimeoutId) {
-                clearTimeout(this.compilationTimeoutId);
-                this.compilationTimeoutId = null;
-            }
+            console.debug('Compilation result:', data);
 
             if (!data.success) {
-                console.error('Compilation failed:', data.error);
-                this.appendError(`Compilation error: ${data.error}`);
+                this.appendError(`Compilation failed: ${data.error}`);
                 return;
             }
 
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                console.debug(`Session started: ${this.sessionId}`);
-                this.appendSystemMessage('Program compiled successfully, waiting for output...');
+                this.appendSystemMessage('Program started successfully');
 
-                // Enable input for interactive sessions by default
+                // Enable input for interactive sessions
                 if (data.interactive) {
                     this.isWaitingForInput = true;
                     this.updateInputState();
@@ -110,16 +86,7 @@ class InteractiveConsole {
             }
         });
 
-        this.socket.on('error', (data) => {
-            console.error('Server error:', data);
-            this.appendError(`Server error: ${data.message}`);
-            // Attempt to reconnect on server errors
-            if (this.socket.connected) {
-                this.socket.disconnect().connect();
-            }
-        });
-
-        // Input handler with enhanced error logging
+        // Input handler
         this.inputElement.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -128,37 +95,26 @@ class InteractiveConsole {
         });
     }
 
-    async handleInput() {
+    handleInput() {
         if (!this.isEnabled || !this.sessionId) {
-            console.debug('Input handler: not enabled or no session', {
-                isEnabled: this.isEnabled,
-                sessionId: this.sessionId
-            });
+            console.debug('Input handler: disabled or no session');
             return;
         }
 
         const input = this.inputElement.value.trim();
         if (!input) return;
 
-        try {
-            console.debug('Sending input to server:', {
-                sessionId: this.sessionId,
-                input: input
-            });
-            this.inputElement.value = '';
-            this.appendOutput(`> ${input}\n`, 'console-input');
+        console.debug('Sending input:', input);
+        this.inputElement.value = '';
+        this.appendOutput(`> ${input}\n`, 'console-input');
 
-            this.socket.emit('input', {
-                session_id: this.sessionId,
-                input: input + '\n'
-            });
+        this.socket.emit('input', {
+            session_id: this.sessionId,
+            input: input
+        });
 
-            this.isWaitingForInput = false;
-            this.updateInputState();
-        } catch (error) {
-            console.error('Input handler error:', error);
-            this.appendError(`Failed to send input: ${error.message}`);
-        }
+        this.isWaitingForInput = false;
+        this.updateInputState();
     }
 
     appendOutput(text, className = '') {
@@ -193,20 +149,18 @@ class InteractiveConsole {
     }
 
     enableInput() {
-        console.debug('Enabling console input');
+        console.debug('Enabling input');
         this.isEnabled = true;
         this.inputElement.disabled = false;
         this.inputElement.placeholder = 'Enter input...';
-        this.inputElement.classList.remove('console-disabled');
         this.inputElement.focus();
     }
 
     disableInput() {
-        console.debug('Disabling console input');
+        console.debug('Disabling input');
         this.isEnabled = false;
         this.inputElement.disabled = true;
-        this.inputElement.placeholder = 'Console disconnected';
-        this.inputElement.classList.add('console-disabled');
+        this.inputElement.placeholder = 'Console inactive';
     }
 
     updateInputState() {
@@ -215,7 +169,6 @@ class InteractiveConsole {
             sessionId: this.sessionId
         });
 
-        // Enable input if we have a session and are waiting for input
         if (this.sessionId && this.isWaitingForInput) {
             this.enableInput();
         } else {
@@ -224,33 +177,13 @@ class InteractiveConsole {
     }
 
     compileAndRun(code) {
-        console.debug('Compiling and running code:', {
+        console.debug('Compiling code:', {
             codeLength: code.length,
             language: this.currentLanguage
         });
+
         this.clear();
         this.appendSystemMessage('Compiling and running program...');
-
-        // Clear any existing session and timeout
-        this.sessionId = null;
-        this.isWaitingForInput = false;
-        if (this.compilationTimeoutId) {
-            clearTimeout(this.compilationTimeoutId);
-        }
-
-        // Set compilation timeout handler with automatic reconnect
-        this.compilationTimeoutId = setTimeout(() => {
-            if (!this.sessionId) {
-                console.error('Compilation timeout - no response received');
-                this.appendError('Compilation timeout - no response received from server. Attempting to reconnect...');
-                if (this.socket.connected) {
-                    this.socket.disconnect();
-                }
-                setTimeout(() => {
-                    this.socket.connect();
-                }, 1000);
-            }
-        }, this.compilationTimeout);
 
         this.socket.emit('compile_and_run', {
             code,

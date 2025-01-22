@@ -143,3 +143,25 @@
 2025-01-22 23:40:50,687 - compiler:26 - INFO - Starting compilation for session test_interactive_751604118671888728 - MainProcess:MainThread
 2025-01-22 23:40:55,228 - compiler:26 - INFO - Session test_interactive_-6742847887510924632 state changed to: session_started - MainProcess:MainThread
 2025-01-22 23:40:55,245 - compiler:26 - INFO - Session test_interactive_2562924428697013598 state changed to: session_started - MainProcess:MainThread
+2025-01-22 23:45:39,898 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:42,493 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:43,018 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:43,600 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:43,898 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:44,203 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:44,624 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:45,405 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:48,490 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:48,498 - compiler:26 - INFO - Starting compilation for session test_interactive_3864578345054529524 - MainProcess:MainThread
+2025-01-22 23:47:50,149 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:52,510 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:54,378 - compiler:26 - INFO - Session test_interactive_3864578345054529524 state changed to: session_started - MainProcess:MainThread
+2025-01-22 23:47:54,618 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:54,724 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:54,762 - compiler:26 - INFO - Starting compilation for session test_interactive_-8074868202826546056 - MainProcess:MainThread
+2025-01-22 23:47:54,763 - compiler:26 - INFO - Starting compilation for session test_interactive_2207849083419624783 - MainProcess:MainThread
+2025-01-22 23:47:55,405 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:47:55,417 - compiler:26 - INFO - Starting compilation for session test_interactive_-2135393289291896759 - MainProcess:MainThread
+2025-01-22 23:47:57,181 - compiler:34 - ERROR - Compilation error in session test_interactive_-2135393289291896759: [Errno 2] No such file or directory: './/tmp/compiler_test_interactive_-2135393289291896759_qcuo_0u6/program' - MainProcess:MainThread
+2025-01-22 23:47:57,197 - compiler:26 - INFO - Starting compilation for session test_interactive_-4552275967527800543 - MainProcess:MainThread
+2025-01-22 23:48:04,140 - compiler:26 - INFO - Session test_interactive_-8074868202826546056 state changed to: session_started - MainProcess:MainThread

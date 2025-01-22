@@ -1,0 +1,17 @@
+2025-01-22 23:47:55,420 - compiler_service:743 - DEBUG - Starting compilation for code length: 298, language: cpp - MainProcess:MainThread
+2025-01-22 23:47:55,420 - compiler_service:456 - INFO - Starting cpp interactive session test_interactive_-2135393289291896759 - MainProcess:MainThread
+2025-01-22 23:47:55,422 - compiler_service:514 - DEBUG - Compiling C++ program - MainProcess:MainThread
+2025-01-22 23:47:57,162 - compiler_service:527 - DEBUG - Starting C++ program - MainProcess:MainThread
+2025-01-22 23:47:57,181 - compiler_service:572 - ERROR - Session start error: Traceback (most recent call last):
+  File "/home/runner/workspace/compiler_service.py", line 528, in start_interactive_session
+    process = subprocess.Popen(
+              ^^^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: './/tmp/compiler_test_interactive_-2135393289291896759_qcuo_0u6/program'
+ - MainProcess:MainThread
+2025-01-22 23:47:57,220 - compiler_service:743 - DEBUG - Starting compilation for code length: 269, language: csharp - MainProcess:MainThread
+2025-01-22 23:47:57,221 - compiler_service:456 - INFO - Starting csharp interactive session test_interactive_-4552275967527800543 - MainProcess:MainThread
+2025-01-22 23:47:57,221 - compiler_service:482 - DEBUG - Compiling C# program - MainProcess:MainThread
