@@ -35,20 +35,32 @@ class ResourceMonitor:
         cpu_percent = psutil.cpu_percent(interval=0.1)
         memory = psutil.virtual_memory()
 
-        self.cpu_history.append(cpu_percent)
-        self.memory_history.append(memory.percent)
+        # Only store history when explicitly monitoring
+        if len(self.cpu_history) > 0 or len(self.memory_history) > 0:
+            self.cpu_history.append(cpu_percent)
+            self.memory_history.append(memory.percent)
 
-        # Keep history size bounded
-        if len(self.cpu_history) > self.history_size:
-            self.cpu_history.pop(0)
-        if len(self.memory_history) > self.history_size:
-            self.memory_history.pop(0)
+            # Keep history size bounded
+            if len(self.cpu_history) > self.history_size:
+                self.cpu_history.pop(0)
+            if len(self.memory_history) > self.history_size:
+                self.memory_history.pop(0)
 
         return {
             'cpu_percent': cpu_percent,
             'memory_percent': memory.percent,
             'memory_available': memory.available / (1024 * 1024)  # MB
         }
+
+    def start_monitoring(self):
+        """Start collecting resource usage history"""
+        self.cpu_history = []
+        self.memory_history = []
+
+    def stop_monitoring(self):
+        """Stop collecting resource usage history"""
+        self.cpu_history = []
+        self.memory_history = []
 
     def get_load_level(self) -> str:
         """Determine current load level based on resource usage"""
@@ -72,7 +84,8 @@ class PerformanceOptimizer:
         self.suggestions_history: List[OptimizationSuggestion] = []
         self.resource_monitor = ResourceMonitor()
         self._init_metrics()
-        self.optimization_analyzer = OptimizationAnalyzer() #Added this line
+        # Remove automatic analyzer initialization
+        self.optimization_analyzer = None
 
     def _init_metrics(self):
         """Initialize metrics tracking"""
@@ -120,17 +133,18 @@ class PerformanceOptimizer:
         self._update_language_metrics(language, metrics)
         
         # Incorporate historical analysis
-        historical_analysis = self.optimization_analyzer.analyze_performance()
-        if historical_analysis["bottlenecks"]:
-            for bottleneck in historical_analysis["bottlenecks"]:
-                suggestions.append(OptimizationSuggestion(
-                    category='compiler',
-                    priority=3,
-                    issue=bottleneck,
-                    impact='Potential performance issue based on historical data',
-                    recommendation=self._get_historical_recommendation(bottleneck),
-                    metrics=historical_analysis
-                ))
+        if self.optimization_analyzer: #Check if analyzer is initialized
+            historical_analysis = self.optimization_analyzer.analyze_performance()
+            if historical_analysis["bottlenecks"]:
+                for bottleneck in historical_analysis["bottlenecks"]:
+                    suggestions.append(OptimizationSuggestion(
+                        category='compiler',
+                        priority=3,
+                        issue=bottleneck,
+                        impact='Potential performance issue based on historical data',
+                        recommendation=self._get_historical_recommendation(bottleneck),
+                        metrics=historical_analysis
+                    ))
 
         return suggestions
 
@@ -249,7 +263,6 @@ class PerformanceOptimizer:
         }
         return recommendations.get(error_type, 'Review system logs and monitoring data')
 
-
 class OptimizationAnalyzer:
     def __init__(self):
         self.metrics_file = Path("compiler_metrics.json")
@@ -300,16 +313,24 @@ class OptimizationAnalyzer:
 
         return analysis
 
+# Initialize optimizer only when needed
+optimizer = None
+def get_optimizer():
+    global optimizer
+    if optimizer is None:
+        optimizer = PerformanceOptimizer()
+        optimizer.optimization_analyzer = OptimizationAnalyzer() # Initialize here
+    return optimizer
+
 if __name__ == "__main__":
-    optimizer = PerformanceOptimizer()
     # Example usage:
     sample_metrics = {'language': 'cpp', 'compilation_time': 1.5, 'success': True, 'peak_memory': 512}
+    optimizer = get_optimizer()
     suggestions = optimizer.analyze_compiler_metrics(sample_metrics)
     report = optimizer.get_system_health_report()
     print("Optimization Suggestions:", suggestions)
     print("\nSystem Health Report:", report)
-    analyzer = OptimizationAnalyzer()
-    analysis = analyzer.analyze_performance()
+    analysis = optimizer.optimization_analyzer.analyze_performance()
     print("\nPerformance Analysis:")
     print(f"Average compilation time: {analysis['avg_compilation_time']:.2f}s")
     print(f"Average execution time: {analysis['avg_execution_time']:.2f}s")

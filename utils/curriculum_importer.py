@@ -12,6 +12,8 @@ class CurriculumImporter:
     def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.DEBUG)
+        # Remove automatic loading of course data during initialization
+        # Data will be loaded on-demand when needed
 
     def parse_expectation(self, line: str) -> Tuple[str, str, str, str]:
         """
@@ -48,7 +50,7 @@ class CurriculumImporter:
 
         return None, None, None, None
 
-    def import_curriculum(self, content: str) -> None:
+    def import_curriculum(self, content: str, course_code: str = "ICS3U") -> None:
         """Import curriculum content into database"""
         try:
             # Initialize tracking dictionaries
@@ -56,20 +58,20 @@ class CurriculumImporter:
             overall_expectations = {}  # key: overall_code, value: OverallExpectation object
 
             with db.session.begin():
-                # Clear existing ICS3U data
-                Course.query.filter_by(code='ICS3U').delete()
+                # Clear existing course data
+                Course.query.filter_by(code=course_code).delete()
                 db.session.commit()
-                self.logger.info("Cleared existing ICS3U data")
+                self.logger.debug(f"Cleared existing {course_code} data")
 
                 # Create course
                 course = Course(
-                    code='ICS3U',
-                    title_fr='Introduction au génie informatique, 11e année',
-                    title_en='Introduction to Computer Science, Grade 11'
+                    code=course_code,
+                    title_fr=f'Introduction au génie informatique, {course_code[-2:]}e année',
+                    title_en=f'Introduction to Computer Science, Grade {course_code[-2:]}'
                 )
                 db.session.add(course)
                 db.session.flush()
-                self.logger.info(f"Created course: {course.code}")
+                self.logger.debug(f"Created course: {course.code}")
 
                 # Process each line
                 lines = [line for line in content.split('\n') if line.strip()]
@@ -89,7 +91,7 @@ class CurriculumImporter:
                         db.session.add(strand)
                         db.session.flush()
                         strands[strand_code] = strand
-                        self.logger.info(f"Created strand: {strand_code}")
+                        self.logger.debug(f"Created strand: {strand_code}")
 
                     # Handle overall expectation
                     if overall_code and not specific_code:
@@ -102,7 +104,7 @@ class CurriculumImporter:
                         db.session.add(overall)
                         db.session.flush()
                         overall_expectations[overall_code] = overall
-                        self.logger.info(f"Created overall expectation: {overall_code}")
+                        self.logger.debug(f"Created overall expectation: {overall_code}")
 
                     # Handle specific expectation
                     elif specific_code:
@@ -122,36 +124,16 @@ class CurriculumImporter:
                 db.session.commit()
                 self.logger.info("Curriculum import completed successfully")
 
-                # Verify import results
-                course_check = Course.query.filter_by(code='ICS3U').first()
-                if course_check:
-                    strand_count = len(strands)
-                    overall_count = len(overall_expectations)
-                    specific_count = SpecificExpectation.query.join(
-                        OverallExpectation
-                    ).join(
-                        Strand
-                    ).filter(
-                        Strand.course_id == course_check.id
-                    ).count()
-
-                    self.logger.info(f"Import statistics:")
-                    self.logger.info(f"- Strands: {strand_count}")
-                    self.logger.info(f"- Overall Expectations: {overall_count}")
-                    self.logger.info(f"- Specific Expectations: {specific_count}")
-                else:
-                    self.logger.error("Failed to verify course after import")
-
         except Exception as e:
             self.logger.error(f"Import failed: {str(e)}")
             db.session.rollback()
             raise
 
-    def clear_existing_data(self) -> None:
+    def clear_existing_data(self, course_code: str = "ICS3U") -> None:
         """Clear existing curriculum data"""
         try:
             with db.session.begin():
-                Course.query.filter_by(code='ICS3U').delete()
+                Course.query.filter_by(code=course_code).delete()
             db.session.commit()
         except Exception as e:
             self.logger.error(f"Error clearing data: {str(e)}")

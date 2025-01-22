@@ -5,7 +5,9 @@ import logging
 import os
 import psutil
 
-logging.basicConfig(level=logging.DEBUG)
+# Only enable debug logging when running tests directly
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def get_system_metrics():

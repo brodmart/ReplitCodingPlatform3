@@ -42,25 +42,35 @@ class TemplateManager:
         self.template_cache: Dict[str, Template] = {}
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._ensure_template_directory()
-        self.load_templates()
+        # Remove automatic template loading during initialization
+        # Templates will be loaded on-demand when needed
 
     def _ensure_template_directory(self) -> None:
         """Ensure template directory exists with proper structure"""
         os.makedirs(self.template_dir, exist_ok=True)
-        # Create all category subdirectories
-        categories = ['routes', 'models', 'forms', 'tests', 'route']  # Added 'route' for auth_route template
+        # Create all category subdirectories only when needed
+        categories = ['routes', 'models', 'forms', 'tests', 'route']
         for category in categories:
             category_dir = os.path.join(self.template_dir, category)
             os.makedirs(category_dir, exist_ok=True)
-            logger.info(f"Ensured template directory exists: {category_dir}")
+            logger.debug(f"Ensured template directory exists: {category_dir}")
 
-    def load_templates(self) -> None:
-        """Load all templates with parallel processing"""
-        template_files = []
-        for root, _, files in os.walk(self.template_dir):
-            for file in files:
-                if file.endswith('.json'):
-                    template_files.append(os.path.join(root, file))
+    def load_templates(self, category: Optional[str] = None) -> None:
+        """Load templates on demand with optional category filter"""
+        if category:
+            template_dir = os.path.join(self.template_dir, category)
+            if not os.path.exists(template_dir):
+                logger.debug(f"Template directory {template_dir} does not exist")
+                return
+            template_files = [f for f in os.listdir(template_dir) if f.endswith('.json')]
+            template_files = [os.path.join(template_dir, f) for f in template_files]
+        else:
+            template_files = []
+            for root, _, files in os.walk(self.template_dir):
+                template_files.extend([
+                    os.path.join(root, f)
+                    for f in files if f.endswith('.json')
+                ])
 
         futures = [
             self.executor.submit(self._load_single_template, file)
@@ -92,8 +102,12 @@ class TemplateManager:
 
     def get_template(self, context: TemplateContext) -> Optional[Template]:
         """Get most relevant template based on context"""
-        relevant_templates = []
+        # Load templates for the specific purpose if not already loaded
+        category = context.purpose.lower()
+        if not any(t.context.purpose.lower() == category for t in self.template_cache.values()):
+            self.load_templates(category)
 
+        relevant_templates = []
         for template in self.template_cache.values():
             score = self._calculate_relevance(template, context)
             template.relevance_score = score

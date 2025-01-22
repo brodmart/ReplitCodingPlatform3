@@ -8,7 +8,7 @@ from flask_session import Session
 from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_app as init_db
-from utils.validation_utils import BlueprintValidator, validate_app_configuration
+from utils.validation_utils import validate_app_configuration
 
 # Configure logging
 logging.basicConfig(
@@ -23,22 +23,23 @@ class Anonymous(AnonymousUserMixin):
         self.username = 'Guest'
 
 def register_blueprints(app):
-    """Register Flask blueprints"""
-    # Import blueprints here to avoid circular dependencies
-    from routes.auth_routes import auth
-    from routes.activities import activities_bp
-    from routes.tutorial import tutorial_bp
-    from routes.static_routes import static_pages
-    from routes.curriculum_routes import curriculum_bp
+    """Register Flask blueprints lazily"""
+    with app.app_context():
+        # Import blueprints here to avoid circular dependencies and early loading
+        from routes.auth_routes import auth
+        from routes.activities import activities_bp
+        from routes.tutorial import tutorial_bp
+        from routes.static_routes import static_pages
+        from routes.curriculum_routes import curriculum_bp
 
-    app.register_blueprint(auth)
-    app.register_blueprint(activities_bp)
-    app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
-    app.register_blueprint(static_pages)
-    app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
+        app.register_blueprint(auth)
+        app.register_blueprint(activities_bp)
+        app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+        app.register_blueprint(static_pages)
+        app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
 
 def setup_error_handlers(app):
-    """Setup Flask error handlers"""
+    """Setup Flask error handlers lazily"""
     @app.errorhandler(404)
     def not_found_error(error):
         logger.warning(f"404 error: {error}")
@@ -93,12 +94,13 @@ def create_app():
         init_db(app)
         migrate = Migrate(app, db)
 
-        # Initialize other extensions
+        # Initialize other extensions lazily
         CORS(app)
-        CSRFProtect(app)
+        csrf = CSRFProtect()
+        csrf.init_app(app)
         Session(app)
 
-        # Setup Login Manager
+        # Setup Login Manager lazily
         login_manager = LoginManager()
         login_manager.init_app(app)
         login_manager.anonymous_user = Anonymous
@@ -109,6 +111,7 @@ def create_app():
         @login_manager.user_loader
         def load_user(user_id):
             try:
+                # Import Student model lazily to avoid circular imports
                 from models import Student
                 return Student.query.get(int(user_id))
             except Exception as e:
@@ -124,8 +127,6 @@ def create_app():
         # Initialize session with default language if not set
         @app.before_request
         def before_request():
-            logger.debug(f"Before request - Session ID: {id(session)}")
-            logger.debug(f"Current session data: {dict(session)}")
             if 'lang' not in session:
                 session['lang'] = app.config['DEFAULT_LANGUAGE']
                 session.modified = True

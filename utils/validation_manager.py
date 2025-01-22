@@ -8,7 +8,6 @@ the memory management system, ensuring data integrity and consistency.
 import os
 import json
 import logging
-import re
 from typing import Dict, List, Optional, Tuple, Set
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -30,6 +29,8 @@ class ValidationManager:
         self.validation_log = os.path.join(self.base_dir, 'validation_results.json')
         self.executor = ThreadPoolExecutor(max_workers=4)
         self.processed_files: Set[str] = set()
+        # Remove automatic validation during initialization
+        # Validations will be run on-demand when needed
 
     def run_validation_suite(self) -> List[ValidationResult]:
         """Run all validation tests in parallel"""

@@ -42,21 +42,26 @@ def verify_memory_files():
             missing.append(os.path.basename(file_path))
     return missing
 
-# Initialize memory manager and verify files
-memory_manager = MemoryManager()
-validation_results = memory_manager.validate_files()
+# Initialize memory manager and verify files only when needed
+memory_manager = None
 
-# Log initialization status
-if all(validation_results.values()):
-    logger.info("Memory system initialized successfully")
-    # Load AI context automatically
-    context = memory_manager.load_ai_context()
-    if context:
-        logger.info("AI context loaded successfully")
-    else:
-        logger.warning("Failed to load AI context")
-else:
-    logger.warning("Some memory files are invalid or missing")
+def init_memory_system():
+    """Initialize memory system only when required"""
+    global memory_manager
+    if memory_manager is None:
+        memory_manager = MemoryManager()
+        validation_results = memory_manager.validate_files()
+
+        if all(validation_results.values()):
+            logger.info("Memory system initialized successfully")
+            # Load AI context only when needed
+            context = memory_manager.load_ai_context()
+            if context:
+                logger.info("AI context loaded successfully")
+            else:
+                logger.warning("Failed to load AI context")
+        else:
+            logger.warning("Some memory files are invalid or missing")
 
 # This will help future AI sessions locate the memory files
 __ai_context_files__ = MEMORY_FILES
