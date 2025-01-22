@@ -5,27 +5,7 @@ const editorState = {
     currentLanguage: 'cpp',
     isInitialized: false,
     terminal: null,
-    currentSession: null,
-    templates: {
-        cpp: `#include <iostream>
-using namespace std;
-
-int main() {
-    // Your C++ code here
-    cout << "Hello World!" << endl;
-    return 0;
-}`,
-        csharp: `using System;
-
-class Program 
-{
-    static void Main(string[] args)
-    {
-        // Your C# code here
-        Console.WriteLine("Hello World!");
-    }
-}`
-    }
+    currentSession: null
 };
 
 // Initialize editor with proper error handling
@@ -72,12 +52,7 @@ async function initializeEditor() {
         }
 
         // Set initial template
-        const savedContent = localStorage.getItem('editorContent');
-        if (!savedContent) {
-            setEditorTemplate(editorState.currentLanguage);
-        } else {
-            editorState.editor.setValue(savedContent);
-        }
+        await setEditorTemplate(editorState.currentLanguage);
 
         // Set up event listeners
         setupEventListeners();
@@ -134,7 +109,7 @@ function setupEventListeners() {
 }
 
 // Handle language change
-function handleLanguageChange(event) {
+async function handleLanguageChange(event) {
     const newLanguage = event.target.value;
     console.log('Language changed to:', newLanguage);
 
@@ -143,35 +118,47 @@ function handleLanguageChange(event) {
     editorState.currentLanguage = newLanguage;
     editorState.editor.setOption('mode', getEditorMode(newLanguage));
 
-    // Check if current content matches any template
-    const currentContent = editorState.editor.getValue().trim();
-    const isTemplateContent = Object.values(editorState.templates).some(template => 
-        currentContent === template.trim()
-    );
-
-    // Set new template if empty or current content is a template
-    if (!currentContent || isTemplateContent) {
-        setEditorTemplate(newLanguage);
+    try {
+        await setEditorTemplate(newLanguage);
+    } catch (error) {
+        console.error('Error setting template:', error);
+        showError('Failed to set template for ' + newLanguage);
     }
-
-    editorState.editor.refresh();
 }
 
 // Set editor template
-function setEditorTemplate(language) {
+async function setEditorTemplate(language) {
     console.log('Setting template for language:', language);
-    const template = editorState.templates[language];
-    if (!template) {
-        console.error('Template not found for language:', language);
-        return;
+
+    try {
+        const response = await fetch('/activities/get_template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({ language: language })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch template');
+        }
+
+        const data = await response.json();
+        if (data.success && data.template) {
+            editorState.editor.setValue(data.template);
+            editorState.editor.clearHistory();
+
+            // Set cursor position after template is loaded
+            const cursorLine = language === 'cpp' ? 4 : 6;
+            editorState.editor.setCursor(cursorLine, 4);
+        } else {
+            throw new Error(data.error || 'Failed to get template');
+        }
+    } catch (error) {
+        console.error('Error setting template:', error);
+        throw error;
     }
-
-    editorState.editor.setValue(template);
-    editorState.editor.clearHistory();
-
-    // Set cursor position after template is loaded
-    const cursorLine = language === 'cpp' ? 4 : 6;
-    editorState.editor.setCursor(cursorLine, 4);
 }
 
 // Run code with enhanced error handling and output
@@ -214,11 +201,11 @@ async function runCode() {
             })
         });
 
-        const result = await response.json();
-
         if (!response.ok) {
-            throw new Error(result.error || `Server error: ${response.status}`);
+            throw new Error(`Server error: ${response.status}`);
         }
+
+        const result = await response.json();
 
         if (result.success) {
             if (result.session_id && result.session_id !== editorState.currentSession) {

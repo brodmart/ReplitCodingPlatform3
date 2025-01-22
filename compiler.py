@@ -18,10 +18,10 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
-MAX_COMPILATION_TIME = 15  # seconds
-MAX_EXECUTION_TIME = 5    # seconds
+MAX_COMPILATION_TIME = 20  # reduced from 30 to 20 seconds
+MAX_EXECUTION_TIME = 5    # reduced from 10 to 5 seconds for simple programs
 MEMORY_LIMIT = 512       # MB
-MAX_PARALLEL_COMPILATIONS = min(os.cpu_count() or 4, 8)  # Limit max parallel compilations
+MAX_PARALLEL_COMPILATIONS = min(os.cpu_count() or 4, 8)
 CACHE_DIR = "/tmp/compiler_cache"
 CACHE_SIZE_LIMIT = 1024 * 1024 * 1024  # 1GB cache size limit
 
@@ -100,20 +100,51 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
             'metrics': metrics
         }
 
-    # Create temporary directory for compilation
-    with tempfile.TemporaryDirectory() as temp_dir:
-        temp_path = Path(temp_dir)
+    # Generate cache key for the code
+    cache_key = get_cache_key(code)
+    cache_dir = Path(CACHE_DIR) / cache_key
 
-        try:
+    try:
+        # Check cache first
+        if cache_dir.exists():
+            logger.debug("Using cached compilation")
+            if language == 'cpp':
+                executable = cache_dir / "program"
+            else:
+                executable = cache_dir / "bin" / "Release" / "net7.0" / "program.dll"
+
+            if executable.exists():
+                # Run the cached executable
+                run_process = subprocess.run(
+                    [str(executable)] if language == 'cpp' else ['dotnet', 'run', '--no-build'],
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME,
+                    cwd=str(cache_dir)
+                )
+
+                if run_process.returncode == 0:
+                    return {
+                        'success': True,
+                        'output': run_process.stdout,
+                        'metrics': metrics
+                    }
+
+        # If not in cache or cache execution failed, compile normally
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
             if language == 'cpp':
                 source_file = temp_path / "program.cpp"
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Compile C++ code
+                # Compile C++ code with aggressive optimization
                 executable = temp_path / "program"
                 compile_process = subprocess.run(
-                    ['g++', '-std=c++17', '-Wall', str(source_file), '-o', str(executable)],
+                    ['g++', '-std=c++17', '-Wall', '-O3', '-march=native', 
+                     str(source_file), '-o', str(executable)],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME
@@ -126,7 +157,11 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                         'metrics': metrics
                     }
 
-                # Run the compiled program
+                # Cache the successful compilation
+                os.makedirs(cache_dir, exist_ok=True)
+                shutil.copy2(executable, cache_dir / "program")
+
+                # Run with resource limits
                 run_process = subprocess.run(
                     [str(executable)],
                     input=input_data.encode() if input_data else None,
@@ -135,36 +170,25 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                     timeout=MAX_EXECUTION_TIME
                 )
 
-                if run_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': format_cpp_error(run_process.stderr),
-                        'metrics': metrics
-                    }
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'metrics': metrics
-                }
-
             elif language == 'csharp':
                 source_file = temp_path / "Program.cs"
                 project_file = temp_path / "program.csproj"
 
-                # Write source code
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Create project file
+                # Create optimized project file
                 project_content = """<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-</Project>"""
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net7.0</TargetFramework>
+                    <ImplicitUsings>enable</ImplicitUsings>
+                    <Nullable>enable</Nullable>
+                    <PublishReadyToRun>true</PublishReadyToRun>
+                    <TieredCompilation>true</TieredCompilation>
+                    <Optimize>true</Optimize>
+                  </PropertyGroup>
+                </Project>"""
                 with open(project_file, 'w', encoding='utf-8') as f:
                     f.write(project_content)
 
@@ -178,7 +202,15 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path)
+                    cwd=str(temp_path),
+                    env={
+                        **os.environ,
+                        'DOTNET_MULTILEVEL_LOOKUP': '0',
+                        'DOTNET_SKIP_FIRST_TIME_EXPERIENCE': '1',
+                        'DOTNET_CLI_TELEMETRY_OPTOUT': '1',
+                        'DOTNET_ReadyToRun': '1',
+                        'DOTNET_TC_QuickJitForLoops': '1'
+                    }
                 )
 
                 if build_process.returncode != 0:
@@ -187,6 +219,10 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                         'error': format_csharp_error(build_process.stderr),
                         'metrics': metrics
                     }
+
+                # Cache the successful compilation
+                os.makedirs(cache_dir, exist_ok=True)
+                shutil.copytree(temp_path / "bin", cache_dir / "bin", dirs_exist_ok=True)
 
                 # Run the program
                 run_process = subprocess.run(
@@ -197,44 +233,38 @@ def compile_and_run(code: str, language: str = 'csharp', input_data: Optional[st
                     capture_output=True,
                     text=True,
                     timeout=MAX_EXECUTION_TIME,
-                    cwd=str(temp_path),
-                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
+                    cwd=str(temp_path)
                 )
 
-                if run_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': format_csharp_error(run_process.stderr),
-                        'metrics': metrics
-                    }
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'metrics': metrics
-                }
-
-            else:
+            if run_process.returncode != 0:
+                error_formatter = format_cpp_error if language == 'cpp' else format_csharp_error
                 return {
                     'success': False,
-                    'error': f"Unsupported language: {language}",
+                    'error': error_formatter(run_process.stderr),
                     'metrics': metrics
                 }
 
-        except subprocess.TimeoutExpired:
-            phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
+            metrics['total_time'] = time.time() - metrics['start_time']
             return {
-                'success': False,
-                'error': f"{phase.capitalize()} timed out",
+                'success': True,
+                'output': run_process.stdout,
                 'metrics': metrics
             }
-        except Exception as e:
-            logger.error(f"Unexpected error: {traceback.format_exc()}")
-            return {
-                'success': False,
-                'error': str(e),
-                'metrics': metrics
-            }
+
+    except subprocess.TimeoutExpired:
+        phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
+        return {
+            'success': False,
+            'error': f"{phase.capitalize()} timed out",
+            'metrics': metrics
+        }
+    except Exception as e:
+        logger.error(f"Unexpected error: {traceback.format_exc()}")
+        return {
+            'success': False,
+            'error': str(e),
+            'metrics': metrics
+        }
 
 def get_cache_key(code: str) -> str:
     """Generate a unique cache key for the code"""

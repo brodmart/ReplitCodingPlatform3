@@ -7,7 +7,7 @@ from utils.curriculum_checker import CurriculumChecker
 from models import db, CodingActivity, Student, StudentProgress, CodeSubmission
 import logging
 from datetime import datetime
-from compiler import compile_and_run, get_template # Importing get_template
+from compiler import compile_and_run, get_template
 import time
 
 logger = logging.getLogger(__name__)
@@ -389,7 +389,7 @@ def execute_code():
 
 @activities_bp.route('/activities/get_template', methods=['POST'])
 @login_required
-def get_template():
+def get_template_code():
     """Get template code for selected language"""
     try:
         if not request.is_json:
@@ -407,8 +407,6 @@ def get_template():
                 'error': 'Language not specified'
             }), 400
 
-        # Import get_template from compiler module
-        from compiler import get_template
         template_code = get_template(language)
 
         if not template_code:
