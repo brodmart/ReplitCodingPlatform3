@@ -35,7 +35,17 @@ CPP_TEMPLATE = """#include <iostream>
 using namespace std;
 
 int main() {
-    cout << "Hello World!" << endl;
+    string name;
+    int age;
+
+    cout << "Enter your name: ";
+    getline(cin, name);
+
+    cout << "Enter your age: ";
+    cin >> age;
+
+    cout << "Hello, " << name << "! ";
+    cout << "You are " << age << " years old." << endl;
     return 0;
 }"""
 
@@ -43,7 +53,15 @@ CSHARP_TEMPLATE = """using System;
 
 class Program {
     static void Main() {
-        Console.WriteLine("Hello World!");
+        Console.Write("Enter your name: ");
+        string name = Console.ReadLine();
+
+        Console.Write("Enter your age: ");
+        if (int.TryParse(Console.ReadLine(), out int age)) {
+            Console.WriteLine($"Hello {name}, you are {age} years old!");
+        } else {
+            Console.WriteLine($"Hello {name}, invalid age entered!");
+        }
     }
 }"""
 

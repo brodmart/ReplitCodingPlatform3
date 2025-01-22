@@ -5,7 +5,10 @@ const editorState = {
     currentLanguage: 'cpp',
     isInitialized: false,
     terminal: null,
-    currentSession: null
+    currentSession: null,
+    isWaitingForInput: false,
+    inputBuffer: '',
+    inputCallback: null
 };
 
 // Initialize editor with proper error handling
@@ -44,6 +47,46 @@ async function initializeEditor() {
                 "Cmd-Enter": runCode
             }
         });
+
+        // Initialize xterm.js terminal with input handling
+        const terminalElement = document.getElementById('terminal');
+        if (terminalElement) {
+            editorState.terminal = new Terminal({
+                cursorBlink: true,
+                convertEol: true,
+                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                fontSize: 14,
+                rows: 10
+            });
+
+            const fitAddon = new FitAddon.FitAddon();
+            editorState.terminal.loadAddon(fitAddon);
+            editorState.terminal.open(terminalElement);
+            fitAddon.fit();
+
+            // Handle terminal input
+            editorState.terminal.onData(data => {
+                if (editorState.isWaitingForInput) {
+                    if (data === '\r') { // Enter key
+                        editorState.terminal.write('\r\n');
+                        const input = editorState.inputBuffer + '\n';
+                        editorState.inputBuffer = '';
+                        editorState.isWaitingForInput = false;
+                        if (editorState.inputCallback) {
+                            editorState.inputCallback(input);
+                        }
+                    } else if (data === '\u007f') { // Backspace
+                        if (editorState.inputBuffer.length > 0) {
+                            editorState.inputBuffer = editorState.inputBuffer.slice(0, -1);
+                            editorState.terminal.write('\b \b');
+                        }
+                    } else {
+                        editorState.inputBuffer += data;
+                        editorState.terminal.write(data);
+                    }
+                }
+            });
+        }
 
         // Get the language from the select element
         const languageSelect = document.getElementById('languageSelect');
@@ -94,9 +137,11 @@ function setupEventListeners() {
 
     // Clear console button
     const clearButton = document.getElementById('clearConsole');
-    if (clearButton && window.terminal) {
+    if (clearButton && editorState.terminal) {
         clearButton.addEventListener('click', () => {
-            window.terminal.clear();
+            editorState.terminal.clear();
+            editorState.inputBuffer = '';
+            editorState.isWaitingForInput = false;
         });
     }
 
@@ -148,8 +193,6 @@ async function setEditorTemplate(language) {
         if (data.success && data.template) {
             editorState.editor.setValue(data.template);
             editorState.editor.clearHistory();
-
-            // Set cursor position after template is loaded
             const cursorLine = language === 'cpp' ? 4 : 6;
             editorState.editor.setCursor(cursorLine, 4);
         } else {
@@ -166,11 +209,12 @@ async function runCode() {
     if (editorState.isExecuting) return;
 
     const runButton = document.getElementById('runButton');
-    const terminal = window.terminal;
+    const terminal = editorState.terminal;
     editorState.isExecuting = true;
+    editorState.inputBuffer = '';
+    editorState.isWaitingForInput = false;
 
     try {
-        console.time('codeExecution');
         if (runButton) {
             runButton.disabled = true;
             runButton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
@@ -183,16 +227,11 @@ async function runCode() {
 
         terminal?.write('\r\n\x1b[33mCompiling and running code...\x1b[0m\r\n');
 
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
-        }
-
         const response = await fetch('/activities/run_code', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
             },
             body: JSON.stringify({
                 code,
@@ -215,6 +254,9 @@ async function runCode() {
 
             if (result.output) {
                 terminal?.write(result.output);
+                if (result.waiting_for_input) {
+                    editorState.isWaitingForInput = true;
+                }
             }
         } else {
             const errorMsg = result.error || 'Unknown error occurred';
@@ -224,7 +266,6 @@ async function runCode() {
         console.error('Error executing code:', error);
         terminal?.write('\x1b[31mError: ' + error.message + '\x1b[0m\r\n');
     } finally {
-        console.timeEnd('codeExecution');
         editorState.isExecuting = false;
         if (runButton) {
             runButton.disabled = false;
@@ -233,30 +274,9 @@ async function runCode() {
     }
 }
 
-// Add language-specific error formatting
-function formatCompilerError(error, language) {
-    if (!error) return 'Unknown error occurred';
-
-    switch (language.toLowerCase()) {
-        case 'cpp':
-            // Format C++ specific errors
-            error = error.replace(/^In file included from.+\n?/gm, '');
-            error = error.replace(/(\w+\.cpp):(\d+):(\d+):/g, 'Line $2, Column $3:');
-            break;
-
-        case 'csharp':
-            // Format C# specific errors
-            error = error.replace(/\((\d+),(\d+)\):/g, 'Line $1, Column $2:');
-            error = error.replace(/error CS\d+:/g, 'Error:');
-            break;
-    }
-
-    return error.trim();
-}
-
 // Poll for output from interactive sessions
 async function startPollingOutput(sessionId) {
-    const terminal = window.terminal;
+    const terminal = editorState.terminal;
     let pollCount = 0;
     const maxPolls = 300; // 5 minutes maximum
 
@@ -285,11 +305,14 @@ async function startPollingOutput(sessionId) {
             if (result.success) {
                 if (result.output) {
                     terminal?.write(result.output);
+                    if (result.waiting_for_input) {
+                        editorState.isWaitingForInput = true;
+                    }
                 }
 
                 if (result.session_ended) {
                     console.log('Session ended normally');
-                    window.currentSession = null;
+                    editorState.currentSession = null;
                     return;
                 }
 
@@ -298,18 +321,17 @@ async function startPollingOutput(sessionId) {
                 setTimeout(poll, 1000);
             } else {
                 console.error('Error getting output:', result.error);
-                window.currentSession = null;
+                editorState.currentSession = null;
             }
         } catch (error) {
             console.error('Error polling output:', error);
-            window.currentSession = null;
+            editorState.currentSession = null;
         }
     };
 
     // Start polling
     poll();
 }
-
 
 // Show error message
 function showError(message) {

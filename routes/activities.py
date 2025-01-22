@@ -55,6 +55,7 @@ def run_code():
 
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
+        input_data = data.get('input')  # Get input data if provided
 
         # Add detailed request logging
         logger.debug(f"Request received - Language: {language}, Code length: {len(code)}")
@@ -68,16 +69,8 @@ def run_code():
                 'error': 'Code cannot be empty'
             }), 400
 
-        # Execute the code
-        logger.info(f"Starting code execution - Language: {language}, Code size: {len(code)} bytes")
-        start_time = time.time()
-
-        result = compile_and_run(code, language)
-
-        # Enhanced metrics logging
-        execution_time = time.time() - start_time
-        logger.info(f"Code execution completed in {execution_time:.2f}s")
-        logger.debug(f"Compilation result: {result}")
+        # Execute the code with input data
+        result = compile_and_run(code, language, input_data)
 
         if not isinstance(result, dict):
             logger.error(f"Invalid result type from compile_and_run: {type(result)}")
@@ -85,10 +78,6 @@ def run_code():
                 'success': False,
                 'error': 'Internal server error: Invalid compiler response'
             }), 500
-
-        if not result.get('success', False):
-            error_msg = result.get('error', 'An unknown error occurred')
-            logger.error(f"Execution failed with error: {error_msg}")
 
         # Ensure proper content type
         response = jsonify(result)
