@@ -378,19 +378,20 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
                     for stream in readable:
-                        char = stream.read(1)
-                        if char:
+                        # Read larger chunks for better output handling
+                        chunk = stream.read(1024)
+                        if chunk:
                             if stream == process.stdout:
-                                session.stdout_buffer.append(char)
-                                # Check for input prompts
-                                recent_output = ''.join(session.stdout_buffer[-100:])
+                                session.stdout_buffer.append(chunk)
+                                # Enhanced prompt detection with larger context
+                                recent_output = ''.join(session.stdout_buffer[-1024:])
                                 if any(prompt in recent_output.lower() for prompt in [
                                     'input', 'enter', 'type', '?', ':', '>',
                                     'choice', 'select', 'press', 'continue'
                                 ]):
                                     session.waiting_for_input = True
                             else:
-                                session.stderr_buffer.append(char)
+                                session.stderr_buffer.append(chunk)
                             session.last_activity = time.time()
 
             session.output_thread = Thread(target=monitor_output)
@@ -477,12 +478,13 @@ using System.Text;
                         readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
                         for stream in readable:
-                            char = stream.read(1)
-                            if char:
+                            # Read larger chunks for better output handling
+                            chunk = stream.read(1024)
+                            if chunk:
                                 if stream == process.stdout:
-                                    session.stdout_buffer.append(char)
+                                    session.stdout_buffer.append(chunk)
                                     # Enhanced prompt detection for both languages
-                                    recent_output = ''.join(session.stdout_buffer[-100:])
+                                    recent_output = ''.join(session.stdout_buffer[-1024:])
                                     if any(prompt in recent_output.lower() for prompt in [
                                         'input', 'enter', 'type', '?', ':', '>',
                                         'choice', 'select', 'press', 'continue',
@@ -490,7 +492,7 @@ using System.Text;
                                     ]):
                                         session.waiting_for_input = True
                                 else:
-                                    session.stderr_buffer.append(char)
+                                    session.stderr_buffer.append(chunk)
                                 session.last_activity = time.time()
 
                 session.output_thread = Thread(target=monitor_output)
