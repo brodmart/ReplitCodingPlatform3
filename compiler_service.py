@@ -895,68 +895,75 @@ MAX_SESSION_LIFETIME = 3600  # 1 hour
 CLEANUP_INTERVAL = 300  # 5 minutes
 
 def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
-    """Create an isolated environment for compilation and execution"""
-    logger.debug(f"Creating isolated environment for {language}")
-
-    # Create temp directory with unique name
-    temp_dir = Path(tempfile.mkdtemp(prefix='compiler_cache/compile_'))
+    """Create isolated environment for compilation with improved project setup"""
+    temp_dir = Path(tempfile.mkdtemp(prefix=f'compiler_env_{language}_'))
+    project_name = "ConsoleApp"
 
     if language == 'csharp':
-        project_name = 'Program'
-        # Create project directory
-        project_dir = temp_dir
-        project_dir.mkdir(parents=True, exist_ok=True)
-
-        # Write source code
-        source_file = project_dir / 'Program.cs'
+        # Create source file
+        source_file = temp_dir / "Program.cs"
         with open(source_file, 'w', encoding='utf-8') as f:
             f.write(code)
 
-        # Create project file
-        project_file = project_dir / f'{project_name}.csproj'
+        # Create optimized project file
+        project_file = temp_dir / f"{project_name}.csproj"
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-                <OutputType>Exe</OutputType>
-                <TargetFramework>net7.0</TargetFramework>
-                <ImplicitUsings>enable</ImplicitUsings>
-                <Nullable>enable</Nullable>
-            </PropertyGroup>
-        </Project>"""
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+</Project>"""
 
         with open(project_file, 'w', encoding='utf-8') as f:
             f.write(project_content)
 
+        logger.debug(f"Created C# project in {temp_dir}")
+
     elif language == 'cpp':
-        project_name = 'program'
-        source_file = temp_dir / f'{project_name}.cpp'
+        source_file = temp_dir / "program.cpp"
         with open(source_file, 'w', encoding='utf-8') as f:
             f.write(code)
+        logger.debug(f"Created C++ project in {temp_dir}")
 
     return temp_dir, project_name
 
-# Add MAX_COMPILATION_TIME constant
-MAX_COMPILATION_TIME = 30  # seconds
+MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
 
 def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler error output into structured format"""
+    """Parse C# compiler error messages with improved error detection"""
     errors = []
-    error_pattern = re.compile(
-        r'(.*?)\((\d+),(\d+)\):\s*(error|warning)\s*(\w+):\s*(.+?)(?=\r?\n\s*\w+\d+\:|\Z)',
-        re.DOTALL
-    )
+    for line in error_output.splitlines():
+        if ": error CS" in line:
+            try:
+                # Parse error line (format: file(line,col): error CSxxxx: message)
+                parts = line.split(': error CS')
+                if len(parts) != 2:
+                    continue
 
-    matches = error_pattern.finditer(error_output)
-    for match in matches:
-        file_path, line, column, level, code, message = match.groups()
-        if level == 'error':
-            errors.append(CompilationError(
-                error_type='CSharpCompilation',
-                message=message.strip(),
-                file=file_path.strip(),
-                line=int(line),
-                column=int(column),
-                code=code
-            ))
+                location, error_part = parts
+                error_code, message = error_part.split(': ', 1)
+
+                # Parse location
+                loc_match = re.match(r'.*?\((\d+),(\d+)\)', location)
+                if loc_match:
+                    line_num, col = map(int, loc_match.groups())
+                else:
+                    line_num, col = 0, 0
+
+                errors.append(CompilationError(
+                    error_type="compilation",
+                    message=message.strip(),
+                    file=location.split('(')[0],
+                    line=line_num,
+                    column=col,
+                    code=f"CS{error_code}"
+                ))
+            except Exception as e:
+                logger.error(f"Error parsing compiler output: {e}")
+                continue
 
     return errors
 

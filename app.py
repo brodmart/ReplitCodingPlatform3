@@ -100,6 +100,7 @@ def setup_websocket_handlers():
                 return
 
             logger.info("Compiling and running C# code...")
+            logger.debug(f"Code to compile: {code}")
             result = compile_and_run(code, 'csharp')
             logger.debug(f"Compilation result: {result}")
 
@@ -113,8 +114,12 @@ def setup_websocket_handlers():
                     })
 
                     # Get initial output
+                    logger.debug(f"Getting initial output for session {session_id}")
                     output = get_output(session_id)
+                    logger.debug(f"Initial output result: {output}")
+
                     if output and output.get('success'):
+                        logger.info(f"Emitting initial output: {output.get('output')}")
                         emit('output', {
                             'output': output.get('output', ''),
                             'waiting_for_input': output.get('waiting_for_input', False)
@@ -146,9 +151,11 @@ def setup_websocket_handlers():
 
             logger.debug(f"Sending input '{input_text}' to session {session_id}")
             result = send_input(session_id, input_text)
+            logger.debug(f"Send input result: {result}")
 
             if result and result.get('success'):
                 output = get_output(session_id)
+                logger.debug(f"Get output after input result: {output}")
                 if output and output.get('success'):
                     emit('output', {
                         'output': output.get('output', ''),
