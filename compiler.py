@@ -64,8 +64,8 @@ class InteractiveSession:
         self.output_buffer_size = 8192
         self.encoding = 'utf-8'
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced compile and run function with interactive session support"""
+def compile_and_run(code: str, language: str, session_id: Optional[str] = None, input_data: Optional[str] = None) -> Dict[str, Any]:
+    """Enhanced compile and run function with interactive session support and logging"""
     logger.info(f"Starting compile_and_run for {language}")
 
     if not code:
@@ -75,9 +75,17 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         }
 
     try:
+        # Log compilation start if session_id is provided
+        if session_id:
+            from utils.compiler_logger import compiler_logger
+            compiler_logger.log_compilation_start(session_id, code)
+
         # Check if code is interactive
         if is_interactive_code(code, language):
             logger.info("Detected interactive code, starting interactive session")
+            # If session_id is provided, use it for the interactive session
+            if session_id:
+                return start_interactive_session(code, language, session_id)
             return start_interactive_session(code, language)
 
         # Non-interactive compilation and execution
@@ -98,9 +106,16 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 )
 
                 if compile_process.returncode != 0:
+                    error_msg = format_cpp_error(compile_process.stderr)
+                    if session_id:
+                        compiler_logger.log_compilation_error(
+                            session_id,
+                            Exception(error_msg),
+                            {"stage": "compilation", "language": "cpp"}
+                        )
                     return {
                         'success': False,
-                        'error': format_cpp_error(compile_process.stderr)
+                        'error': error_msg
                     }
 
                 process = subprocess.run(
@@ -114,15 +129,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             elif language == 'csharp':
                 logger.debug("Starting C# compilation process")
                 source_file = temp_path / "Program.cs"
-                logger.debug(f"Writing source to: {source_file}")
-                logger.debug(f"Code content: {code}")
-
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
                 # Create project file
                 project_file = temp_path / "program.csproj"
-                logger.debug(f"Creating project file: {project_file}")
                 project_content = """<Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
                     <OutputType>Exe</OutputType>
@@ -135,39 +146,30 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
                 with open(project_file, 'w', encoding='utf-8') as f:
                     f.write(project_content)
-                logger.debug("Project file created successfully")
 
                 # Build with detailed logging
-                logger.debug("Starting dotnet build process")
                 compile_process = subprocess.run(
-                    [
-                        'dotnet', 'build', 
-                        str(project_file), 
-                        '--nologo', 
-                        '-c', 'Release',
-                        '-v', 'detailed'  # Enable detailed build logging
-                    ],
+                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
                     cwd=str(temp_path)
                 )
 
-                logger.debug(f"Build process completed with return code: {compile_process.returncode}")
-                logger.debug(f"Build output: {compile_process.stdout}")
-                if compile_process.stderr:
-                    logger.error(f"Build errors: {compile_process.stderr}")
-
                 if compile_process.returncode != 0:
                     error_msg = format_csharp_error(compile_process.stderr)
-                    logger.error(f"C# compilation failed: {error_msg}")
+                    if session_id:
+                        compiler_logger.log_compilation_error(
+                            session_id,
+                            Exception(error_msg),
+                            {"stage": "compilation", "language": "csharp"}
+                        )
                     return {
                         'success': False,
                         'error': error_msg
                     }
 
                 # Run the compiled program
-                logger.debug("Starting program execution")
                 process = subprocess.run(
                     ['dotnet', 'run', '--project', str(project_file), '--no-build'],
                     input=input_data.encode() if input_data else None,
@@ -177,23 +179,40 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     cwd=str(temp_path)
                 )
 
-                if process.returncode != 0:
-                    logger.error(f"Program execution failed: {process.stderr}")
-                    return {
-                        'success': False,
-                        'error': process.stderr
-                    }
-
-                return {
-                    'success': True,
-                    'output': process.stdout
-                }
-
-            if process.returncode != 0:
+            else:
+                error_msg = f"Unsupported language: {language}"
+                if session_id:
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        error_msg,
+                        {"stage": "validation", "language": language}
+                    )
                 return {
                     'success': False,
-                    'error': process.stderr
+                    'error': error_msg
                 }
+
+            # Handle execution results
+            if process.returncode != 0:
+                error_msg = process.stderr
+                if session_id:
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        error_msg,
+                        {"stage": "execution", "language": language}
+                    )
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
+
+            # Log successful execution
+            if session_id:
+                compiler_logger.log_execution_state(
+                    session_id,
+                    'completed',
+                    {"language": language, "interactive": False}
+                )
 
             return {
                 'success': True,
@@ -201,25 +220,40 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             }
 
     except subprocess.TimeoutExpired as e:
-        logger.error(f"Process timed out: {str(e)}")
+        error_msg = f"Process timed out: {str(e)}"
+        if session_id:
+            compiler_logger.log_runtime_error(
+                session_id,
+                error_msg,
+                {"stage": "timeout", "language": language}
+            )
         return {
             'success': False,
-            'error': "Process timed out"
+            'error': error_msg
         }
     except Exception as e:
+        error_msg = f"Unexpected error: {str(e)}"
+        if session_id:
+            compiler_logger.log_runtime_error(
+                session_id,
+                error_msg,
+                {"stage": "unknown", "language": language}
+            )
         logger.error(f"Error in compile_and_run: {str(e)}")
         logger.error(f"Full traceback: {traceback.format_exc()}")
         return {
             'success': False,
-            'error': str(e)
+            'error': error_msg
         }
 
-def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
-    """Enhanced interactive session startup"""
+def start_interactive_session(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+    """Enhanced interactive session startup with improved logging"""
     logger.info(f"Starting interactive session for {language}")
 
     try:
-        session_id = str(uuid.uuid4())
+        # Use provided session_id or generate a new one
+        if not session_id:
+            session_id = str(uuid.uuid4())
         logger.debug(f"Session ID: {session_id}")
 
         # Create PTY with proper terminal settings
@@ -232,147 +266,183 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
 
         # Set raw mode for better input handling
         attr = termios.tcgetattr(slave_fd)
-        attr[0] = attr[0] & ~termios.ICRNL  # Don't translate CR to NL on input
-        attr[1] = attr[1] & ~termios.ONLCR  # Don't translate NL to CRNL on output
-        attr[3] = attr[3] & ~(termios.ICANON | termios.ECHO)  # Raw mode
+        attr[0] = attr[0] & ~termios.ICRNL
+        attr[1] = attr[1] & ~termios.ONLCR
+        attr[3] = attr[3] & ~(termios.ICANON | termios.ECHO)
         termios.tcsetattr(slave_fd, termios.TCSANOW, attr)
 
         # Create a unique temporary directory for this session
         unique_dir = os.path.join(CACHE_DIR, f"session_{session_id}")
         os.makedirs(unique_dir, exist_ok=True)
-        logger.debug(f"Created session directory: {unique_dir}")
 
         with tempfile.TemporaryDirectory(dir=unique_dir) as temp_dir:
             temp_path = Path(temp_dir)
             unique_id = hashlib.md5(code.encode()).hexdigest()[:8]
 
-            if language == 'cpp':
-                source_file = temp_path / f"program_{unique_id}.cpp"
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
+            try:
+                process = None
+                if language == 'cpp':
+                    # CPP compilation and execution setup
+                    source_file = temp_path / f"program_{unique_id}.cpp"
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
 
-                # Compile with optimizations and warning flags
-                compile_process = subprocess.run(
-                    ['g++', '-std=c++17', '-Wall', '-O2', str(source_file), '-o', str(temp_path / f"program_{unique_id}")],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME
-                )
+                    compile_process = subprocess.run(
+                        ['g++', '-std=c++17', '-Wall', '-O2', str(source_file), '-o', str(temp_path / f"program_{unique_id}")],
+                        capture_output=True,
+                        text=True,
+                        timeout=MAX_COMPILATION_TIME
+                    )
 
-                if compile_process.returncode != 0:
+                    if compile_process.returncode != 0:
+                        error_msg = format_cpp_error(compile_process.stderr)
+                        compiler_logger.log_compilation_error(
+                            session_id,
+                            Exception(error_msg),
+                            {"stage": "compilation", "language": "cpp"}
+                        )
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
+
+                    process = subprocess.Popen(
+                        [str(temp_path / f"program_{unique_id}")],
+                        stdin=slave_fd,
+                        stdout=slave_fd,
+                        stderr=slave_fd,
+                        close_fds=True
+                    )
+
+                elif language == 'csharp':
+                    # C# compilation and execution setup
+                    namespace_name = f"InteractiveSession_{unique_id}"
+                    modified_code = []
+                    namespace_added = False
+
+                    for line in code.split('\n'):
+                        if 'class Program' in line and not namespace_added:
+                            modified_code.extend([
+                                f"namespace {namespace_name} {{",
+                                line
+                            ])
+                            namespace_added = True
+                        else:
+                            modified_code.append(line)
+
+                    if namespace_added:
+                        modified_code.append("}")
+
+                    source_file = temp_path / "Program.cs"
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write('\n'.join(modified_code))
+
+                    project_file = temp_path / "program.csproj"
+                    project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
+                      <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net7.0</TargetFramework>
+                        <ImplicitUsings>enable</ImplicitUsings>
+                        <Nullable>enable</Nullable>
+                        <PublishReadyToRun>true</PublishReadyToRun>
+                        <RootNamespace>{namespace_name}</RootNamespace>
+                        <AssemblyName>{namespace_name}</AssemblyName>
+                      </PropertyGroup>
+                    </Project>"""
+
+                    with open(project_file, 'w', encoding='utf-8') as f:
+                        f.write(project_content)
+
+                    compile_process = subprocess.run(
+                        ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
+                        capture_output=True,
+                        text=True,
+                        timeout=MAX_COMPILATION_TIME,
+                        cwd=str(temp_path)
+                    )
+
+                    if compile_process.returncode != 0:
+                        error_msg = format_csharp_error(compile_process.stderr)
+                        compiler_logger.log_compilation_error(
+                            session_id,
+                            Exception(error_msg),
+                            {"stage": "compilation", "language": "csharp"}
+                        )
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
+
+                    process = subprocess.Popen(
+                        ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                        stdin=slave_fd,
+                        stdout=slave_fd,
+                        stderr=slave_fd,
+                        close_fds=True,
+                        cwd=str(temp_path)
+                    )
+
+                if process is None:
+                    error_msg = f"Failed to start process for {language}"
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        error_msg,
+                        {"stage": "process_start", "language": language}
+                    )
                     return {
                         'success': False,
-                        'error': format_cpp_error(compile_process.stderr)
+                        'error': error_msg
                     }
 
-                process = subprocess.Popen(
-                    [str(temp_path / f"program_{unique_id}")],
-                    stdin=slave_fd,
-                    stdout=slave_fd,
-                    stderr=slave_fd,
-                    close_fds=True
+                # Create and store session
+                session = InteractiveSession(process, master_fd, slave_fd)
+                session.language = language  # Add language attribute for pattern matching
+                with session_lock:
+                    active_sessions[session_id] = session
+
+                # Start output monitoring
+                monitor_thread = threading.Thread(
+                    target=monitor_output,
+                    args=(session_id,),
+                    daemon=True
                 )
-                logger.debug(f"C++ Process started with PID: {process.pid}")
+                monitor_thread.start()
 
-            elif language == 'csharp':
-                # Create unique namespace for this session to avoid conflicts
-                namespace_name = f"InteractiveSession_{unique_id}"
-
-                # Modify the code to use the unique namespace
-                code_lines = code.split('\n')
-                modified_code = []
-                namespace_added = False
-
-                for line in code_lines:
-                    if 'class Program' in line and not namespace_added:
-                        modified_code.extend([
-                            f"namespace {namespace_name} {{",
-                            line
-                        ])
-                        namespace_added = True
-                    else:
-                        modified_code.append(line)
-
-                if namespace_added:
-                    modified_code.append("}")  # Close namespace
-
-                source_file = temp_path / "Program.cs"
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write('\n'.join(modified_code))
-
-                # Create optimized project file with unique assembly name
-                project_file = temp_path / "program.csproj"
-                project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <OutputType>Exe</OutputType>
-                    <TargetFramework>net7.0</TargetFramework>
-                    <ImplicitUsings>enable</ImplicitUsings>
-                    <Nullable>enable</Nullable>
-                    <PublishReadyToRun>true</PublishReadyToRun>
-                    <RootNamespace>{namespace_name}</RootNamespace>
-                    <AssemblyName>{namespace_name}</AssemblyName>
-                  </PropertyGroup>
-                </Project>"""
-
-                with open(project_file, 'w', encoding='utf-8') as f:
-                    f.write(project_content)
-
-                # Compile C# code
-                compile_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path)
+                # Log successful session start
+                compiler_logger.log_execution_state(
+                    session_id,
+                    'started',
+                    {"language": language, "interactive": True}
                 )
 
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': format_csharp_error(compile_process.stderr)
-                    }
-
-                process = subprocess.Popen(
-                    ['dotnet', 'run', '--project', str(project_file), '--no-build'],
-                    stdin=slave_fd,
-                    stdout=slave_fd,
-                    stderr=slave_fd,
-                    close_fds=True,
-                    cwd=str(temp_path)
-                )
-                logger.debug(f"C# Process started with PID: {process.pid}")
-
-            else:
                 return {
-                    'success': False,
-                    'error': f"Unsupported language: {language}"
+                    'success': True,
+                    'interactive': True,
+                    'session_id': session_id
                 }
 
-            # Create and store session
-            session = InteractiveSession(process, master_fd, slave_fd)
-            session.language = language  # Store language for pattern matching
-            with session_lock:
-                active_sessions[session_id] = session
-
-            # Start output monitoring in a separate thread
-            monitor_thread = threading.Thread(
-                target=monitor_output,
-                args=(session_id,),
-                daemon=True
-            )
-            monitor_thread.start()
-            logger.debug("Output monitoring thread started")
-
-            return {
-                'success': True,
-                'interactive': True,
-                'session_id': session_id
-            }
+            except Exception as e:
+                logger.error(f"Error in interactive session setup: {str(e)}\n{traceback.format_exc()}")
+                compiler_logger.log_runtime_error(
+                    session_id,
+                    str(e),
+                    {"stage": "setup", "language": language}
+                )
+                if process:
+                    process.terminate()
+                return {
+                    'success': False,
+                    'error': str(e)
+                }
 
     except Exception as e:
         logger.error(f"Error starting interactive session: {str(e)}\n{traceback.format_exc()}")
-        if 'session_id' in locals() and session_id in active_sessions:
-            cleanup_session(session_id)
+        if session_id:
+            compiler_logger.log_runtime_error(
+                session_id,
+                str(e),
+                {"stage": "initialization", "language": language}
+            )
         return {
             'success': False,
             'error': str(e)

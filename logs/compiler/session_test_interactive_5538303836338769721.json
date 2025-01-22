@@ -1,0 +1,22 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-22T17:33:58.156748",
+    "data": {
+      "code_length": 318,
+      "timestamp": "2025-01-22T17:33:58.156689"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-22T17:33:58.157241",
+    "data": {
+      "error_message": "compile_and_run() got an unexpected keyword argument 'session_id'",
+      "context": {
+        "stage": "test_execution",
+        "code_hash": 5538303836338769721
+      },
+      "timestamp": "2025-01-22T17:33:58.157117"
+    }
+  }
+]

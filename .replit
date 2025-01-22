@@ -103,6 +103,10 @@ args = "Flask Server"
 task = "workflow.run"
 args = "Debug C# Compilation"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Debug C# Console"
+
 [[workflows.workflow]]
 name = "Create Tables"
 author = "agent"
@@ -386,6 +390,20 @@ waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Debug C# Compilation"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test_interactive_console.py"
+
+[[workflows.workflow]]
+name = "Debug C# Console"
 author = "agent"
 
 [workflows.workflow.metadata]

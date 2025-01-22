@@ -1,0 +1,12 @@
+2025-01-22 17:29:37,111 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-1633926600971050110
+2025-01-22 17:29:37,111 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-1633926600971050110: compile_and_run() got an unexpected keyword argument 'session_id'
+2025-01-22 17:29:41,711 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-5241937378917406411
+2025-01-22 17:29:41,712 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-5241937378917406411: compile_and_run() got an unexpected keyword argument 'session_id'
+2025-01-22 17:29:46,731 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-6241370096778824746
+2025-01-22 17:29:46,731 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-6241370096778824746: compile_and_run() got an unexpected keyword argument 'session_id'
+2025-01-22 17:29:46,932 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-997013145932206856
+2025-01-22 17:29:46,933 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-997013145932206856: compile_and_run() got an unexpected keyword argument 'session_id'
+2025-01-22 17:29:47,582 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_3623875705741727560
+2025-01-22 17:29:47,583 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_3623875705741727560: compile_and_run() got an unexpected keyword argument 'session_id'
+2025-01-22 17:33:58,155 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_5538303836338769721
+2025-01-22 17:33:58,156 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_5538303836338769721: compile_and_run() got an unexpected keyword argument 'session_id'
