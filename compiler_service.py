@@ -55,6 +55,7 @@ class CompilerSession:
         self.output_thread: Optional[Thread] = None
         self.master_fd: Optional[int] = None
         self.slave_fd: Optional[int] = None
+        self.partial_line: str = ""  # Buffer for partial output lines
 
 def create_pty() -> tuple[int, int]:
     """Create a new PTY pair with proper settings"""
@@ -82,7 +83,15 @@ def clean_terminal_output(output: str) -> str:
     cleaned = re.sub(r'\x1b[^m]*m', '', output)  # ANSI color codes
     cleaned = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', cleaned)  # ANSI control codes
     cleaned = re.sub(r'\x1b\=[^\x1b]*\x1b', '', cleaned)  # Other escape sequences
-    return cleaned
+    cleaned = re.sub(r'\[(\?|\d+)[0-9a-zA-Z]*[=h]', '', cleaned)  # Terminal mode sequences
+    cleaned = re.sub(r'\x1b', '', cleaned)  # Remove any remaining escape characters
+    cleaned = re.sub(r'\r\n', '\n', cleaned)  # Normalize line endings
+    cleaned = re.sub(r'^\s*\n', '', cleaned)  # Remove empty lines at start
+    cleaned = re.sub(r'\n\s*$', '\n', cleaned)  # Clean up trailing whitespace
+    cleaned = re.sub(r'\s*=\s*$', '', cleaned)  # Remove trailing equals signs (common in C# console)
+    cleaned = re.sub(r'[\r\n]+', '\n', cleaned)  # Normalize multiple line endings
+    cleaned = re.sub(r'(?<=:)\s+(?=\w)', ' ', cleaned)  # Normalize spacing after colons
+    return cleaned.strip()
 
 def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_size: int = 1024) -> None:
     """Enhanced output monitoring with proper buffer handling"""
@@ -101,19 +110,38 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                     if data:
                         try:
                             decoded = data.decode('utf-8', errors='replace')
-                            cleaned = clean_terminal_output(decoded)
-                            session.stdout_buffer.append(cleaned)
-                            logger.debug(f"Raw output received: {cleaned.strip()}")
+                            # Combine with any partial line from previous read
+                            full_data = session.partial_line + decoded
 
-                            # Check for input prompts
-                            recent_output = ''.join(session.stdout_buffer[-10:]).lower()
-                            if (not session.waiting_for_input and 
-                                any(prompt in recent_output for prompt in [
-                                    'input', 'enter', 'type', '?', ':', '>',
-                                    'choice', 'select', 'press', 'continue'
-                                ])):
-                                session.waiting_for_input = True
-                                logger.debug(f"Input prompt detected in: {recent_output}")
+                            # Split into lines, keeping the last partial line
+                            lines = full_data.splitlines(True)  # Keep line endings
+                            if lines:
+                                if not full_data.endswith('\n'):
+                                    session.partial_line = lines[-1]
+                                    lines = lines[:-1]
+                                else:
+                                    session.partial_line = ""
+
+                            # Process complete lines
+                            for line in lines:
+                                cleaned = clean_terminal_output(line)
+                                if cleaned:  # Only append non-empty output
+                                    session.stdout_buffer.append(cleaned)
+                                    logger.debug(f"Raw output received: {cleaned}")
+
+                                    # Check for input prompts with improved C# console detection
+                                    recent_output = ''.join(session.stdout_buffer[-10:]).lower()
+                                    if (not session.waiting_for_input and 
+                                        (any(prompt in recent_output for prompt in [
+                                            'input', 'enter', 'type', '?', ':', '>',
+                                            'choice', 'select', 'press', 'continue'
+                                        ]) or
+                                        # Special case for C# Console.Write without newline
+                                        (recent_output.endswith(':') or 
+                                         recent_output.endswith('> ')))):
+                                        session.waiting_for_input = True
+                                        logger.debug(f"Input prompt detected in: {recent_output}")
+
                         except Exception as e:
                             logger.error(f"Error processing output: {e}")
                             continue
@@ -123,6 +151,14 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                         break
                     continue
 
+            # Process any remaining partial line periodically
+            if session.partial_line and time.time() - session.last_activity > 0.1:
+                cleaned = clean_terminal_output(session.partial_line)
+                if cleaned:
+                    session.stdout_buffer.append(cleaned)
+                    logger.debug(f"Processed partial line: {cleaned}")
+                session.partial_line = ""
+
             # Check stderr separately
             if process.stderr:
                 try:
@@ -131,8 +167,9 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                         try:
                             decoded = stderr_data.decode('utf-8', errors='replace')
                             cleaned = clean_terminal_output(decoded)
-                            session.stderr_buffer.append(cleaned)
-                            logger.debug(f"Stderr received: {cleaned.strip()}")
+                            if cleaned:  # Only append non-empty output
+                                session.stderr_buffer.append(cleaned)
+                                logger.debug(f"Stderr received: {cleaned}")
                         except Exception as e:
                             logger.error(f"Error processing stderr: {e}")
                 except Exception as e:
@@ -144,6 +181,13 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
     except Exception as e:
         logger.error(f"Error in monitor_output: {traceback.format_exc()}")
     finally:
+        # Process any remaining partial line
+        if session.partial_line:
+            cleaned = clean_terminal_output(session.partial_line)
+            if cleaned:
+                session.stdout_buffer.append(cleaned)
+                logger.debug(f"Final partial line: {cleaned}")
+
         # Ensure we collect any remaining output
         try:
             if session.master_fd is not None:
@@ -153,8 +197,9 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                         if data:
                             decoded = data.decode('utf-8', errors='replace')
                             cleaned = clean_terminal_output(decoded)
-                            session.stdout_buffer.append(cleaned)
-                            logger.debug(f"Final output received: {cleaned.strip()}")
+                            if cleaned:  # Only append non-empty output
+                                session.stdout_buffer.append(cleaned)
+                                logger.debug(f"Final output received: {cleaned}")
                     except (OSError, IOError):
                         break
         except Exception as e:
@@ -313,6 +358,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                         'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true'
                     }
                 )
+
+                time.sleep(0.5) #Added delay for C#
 
                 os.close(slave_fd)  # Close slave fd after process start
                 session.process = process
@@ -788,7 +835,7 @@ def format_csharp_error(error_msg: str) -> str:
         logger.error(f"Error formatting C# error message: {str(e)}")
         return f"Compilation Error: {error_msg}"
 
-def format_runtime_error(error_msg: str) -> str:
+defformat_runtime_error(error_msg: str) -> str:
     """Format runtime errors to be more user-friendly"""
     try:
         if not error_msg:

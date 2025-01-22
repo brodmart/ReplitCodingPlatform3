@@ -95,6 +95,10 @@ args = "Flask Server"
 task = "workflow.run"
 args = "C++ Test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test C++ Interactive"
+
 [[workflows.workflow]]
 name = "File Server"
 author = "agent"
@@ -351,6 +355,20 @@ waitForPort = 5000
 
 [[workflows.workflow]]
 name = "C++ Test"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "g++ test_input.cpp -o test_program && ./test_program"
+
+[[workflows.workflow]]
+name = "Test C++ Interactive"
 author = "agent"
 
 [workflows.workflow.metadata]
