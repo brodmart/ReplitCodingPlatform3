@@ -115,6 +115,65 @@
     margin: 4px 0;
 }
 
+/* ANSI Color Support */
+.ansi-black { color: #000000; }
+.ansi-red { color: #cd3131; }
+.ansi-green { color: #0dbc79; }
+.ansi-yellow { color: #e5e510; }
+.ansi-blue { color: #2472c8; }
+.ansi-magenta { color: #bc3fbc; }
+.ansi-cyan { color: #11a8cd; }
+.ansi-white { color: #e5e5e5; }
+.ansi-bright-black { color: #666666; }
+.ansi-bright-red { color: #f14c4c; }
+.ansi-bright-green { color: #23d18b; }
+.ansi-bright-yellow { color: #f5f543; }
+.ansi-bright-blue { color: #3b8eea; }
+.ansi-bright-magenta { color: #d670d6; }
+.ansi-bright-cyan { color: #29b8db; }
+.ansi-bright-white { color: #ffffff; }
+
+.ansi-bold { font-weight: bold; }
+.ansi-italic { font-style: italic; }
+.ansi-underline { text-decoration: underline; }
+
+/* Console States */
+.console-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.console-waiting {
+    background-color: #2d2d2d;
+}
+
+/* Output Line Styling */
+.output-line {
+    padding: 2px 0;
+    min-height: 1.2em;
+}
+
+.output-line.console-input {
+    color: #569cd6;
+    font-weight: bold;
+}
+
+.output-line.console-error {
+    color: #f44336;
+    background-color: rgba(244, 67, 54, 0.1);
+    border-left: 3px solid #f44336;
+    padding-left: 8px;
+}
+
+.output-line.console-system {
+    color: #9cdcfe;
+    font-style: italic;
+}
+
+.output-line.console-info {
+    color: #6a9955;
+}
+
 /* Editor Container */
 .editor-container {
     width: 100%;
