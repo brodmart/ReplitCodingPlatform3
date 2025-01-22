@@ -90,6 +90,7 @@ Optimizing C# compilation performance by implementing caching and reducing build
    - Identical runtime behavior to desktop IDEs
    - Support for all valid C# console features
 
+
 ## Database Information
 - Database Name: ICS3U Curriculum Database
 - Connection: Managed through DATABASE_URL environment variable
