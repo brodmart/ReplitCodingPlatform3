@@ -20,6 +20,7 @@ import termios
 import struct
 import select
 import threading
+from utils.compiler_logger import compiler_logger
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -53,6 +54,7 @@ class InteractiveSession:
         self.waiting_for_input = False
         self.last_activity = time.time()
         self.partial_line = ""
+        self.language = 'csharp'  # Default language
         self.input_patterns = {
             'cpp': [
                 'cin', 'std::cin', 'getline', 'scanf',
@@ -79,7 +81,6 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None, 
     try:
         # Log compilation start if session_id is provided
         if session_id and code:
-            from utils.compiler_logger import compiler_logger
             compiler_logger.log_compilation_start(session_id, code)
             logger.info(f"Starting compilation for session {session_id}")
 

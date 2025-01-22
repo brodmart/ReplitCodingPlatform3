@@ -32,6 +32,7 @@ class Program {
     try:
         result = compile_and_run(code, "csharp", session_id=session_id)
         print("Initial result:", result)
+        final_output = None  # Initialize final_output
 
         if result['success'] and result.get('interactive'):
             session_id = result['session_id']
@@ -69,10 +70,11 @@ class Program {
             else:
                 print("Initial input state not correct:", output)
 
-            compiler_logger.log_execution_state(session_id, 'test_completed', {
-                'outputs_received': bool(final_output.get('output')),
-                'test_success': True
-            })
+            if final_output:  # Only log completion if we have final output
+                compiler_logger.log_execution_state(session_id, 'test_completed', {
+                    'outputs_received': bool(final_output.get('output')),
+                    'test_success': True
+                })
         else:
             compiler_logger.log_compilation_error(session_id, Exception(result.get('error', 'Unknown error')), {
                 'compilation_result': result
