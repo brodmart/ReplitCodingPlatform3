@@ -2,7 +2,9 @@ import logging
 from compiler_service import compile_and_run, send_input, get_output
 import time
 
-logging.basicConfig(level=logging.DEBUG)
+# Only enable logging when running tests directly
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 def test_csharp_interactive():
@@ -54,6 +56,7 @@ class Program {
     return result
 
 if __name__ == "__main__":
+    # Only run tests when explicitly called
     print("\n=== Testing Interactive Console Functionality ===")
     print("\nTesting C# Interactive Console:")
     csharp_result = test_csharp_interactive()

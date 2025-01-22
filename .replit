@@ -33,10 +33,6 @@ args = "Analyze Curriculum"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Test Import Section"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Import Curriculum"
 
 [[workflows.workflow.tasks]]
@@ -73,39 +69,7 @@ args = "Analyze W3Schools"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Test Large Code Compilation"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "C# Compiler"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test C# Minimal"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test C# Basic"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test Updated Compiler"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test C# Performance"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test Simple Compiler"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test Updated C# Service"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test Compiler Warmup"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
@@ -122,10 +86,6 @@ args = "View Updated Context"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Build Large C#"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Test Interactive Console"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
@@ -177,20 +137,6 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python scripts/analyze_curriculum.py"
-
-[[workflows.workflow]]
-name = "Test Import Section"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python scripts/test_import_section.py"
 
 [[workflows.workflow]]
 name = "Import Curriculum"
@@ -319,27 +265,6 @@ task = "shell.exec"
 args = "python scripts/analyze_codemirror.py"
 
 [[workflows.workflow]]
-name = "Test Large Code Compilation"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = """
-python3 -c '
-from compiler_service import compile_and_run
-with open(\"test_large.cs\", \"r\") as f:
-    code = f.read()
-result = compile_and_run(code, \"csharp\")
-print(result)
-'"""
-
-[[workflows.workflow]]
 name = "C# Compiler"
 author = "agent"
 
@@ -352,104 +277,6 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "dotnet build HelloWorld.csproj && dotnet run --project HelloWorld.csproj"
-
-[[workflows.workflow]]
-name = "Test C# Minimal"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "dotnet build test_minimal.csproj && dotnet run --project test_minimal.csproj"
-
-[[workflows.workflow]]
-name = "Test C# Basic"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pwd && ls -la && dotnet build test.csproj && dotnet run --project test.csproj"
-
-[[workflows.workflow]]
-name = "Test Updated Compiler"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 -c \"from compiler import compile_and_run; result = compile_and_run(open('test.cs').read(), 'csharp'); print(result)\""
-
-[[workflows.workflow]]
-name = "Test C# Performance"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 test_compiler_performance.py"
-
-[[workflows.workflow]]
-name = "Test Simple Compiler"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 -c \"from compiler_simple import compile_and_run; result = compile_and_run(open('test_simple.cs').read()); print(result)\""
-
-[[workflows.workflow]]
-name = "Test Updated C# Service"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 test_updated_compiler.py"
-
-[[workflows.workflow]]
-name = "Test Compiler Warmup"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 test_compiler_warmup.py"
 
 [[workflows.workflow]]
 name = "Analyze Performance"
@@ -506,20 +333,6 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "dotnet build --project student_tracker.csproj && dotnet run --project student_tracker.csproj"
-
-[[workflows.workflow]]
-name = "Test Interactive Console"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python3 test_interactive_console.py"
 
 [[workflows.workflow]]
 name = "Flask Server"
