@@ -1,0 +1,73 @@
+2025-01-22 23:22:04,936 - app:30 - WARNING - Redis not available, falling back to in-memory queue
+2025-01-22 23:22:04,941 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:22:04,942 - app:55 - INFO - Initializing Flask application
+2025-01-22 23:22:04,943 - app:70 - DEBUG - Application configuration loaded
+2025-01-22 23:22:04,975 - app:75 - INFO - Database initialized
+2025-01-22 23:22:04,976 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:22:04,976 - app:82 - INFO - Socket.IO initialized
+2025-01-22 23:22:04,986 - app:91 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:22:05,954 - app:98 - INFO - Database tables created
+2025-01-22 23:22:05,955 - app:113 - INFO - Application initialized successfully
+2025-01-22 23:22:05,955 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000
+2025-01-22 23:22:05,955 - werkzeug:96 - WARNING -  * Debugger is active!
+2025-01-22 23:22:05,956 - werkzeug:96 - INFO -  * Debugger PIN: 128-648-341
+2025-01-22 23:22:06,263 - app:107 - DEBUG - Rendering console page
+2025-01-22 23:22:06,360 - app:107 - DEBUG - Rendering console page
+2025-01-22 23:22:07,165 - engineio.server:78 - INFO - vGu5ZFElqMK7KTuaAAAA: Sending packet OPEN data {'sid': 'vGu5ZFElqMK7KTuaAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:22:07,166 - engineio.server:90 - INFO - vGu5ZFElqMK7KTuaAAAA: Received request to upgrade to websocket
+2025-01-22 23:22:07,170 - engineio.server:219 - INFO - vGu5ZFElqMK7KTuaAAAA: Upgrade to websocket successful
+2025-01-22 23:22:07,262 - engineio.server:39 - INFO - vGu5ZFElqMK7KTuaAAAA: Received packet MESSAGE data 0
+2025-01-22 23:22:07,266 - engineio.server:78 - INFO - vGu5ZFElqMK7KTuaAAAA: Sending packet MESSAGE data 0{"sid":"7e00lr3OfED7SNgfAAAB"}
+2025-01-22 23:22:07,267 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:22:07.267118
+2025-01-22 23:22:07,267 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:22:07,267 - socketio:43 - ERROR - Socket.IO error in handle_connect: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:22:07,268 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:22:07,268 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:22:07.268743
+2025-01-22 23:22:07,268 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:22:07,269 - app:132 - INFO - Client connected: 7e00lr3OfED7SNgfAAAB
+2025-01-22 23:22:07,269 - socketio:108 - INFO - New connection established. Total connections: 1
+2025-01-22 23:22:07,269 - socketio:110 - DEBUG - Client info: {'sid': '7e00lr3OfED7SNgfAAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:22:07,269 - socketio.server:164 - INFO - emitting event "connection_established" to 7e00lr3OfED7SNgfAAAB [/]
+2025-01-22 23:22:07,269 - engineio.server:78 - INFO - vGu5ZFElqMK7KTuaAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"7e00lr3OfED7SNgfAAAB"}]
+2025-01-22 23:22:07,269 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:22:07,269 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s
+2025-01-22 23:22:07,271 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:22:07,624 - engineio.server:78 - INFO - IqjXh3oHJAZI4M3qAAAC: Sending packet OPEN data {'sid': 'IqjXh3oHJAZI4M3qAAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:22:07,624 - engineio.server:90 - INFO - IqjXh3oHJAZI4M3qAAAC: Received request to upgrade to websocket
+2025-01-22 23:22:07,625 - engineio.server:219 - INFO - IqjXh3oHJAZI4M3qAAAC: Upgrade to websocket successful
+2025-01-22 23:22:07,713 - engineio.server:39 - INFO - IqjXh3oHJAZI4M3qAAAC: Received packet MESSAGE data 0
+2025-01-22 23:22:07,713 - engineio.server:78 - INFO - IqjXh3oHJAZI4M3qAAAC: Sending packet MESSAGE data 0{"sid":"LFqpuTCAVQvLUaUEAAAD"}
+2025-01-22 23:22:07,714 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:22:07.714401
+2025-01-22 23:22:07,714 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:22:07,714 - socketio:43 - ERROR - Socket.IO error in handle_connect: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:22:07,715 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:22:07,716 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:22:07.716177
+2025-01-22 23:22:07,716 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:22:07,716 - app:132 - INFO - Client connected: LFqpuTCAVQvLUaUEAAAD
+2025-01-22 23:22:07,716 - socketio:108 - INFO - New connection established. Total connections: 2
+2025-01-22 23:22:07,716 - socketio:110 - DEBUG - Client info: {'sid': 'LFqpuTCAVQvLUaUEAAAD', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:22:07,716 - socketio.server:164 - INFO - emitting event "connection_established" to LFqpuTCAVQvLUaUEAAAD [/]
+2025-01-22 23:22:07,717 - engineio.server:78 - INFO - IqjXh3oHJAZI4M3qAAAC: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"LFqpuTCAVQvLUaUEAAAD"}]
+2025-01-22 23:22:07,717 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:22:07,717 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s
+2025-01-22 23:22:07,717 - socketio:93 - DEBUG - Event result: None

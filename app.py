@@ -20,6 +20,16 @@ socketio_logger = setup_logging('socketio')
 compiler_logger = CompilerLogger()
 db_logger = setup_logging('database')
 
+# Try to use Redis for message queue, fall back to in-memory if Redis is not available
+message_queue = 'redis://'
+try:
+    import redis
+    redis_client = redis.Redis(host='localhost', port=6379, socket_connect_timeout=1)
+    redis_client.ping()
+except (redis.ConnectionError, redis.TimeoutError):
+    logger.warning("Redis not available, falling back to in-memory queue")
+    message_queue = None
+
 # Initialize Socket.IO with enhanced configuration
 socketio = SocketIO(
     cors_allowed_origins="*",
@@ -30,8 +40,8 @@ socketio = SocketIO(
     ping_interval=25,
     max_http_buffer_size=1e8,
     async_handlers=True,
-    message_queue='memory://',  # Use in-memory queue for better performance
-    always_connect=True,        # Attempt to maintain persistent connections
+    message_queue=message_queue,
+    always_connect=True
 )
 
 class Base(DeclarativeBase):

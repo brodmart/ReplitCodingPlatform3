@@ -1,0 +1,164 @@
+2025-01-22 23:19:04,175 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:19:04,176 - app:45 - INFO - Initializing Flask application
+2025-01-22 23:19:04,177 - app:60 - DEBUG - Application configuration loaded
+2025-01-22 23:19:04,207 - app:65 - INFO - Database initialized
+2025-01-22 23:19:04,207 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:19:04,208 - app:72 - INFO - Socket.IO initialized
+2025-01-22 23:19:04,218 - app:81 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:19:05,831 - app:88 - INFO - Database tables created
+2025-01-22 23:19:05,832 - app:103 - INFO - Application initialized successfully
+2025-01-22 23:19:05,832 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000
+2025-01-22 23:19:05,832 - werkzeug:96 - WARNING -  * Debugger is active!
+2025-01-22 23:19:05,834 - werkzeug:96 - INFO -  * Debugger PIN: 738-978-735
+2025-01-22 23:19:06,155 - app:97 - DEBUG - Rendering console page
+2025-01-22 23:19:07,140 - engineio.server:78 - INFO - I6B3Uy7teTgpLN1uAAAA: Sending packet OPEN data {'sid': 'I6B3Uy7teTgpLN1uAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:19:07,144 - socketio.server:37 - INFO - kombu backend initialized.
+2025-01-22 23:19:07,144 - engineio.server:90 - INFO - I6B3Uy7teTgpLN1uAAAA: Received request to upgrade to websocket
+2025-01-22 23:19:07,144 - engineio.server:219 - INFO - I6B3Uy7teTgpLN1uAAAA: Upgrade to websocket successful
+2025-01-22 23:19:07,233 - engineio.server:39 - INFO - I6B3Uy7teTgpLN1uAAAA: Received packet MESSAGE data 0
+2025-01-22 23:19:07,234 - engineio.server:78 - INFO - I6B3Uy7teTgpLN1uAAAA: Sending packet MESSAGE data 0{"sid":"wZzL93-uNIaE8EN9AAAB"}
+2025-01-22 23:19:07,235 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:19:07.235398
+2025-01-22 23:19:07,235 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:19:07,235 - socketio:43 - ERROR - Socket.IO error in handle_connect: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:07,236 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:07,236 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:19:07.236740
+2025-01-22 23:19:07,236 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:19:07,237 - app:122 - INFO - Client connected: wZzL93-uNIaE8EN9AAAB
+2025-01-22 23:19:07,237 - socketio:108 - INFO - New connection established. Total connections: 1
+2025-01-22 23:19:07,237 - socketio:110 - DEBUG - Client info: {'sid': 'wZzL93-uNIaE8EN9AAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:19:07,237 - socketio.server:164 - INFO - emitting event "connection_established" to wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:07,237 - engineio.server:78 - INFO - I6B3Uy7teTgpLN1uAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"wZzL93-uNIaE8EN9AAAB"}]
+2025-01-22 23:19:07,238 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.002s, Context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:19:07,238 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.002s
+2025-01-22 23:19:07,238 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:19:17,712 - engineio.server:39 - INFO - I6B3Uy7teTgpLN1uAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}]
+2025-01-22 23:19:17,712 - socketio.server:576 - INFO - received event "compile_and_run" from wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:17,713 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:19:17.713537
+2025-01-22 23:19:17,713 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'}
+2025-01-22 23:19:17,713 - app:154 - INFO - Starting csharp code compilation
+2025-01-22 23:19:17,713 - app:155 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+}
+2025-01-22 23:19:17,714 - compiler:26 - INFO - Created compilation session ID: 54112d1e-f7cd-4a0a-bdfc-c3a3b259e0cc
+2025-01-22 23:19:17,714 - compiler:42 - INFO - Starting compilation for session 54112d1e-f7cd-4a0a-bdfc-c3a3b259e0cc
+2025-01-22 23:19:17,716 - socketio.server:164 - INFO - emitting event "compilation_start" to wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:17,716 - engineio.server:78 - INFO - I6B3Uy7teTgpLN1uAAAA: Sending packet MESSAGE data 2["compilation_start",{"session_id":"54112d1e-f7cd-4a0a-bdfc-c3a3b259e0cc","timestamp":1737587957.7141442}]
+2025-01-22 23:19:17,717 - compiler_service:982 - DEBUG - Starting compilation for code length: 198, language: csharp
+2025-01-22 23:19:17,717 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:19:17,717 - compiler_service:585 - DEBUG - Session ID: 54112d1e-f7cd-4a0a-bdfc-c3a3b259e0cc
+2025-01-22 23:19:17,718 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:19:17,718 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_siklh6oz
+2025-01-22 23:19:18,753 - engineio.server:39 - INFO - I6B3Uy7teTgpLN1uAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}]
+2025-01-22 23:19:18,754 - socketio.server:576 - INFO - received event "compile_and_run" from wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:18,755 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:19:18.755472
+2025-01-22 23:19:18,755 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'}
+2025-01-22 23:19:18,755 - app:154 - INFO - Starting csharp code compilation
+2025-01-22 23:19:18,755 - app:155 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+}
+2025-01-22 23:19:18,756 - compiler:26 - INFO - Created compilation session ID: f0f032d4-02dd-45e0-b758-b71ec5b644c4
+2025-01-22 23:19:18,756 - compiler:42 - INFO - Starting compilation for session f0f032d4-02dd-45e0-b758-b71ec5b644c4
+2025-01-22 23:19:18,756 - socketio.server:164 - INFO - emitting event "compilation_start" to wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:18,756 - engineio.server:78 - INFO - I6B3Uy7teTgpLN1uAAAA: Sending packet MESSAGE data 2["compilation_start",{"session_id":"f0f032d4-02dd-45e0-b758-b71ec5b644c4","timestamp":1737587958.7562163}]
+2025-01-22 23:19:18,757 - compiler_service:982 - DEBUG - Starting compilation for code length: 198, language: csharp
+2025-01-22 23:19:18,757 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:19:18,757 - compiler_service:585 - DEBUG - Session ID: f0f032d4-02dd-45e0-b758-b71ec5b644c4
+2025-01-22 23:19:18,757 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:19:18,758 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_hzx8jyoo
+2025-01-22 23:19:20,054 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:19:20.053946
+2025-01-22 23:19:20,055 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'}
+2025-01-22 23:19:20,056 - socketio:43 - ERROR - Socket.IO error in handle_disconnect: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:20,058 - socketio:99 - ERROR - Error in Socket.IO event handle_disconnect after 0.003s: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:20,059 - socketio:134 - ERROR - socketio_error: Socket.IO error: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_socketio/__init__.py", line 835, in _handle_event
+    ret = handler(*args)
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:20,072 - socketio:43 - ERROR - Socket.IO error in socketio_error: Socket.IO error: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_socketio/__init__.py", line 835, in _handle_event
+    ret = handler(*args)
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:20,072 - socketio.server:164 - INFO - emitting event "error" to wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:20,073 - engineio.server:78 - INFO - I6B3Uy7teTgpLN1uAAAA: Sending packet MESSAGE data 2["error",{"message":"An unexpected error occurred"}]
+2025-01-22 23:19:20,164 - app:97 - DEBUG - Rendering console page
+2025-01-22 23:19:21,028 - engineio.server:78 - INFO - x8OERTFu7F1IiZl-AAAC: Sending packet OPEN data {'sid': 'x8OERTFu7F1IiZl-AAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:19:21,029 - engineio.server:90 - INFO - x8OERTFu7F1IiZl-AAAC: Received request to upgrade to websocket
+2025-01-22 23:19:21,030 - engineio.server:219 - INFO - x8OERTFu7F1IiZl-AAAC: Upgrade to websocket successful
+2025-01-22 23:19:21,114 - engineio.server:39 - INFO - x8OERTFu7F1IiZl-AAAC: Received packet MESSAGE data 0
+2025-01-22 23:19:21,120 - engineio.server:78 - INFO - x8OERTFu7F1IiZl-AAAC: Sending packet MESSAGE data 0{"sid":"XVXhtb1VUsPZNLdzAAAD"}
+2025-01-22 23:19:21,127 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:19:21.127707
+2025-01-22 23:19:21,127 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:19:21,127 - socketio:43 - ERROR - Socket.IO error in handle_connect: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:21,129 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:21,131 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:19:21.131775
+2025-01-22 23:19:21,131 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:19:21,132 - app:122 - INFO - Client connected: XVXhtb1VUsPZNLdzAAAD
+2025-01-22 23:19:21,139 - socketio:108 - INFO - New connection established. Total connections: 2
+2025-01-22 23:19:21,140 - socketio:110 - DEBUG - Client info: {'sid': 'XVXhtb1VUsPZNLdzAAAD', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:19:21,141 - socketio.server:164 - INFO - emitting event "connection_established" to XVXhtb1VUsPZNLdzAAAD [/]
+2025-01-22 23:19:21,141 - engineio.server:78 - INFO - x8OERTFu7F1IiZl-AAAC: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"XVXhtb1VUsPZNLdzAAAD"}]
+2025-01-22 23:19:21,142 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.011s, Context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:19:21,142 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.011s
+2025-01-22 23:19:21,142 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:19:21,863 - app:174 - INFO - Compilation completed in 4.15s: {'success': True, 'session_id': '54112d1e-f7cd-4a0a-bdfc-c3a3b259e0cc', 'interactive': True, 'metrics': {'compilation_time': 0.0, 'execution_time': 0.0, 'total_time': 4.145729064941406, 'peak_memory': 0.0, 'avg_cpu_usage': 0.0, 'error_count': 0, 'warning_count': 0, 'cached': False, 'build_success_rate': 0, 'stages': {}}}
+2025-01-22 23:19:21,864 - socketio:119 - INFO - Session 54112d1e-f7cd-4a0a-bdfc-c3a3b259e0cc activated. Total active sessions: 1
+2025-01-22 23:19:21,865 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 4.149345874786377}
+2025-01-22 23:19:21,865 - socketio.server:164 - INFO - emitting event "compilation_result" to wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:22,576 - app:174 - INFO - Compilation completed in 3.82s: {'success': True, 'session_id': 'f0f032d4-02dd-45e0-b758-b71ec5b644c4', 'interactive': True, 'metrics': {'compilation_time': 0.0, 'execution_time': 0.0, 'total_time': 3.81864595413208, 'peak_memory': 0.0, 'avg_cpu_usage': 0.0, 'error_count': 0, 'warning_count': 0, 'cached': False, 'build_success_rate': 0, 'stages': {}}}
+2025-01-22 23:19:22,577 - socketio:119 - INFO - Session f0f032d4-02dd-45e0-b758-b71ec5b644c4 activated. Total active sessions: 2
+2025-01-22 23:19:22,578 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 3.8200843334198}
+2025-01-22 23:19:22,578 - socketio.server:164 - INFO - emitting event "compilation_result" to wZzL93-uNIaE8EN9AAAB [/]
+2025-01-22 23:19:22,687 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name:
+
+2025-01-22 23:19:22,687 - compiler_service:541 - DEBUG - Output received: Enter your name:

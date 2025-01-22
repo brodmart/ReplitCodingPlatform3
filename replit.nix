@@ -1,5 +1,7 @@
 {pkgs}: {
   deps = [
+    pkgs.redis
+    pkgs.rabbitmq-server
     pkgs.icu
     pkgs.dotnet-sdk
     pkgs.iana-etc

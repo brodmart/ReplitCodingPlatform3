@@ -1,0 +1,14 @@
+2025-01-22 23:22:07,297 - app:30 - WARNING - Redis not available, falling back to in-memory queue
+2025-01-22 23:22:07,451 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:22:07,452 - app:55 - INFO - Initializing Flask application
+2025-01-22 23:22:07,461 - app:70 - DEBUG - Application configuration loaded
+2025-01-22 23:22:07,544 - app:75 - INFO - Database initialized
+2025-01-22 23:22:07,545 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:22:07,545 - app:82 - INFO - Socket.IO initialized
+2025-01-22 23:22:07,556 - app:91 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:22:08,558 - app:98 - INFO - Database tables created
+2025-01-22 23:22:08,561 - app:113 - INFO - Application initialized successfully
+2025-01-22 23:22:08,701 - __main__:23 - INFO - Starting database table creation...
+2025-01-22 23:22:08,906 - __main__:30 - INFO - Existing tables: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress']
+2025-01-22 23:22:09,113 - __main__:37 - INFO - Tables after creation: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress']
+2025-01-22 23:22:09,132 - __main__:46 - INFO - Database tables created successfully!

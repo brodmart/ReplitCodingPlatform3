@@ -1,0 +1,7 @@
+2025-01-22 23:20:33,440 - compiler:42 - INFO - Starting compilation for session test_interactive_-4667507785623979558
+2025-01-22 23:20:33,441 - compiler_service:982 - DEBUG - Starting compilation for code length: 298, language: cpp
+2025-01-22 23:20:33,441 - compiler_service:584 - INFO - Starting interactive session for cpp
+2025-01-22 23:20:33,442 - compiler_service:585 - DEBUG - Session ID: test_interactive_-4667507785623979558
+2025-01-22 23:20:33,442 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:20:33,442 - compiler_service:929 - DEBUG - Created C++ project in /tmp/compiler_env_cpp_f4hoqg9d
+2025-01-22 23:20:34,812 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: Enter your name: 

@@ -1,0 +1,8 @@
+2025-01-22 23:22:12,842 - compiler:26 - INFO - Starting compilation for session test_interactive_-130066009357208636
+2025-01-22 23:22:12,843 - compiler_service:982 - DEBUG - Starting compilation for code length: 318, language: csharp
+2025-01-22 23:22:12,843 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:22:12,843 - compiler_service:585 - DEBUG - Session ID: test_interactive_-130066009357208636
+2025-01-22 23:22:12,843 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:22:12,844 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_8nd31cje
+2025-01-22 23:22:25,604 - compiler:26 - INFO - Session test_interactive_-130066009357208636 state changed to: session_started
+2025-01-22 23:22:25,773 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name: 

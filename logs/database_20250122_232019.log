@@ -1,0 +1,13 @@
+2025-01-22 23:20:19,634 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:20:19,635 - app:45 - INFO - Initializing Flask application
+2025-01-22 23:20:19,638 - app:60 - DEBUG - Application configuration loaded
+2025-01-22 23:20:20,006 - app:65 - INFO - Database initialized
+2025-01-22 23:20:20,007 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:20:20,007 - app:72 - INFO - Socket.IO initialized
+2025-01-22 23:20:20,023 - app:81 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:20:23,051 - app:88 - INFO - Database tables created
+2025-01-22 23:20:23,053 - app:103 - INFO - Application initialized successfully
+2025-01-22 23:20:23,216 - __main__:23 - INFO - Starting database table creation...
+2025-01-22 23:20:23,523 - __main__:30 - INFO - Existing tables: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress']
+2025-01-22 23:20:23,723 - __main__:37 - INFO - Tables after creation: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress']
+2025-01-22 23:20:23,723 - __main__:46 - INFO - Database tables created successfully!

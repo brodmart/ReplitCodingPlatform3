@@ -1,0 +1,9 @@
+2025-01-22 23:20:23,648 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:20:23,653 - app:45 - INFO - Initializing Flask application
+2025-01-22 23:20:23,680 - app:60 - DEBUG - Application configuration loaded
+2025-01-22 23:20:23,883 - app:65 - INFO - Database initialized
+2025-01-22 23:20:23,883 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:20:23,883 - app:72 - INFO - Socket.IO initialized
+2025-01-22 23:20:23,899 - app:81 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:20:24,955 - app:88 - INFO - Database tables created
+2025-01-22 23:20:24,956 - app:103 - INFO - Application initialized successfully

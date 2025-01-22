@@ -1,0 +1,86 @@
+2025-01-22 23:19:28,938 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:19:28,939 - app:45 - INFO - Initializing Flask application
+2025-01-22 23:19:28,941 - app:60 - DEBUG - Application configuration loaded
+2025-01-22 23:19:28,972 - app:65 - INFO - Database initialized
+2025-01-22 23:19:28,973 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:19:28,973 - app:72 - INFO - Socket.IO initialized
+2025-01-22 23:19:28,983 - app:81 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:19:29,958 - app:88 - INFO - Database tables created
+2025-01-22 23:19:29,959 - app:103 - INFO - Application initialized successfully
+2025-01-22 23:19:29,959 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000
+2025-01-22 23:19:29,960 - werkzeug:96 - WARNING -  * Debugger is active!
+2025-01-22 23:19:29,961 - werkzeug:96 - INFO -  * Debugger PIN: 510-387-957
+2025-01-22 23:19:30,176 - app:97 - DEBUG - Rendering console page
+2025-01-22 23:19:30,974 - engineio.server:78 - INFO - 8Uub9O8sm1sQk0NqAAAA: Sending packet OPEN data {'sid': '8Uub9O8sm1sQk0NqAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:19:30,974 - socketio.server:37 - INFO - kombu backend initialized.
+2025-01-22 23:19:30,974 - engineio.server:90 - INFO - 8Uub9O8sm1sQk0NqAAAA: Received request to upgrade to websocket
+2025-01-22 23:19:30,975 - engineio.server:219 - INFO - 8Uub9O8sm1sQk0NqAAAA: Upgrade to websocket successful
+2025-01-22 23:19:31,079 - engineio.server:39 - INFO - 8Uub9O8sm1sQk0NqAAAA: Received packet MESSAGE data 0
+2025-01-22 23:19:31,081 - engineio.server:78 - INFO - 8Uub9O8sm1sQk0NqAAAA: Sending packet MESSAGE data 0{"sid":"72yNzC5MCvDMlF2tAAAB"}
+2025-01-22 23:19:31,082 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:19:31.082500
+2025-01-22 23:19:31,082 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:19:31,082 - socketio:43 - ERROR - Socket.IO error in handle_connect: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:31,085 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:19:31,086 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:19:31.086016
+2025-01-22 23:19:31,086 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:19:31,086 - app:122 - INFO - Client connected: 72yNzC5MCvDMlF2tAAAB
+2025-01-22 23:19:31,086 - socketio:108 - INFO - New connection established. Total connections: 1
+2025-01-22 23:19:31,086 - socketio:110 - DEBUG - Client info: {'sid': '72yNzC5MCvDMlF2tAAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:19:31,086 - socketio.server:164 - INFO - emitting event "connection_established" to 72yNzC5MCvDMlF2tAAAB [/]
+2025-01-22 23:19:31,087 - engineio.server:78 - INFO - 8Uub9O8sm1sQk0NqAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"72yNzC5MCvDMlF2tAAAB"}]
+2025-01-22 23:19:36,987 - socketio.server:130 - ERROR - Cannot receive from rabbitmq... retrying in 1 secs
+2025-01-22 23:19:37,329 - socketio.server:109 - ERROR - Cannot publish to rabbitmq... retrying
+2025-01-22 23:19:43,560 - socketio.server:113 - ERROR - Cannot publish to rabbitmq... giving up
+2025-01-22 23:19:43,562 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 12.477s, Context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:19:43,562 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 12.477s
+2025-01-22 23:19:43,562 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:19:43,563 - engineio.server:39 - INFO - 8Uub9O8sm1sQk0NqAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}]
+2025-01-22 23:19:43,571 - socketio.server:576 - INFO - received event "compile_and_run" from 72yNzC5MCvDMlF2tAAAB [/]
+2025-01-22 23:19:43,572 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:19:43.572364
+2025-01-22 23:19:43,572 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'}
+2025-01-22 23:19:43,572 - app:154 - INFO - Starting csharp code compilation
+2025-01-22 23:19:43,572 - app:155 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+}
+2025-01-22 23:19:43,573 - compiler:26 - INFO - Created compilation session ID: 90aae8e7-7d44-4719-b932-7a6716f0c5ac
+2025-01-22 23:19:43,573 - compiler:42 - INFO - Starting compilation for session 90aae8e7-7d44-4719-b932-7a6716f0c5ac
+2025-01-22 23:19:43,573 - socketio.server:164 - INFO - emitting event "compilation_start" to 72yNzC5MCvDMlF2tAAAB [/]
+2025-01-22 23:19:43,574 - engineio.server:78 - INFO - 8Uub9O8sm1sQk0NqAAAA: Sending packet MESSAGE data 2["compilation_start",{"session_id":"90aae8e7-7d44-4719-b932-7a6716f0c5ac","timestamp":1737587983.573242}]
+2025-01-22 23:19:43,994 - socketio.server:130 - ERROR - Cannot receive from rabbitmq... retrying in 2 secs
+2025-01-22 23:19:49,932 - socketio.server:109 - ERROR - Cannot publish to rabbitmq... retrying
+2025-01-22 23:19:52,044 - socketio.server:130 - ERROR - Cannot receive from rabbitmq... retrying in 4 secs
+2025-01-22 23:19:55,976 - engineio.server:78 - INFO - 8Uub9O8sm1sQk0NqAAAA: Sending packet PING data None
+2025-01-22 23:19:56,050 - engineio.server:39 - INFO - 8Uub9O8sm1sQk0NqAAAA: Received packet PONG data 
+2025-01-22 23:19:56,224 - socketio.server:113 - ERROR - Cannot publish to rabbitmq... giving up
+2025-01-22 23:19:56,225 - compiler_service:982 - DEBUG - Starting compilation for code length: 198, language: csharp
+2025-01-22 23:19:56,226 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:19:56,226 - compiler_service:585 - DEBUG - Session ID: 90aae8e7-7d44-4719-b932-7a6716f0c5ac
+2025-01-22 23:19:56,227 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:19:56,227 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_d14xyqk5
+2025-01-22 23:20:00,480 - app:174 - INFO - Compilation completed in 16.91s: {'success': True, 'session_id': '90aae8e7-7d44-4719-b932-7a6716f0c5ac', 'interactive': True, 'metrics': {'compilation_time': 0.0, 'execution_time': 0.0, 'total_time': 4.254087686538696, 'peak_memory': 0.0, 'avg_cpu_usage': 0.0, 'error_count': 0, 'warning_count': 0, 'cached': False, 'build_success_rate': 0, 'stages': {}}}
+2025-01-22 23:20:00,482 - socketio:119 - INFO - Session 90aae8e7-7d44-4719-b932-7a6716f0c5ac activated. Total active sessions: 1
+2025-01-22 23:20:00,483 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 16.90768551826477}
+2025-01-22 23:20:00,483 - socketio.server:164 - INFO - emitting event "compilation_result" to 72yNzC5MCvDMlF2tAAAB [/]
+2025-01-22 23:20:00,483 - engineio.server:78 - INFO - 8Uub9O8sm1sQk0NqAAAA: Sending packet MESSAGE data 2["compilation_result",{"success":true,"session_id":"90aae8e7-7d44-4719-b932-7a6716f0c5ac","interactive":true,"metrics":{"compilation_time":16.90768551826477}}]
+2025-01-22 23:20:00,594 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name:
+
+2025-01-22 23:20:00,595 - compiler_service:541 - DEBUG - Output received: Enter your name:
+2025-01-22 23:20:02,055 - socketio.server:130 - ERROR - Cannot receive from rabbitmq... retrying in 8 secs
+2025-01-22 23:20:06,642 - socketio.server:109 - ERROR - Cannot publish to rabbitmq... retrying
+2025-01-22 23:20:11,835 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading

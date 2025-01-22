@@ -39,7 +39,7 @@ class CompilerLogger:
 
     def log_compilation_start(self, session_id: str, code: str) -> None:
         """Log compilation start event"""
-        self.logger.info(f"Starting compilation for session {session_id}")
+        self.info(f"Starting compilation for session {session_id}")
         self._log_event(session_id, 'compilation_start', {
             'code_length': len(code),
             'timestamp': datetime.utcnow().isoformat()
@@ -47,7 +47,7 @@ class CompilerLogger:
 
     def log_compilation_error(self, session_id: str, error: Exception, context: Dict[str, Any]) -> None:
         """Log compilation error with context"""
-        self.logger.error(f"Compilation error in session {session_id}: {str(error)}")
+        self.error(f"Compilation error in session {session_id}: {str(error)}")
         self._log_event(session_id, 'compilation_error', {
             'error_type': error.__class__.__name__,
             'error_message': str(error),
@@ -57,7 +57,7 @@ class CompilerLogger:
 
     def log_runtime_error(self, session_id: str, error: str, context: Dict[str, Any]) -> None:
         """Log runtime errors during program execution"""
-        self.logger.error(f"Runtime error in session {session_id}: {error}")
+        self.error(f"Runtime error in session {session_id}: {error}")
         self._log_event(session_id, 'runtime_error', {
             'error_message': error,
             'context': context,
@@ -66,7 +66,7 @@ class CompilerLogger:
 
     def log_execution_state(self, session_id: str, state: str, details: Optional[Dict[str, Any]] = None) -> None:
         """Log program execution state changes"""
-        self.logger.info(f"Session {session_id} state changed to: {state}")
+        self.info(f"Session {session_id} state changed to: {state}")
         self._log_event(session_id, 'execution_state', {
             'state': state,
             'details': details or {},
@@ -98,7 +98,7 @@ class CompilerLogger:
                 json.dump(existing_logs, f, indent=2)
 
         except Exception as e:
-            self.logger.error(f"Error writing to log file: {str(e)}")
+            self.error(f"Error writing to log file: {str(e)}")
 
     def analyze_session_errors(self, session_id: str) -> Dict[str, Any]:
         """Analyze errors for a specific session"""
@@ -139,7 +139,7 @@ class CompilerLogger:
             }
 
         except Exception as e:
-            self.logger.error(f"Error analyzing session logs: {str(e)}")
+            self.error(f"Error analyzing session logs: {str(e)}")
             return {'error': str(e)}
 
 # Global compiler logger instance
