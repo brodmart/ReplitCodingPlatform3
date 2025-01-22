@@ -3,9 +3,24 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <StartupObject>CodingPlatform.Program</StartupObject>
+    <!-- Set the entry point explicitly -->
+    <StartupObject>Program</StartupObject>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclude all test files -->
+    <Compile Remove="tests/**/*.cs" />
+    <None Include="tests/**/*.cs" />
+
+    <!-- Exclude student tracker -->
+    <Compile Remove="student_tracker.cs" />
+    <None Include="student_tracker.cs" />
+  </ItemGroup>
+
+  <!-- Include src directory -->
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+  </ItemGroup>
 
 </Project>
