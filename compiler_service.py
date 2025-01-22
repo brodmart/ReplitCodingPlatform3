@@ -122,25 +122,37 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                                 else:
                                     session.partial_line = ""
 
-                            # Process complete lines
+                            # Process complete lines with enhanced input detection
                             for line in lines:
                                 cleaned = clean_terminal_output(line)
                                 if cleaned:  # Only append non-empty output
                                     session.stdout_buffer.append(cleaned)
                                     logger.debug(f"Raw output received: {cleaned}")
 
-                                    # Check for input prompts with improved C# console detection
-                                    recent_output = ''.join(session.stdout_buffer[-10:]).lower()
-                                    if (not session.waiting_for_input and 
-                                        (any(prompt in recent_output for prompt in [
+                                    # Enhanced input prompt detection
+                                    if not session.waiting_for_input:
+                                        # Get recent output for context
+                                        recent_output = ''.join(session.stdout_buffer[-3:]).lower()
+
+                                        # Common input patterns
+                                        input_patterns = [
                                             'input', 'enter', 'type', '?', ':', '>',
-                                            'choice', 'select', 'press', 'continue'
-                                        ]) or
-                                        # Special case for C# Console.Write without newline
-                                        (recent_output.endswith(':') or 
-                                         recent_output.endswith('> ')))):
-                                        session.waiting_for_input = True
-                                        logger.debug(f"Input prompt detected in: {recent_output}")
+                                            'choice', 'select', 'press', 'continue',
+                                            'name', 'age', 'value'
+                                        ]
+
+                                        # Check for input patterns
+                                        is_input_prompt = (
+                                            any(pattern in recent_output for pattern in input_patterns) or
+                                            recent_output.rstrip().endswith(':') or
+                                            recent_output.rstrip().endswith('> ') or
+                                            (recent_output.count('\n') == 0 and 
+                                             any(char in recent_output for char in '?:>'))
+                                        )
+
+                                        if is_input_prompt:
+                                            session.waiting_for_input = True
+                                            logger.debug(f"Input prompt detected in: {recent_output}")
 
                         except Exception as e:
                             logger.error(f"Error processing output: {e}")
@@ -151,18 +163,10 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                         break
                     continue
 
-            # Process any remaining partial line periodically
-            if session.partial_line and time.time() - session.last_activity > 0.1:
-                cleaned = clean_terminal_output(session.partial_line)
-                if cleaned:
-                    session.stdout_buffer.append(cleaned)
-                    logger.debug(f"Processed partial line: {cleaned}")
-                session.partial_line = ""
-
-            # Check stderr separately
+            # Check stderr separately using read instead of read1
             if process.stderr:
                 try:
-                    stderr_data = process.stderr.read1(chunk_size) if hasattr(process.stderr, 'read1') else process.stderr.read(chunk_size)
+                    stderr_data = process.stderr.read(chunk_size)
                     if stderr_data:
                         try:
                             decoded = stderr_data.decode('utf-8', errors='replace')
@@ -840,9 +844,8 @@ def format_csharp_error(error_msg: str) -> str:
                         formatted_lines.append(f"C# Error: {error_parts[1].strip()}")
             elif "warning CS" in line:
                 # Include warnings but mark them as such
-                if ': ' in line:
-                                        warning_parts = line.split(': ', 1)
-                    if len(warning_parts) > 1:
+                if ':: ' in line:
+                    warning_parts = line.split(': ', 1)                    if len(warning_parts) > 1:
                         formatted_lines.append(f"Warning: {warning_parts[1].strip()}")
 
         return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
@@ -855,19 +858,15 @@ def format_runtime_error(error_msg: str) -> str:
     if not error_msg:
         return "Unknown runtime error occurred"
 
-    # Remove file paths and line numbers
     lines = error_msg.splitlines()
     formatted_lines = []
 
     for line in lines:
-        if "Unhandled exception" in line:
-            formatted_lines.append("Runtime Error: Program crashed during execution")
-        elif "error CS" in line:
-            parts = line.split(': ', 1)
-            if len(parts) > 1:
-                formatted_lines.append(f"Runtime Error: {parts[1].strip()}")
-        elif line.strip():  # Keep non-empty lines that might contain useful info
-            formatted_lines.append(line.strip())
+        if any(pattern in line.lower() for pattern in [
+            "exception", "error", "failed", "fault",
+            "crash", "invalid", "unable", "cannot"
+        ]):
+            formatted_lines.append(f"Runtime Error: {line.strip()}")
 
     return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
 
@@ -878,14 +877,14 @@ def is_interactive_code(code: str, language: str) -> bool:
     if language == 'cpp':
         # Check for common C++ input patterns
         return any(pattern in code for pattern in [
-            'cin', 'getline', 'cin.get',
+            'cin', 'getline',
             'std::cin', 'std::getline',
             'scanf', 'gets', 'fgets'
         ])
     elif language == 'csharp':
         # Check for common C# input patterns
         return any(pattern in code for pattern in [
-            'console.readline', 'console.read',
+            'console.read', 'console.readline',
             'console.in', 'console.keyavailable',
             'console.readkey'
         ])
