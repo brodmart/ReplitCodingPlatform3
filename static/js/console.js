@@ -26,13 +26,11 @@ class InteractiveConsole {
     setupEventHandlers() {
         // Socket.IO event handlers
         this.socket.on('connect', () => {
-            console.log('Connected to console server');
             this.appendSystemMessage('Connected to console server');
             this.enableInput();
         });
 
         this.socket.on('disconnect', () => {
-            console.log('Disconnected from console server');
             this.appendSystemMessage('Disconnected from console server');
             this.disableInput();
         });
@@ -134,5 +132,5 @@ class InteractiveConsole {
 
 // Export for browser environments
 if (typeof window !== 'undefined') {
-    window.InteractiveConsole = InteractiveConsole;
+    window.MyInteractiveConsole = InteractiveConsole; // Changed export name
 }

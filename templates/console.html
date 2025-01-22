@@ -35,19 +35,6 @@
         color: #69db7c;
         font-style: italic;
     }
-    .navbar {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .footer {
-        box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
-    }
-    .navbar-brand {
-        font-size: 1.25rem;
-        font-weight: 500;
-    }
-    .container {
-        max-width: 1200px;
-    }
 </style>
 {% endblock %}
 
@@ -68,7 +55,7 @@
 <script src="/static/js/console.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        window.console = new InteractiveConsole();
+        window.consoleInstance = new InteractiveConsole();
     });
 </script>
 {% endblock %}
