@@ -823,49 +823,70 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             logger.error(f"Failed to clean up temporary directory {temp_path}: {e}")
 
 def format_csharp_error(error_msg: str) -> str:
-    """Format C# compilation errors to be more user-friendly"""
+    """Format C# specific error messages."""
     try:
-        if "error CS" in error_msg:
-            error_parts = error_msg.split(": ", 1)
-            if len(error_parts) > 1:
-                error_description = error_parts[1].strip()
-                return f"Compilation Error: {error_description}"
-        return f"Compilation Error: {error_msg}"
+        if not error_msg:
+            return "Unknown C# error occurred"
+
+        lines = error_msg.splitlines()
+        formatted_lines = []
+
+        for line in lines:
+            if "error CS" in line:
+                # Extract error code and message
+                if ': ' in line:
+                    error_parts = line.split(': ', 1)
+                    if len(error_parts) > 1:
+                        formatted_lines.append(f"C# Error: {error_parts[1].strip()}")
+            elif "warning CS" in line:
+                # Include warnings but mark them as such
+                if ': ' in line:
+                                        warning_parts = line.split(': ', 1)
+                    if len(warning_parts) > 1:
+                        formatted_lines.append(f"Warning: {warning_parts[1].strip()}")
+
+        return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
     except Exception as e:
         logger.error(f"Error formatting C# error message: {str(e)}")
         return f"Compilation Error: {error_msg}"
 
-defformat_runtime_error(error_msg: str) -> str:
-    """Format runtime errors to be more user-friendly"""
-    try:
-        if not error_msg:
-            return "Unknown runtime error occurred"
+def format_runtime_error(error_msg: str) -> str:
+    """Format runtime error messages to be user-friendly."""
+    if not error_msg:
+        return "Unknown runtime error occurred"
 
-        common_errors = {
-            "System.NullReferenceException": "Attempted to use a null object",
-            "System.IndexOutOfRangeException": "Array index out of bounds",
-            "System.DivideByZeroException": "Division by zero detected",
-            "System.InvalidOperationException": "Invalid operation",
-            "System.ArgumentException": "Invalid argument provided",
-            "System.FormatException": "Invalid format"
-        }
+    # Remove file paths and line numbers
+    lines = error_msg.splitlines()
+    formatted_lines = []
 
-        for error_type, message in common_errors.items():
-            if error_type in error_msg:
-                return f"Runtime Error: {message}"
+    for line in lines:
+        if "Unhandled exception" in line:
+            formatted_lines.append("Runtime Error: Program crashed during execution")
+        elif "error CS" in line:
+            parts = line.split(': ', 1)
+            if len(parts) > 1:
+                formatted_lines.append(f"Runtime Error: {parts[1].strip()}")
+        elif line.strip():  # Keep non-empty lines that might contain useful info
+            formatted_lines.append(line.strip())
 
-        return f"Runtime Error: {error_msg}"
-    except Exception:
-        return f"Runtime Error: {error_msg}"
+    return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
 
 def is_interactive_code(code: str, language: str) -> bool:
-    """Detect if code is likely interactive based on input patterns"""
-    code_lower = code.lower()
+    """Determine if code requires interactive I/O based on language-specific patterns."""
+    code = code.lower()
+
     if language == 'cpp':
-        return 'cin' in code_lower or 'getline' in code_lower or 'cout' in code_lower
+        # Check for common C++ input patterns
+        return any(pattern in code for pattern in [
+            'cin', 'getline', 'cin.get',
+            'std::cin', 'std::getline',
+            'scanf', 'gets', 'fgets'
+        ])
     elif language == 'csharp':
-        return ('console.readline' in code_lower or 
-                'console.read' in code_lower or 
-                'console.write' in code_lower or
-                'readkey' in code_lower)
+        # Check for common C# input patterns
+        return any(pattern in code for pattern in [
+            'console.readline', 'console.read',
+            'console.in', 'console.keyavailable',
+            'console.readkey'
+        ])
     return False

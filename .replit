@@ -99,6 +99,10 @@ args = "C++ Test"
 task = "workflow.run"
 args = "Test C++ Interactive"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Interactive Compilation"
+
 [[workflows.workflow]]
 name = "File Server"
 author = "agent"
@@ -380,6 +384,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "g++ test_input.cpp -o test_program && ./test_program"
+
+[[workflows.workflow]]
+name = "Test Interactive Compilation"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test_interactive_console.py"
 
 [[ports]]
 localPort = 5000
