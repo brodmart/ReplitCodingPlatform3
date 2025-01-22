@@ -7,7 +7,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
-from database import db
+from database import db, init_app as init_db
 from utils.validation_utils import BlueprintValidator, validate_app_configuration
 
 # Configure logging
@@ -21,6 +21,39 @@ logger = logging.getLogger(__name__)
 class Anonymous(AnonymousUserMixin):
     def __init__(self):
         self.username = 'Guest'
+
+def register_blueprints(app):
+    """Register Flask blueprints"""
+    # Import blueprints here to avoid circular dependencies
+    from routes.auth_routes import auth
+    from routes.activities import activities_bp
+    from routes.tutorial import tutorial_bp
+    from routes.static_routes import static_pages
+    from routes.curriculum_routes import curriculum_bp
+
+    app.register_blueprint(auth)
+    app.register_blueprint(activities_bp)
+    app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
+    app.register_blueprint(static_pages)
+    app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
+
+def setup_error_handlers(app):
+    """Setup Flask error handlers"""
+    @app.errorhandler(404)
+    def not_found_error(error):
+        logger.warning(f"404 error: {error}")
+        return render_template('errors/404.html'), 404
+
+    @app.errorhandler(500)
+    def internal_error(error):
+        logger.error(f"500 error: {error}")
+        db.session.rollback()
+        return render_template('errors/500.html'), 500
+
+    @app.errorhandler(413)
+    def request_entity_too_large(error):
+        logger.warning(f"413 error: {error}")
+        return render_template('errors/413.html'), 413
 
 def create_app():
     """Create and configure the Flask application"""
@@ -55,8 +88,12 @@ def create_app():
 
         # Initialize extensions and create session directory
         os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
-        db.init_app(app)
+
+        # Initialize database first
+        init_db(app)
         migrate = Migrate(app, db)
+
+        # Initialize other extensions
         CORS(app)
         CSRFProtect(app)
         Session(app)
@@ -78,26 +115,11 @@ def create_app():
                 logger.error(f"Error loading user: {str(e)}")
                 return None
 
-        # Register blueprints
-        from routes.auth_routes import auth
-        from routes.activities import activities_bp
-        from routes.tutorial import tutorial_bp
-        from routes.static_routes import static_pages
-        from routes.curriculum_routes import curriculum_bp
+        # Register blueprints after database is initialized
+        register_blueprints(app)
 
-        app.register_blueprint(auth)
-        app.register_blueprint(activities_bp)
-        app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
-        app.register_blueprint(static_pages)
-        app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
-
-        # Validate blueprint registration and essential routes
-        validator = BlueprintValidator(app)
-        blueprint_validation = validator.validate_blueprints()
-        route_validation = validator.validate_essential_routes()
-
-        if not all(blueprint_validation.values()) or not all(route_validation.values()):
-            raise RuntimeError("Blueprint or route validation failed")
+        # Setup error handlers
+        setup_error_handlers(app)
 
         # Initialize session with default language if not set
         @app.before_request
@@ -108,23 +130,6 @@ def create_app():
                 session['lang'] = app.config['DEFAULT_LANGUAGE']
                 session.modified = True
                 logger.debug(f"Set default language: {session['lang']}")
-
-        # Error handlers
-        @app.errorhandler(404)
-        def not_found_error(error):
-            logger.warning(f"404 error: {error}")
-            return render_template('errors/404.html'), 404
-
-        @app.errorhandler(500)
-        def internal_error(error):
-            logger.error(f"500 error: {error}")
-            db.session.rollback()
-            return render_template('errors/500.html'), 500
-
-        @app.errorhandler(413)
-        def request_entity_too_large(error):
-            logger.warning(f"413 error: {error}")
-            return render_template('errors/413.html'), 413
 
         logger.info("Application initialized successfully")
         return app

@@ -5,14 +5,14 @@ import secrets
 from datetime import datetime, timedelta
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy.exc import SQLAlchemyError
-from models import Student, CodeSubmission, CodingActivity, StudentProgress
+from models.student import Student, CodeSubmission, CodingActivity, StudentProgress
 from forms import LoginForm, RegisterForm, ResetPasswordRequestForm, ResetPasswordForm, AdminConsoleForm
 from database import db
 from extensions import limiter
 from urllib.parse import urlparse, urljoin
 import logging
 from functools import wraps
-from routes.static_routes import get_user_language  # Import the centralized language function
+from routes.static_routes import get_user_language
 
 auth = Blueprint('auth', __name__)
 logger = logging.getLogger(__name__)

@@ -6,7 +6,7 @@ from flask_login import UserMixin
 from sqlalchemy import text, event
 from werkzeug.security import generate_password_hash, check_password_hash
 import logging
-from app import db
+from database import db
 
 logger = logging.getLogger(__name__)
 

@@ -45,8 +45,8 @@ def init_app(app):
             db.create_all()
             logger.info("Database tables created successfully")
 
-            # Test connection
-            db.session.execute("SELECT 1")
+            # Test connection using text()
+            db.session.execute(text("SELECT 1"))
             db.session.commit()
             logger.info("Database connection test successful")
 
@@ -114,7 +114,7 @@ class DatabaseHealthCheck:
                 'autoflush': db.session.autoflush,
                 'expired_all': db.session._is_clean()
             }
-            logger.info("Session info retrieved", **info)
+            logger.info("Session info retrieved", extra=info)
             return info
         except Exception as e:
             log_error(e, error_type="DB_SESSION_INFO_ERROR")

@@ -2,9 +2,9 @@
 Database models for Ontario Computer Science Curriculum (ICS3U)
 Supports bilingual content and hierarchical structure
 """
-from app import db
 from datetime import datetime
 from sqlalchemy import CheckConstraint, Index
+from database import db
 
 class Course(db.Model):
     __tablename__ = 'courses'
