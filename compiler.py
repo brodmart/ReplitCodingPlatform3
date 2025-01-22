@@ -598,44 +598,31 @@ def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List
 
 
 def get_template(language: str) -> str:
-    """Get the template code for a given language"""
-    cpp_template = """#include <iostream>
+    """Get the template code for a given programming language.
+
+    Args:
+        language (str): The programming language identifier ('cpp' or 'csharp')
+
+    Returns:
+        str: The template code for the specified language
+    """
+    templates = {
+        'cpp': """#include <iostream>
 #include <string>
 using namespace std;
 
 int main() {
-    string name;
-    int age;
-
-    cout << "Enter your name: ";
-    getline(cin, name);
-
-    cout << "Enter your age: ";
-    cin >> age;
-
-    cout << "Hello, " << name << "! ";
-    cout << "You are " << age << " years old." << endl;
+    // Your code here
+    cout << "Hello World!" << endl;
     return 0;
-}"""
-
-    csharp_template = """using System;
+}""",
+        'csharp': """using System;
 
 class Program {
     static void Main() {
-        Console.Write("Enter your name: ");
-        string name = Console.ReadLine();
-
-        Console.Write("Enter your age: ");
-        if (int.TryParse(Console.ReadLine(), out int age)) {
-            Console.WriteLine($"Hello {name}, you are {age} years old!");
-        } else {
-            Console.WriteLine($"Hello {name}, invalid age entered!");
-        }
+        // Your code here
+        Console.WriteLine("Hello World!");
     }
 }"""
-
-    templates = {
-        'cpp': cpp_template,
-        'csharp': csharp_template
     }
-    return templates.get(language, '')
+    return templates.get(language.lower(), '')

@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, session
+from flask import Flask, render_template, session, request, jsonify
 from flask_login import LoginManager, AnonymousUserMixin
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
@@ -9,6 +9,7 @@ from flask_migrate import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_app as init_db
 from utils.validation_utils import validate_app_configuration
+from compiler import get_template
 
 # Configure logging
 logging.basicConfig(
@@ -81,8 +82,8 @@ def create_app():
         'SESSION_PERMANENT': True,
         'PERMANENT_SESSION_LIFETIME': 31536000,
         'WTF_CSRF_ENABLED': True,
-        'WTF_CSRF_TIME_LIMIT': None,  # No time limit for CSRF tokens
-        'SERVER_NAME': None  # Allow all hostnames
+        'WTF_CSRF_TIME_LIMIT': None,
+        'SERVER_NAME': None
     })
 
     try:
@@ -114,12 +115,52 @@ def create_app():
         @login_manager.user_loader
         def load_user(user_id):
             try:
-                # Import Student model lazily to avoid circular imports
                 from models import Student
                 return Student.query.get(int(user_id))
             except Exception as e:
                 logger.error(f"Error loading user: {str(e)}")
                 return None
+
+        # Add template loading route
+        @app.route('/activities/get_template', methods=['POST'])
+        def get_code_template():
+            try:
+                data = request.get_json()
+                if not data or 'language' not in data:
+                    logger.warning("Template request missing language parameter")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Language parameter is required'
+                    }), 400
+
+                language = data['language'].lower()
+                if language not in ['cpp', 'csharp']:
+                    logger.warning(f"Unsupported language requested: {language}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Unsupported language'
+                    }), 400
+
+                template = get_template(language)
+                if not template:
+                    logger.warning(f"No template found for language: {language}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Template not found'
+                    }), 404
+
+                logger.debug(f"Successfully retrieved template for {language}")
+                return jsonify({
+                    'success': True,
+                    'template': template
+                })
+
+            except Exception as e:
+                logger.error(f"Error getting template: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Internal server error'
+                }), 500
 
         # Register blueprints after database is initialized
         register_blueprints(app)

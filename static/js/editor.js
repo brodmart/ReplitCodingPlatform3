@@ -10,6 +10,55 @@ const editorState = {
     inputCallback: null
 };
 
+// Set editor template with improved error handling and CSRF token
+async function setEditorTemplate(language) {
+    if (!language) {
+        throw new Error('Language parameter is required');
+    }
+
+    console.log('Setting template for language:', language);
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        if (!csrfToken) {
+            throw new Error('CSRF token not found');
+        }
+
+        const response = await fetch('/activities/get_template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify({ language })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to get template');
+        }
+
+        if (!data.template) {
+            throw new Error('Template not found');
+        }
+
+        editorState.editor.setValue(data.template);
+        editorState.editor.clearHistory();
+
+        // Position cursor appropriately based on language
+        const cursorLine = language === 'cpp' ? 4 : 6;
+        editorState.editor.setCursor(cursorLine, 4);
+    } catch (error) {
+        console.error('Error setting template:', error);
+        throw error; // Re-throw to allow fallback template in initializeEditor
+    }
+}
+
 // Initialize editor with proper error handling
 async function initializeEditor() {
     try {
@@ -145,54 +194,6 @@ async function handleLanguageChange(event) {
     }
 }
 
-// Set editor template with improved error handling
-async function setEditorTemplate(language) {
-    if (!language) {
-        throw new Error('Language parameter is required');
-    }
-
-    console.log('Setting template for language:', language);
-
-    try {
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-        if (!csrfToken) {
-            throw new Error('CSRF token not found');
-        }
-
-        const response = await fetch('/activities/get_template', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken
-            },
-            body: JSON.stringify({ language })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to get template');
-        }
-
-        if (!data.template) {
-            throw new Error('Template not found');
-        }
-
-        editorState.editor.setValue(data.template);
-        editorState.editor.clearHistory();
-
-        // Position cursor appropriately based on language
-        const cursorLine = language === 'cpp' ? 4 : 6;
-        editorState.editor.setCursor(cursorLine, 4);
-    } catch (error) {
-        console.error('Error setting template:', error);
-        throw error; // Re-throw to allow fallback template in initializeEditor
-    }
-}
 
 // Show error message
 function showError(message) {
