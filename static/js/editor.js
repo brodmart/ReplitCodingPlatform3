@@ -156,20 +156,19 @@ async function runCode() {
             },
             body: JSON.stringify({ 
                 code, 
-                language: editorState.currentLanguage
+                language: editorState.currentLanguage,
+                session_id: editorState.currentSession
             }),
             credentials: 'same-origin'
         });
 
         let result;
-        const contentType = response.headers.get('content-type');
-
         try {
             result = await response.json();
             console.log('Received response:', result);
         } catch (error) {
             console.error('Failed to parse JSON response:', error);
-            throw new Error('Invalid response format from server. Please check if you are logged in.');
+            throw new Error('Invalid response format from server');
         }
 
         // Handle authentication redirect
@@ -178,7 +177,7 @@ async function runCode() {
                 window.location.href = result.redirect;
                 return;
             }
-            throw new Error('Authentication required. Please log in.');
+            throw new Error('Authentication required');
         }
 
         if (!response.ok) {
@@ -187,14 +186,34 @@ async function runCode() {
 
         if (result.success) {
             terminal?.write('\r\n\x1b[32mCompilation successful!\x1b[0m\r\n');
+
+            // Start new interactive session if one is created
+            if (result.session_id && result.session_id !== editorState.currentSession) {
+                editorState.currentSession = result.session_id;
+                startPollingOutput(result.session_id);
+            }
+
             if (result.output) {
                 terminal?.write(result.output + '\r\n');
             }
+
+            // Enable console input if program is expecting input
+            if (result.waiting_for_input) {
+                const consoleInput = document.getElementById('consoleInput');
+                if (consoleInput) {
+                    consoleInput.disabled = false;
+                    consoleInput.focus();
+                }
+            }
+
             if (result.metrics) {
                 console.log('Performance metrics:', result.metrics);
             }
         } else {
-            terminal?.write('\x1b[31mError: ' + (result.error || 'Unknown error occurred') + '\x1b[0m\r\n');
+            // Handle language-specific error formatting
+            const errorMsg = result.error || 'Unknown error occurred';
+            const formattedError = formatCompilerError(errorMsg, editorState.currentLanguage);
+            terminal?.write('\x1b[31m' + formattedError + '\x1b[0m\r\n');
         }
     } catch (error) {
         console.error('Error executing code:', error);
@@ -207,6 +226,27 @@ async function runCode() {
             runButton.innerHTML = '<i class="bi bi-play-fill"></i> Run';
         }
     }
+}
+
+// Add language-specific error formatting
+function formatCompilerError(error, language) {
+    if (!error) return 'Unknown error occurred';
+
+    switch (language.toLowerCase()) {
+        case 'cpp':
+            // Format C++ specific errors
+            error = error.replace(/^In file included from.+\n?/gm, '');
+            error = error.replace(/(\w+\.cpp):(\d+):(\d+):/g, 'Line $2, Column $3:');
+            break;
+
+        case 'csharp':
+            // Format C# specific errors
+            error = error.replace(/\((\d+),(\d+)\):/g, 'Line $1, Column $2:');
+            error = error.replace(/error CS\d+:/g, 'Error:');
+            break;
+    }
+
+    return error.trim();
 }
 
 // Poll for output from interactive sessions
