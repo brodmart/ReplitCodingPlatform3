@@ -119,6 +119,10 @@ args = "View Context"
 task = "workflow.run"
 args = "View Updated Context"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Build Large C#"
+
 [[workflows.workflow]]
 name = "File Server"
 author = "agent"
@@ -476,6 +480,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cat AI_CONTEXT.md"
+
+[[workflows.workflow]]
+name = "Build Large C#"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "dotnet build --project student_tracker.csproj && dotnet run --project student_tracker.csproj"
 
 [[ports]]
 localPort = 5000
