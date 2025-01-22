@@ -1,51 +1,57 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Interactive Console</title>
-    <style>
-        #console-output {
-            height: 400px;
-            width: 100%;
-            background: #1e1e1e;
-            color: #ffffff;
-            font-family: monospace;
-            padding: 10px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-            border-radius: 4px;
-        }
-        #console-input {
-            width: 100%;
-            padding: 8px;
-            background: #2d2d2d;
-            color: #ffffff;
-            font-family: monospace;
-            border: 1px solid #3d3d3d;
-            border-radius: 4px;
-        }
-        .console-disabled {
-            background: #3d3d3d !important;
-            cursor: not-allowed;
-        }
-        .console-error {
-            color: #ff6b6b;
-        }
-        .console-system {
-            color: #69db7c;
-            font-style: italic;
-        }
-    </style>
-</head>
-<body>
-    <div id="console-output"></div>
-    <input type="text" id="console-input" placeholder="Enter input..." disabled>
+{% extends "base.html" %}
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="/static/js/console.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            window.console = new InteractiveConsole();
-        });
-    </script>
-</body>
-</html>
+{% block title %}{% if lang == 'fr' %}Console Interactive{% else %}Interactive Console{% endif %}{% endblock %}
+
+{% block head %}
+<style>
+    #console-output {
+        height: 400px;
+        width: 100%;
+        background: #1e1e1e;
+        color: #ffffff;
+        font-family: monospace;
+        padding: 10px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+        border-radius: 4px;
+    }
+    #console-input {
+        width: 100%;
+        padding: 8px;
+        background: #2d2d2d;
+        color: #ffffff;
+        font-family: monospace;
+        border: 1px solid #3d3d3d;
+        border-radius: 4px;
+    }
+    .console-disabled {
+        background: #3d3d3d !important;
+        cursor: not-allowed;
+    }
+    .console-error {
+        color: #ff6b6b;
+    }
+    .console-system {
+        color: #69db7c;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">{% if lang == 'fr' %}Console Interactive{% else %}Interactive Console{% endif %}</h2>
+    <div id="console-output"></div>
+    <input type="text" id="console-input" placeholder="{% if lang == 'fr' %}Entrez votre texte...{% else %}Enter input...{% endif %}" disabled>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="/static/js/console.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.console = new InteractiveConsole();
+    });
+</script>
+{% endblock %}

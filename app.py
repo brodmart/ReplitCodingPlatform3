@@ -1,11 +1,12 @@
 import os
 import logging
-from flask import Flask, session, request, render_template
+from flask import Flask, session, request, render_template, g
 from flask_socketio import SocketIO, emit
 from flask_session import Session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from flask_wtf.csrf import CSRFProtect
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -23,6 +24,7 @@ class Base(DeclarativeBase):
     pass
 
 db = SQLAlchemy(model_class=Base)
+csrf = CSRFProtect()
 
 def create_app():
     """Create and configure the Flask application"""
@@ -33,7 +35,8 @@ def create_app():
         'SECRET_KEY': os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
         'SESSION_TYPE': 'filesystem',
         'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
-        'SQLALCHEMY_TRACK_MODIFICATIONS': False
+        'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+        'WTF_CSRF_ENABLED': True
     })
 
     try:
@@ -42,9 +45,15 @@ def create_app():
         socketio.init_app(app)
         CORS(app)
         Session(app)
+        csrf.init_app(app)
 
         with app.app_context():
             db.create_all()
+
+        # Add context processor for language
+        @app.context_processor
+        def inject_language():
+            return {'lang': session.get('lang', 'en')}
 
         # Add console route
         @app.route('/')
@@ -147,4 +156,4 @@ def setup_websocket_handlers():
 app = create_app()
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=True, log_output=True)
