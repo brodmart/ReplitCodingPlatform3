@@ -6,6 +6,7 @@ import tempfile
 import logging
 import traceback
 import signal
+import json
 from typing import Dict, Optional, Any, List, Union
 from pathlib import Path
 import psutil
@@ -19,25 +20,156 @@ import termios
 import struct
 import errno
 import re
+from dataclasses import dataclass, field, asdict
+from datetime import datetime
 
-# Configure logging
+# Configure logging with more detailed format
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s',
+    handlers=[
+        logging.FileHandler('compiler.log'),
+        logging.StreamHandler()
+    ]
 )
 logger = logging.getLogger(__name__)
 
-# Performance tuning constants
-MAX_COMPILATION_TIME = 30    # seconds
-MAX_EXECUTION_TIME = 30     # seconds
-MEMORY_LIMIT = 1024        # MB
-COMPILER_CACHE_DIR = "/tmp/compiler_cache"
-CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
+# Add specialized loggers for different aspects
+compilation_logger = logging.getLogger('compiler.compilation')
+performance_logger = logging.getLogger('compiler.performance')
+error_logger = logging.getLogger('compiler.error')
 
-# Initialize cache directory
-os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
-_compilation_cache = {}
-_cache_lock = Lock()
+@dataclass
+class CompilationError:
+    """Structured compilation error information"""
+    error_type: str
+    message: str
+    file: str
+    line: int
+    column: int
+    code: str
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+@dataclass
+class CompilationMetrics:
+    """Enhanced compilation metrics tracking"""
+    start_time: float
+    end_time: float = 0.0
+    compilation_time: float = 0.0
+    execution_time: float = 0.0
+    peak_memory: float = 0.0
+    avg_cpu_usage: float = 0.0
+    error_count: int = 0
+    warning_count: int = 0
+    cached: bool = False
+    status_updates: List[tuple[float, str]] = field(default_factory=list)
+    successful_builds: int = 0
+    total_builds: int = 0
+
+    def log_status(self, status: str):
+        current_time = time.time() - self.start_time
+        self.status_updates.append((current_time, status))
+        performance_logger.debug(f"[{current_time:.2f}s] {status}")
+
+    def record_build(self, success: bool):
+        self.total_builds += 1
+        if success:
+            self.successful_builds += 1
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            'compilation_time': self.compilation_time,
+            'execution_time': self.execution_time,
+            'peak_memory': self.peak_memory,
+            'avg_cpu_usage': self.avg_cpu_usage,
+            'error_count': self.error_count,
+            'warning_count': self.warning_count,
+            'cached': self.cached,
+            'total_time': self.end_time - self.start_time if self.end_time else 0,
+            'status_updates': self.status_updates,
+            'build_success_rate': (self.successful_builds / self.total_builds * 100) if self.total_builds > 0 else 0
+        }
+
+class ErrorTracker:
+    """Track and analyze compilation errors with trend analysis"""
+    def __init__(self):
+        self.errors: List[CompilationError] = []
+        self._error_patterns: Dict[str, int] = {}
+        self._error_trends: Dict[str, List[datetime]] = {}
+
+    def add_error(self, error: CompilationError):
+        """Add and analyze a new compilation error"""
+        self.errors.append(error)
+        error_logger.error(f"Compilation error: {error.to_dict()}")
+        self._update_patterns(error)
+        # Track error trends
+        pattern = f"{error.error_type}:{error.code}"
+        if pattern not in self._error_trends:
+            self._error_trends[pattern] = []
+        self._error_trends[pattern].append(datetime.fromisoformat(error.timestamp))
+        self._analyze_frequent_patterns(pattern)
+
+    def _update_patterns(self, error: CompilationError):
+        """Update error pattern statistics"""
+        pattern = f"{error.error_type}:{error.code}"
+        self._error_patterns[pattern] = self._error_patterns.get(pattern, 0) + 1
+
+        if self._error_patterns[pattern] > 5:
+            error_logger.warning(f"Frequent error pattern detected: {pattern}")
+            self._analyze_frequent_patterns(pattern)
+
+    def _analyze_frequent_patterns(self, pattern: str):
+        """Analyze frequency of error patterns"""
+        if pattern not in self._error_trends:
+            return
+
+        timestamps = self._error_trends[pattern]
+        if len(timestamps) < 2:
+            return
+
+        # Calculate time differences between consecutive errors
+        time_diffs = [(t2 - t1).total_seconds() for t1, t2 in zip(timestamps[:-1], timestamps[1:])]
+        avg_time_between_errors = sum(time_diffs) / len(time_diffs) if time_diffs else 0
+
+        if avg_time_between_errors < 60:  # Less than 1 minute between errors
+            error_logger.critical(f"High-frequency error pattern detected: {pattern}")
+            self._recommend_fixes(pattern)
+
+    def _recommend_fixes(self, pattern: str):
+        """Provide recommendations based on error patterns"""
+        common_fixes = {
+            'CS0103': "Check for undefined variables and ensure all variables are declared before use",
+            'CS0117': "Verify method names and ensure they exist in the referenced class",
+            'CS0234': "Check namespace references and using statements",
+            'CS0246': "Verify all required dependencies are properly referenced",
+            'CS1002': "Check for missing semicolons",
+            'CS1513': "Check for missing closing braces",
+            'CS1525': "Check for invalid syntax or missing operators",
+            'CS0116': "All methods must have a return type",
+            'CS0165': "Use of unassigned local variable"
+        }
+
+        error_code = pattern.split(':')[1]
+        if error_code in common_fixes:
+            error_logger.info(f"Recommended fix for {error_code}: {common_fixes[error_code]}")
+        else:
+            error_logger.info(f"No specific recommendation available for error code: {error_code}")
+
+    def get_summary(self) -> Dict[str, Any]:
+        """Get comprehensive error analysis summary"""
+        frequent_patterns = {k: v for k, v in self._error_patterns.items() if v > 1}
+        recent_errors = sorted(self.errors, key=lambda x: x.timestamp, reverse=True)[:5]
+
+        return {
+            'total_errors': len(self.errors),
+            'error_patterns': self._error_patterns,
+            'most_common': max(self._error_patterns.items(), key=lambda x: x[1]) if self._error_patterns else None,
+            'frequent_patterns': frequent_patterns,
+            'recent_errors': [e.to_dict() for e in recent_errors]
+        }
 
 def get_code_hash(code: str, language: str) -> str:
     """Generate a unique hash for the code and language"""
@@ -59,6 +191,10 @@ class CompilerSession:
         self.master_fd: Optional[int] = None
         self.slave_fd: Optional[int] = None
         self.partial_line: str = ""  # Buffer for partial output lines
+        self.metrics = CompilationMetrics(time.time()) # Initialize metrics here
+        self.error_tracker = ErrorTracker()
+
+
 
 def create_pty() -> tuple[int, int]:
     """Create a new PTY pair with proper settings"""
@@ -162,7 +298,7 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                                                 any(pattern in recent_output for pattern in input_patterns) or
                                                 recent_output.rstrip().endswith(':') or
                                                 recent_output.rstrip().endswith('> ') or
-                                                (recent_output.count('\n') == 0 and 
+                                                (recent_output.count('\n') == 0 and
                                                  any(char in recent_output for char in '?:>'))
                                             )
 
@@ -237,13 +373,17 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 logger.debug(f"3.4 Compilation stderr:\n{compile_process.stderr}")
 
                 if compile_process.returncode != 0:
-                    error_msg = format_csharp_error(compile_process.stderr or compile_process.stdout)
+                    errors = parse_csharp_errors(compile_process.stderr or compile_process.stdout)
+                    for error in errors:
+                        session.error_tracker.add_error(error)
+                    error_summary = session.error_tracker.get_summary()
                     logger.error("4. Compilation failed")
-                    logger.error(f"4.1 Error output: {error_msg}")
+                    logger.error(f"4.1 Error summary: {json.dumps(error_summary, indent=2)}")
                     cleanup_session(session.session_id)
                     return {
                         'success': False,
-                        'error': error_msg
+                        'error': json.dumps(error_summary, indent=2),
+                        'metrics': session.metrics.to_dict()
                     }
 
                 logger.info("4. Compilation successful")
@@ -289,7 +429,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 return {
                     'success': True,
                     'session_id': session.session_id,
-                    'interactive': True
+                    'interactive': True,
+                    'metrics': session.metrics.to_dict()
                 }
 
             except subprocess.TimeoutExpired:
@@ -297,7 +438,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 logger.error("C# compilation timed out")
                 return {
                     'success': False,
-                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
+                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds",
+                    'metrics': session.metrics.to_dict()
                 }
 
         elif language == 'cpp':
@@ -321,7 +463,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 cleanup_session(session.session_id)
                 return {
                     'success': False,
-                    'error': f"Compilation Error: {error_msg}"
+                    'error': f"Compilation Error: {error_msg}",
+                    'metrics': session.metrics.to_dict()
                 }
 
             executable.chmod(0o755)
@@ -358,7 +501,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 return {
                     'success': True,
                     'session_id': session.session_id,
-                    'interactive': True
+                    'interactive': True,
+                    'metrics': session.metrics.to_dict()
                 }
 
             except Exception as e:
@@ -366,13 +510,15 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 cleanup_session(session.session_id)
                 return {
                     'success': False,
-                    'error': f"Process Error: {str(e)}"
+                    'error': f"Process Error: {str(e)}",
+                    'metrics': session.metrics.to_dict()
                 }
 
         else:
             return {
                 'success': False,
-                'error': f"Interactive mode not supported for {language}"
+                'error': f"Interactive mode not supported for {language}",
+                'metrics': session.metrics.to_dict()
             }
 
     except Exception as e:
@@ -381,7 +527,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         logger.error(f"Error in start_interactive_session: {traceback.format_exc()}")
         return {
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'metrics': session.metrics.to_dict()
         }
 
 def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
@@ -430,11 +577,13 @@ def get_output(session_id: str) -> Dict[str, Any]:
         if session.process.poll() is not None:
             output = ''.join(session.stdout_buffer)
             logger.debug(f"Process ended, final output: {output}")
+            session.metrics.end_time = time.time()
             cleanup_session(session_id)
             return {
                 'success': True,
                 'output': output,
-                'session_ended': True
+                'session_ended': True,
+                'metrics': session.metrics.to_dict()
             }
 
         # Return accumulated output
@@ -449,7 +598,8 @@ def get_output(session_id: str) -> Dict[str, Any]:
             'success': True,
             'output': output,
             'waiting_for_input': session.waiting_for_input,
-            'session_ended': False
+            'session_ended': False,
+            'metrics': session.metrics.to_dict()
         }
 
     except Exception as e:
@@ -495,36 +645,13 @@ def cleanup_session(session_id: str) -> None:
                 del active_sessions[session_id]
                 logger.debug(f"Removed session {session_id} from active_sessions")
 
-class CompilationMetrics:
-    """Track compilation and execution metrics"""
-    def __init__(self):
-        self.start_time = time.time()
-        self.compilation_time = 0.0
-        self.execution_time = 0.0
-        self.peak_memory = 0
-        self.status_updates = []
-
-    def log_status(self, status: str):
-        current_time = time.time() - self.start_time
-        self.status_updates.append((current_time, status))
-        logger.debug(f"[{current_time:.2f}s] {status}")
-
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            'compilation_time': self.compilation_time,
-            'execution_time': self.execution_time,
-            'peak_memory': self.peak_memory,
-            'total_time': time.time() - self.start_time,
-            'status_updates': self.status_updates
-        }
-
 class ProcessMonitor(Thread):
     def __init__(self, process, timeout=30, memory_limit_mb=512):
         super().__init__()
         self.process = process
         self.timeout = timeout
         self.memory_limit = memory_limit_mb * 1024 * 1024  # Convert to bytes
-        self.metrics = CompilationMetrics()
+        self.metrics = CompilationMetrics(time.time())
         self.stopped = Event()
 
     def run(self):
@@ -646,84 +773,85 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
             f.write(code)
         return temp_dir, "program"
     else:
-        raise ValueError(f"Unsupported language: {language}")
+        raise ValueError(f""Unsupported language: {language}")
 
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optimized performance and enhanced error handling
-    """
-    metrics = {'start_time': time.time()}
-    logger.info(f"=== Starting C# Compilation Workflow ===")
-    logger.info(f"1. Initializing compilation process for {language}")
-    logger.debug(f"Code length: {len(code)} characters")
+    """Enhanced compilation with comprehensive logging and metrics"""
+    metrics = CompilationMetrics(start_time=time.time())
+    error_tracker = ErrorTracker()
+
+    compilation_logger.info(f"=== Starting {language} Compilation ===")
+    compilation_logger.debug(f"Code length: {len(code)} characters")
 
     if not code or not language:
-        logger.error("2. Validation Failed: Missing code or language specification")
+        error_logger.error("Missing code or language specification")
         return {
             'success': False,
             'error': "No code or language specified",
-            'metrics': metrics
+            'metrics': metrics.to_dict()
         }
 
     try:
         # Check if code is interactive
-        logger.info("2. Checking if code requires interactive execution")
+        compilation_logger.info("Checking for interactive code requirements")
         if is_interactive_code(code, language):
-            logger.info("3. Interactive code detected, initializing interactive session")
+            compilation_logger.info("Interactive code detected, initializing session")
             session_id = str(uuid.uuid4())
-            logger.debug(f"3.1 Created session ID: {session_id}")
             temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
-            logger.debug(f"3.2 Created temporary directory: {temp_dir}")
             session = CompilerSession(session_id, temp_dir)
 
             with session_lock:
                 active_sessions[session_id] = session
-                logger.info("3.3 Session registered in active sessions")
 
             try:
-                logger.info("4. Starting interactive compilation process")
                 result = start_interactive_session(session, code, language)
                 if result['success']:
-                    logger.info("5. Interactive session started successfully")
+                    compilation_logger.info("Interactive session started successfully")
                     result['interactive'] = True
                     result['session_id'] = session_id
                 else:
-                    logger.error("5. Failed to start interactive session")
+                    error_logger.error(f"Failed to start interactive session: {result.get('error')}")
                     cleanup_session(session_id)
                 return result
             except Exception as e:
-                logger.error(f"5. Error in interactive session: {str(e)}\n{traceback.format_exc()}")
+                error_logger.error(f"Interactive session error: {traceback.format_exc()}")
                 cleanup_session(session_id)
                 return {
                     'success': False,
                     'error': f"Interactive session error: {str(e)}",
-                    'metrics': metrics
+                    'metrics': metrics.to_dict()
                 }
 
         # Regular compilation workflow
-        logger.info("3. Creating isolated compilation environment")
         temp_dir, project_name = create_isolated_environment(code, language)
-        logger.debug(f"3.1 Created temporary directory: {temp_dir}")
-        logger.debug(f"3.2 Project name: {project_name}")
+        compilation_logger.info(f"Created isolated environment: {temp_dir}")
 
         if language == 'csharp':
             try:
                 project_file = os.path.join(temp_dir, f"{project_name}.csproj")
+                compilation_logger.info("Starting C# compilation process")
 
-                # Enhanced compilation command with better error handling
+                # Enhanced compilation command
                 compile_cmd = [
                     'dotnet', 'build',
                     project_file,
                     '--configuration', 'Release',
                     '--nologo',
                     '/p:GenerateFullPaths=true',
-                    '/consoleloggerparameters:NoSummary;Verbosity=detailed'
+                    '/consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed'
                 ]
 
-                logger.info("4. Starting C# compilation")
-                logger.debug(f"4.1 Compilation command: {' '.join(compile_cmd)}")
+                compilation_logger.debug(f"Compilation command: {' '.join(compile_cmd)}")
 
+                # Track system metrics during compilation
+                process = psutil.Process()
+
+                # Initial metrics
+                metrics.avg_cpu_usage = process.cpu_percent()
+                metrics.peak_memory = process.memory_info().rss / (1024 * 10024 * 1024)  # MB
+
+                # Run compilation
                 compile_process = subprocess.run(
                     compile_cmd,
                     capture_output=True,
@@ -732,31 +860,40 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     cwd=temp_dir
                 )
 
+                # Update metrics after compilation
+                metrics.avg_cpu_usage = (metrics.avg_cpu_usage + process.cpu_percent()) / 2
+                current_memory = process.memory_info().rss / (1024 * 1024)  # MB
+                metrics.peak_memory = max(metrics.peak_memory, current_memory)
+
                 if compile_process.returncode != 0:
-                    error_msg = format_csharp_error(compile_process.stderr)
-                    logger.error(f"5. C# compilation failed")
-                    logger.debug(f"5.1 Raw compilation output:\n{compile_process.stderr}")
-                    logger.error(f"5.2 Formatted error: {error_msg}")
+                    errors = format_csharp_error(compile_process.stderr or compile_process.stdout)
+                    for error in errors:
+                        error_tracker.add_error(error)
+
+                    error_summary = error_tracker.get_summary()
+                    error_logger.error(f"Compilation failed: {error_summary}")
+
                     return {
                         'success': False,
-                        'error': error_msg,
-                        'metrics': metrics
+                        'errors': [e.to_dict() for e in errors],
+                        'error_summary': error_summary,
+                        'metrics': metrics.to_dict()
                     }
 
-                logger.info("5. C# compilation successful")
+                compilation_logger.info("Compilation successful")
                 dll_path = os.path.join(temp_dir, "bin", "Release", "net7.0", f"{project_name}.dll")
-                logger.debug(f"5.1 DLL path: {dll_path}")
 
                 if not os.path.exists(dll_path):
                     error_msg = "Compilation succeeded but executable not found"
-                    logger.error(f"6. {error_msg}")
+                    error_logger.error(error_msg)
                     return {
                         'success': False,
                         'error': error_msg,
-                        'metrics': metrics
+                        'metrics': metrics.to_dict()
                     }
 
-                logger.info("6. Starting program execution")
+                # Execute the compiled program
+                compilation_logger.info("Starting program execution")
                 run_process = subprocess.run(
                     ['dotnet', dll_path],
                     input=input_data.encode() if input_data else None,
@@ -764,41 +901,48 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     text=True,
                     timeout=MAX_EXECUTION_TIME,
                     cwd=temp_dir,
-                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
+                    env={
+                        **os.environ,
+                        'DOTNET_CONSOLE_ENCODING': 'utf-8'
+                    }
                 )
 
                 if run_process.returncode != 0:
                     error_msg = format_csharp_error(run_process.stderr)
-                    logger.error(f"7. Runtime error occurred: {error_msg}")
+                    error_logger.error(f"Runtime error: {error_msg}")
                     return {
                         'success': False,
                         'error': f"Runtime Error: {error_msg}",
-                        'metrics': metrics
+                        'metrics': metrics.to_dict()
                     }
 
-                logger.info("7. Program executed successfully")
+                metrics.end_time = time.time()
+                compilation_logger.info("Program executed successfully")
+                performance_logger.info(f"Performance metrics: {metrics.to_dict()}")
+
                 return {
                     'success': True,
                     'output': run_process.stdout,
-                    'metrics': metrics
+                    'metrics': metrics.to_dict()
                 }
 
             except subprocess.TimeoutExpired:
-                logger.error("Compilation timed out")
+                error_logger.error("Compilation timeout")
                 return {
                     'success': False,
                     'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds",
-                    'metrics': metrics
-                }
-            except Exception as e:
-                logger.error(f"Unexpected C# error: {str(e)}\n{traceback.format_exc()}")
-                return {
-                    'success': False,
-                    'error': f"Unexpected error: {str(e)}",
-                    'metrics': metrics
+                    'metrics': metrics.to_dict()
                 }
 
-        elif language== 'cpp':
+            except Exception as e:
+                error_logger.error(f"Unexpected error: {traceback.format_exc()}")
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'metrics': metrics.to_dict()
+                }
+
+        elif language == 'cpp':
             # Set up C++ compilation
             source_file = os.path.join(temp_dir, "program.cpp")
             executable = os.path.join(temp_dir, "program")
@@ -811,7 +955,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 '-Wall',       # Enable warnings
                 '-pipe',
                 source_file,
-                '-o',                executable
+                '-o', executable
             ]
 
             try:
@@ -827,7 +971,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     return {
                         'success': False,
                         'error': f"Compilation Error: {compile_process.stderr}",
-                        'metrics': metrics
+                        'metrics': metrics.to_dict()
                     }
 
                 # Set executable permissions
@@ -846,13 +990,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     return {
                         'success': False,
                         'error': f"Runtime Error: {run_process.stderr}",
-                        'metrics': metrics
+                        'metrics': metrics.to_dict()
                     }
 
                 return {
                     'success': True,
                     'output': run_process.stdout,
-                    'metrics': metrics
+                    'metrics': metrics.to_dict()
                 }
 
             except subprocess.TimeoutExpired as e:
@@ -860,23 +1004,22 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 return {
                     'success': False,
                     'error': f"{phase.capitalize()} timed out",
-                    'metrics': metrics
+                    'metrics': metrics.to_dict()
                 }
 
         else:
             return {
                 'success': False,
                 'error': f"Unsupported language: {language}",
-                'metrics': metrics
+                'metrics': metrics.to_dict()
             }
 
     except Exception as e:
-        error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        logger.error(error_msg)
+        error_logger.error(f"General compilation error: {traceback.format_exc()}")
         return {
             'success': False,
-            'error': error_msg,
-            'metrics': metrics
+            'error': str(e),
+            'metrics': metrics.to_dict()
         }
     finally:
         # Clean up temporary directory
@@ -885,59 +1028,63 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         except Exception as e:
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
-def format_csharp_error(error_output: str) -> str:
-    """Format C# compilation error messages for better readability"""
-    if not error_output:
-        return "Unknown compilation error occurred. Please check syntax and try again."
+def format_csharp_error(error_output: str) -> List[CompilationError]:
+    """Enhanced C# error parsing with improved pattern matching"""
+    errors = []
 
-    # Clean up ANSI color codes and other formatting
-    cleaned = clean_terminal_output(error_output)
+    # More comprehensive error pattern matching
+    patterns = [
+        r'(.*?)\((\d+),(\d+)\):\s*(warning|error)\s*(CS\d+):\s*(.+?)(?=\[|$)',  # Standard format
+        r'(.*?):\s*(warning|error)\s*(CS\d+):\s*(.+)',  # Alternate format
+        r'Unhandled\s+Exception:\s*([^:]+):\s*(.+)'  # Runtime exception format
+    ]
 
-    # Extract relevant error information
-    error_lines = []
-    for line in cleaned.split('\n'):
-        if '(CS' in line or 'error' in line.lower():
-            error_lines.append(line.strip())
+    for line in error_output.splitlines():
+        line = line.strip()
+        if not line:
+            continue
 
-    if not error_lines:
-        return cleaned.strip() or "Compilation failed with no specific error message"
-
-    return "\n".join(error_lines)
-
-def format_runtime_error(error_msg: str) -> str:
-    """Format runtime errors with improved detail capture"""
-    if not error_msg:
-        return "Unknown runtime error occurred"
-
-    error_lines = []
-    stack_trace= []
-
-    for line in error_msg.splitlines():
-        # Capture exception type and message
-        if "Exception:" in line:
-            exception_match = re.search(r'([a-zA-Z.]+Exception:)\s*(.+)', line)
-            if exception_match:
-                exc_type, exc_msg = exception_match.groups()
-                exc_type = exc_type.split('.')[-1]  # Get just the exception name
-                error_lines.append(f"Runtime Error ({exc_type.rstrip(':')}) - {exc_msg.strip()}")
-
-        # Capture stack trace information (limit to 3 lines)
-        elif line.strip().startswith("at ") and len(stack_trace) < 3:
-            # Clean up stack trace line
-            trace_line = re.sub(r'at\s+', '', line.strip())
-            trace_line = re.sub(r'\s+in\s+.+?:\w+\s*$', '', trace_line)
-            stack_trace.append(f"Location: {trace_line}")
-
-    # If no exception was found, look for other error indicators
-    if not error_lines:
-        for line in error_msg.splitlines():
-            if any(pattern in line.lower() for pattern in ["error", "failed", "fault", "invalid"]):
-                error_lines.append(f"Runtime Error: {line.strip()}")
+        for pattern in patterns:
+            match = re.search(pattern, line)
+            if match:
+                try:
+                    if len(match.groups()) == 6:  # Standard format
+                        file_path, line_num, col_num, level, code, message = match.groups()
+                        error = CompilationError(
+                            error_type=level,
+                            message=message.strip(),
+                            file=os.path.basename(file_path),
+                            line=int(line_num),
+                            column=int(col_num),
+                            code=code
+                        )
+                    elif len(match.groups()) == 4:  # Alternate format
+                        file_path, level, code, message = match.groups()
+                        error = CompilationError(
+                            error_type=level,
+                            message=message.strip(),
+                            file=os.path.basename(file_path) if file_path else "unknown",
+                            line=0,
+                            column=0,
+                            code=code
+                        )
+                    else:  # Runtime exception
+                        exc_type, message = match.groups()
+                        error = CompilationError(
+                            error_type="runtime_error",
+                            message=message.strip(),
+                            file="runtime",
+                            line=0,
+                            column=0,
+                            code=exc_type.replace(".", "_")
+                        )
+                    errors.append(error)
+                    error_logger.error(f"Compilation {error.error_type}: {error.to_dict()}")
+                except Exception as e:
+                    error_logger.error(f"Error parsing compilation output: {e}")
                 break
 
-    # Combine error message with relevant stack trace
-    result = error_lines + stack_trace if error_lines else ["Runtime Error: " + error_msg.strip()]
-    return "\n".join(result)
+    return errors
 
 def is_interactive_code(code: str, language: str) -> bool:
     """Determine if code requires interactive I/O based on language-specific patterns."""
@@ -994,31 +1141,31 @@ namespace ConsoleApp
     }
     return templates.get(language.lower(), '')
 
-def format_csharp_error(error_output: str) -> str:
-    """Format C# compilation errors for better readability"""
-    try:
-        # Remove build engine noise
-        error_lines = error_output.split('\n')
-        formatted_errors = []
+def parse_csharp_errors(error_output: str) -> List[CompilationError]:
+    """Parse C# compiler errors into a list of CompilationError objects"""
+    errors = []
+    lines = error_output.splitlines()
+    for line in lines:
+        match = re.match(r"(.+)\((\d+),(\d+)\):\s+error\s+CS(\d+):\s+(.*)", line)
+        if match:
+            file, line_num, col_num, code, message = match.groups()
+            errors.append(CompilationError(
+                error_type="CompilerError",
+                message=message.strip(),
+                file=file.strip(),
+                line=int(line_num),
+                column=int(col_num),
+                code=f"CS{code}"
+            ))
+    return errors
 
-        for line in error_lines:
-            # Skip build engine and empty lines
-            if not line.strip() or 'Build FAILED.' in line or 'Time Elapsed' in line:
-                continue
+MAX_COMPILATION_TIME = 30    # seconds
+MAX_EXECUTION_TIME = 30     # seconds
+MEMORY_LIMIT = 1024        # MB
+COMPILER_CACHE_DIR = "/tmp/compiler_cache"
+CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
 
-            # Parse error line format: file(line,col): error CS####: message
-            if ': error CS' in line:
-                parts = line.split(': error CS')
-                if len(parts) == 2:
-                    error_code = parts[1].split(':')[0]
-                    error_message = parts[1].split(':', 1)[1].strip()
-                    location = parts[0].split('(')[0]
-                    formatted_errors.append(f"Compilation Error (CS{error_code}): {error_message}\nLocation: {location}")
-
-        if formatted_errors:
-            return "\n".join(formatted_errors)
-        else:
-            return f"Unknown C# compilation error:\n{error_output}"
-    except Exception as e:
-        logger.error(f"Error formatting C# error message: {str(e)}")
-        return error_output
+# Initialize cache directory
+os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
+_compilation_cache = {}
+_cache_lock = Lock()

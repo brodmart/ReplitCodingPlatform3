@@ -1,0 +1,187 @@
+2025-01-22 16:50:48,227 - compiler.compilation - INFO - [compiler_service.py:722] - === Starting csharp Compilation ===
+2025-01-22 16:50:48,227 - compiler.compilation - DEBUG - [compiler_service.py:723] - Code length: 311 characters
+2025-01-22 16:50:48,228 - compiler.compilation - INFO - [compiler_service.py:735] - Checking for interactive code requirements
+2025-01-22 16:50:48,228 - compiler_service - DEBUG - [compiler_service.py:644] - Created temp directory: /tmp/compiler_cache/compile_4b68b262
+2025-01-22 16:50:48,228 - compiler_service - DEBUG - [compiler_service.py:652] - Writing C# source code to /tmp/compiler_cache/compile_4b68b262/Program.cs
+2025-01-22 16:50:48,228 - compiler_service - DEBUG - [compiler_service.py:669] - Source code written successfully:
+
+using System;
+namespace Test {
+    class Program {
+        static void Main() {
+            // Intentional error - undeclared variable
+            Console.WriteLine(undefinedVariable);
+            
+            // This line should not be reached
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+
+2025-01-22 16:50:48,229 - compiler_service - DEBUG - [compiler_service.py:675] - Creating project file: /tmp/compiler_cache/compile_4b68b262/Project_4b68b262.csproj
+2025-01-22 16:50:48,229 - compiler_service - DEBUG - [compiler_service.py:701] - Project file created successfully
+2025-01-22 16:50:48,229 - compiler.compilation - INFO - [compiler_service.py:766] - Created isolated environment: /tmp/compiler_cache/compile_4b68b262
+2025-01-22 16:50:48,229 - compiler.compilation - INFO - [compiler_service.py:771] - Starting C# compilation process
+2025-01-22 16:50:48,229 - compiler.compilation - DEBUG - [compiler_service.py:783] - Compilation command: dotnet build /tmp/compiler_cache/compile_4b68b262/Project_4b68b262.csproj --configuration Release --nologo /p:GenerateFullPaths=true /consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed
+2025-01-22 16:50:50,641 - compiler.error - ERROR - [compiler_service.py:870] - Unexpected error: Traceback (most recent call last):
+  File "/home/runner/workspace/compiler_service.py", line 801, in compile_and_run
+    metrics.peak_memory = max(start_memory, end_memory) / (1024 * 1024)  # Convert to MB
+                                            ^^^^^^^^^^
+NameError: name 'end_memory' is not defined
+
+2025-01-22 16:52:17,296 - compiler.compilation - INFO - [compiler_service.py:722] - === Starting csharp Compilation ===
+2025-01-22 16:52:17,305 - compiler.compilation - DEBUG - [compiler_service.py:723] - Code length: 311 characters
+2025-01-22 16:52:17,305 - compiler.compilation - INFO - [compiler_service.py:735] - Checking for interactive code requirements
+2025-01-22 16:52:17,308 - compiler_service - DEBUG - [compiler_service.py:644] - Created temp directory: /tmp/compiler_cache/compile_22c665fe
+2025-01-22 16:52:17,309 - compiler_service - DEBUG - [compiler_service.py:652] - Writing C# source code to /tmp/compiler_cache/compile_22c665fe/Program.cs
+2025-01-22 16:52:17,309 - compiler_service - DEBUG - [compiler_service.py:669] - Source code written successfully:
+
+using System;
+namespace Test {
+    class Program {
+        static void Main() {
+            // Intentional error - undeclared variable
+            Console.WriteLine(undefinedVariable);
+            
+            // This line should not be reached
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+
+2025-01-22 16:52:17,310 - compiler_service - DEBUG - [compiler_service.py:675] - Creating project file: /tmp/compiler_cache/compile_22c665fe/Project_22c665fe.csproj
+2025-01-22 16:52:17,312 - compiler_service - DEBUG - [compiler_service.py:701] - Project file created successfully
+2025-01-22 16:52:17,313 - compiler.compilation - INFO - [compiler_service.py:766] - Created isolated environment: /tmp/compiler_cache/compile_22c665fe
+2025-01-22 16:52:17,313 - compiler.compilation - INFO - [compiler_service.py:771] - Starting C# compilation process
+2025-01-22 16:52:17,313 - compiler.compilation - DEBUG - [compiler_service.py:783] - Compilation command: dotnet build /tmp/compiler_cache/compile_22c665fe/Project_22c665fe.csproj --configuration Release --nologo /p:GenerateFullPaths=true /consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed
+2025-01-22 16:52:26,187 - compiler.error - ERROR - [compiler_service.py:869] - Unexpected error: Traceback (most recent call last):
+  File "/home/runner/workspace/compiler_service.py", line 799, in compile_and_run
+    metrics.avg_cpu_usage = (start_cpu + end_cpu) / 2
+                                         ^^^^^^^
+NameError: name 'end_cpu' is not defined
+
+2025-01-22 16:54:15,058 - compiler.compilation - INFO - [compiler_service.py:722] - === Starting csharp Compilation ===
+2025-01-22 16:54:15,058 - compiler.compilation - DEBUG - [compiler_service.py:723] - Code length: 311 characters
+2025-01-22 16:54:15,058 - compiler.compilation - INFO - [compiler_service.py:735] - Checking for interactive code requirements
+2025-01-22 16:54:15,060 - compiler_service - DEBUG - [compiler_service.py:644] - Created temp directory: /tmp/compiler_cache/compile_b0d7694e
+2025-01-22 16:54:15,060 - compiler_service - DEBUG - [compiler_service.py:652] - Writing C# source code to /tmp/compiler_cache/compile_b0d7694e/Program.cs
+2025-01-22 16:54:15,060 - compiler_service - DEBUG - [compiler_service.py:669] - Source code written successfully:
+
+using System;
+namespace Test {
+    class Program {
+        static void Main() {
+            // Intentional error - undeclared variable
+            Console.WriteLine(undefinedVariable);
+            
+            // This line should not be reached
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+
+2025-01-22 16:54:15,060 - compiler_service - DEBUG - [compiler_service.py:675] - Creating project file: /tmp/compiler_cache/compile_b0d7694e/Project_b0d7694e.csproj
+2025-01-22 16:54:15,061 - compiler_service - DEBUG - [compiler_service.py:701] - Project file created successfully
+2025-01-22 16:54:15,061 - compiler.compilation - INFO - [compiler_service.py:766] - Created isolated environment: /tmp/compiler_cache/compile_b0d7694e
+2025-01-22 16:54:15,061 - compiler.compilation - INFO - [compiler_service.py:771] - Starting C# compilation process
+2025-01-22 16:54:15,063 - compiler.compilation - DEBUG - [compiler_service.py:783] - Compilation command: dotnet build /tmp/compiler_cache/compile_b0d7694e/Project_b0d7694e.csproj --configuration Release --nologo /p:GenerateFullPaths=true /consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed
+2025-01-22 16:54:15,065 - compiler.error - ERROR - [compiler_service.py:876] - Unexpected error: Traceback (most recent call last):
+  File "/home/runner/workspace/compiler_service.py", line 793, in compile_and_run
+    compile_process = subprocess.run(
+                      ^^^^^^^^^^^^^^^
+  File "/nix/store/clx0mcir7qw8zk36zbr4jra789g3knf6-python3-3.11.10/lib/python3.11/subprocess.py", line 548, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Popen.__init__() got an unexpected keyword argument 'captureoutput'
+
+2025-01-22 16:55:45,191 - compiler.compilation - INFO - [compiler_service.py:722] - === Starting csharp Compilation ===
+2025-01-22 16:55:45,192 - compiler.compilation - DEBUG - [compiler_service.py:723] - Code length: 311 characters
+2025-01-22 16:55:45,192 - compiler.compilation - INFO - [compiler_service.py:735] - Checking for interactive code requirements
+2025-01-22 16:55:45,193 - compiler_service - DEBUG - [compiler_service.py:644] - Created temp directory: /tmp/compiler_cache/compile_01077183
+2025-01-22 16:55:45,193 - compiler_service - DEBUG - [compiler_service.py:652] - Writing C# source code to /tmp/compiler_cache/compile_01077183/Program.cs
+2025-01-22 16:55:45,193 - compiler_service - DEBUG - [compiler_service.py:669] - Source code written successfully:
+
+using System;
+namespace Test {
+    class Program {
+        static void Main() {
+            // Intentional error - undeclared variable
+            Console.WriteLine(undefinedVariable);
+            
+            // This line should not be reached
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+
+2025-01-22 16:55:45,193 - compiler_service - DEBUG - [compiler_service.py:675] - Creating project file: /tmp/compiler_cache/compile_01077183/Project_01077183.csproj
+2025-01-22 16:55:45,194 - compiler_service - DEBUG - [compiler_service.py:701] - Project file created successfully
+2025-01-22 16:55:45,194 - compiler.compilation - INFO - [compiler_service.py:766] - Created isolated environment: /tmp/compiler_cache/compile_01077183
+2025-01-22 16:55:45,194 - compiler.compilation - INFO - [compiler_service.py:771] - Starting C# compilation process
+2025-01-22 16:55:45,194 - compiler.compilation - DEBUG - [compiler_service.py:783] - Compilation command: dotnet build /tmp/compiler_cache/compile_01077183/Project_01077183.csproj --configuration Release --nologo /p:GenerateFullPaths=true /consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed
+2025-01-22 16:55:49,570 - compiler.error - ERROR - [compiler_service.py:988] - Compilation error: {'error_type': 'error', 'message': "The name 'undefinedVariable' does not exist in the current context [/tmp/compiler_cache/compile_01077183/Project_01077183.csproj]", 'file': 'Program.cs', 'line': 7, 'column': 31, 'code': 'CS0103', 'timestamp': '2025-01-22T16:55:49.570314'}
+2025-01-22 16:55:49,570 - compiler.error - ERROR - [compiler_service.py:96] - Compilation error: {'error_type': 'error', 'message': "The name 'undefinedVariable' does not exist in the current context [/tmp/compiler_cache/compile_01077183/Project_01077183.csproj]", 'file': 'Program.cs', 'line': 7, 'column': 31, 'code': 'CS0103', 'timestamp': '2025-01-22T16:55:49.570314'}
+2025-01-22 16:55:49,570 - compiler.error - ERROR - [compiler_service.py:812] - Compilation failed: {'total_errors': 1, 'error_patterns': {'error:CS0103': 1}, 'most_common': ('error:CS0103', 1)}
+2025-01-22 16:56:11,969 - compiler.compilation - INFO - [compiler_service.py:722] - === Starting csharp Compilation ===
+2025-01-22 16:56:11,970 - compiler.compilation - DEBUG - [compiler_service.py:723] - Code length: 299 characters
+2025-01-22 16:56:11,971 - compiler.compilation - INFO - [compiler_service.py:735] - Checking for interactive code requirements
+2025-01-22 16:56:11,971 - compiler_service - DEBUG - [compiler_service.py:644] - Created temp directory: /tmp/compiler_cache/compile_1db40b7e
+2025-01-22 16:56:11,972 - compiler_service - DEBUG - [compiler_service.py:652] - Writing C# source code to /tmp/compiler_cache/compile_1db40b7e/Program.cs
+2025-01-22 16:56:11,972 - compiler_service - DEBUG - [compiler_service.py:669] - Source code written successfully:
+
+using System;
+namespace Test {
+    class Program {
+        static void Main() {
+            // Intentional error - undeclared variable
+            Console.WriteLine(undefinedVariable);
+
+            // This line should not be reached
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+
+2025-01-22 16:56:11,972 - compiler_service - DEBUG - [compiler_service.py:675] - Creating project file: /tmp/compiler_cache/compile_1db40b7e/Project_1db40b7e.csproj
+2025-01-22 16:56:11,973 - compiler_service - DEBUG - [compiler_service.py:701] - Project file created successfully
+2025-01-22 16:56:11,973 - compiler.compilation - INFO - [compiler_service.py:766] - Created isolated environment: /tmp/compiler_cache/compile_1db40b7e
+2025-01-22 16:56:11,974 - compiler.compilation - INFO - [compiler_service.py:771] - Starting C# compilation process
+2025-01-22 16:56:11,974 - compiler.compilation - DEBUG - [compiler_service.py:783] - Compilation command: dotnet build /tmp/compiler_cache/compile_1db40b7e/Project_1db40b7e.csproj --configuration Release --nologo /p:GenerateFullPaths=true /consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed
+2025-01-22 16:56:15,936 - compiler.error - ERROR - [compiler_service.py:988] - Compilation error: {'error_type': 'error', 'message': "The name 'undefinedVariable' does not exist in the current context [/tmp/compiler_cache/compile_1db40b7e/Project_1db40b7e.csproj]", 'file': 'Program.cs', 'line': 7, 'column': 31, 'code': 'CS0103', 'timestamp': '2025-01-22T16:56:15.935979'}
+2025-01-22 16:56:15,936 - compiler.error - ERROR - [compiler_service.py:96] - Compilation error: {'error_type': 'error', 'message': "The name 'undefinedVariable' does not exist in the current context [/tmp/compiler_cache/compile_1db40b7e/Project_1db40b7e.csproj]", 'file': 'Program.cs', 'line': 7, 'column': 31, 'code': 'CS0103', 'timestamp': '2025-01-22T16:56:15.935979'}
+2025-01-22 16:56:15,937 - compiler.error - ERROR - [compiler_service.py:812] - Compilation failed: {'total_errors': 1, 'error_patterns': {'error:CS0103': 1}, 'most_common': ('error:CS0103', 1)}
+2025-01-22 16:59:55,422 - compiler.compilation - INFO - [compiler_service.py:772] - === Starting csharp Compilation ===
+2025-01-22 16:59:55,424 - compiler.compilation - DEBUG - [compiler_service.py:773] - Code length: 299 characters
+2025-01-22 16:59:55,425 - compiler.compilation - INFO - [compiler_service.py:785] - Checking for interactive code requirements
+2025-01-22 16:59:55,425 - compiler_service - DEBUG - [compiler_service.py:694] - Created temp directory: /tmp/compiler_cache/compile_338f82be
+2025-01-22 16:59:55,425 - compiler_service - DEBUG - [compiler_service.py:702] - Writing C# source code to /tmp/compiler_cache/compile_338f82be/Program.cs
+2025-01-22 16:59:55,425 - compiler_service - DEBUG - [compiler_service.py:719] - Source code written successfully:
+
+using System;
+namespace Test {
+    class Program {
+        static void Main() {
+            // Intentional error - undeclared variable
+            Console.WriteLine(undefinedVariable);
+
+            // This line should not be reached
+            Console.WriteLine("Hello World!");
+        }
+    }
+}
+
+2025-01-22 16:59:55,426 - compiler_service - DEBUG - [compiler_service.py:725] - Creating project file: /tmp/compiler_cache/compile_338f82be/Project_338f82be.csproj
+2025-01-22 16:59:55,426 - compiler_service - DEBUG - [compiler_service.py:751] - Project file created successfully
+2025-01-22 16:59:55,427 - compiler.compilation - INFO - [compiler_service.py:816] - Created isolated environment: /tmp/compiler_cache/compile_338f82be
+2025-01-22 16:59:55,428 - compiler.compilation - INFO - [compiler_service.py:821] - Starting C# compilation process
+2025-01-22 16:59:55,428 - compiler.compilation - DEBUG - [compiler_service.py:833] - Compilation command: dotnet build /tmp/compiler_cache/compile_338f82be/Project_338f82be.csproj --configuration Release --nologo /p:GenerateFullPaths=true /consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed
+2025-01-22 17:00:09,360 - compiler.error - ERROR - [compiler_service.py:1070] - Compilation error: {'error_type': 'error', 'message': "The name 'undefinedVariable' does not exist in the current context", 'file': 'Program.cs', 'line': 7, 'column': 31, 'code': 'CS0103', 'timestamp': '2025-01-22T17:00:09.360843'}
+2025-01-22 17:00:09,367 - compiler.error - ERROR - [compiler_service.py:105] - Compilation error: {'error_type': 'error', 'message': "The name 'undefinedVariable' does not exist in the current context", 'file': 'Program.cs', 'line': 7, 'column': 31, 'code': 'CS0103', 'timestamp': '2025-01-22T17:00:09.360843'}
+2025-01-22 17:00:09,368 - compiler.error - ERROR - [compiler_service.py:926] - Unexpected error: Traceback (most recent call last):
+  File "/home/runner/workspace/compiler_service.py", line 859, in compile_and_run
+    error_tracker.add_error(error)
+  File "/home/runner/workspace/compiler_service.py", line 107, in add_error
+    self._analyze_trends(error)
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ErrorTracker' object has no attribute '_analyze_trends'
+
