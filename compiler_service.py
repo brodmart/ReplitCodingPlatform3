@@ -20,9 +20,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
-MAX_COMPILATION_TIME = 60    # seconds, increased from 30
-MAX_EXECUTION_TIME = 30     # seconds, increased from 15
-MEMORY_LIMIT = 1024        # MB, increased from 512
+MAX_COMPILATION_TIME = 30    # seconds
+MAX_EXECUTION_TIME = 30     # seconds
+MEMORY_LIMIT = 1024        # MB
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
 
@@ -36,6 +36,216 @@ def get_code_hash(code: str, language: str) -> str:
     hasher = hashlib.sha256()
     hasher.update(f"{code}{language}".encode())
     return hasher.hexdigest()
+
+class CompilerSession:
+    """Session handler for interactive compilation."""
+    def __init__(self, session_id: str, temp_dir: str):
+        self.session_id = session_id
+        self.temp_dir = temp_dir
+        self.process: Optional[subprocess.Popen] = None
+        self.last_activity = time.time()
+        self.stdout_buffer: list[str] = []
+        self.stderr_buffer: list[str] = []
+        self.waiting_for_input = False
+        self.output_thread: Optional[Thread] = None
+
+def monitor_output(process, session, chunk_size=4096):
+    """Improved output monitoring function"""
+    while process.poll() is None:
+        try:
+            readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
+
+            for stream in readable:
+                if stream == process.stdout:
+                    chunk = stream.read1(chunk_size) if hasattr(stream, 'read1') else stream.read(chunk_size)
+                    if chunk:
+                        try:
+                            if isinstance(chunk, bytes):
+                                decoded = chunk.decode('utf-8', errors='replace')
+                            else:
+                                decoded = chunk
+                            session.stdout_buffer.append(decoded)
+
+                            # Check for input prompts
+                            recent_output = ''.join(session.stdout_buffer[-10:])
+                            if (not session.waiting_for_input and 
+                                any(prompt in recent_output.lower() for prompt in [
+                                    'input', 'enter', 'type', '?', ':', '>',
+                                    'choice', 'select', 'press', 'continue'
+                                ])):
+                                session.waiting_for_input = True
+                        except Exception as e:
+                            logger.error(f"Error processing stdout: {e}")
+                            continue
+                else:
+                    chunk = stream.read1(chunk_size) if hasattr(stream, 'read1') else stream.read(chunk_size)
+                    if chunk:
+                        try:
+                            if isinstance(chunk, bytes):
+                                decoded = chunk.decode('utf-8', errors='replace')
+                            else:
+                                decoded = chunk
+                            session.stderr_buffer.append(decoded)
+                        except Exception as e:
+                            logger.error(f"Error processing stderr: {e}")
+                            continue
+
+                session.last_activity = time.time()
+        except Exception as e:
+            logger.error(f"Error in monitor_output: {e}")
+            break
+
+def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
+    """Start an interactive session with improved error handling and performance"""
+    try:
+        logger.info(f"Starting interactive session for {language}")
+
+        if language == 'cpp':
+            # Write code to temp file
+            source_file = Path(session.temp_dir) / "program.cpp"
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(code)
+
+            # Compile C++ code with optimizations
+            executable = Path(session.temp_dir) / "program"
+            compile_process = subprocess.run(
+                ['g++', '-std=c++17', '-O2', '-pipe', str(source_file), '-o', str(executable)],
+                capture_output=True,
+                text=True,
+                timeout=MAX_COMPILATION_TIME
+            )
+
+            if compile_process.returncode != 0:
+                error_msg = compile_process.stderr
+                logger.error(f"C++ compilation failed: {error_msg}")
+                return {
+                    'success': False,
+                    'error': f"Compilation Error: {error_msg}"
+                }
+
+            executable.chmod(0o755)
+
+            # Start the program with PTY support
+            process = subprocess.Popen(
+                [str(executable)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                cwd=str(session.temp_dir),
+                env={"TERM": "xterm-256color"}
+            )
+
+            session.process = process
+
+            # Start output monitoring in a separate thread
+            session.output_thread = Thread(target=monitor_output, args=(process, session))
+            session.output_thread.daemon = True
+            session.output_thread.start()
+
+            return {
+                'success': True,
+                'session_id': session.session_id,
+                'interactive': True
+            }
+
+        elif language == 'csharp':
+            # Set up optimized C# project
+            source_file = Path(session.temp_dir) / "Program.cs"
+            project_file = Path(session.temp_dir) / "program.csproj"
+
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(code)
+
+            # Create optimized project file
+            project_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+</Project>"""
+            with open(project_file, 'w', encoding='utf-8') as f:
+                f.write(project_content)
+
+            try:
+                # Compile with optimizations
+                compile_process = subprocess.run(
+                    ['dotnet', 'build', str(project_file),
+                     '--configuration', 'Release',
+                     '--nologo',
+                     '/p:GenerateFullPaths=true',
+                     '/consoleloggerparameters:NoSummary'],
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=str(session.temp_dir)
+                )
+
+                if compile_process.returncode != 0:
+                    error_msg = compile_process.stderr
+                    logger.error(f"C# compilation failed: {error_msg}")
+                    return {
+                        'success': False,
+                        'error': f"Compilation Error: {error_msg}"
+                    }
+
+                # Start the program
+                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / "program.dll"
+                process = subprocess.Popen(
+                    ['dotnet', str(dll_path)],
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    cwd=str(session.temp_dir),
+                    env={
+                        **os.environ,
+                        'DOTNET_CONSOLE_ENCODING': 'utf-8',
+                        'TERM': 'xterm-256color',
+                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true',
+                        'COMPlus_EnableDiagnostics': '0'
+                    }
+                )
+
+                session.process = process
+
+                # Start output monitoring in a separate thread
+                session.output_thread = Thread(target=monitor_output, args=(process, session))
+                session.output_thread.daemon = True
+                session.output_thread.start()
+
+                return {
+                    'success': True,
+                    'session_id': session.session_id,
+                    'interactive': True
+                }
+
+            except subprocess.TimeoutExpired:
+                logger.error("C# compilation timed out")
+                return {
+                    'success': False,
+                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
+                }
+
+        else:
+            return {
+                'success': False,
+                'error': f"Interactive mode not supported for {language}"
+            }
+
+    except Exception as e:
+        logger.error(f"Error in start_interactive_session: {traceback.format_exc()}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -97,6 +307,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 '-std=c++17',  # Use modern C++
                 '-O2',         # Optimize
                 '-Wall',       # Enable warnings
+                '-pipe',
                 str(source_file),
                 '-o',
                 str(executable)
@@ -168,6 +379,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishReadyToRun>true</PublishReadyToRun>
+    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 </Project>"""
             with open(project_file, 'w', encoding='utf-8') as f:
@@ -306,18 +519,6 @@ def format_runtime_error(error_msg: str) -> str:
     except Exception:
         return f"Runtime Error: {error_msg}"
 
-class CompilerSession:
-    """Session handler for interactive compilation."""
-    def __init__(self, session_id: str, temp_dir: str):
-        self.session_id = session_id
-        self.temp_dir = temp_dir
-        self.process: Optional[subprocess.Popen] = None
-        self.last_activity = time.time()
-        self.stdout_buffer: list[str] = []
-        self.stderr_buffer: list[str] = []
-        self.waiting_for_input = False
-        self.output_thread: Optional[Thread] = None
-
 def is_interactive_code(code: str, language: str) -> bool:
     """Detect if code is likely interactive based on input patterns"""
     code_lower = code.lower()
@@ -329,206 +530,6 @@ def is_interactive_code(code: str, language: str) -> bool:
                 'console.write' in code_lower or
                 'readkey' in code_lower)
     return False
-
-def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
-    """Start an interactive session for the given code"""
-    try:
-        logger.debug(f"Starting interactive session for {language}")
-
-        if language == 'cpp':
-            # Write code to temp file
-            source_file = Path(session.temp_dir) / "program.cpp"
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(code)
-
-            # Compile C++ code with optimized settings
-            executable = Path(session.temp_dir) / "program"
-            compile_process = subprocess.run(
-                ['g++', '-std=c++17', '-O2', str(source_file), '-o', str(executable)],
-                capture_output=True,
-                text=True,
-                timeout=MAX_COMPILATION_TIME
-            )
-
-            if compile_process.returncode != 0:
-                return {
-                    'success': False,
-                    'error': f"Compilation Error: {compile_process.stderr}"
-                }
-
-            # Make executable
-            executable.chmod(0o755)
-
-            # Start interactive process with proper PTY support
-            process = subprocess.Popen(
-                [str(executable)],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1,  # Line buffering
-                cwd=str(session.temp_dir),
-                env={"TERM": "xterm-256color"}  # Proper terminal support
-            )
-
-            session.process = process
-
-            # Enhanced output monitoring thread
-            def monitor_output():
-                while process.poll() is None:
-                    # Use select with a short timeout for responsive I/O
-                    readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
-
-                    for stream in readable:
-                        # Enhanced chunk reading for better performance
-                        chunk = stream.read1(4096) if hasattr(stream, 'read1') else stream.read(4096)
-                        if chunk:
-                            if stream == process.stdout:
-                                decoded_chunk = chunk.decode('utf-8', errors='replace')
-                                session.stdout_buffer.append(decoded_chunk)
-                                # Improved input prompt detection
-                                recent_output = ''.join(session.stdout_buffer[-10:])
-                                if (not session.waiting_for_input and 
-                                    any(prompt in recent_output.lower() for prompt in [
-                                        'input', 'enter', 'type', '?', ':', '>',
-                                        'choice', 'select', 'press', 'continue'
-                                    ])):
-                                    session.waiting_for_input = True
-                            else:
-                                session.stderr_buffer.append(chunk.decode('utf-8', errors='replace'))
-                            session.last_activity = time.time()
-
-            session.output_thread = Thread(target=monitor_output)
-            session.output_thread.daemon = True
-            session.output_thread.start()
-
-            return {
-                'success': True,
-                'session_id': session.session_id,
-                'interactive': True
-            }
-
-        elif language == 'csharp':
-            # Create optimized project for interactive console support
-            source_file = Path(session.temp_dir) / "Program.cs"
-            project_file = Path(session.temp_dir) / "program.csproj"
-
-            # Add necessary using statements if not present
-            if 'using System;' not in code:
-                code = f"""using System;
-using System.Text;
-using System.Threading;
-using System.Globalization;
-
-{code}"""
-
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(code)
-
-            # Create optimized project file with console support
-            project_content = """<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PublishReadyToRun>true</PublishReadyToRun>
-  </PropertyGroup>
-</Project>"""
-            with open(project_file, 'w', encoding='utf-8') as f:
-                f.write(project_content)
-
-            try:
-                # Compile with enhanced console support
-                compile_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file),
-                     '--configuration', 'Release',
-                     '--nologo',
-                     '/p:GenerateFullPaths=true',
-                     '/consoleloggerparameters:NoSummary'],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME,
-                    cwd=str(session.temp_dir)
-                )
-
-                if compile_process.returncode != 0:
-                    return {
-                        'success': False,
-                        'error': format_csharp_error(compile_process.stderr)
-                    }
-
-                # Start the program with enhanced I/O handling
-                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / "program.dll"
-                process = subprocess.Popen(
-                    ['dotnet', str(dll_path)],
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                    bufsize=1,  # Line buffering
-                    cwd=str(session.temp_dir),
-                    env={
-                        **os.environ,
-                        'DOTNET_CONSOLE_ENCODING': 'utf-8',
-                        'TERM': 'xterm-256color',
-                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true'
-                    }
-                )
-
-                session.process = process
-
-                # Enhanced output monitoring thread
-                def monitor_output():
-                    while process.poll() is None:
-                        readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
-
-                        for stream in readable:
-                            chunk = stream.read1(4096) if hasattr(stream, 'read1') else stream.read(4096)
-                            if chunk:
-                                if stream == process.stdout:
-                                    decoded_chunk = chunk.decode('utf-8', errors='replace')
-                                    session.stdout_buffer.append(decoded_chunk)
-                                    # Enhanced prompt detection
-                                    recent_output = ''.join(session.stdout_buffer[-10:])
-                                    if (not session.waiting_for_input and 
-                                        any(prompt in recent_output.lower() for prompt in [
-                                            'input', 'enter', 'type', '?', ':', '>',
-                                            'choice', 'select', 'press', 'continue'
-                                        ])):
-                                        session.waiting_for_input = True
-                                else:
-                                    session.stderr_buffer.append(chunk.decode('utf-8', errors='replace'))
-                                session.last_activity = time.time()
-
-                session.output_thread = Thread(target=monitor_output)
-                session.output_thread.daemon = True
-                session.output_thread.start()
-
-                return {
-                    'success': True,
-                    'session_id': session.session_id,
-                    'interactive': True
-                }
-
-            except subprocess.TimeoutExpired:
-                return {
-                    'success': False,
-                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
-                }
-
-        else:
-            return {
-                'success': False,
-                'error': f"Interactive mode not supported for {language}"
-            }
-
-    except Exception as e:
-        logger.error(f"Error in start_interactive_session: {e}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
 
 def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
     """Send input to an interactive session"""
