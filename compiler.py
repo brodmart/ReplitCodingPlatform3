@@ -524,7 +524,7 @@ def handle_interactive_session(session_id: str, action: str, input_data: Optiona
         }
 
 def monitor_output(session_id: str):
-    """Enhanced output monitoring for interactive sessions"""
+    """Enhanced output monitoring for interactive sessions with improved web console support"""
     chunk_size = 1024
     try:
         with session_lock:
@@ -560,6 +560,15 @@ def monitor_output(session_id: str):
                             for line in complete_lines:
                                 if line.strip():  # Only process non-empty lines
                                     session.stdout_buffer.append(line + '\n')
+                                    # Emit console output event via web socket
+                                    try:
+                                        from app import socketio
+                                        socketio.emit('console_output', {
+                                            'session_id': session_id,
+                                            'output': line + '\n'
+                                        })
+                                    except Exception as e:
+                                        logger.error(f"Failed to emit console output: {e}")
 
                             # Trim buffer if it gets too large
                             if len(session.stdout_buffer) > session.output_buffer_size:
@@ -578,6 +587,15 @@ def monitor_output(session_id: str):
                             if any(pattern.lower() in current_text.lower() for pattern in patterns):
                                 session.waiting_for_input = True
                                 logger.debug(f"Input prompt detected: {current_text}")
+                                # Emit input prompt event
+                                try:
+                                    from app import socketio
+                                    socketio.emit('console_input_ready', {
+                                        'session_id': session_id,
+                                        'prompt': current_text
+                                    })
+                                except Exception as e:
+                                    logger.error(f"Failed to emit input prompt: {e}")
 
                     except Exception as e:
                         logger.error(f"Error processing output: {e}")
@@ -595,7 +613,7 @@ def monitor_output(session_id: str):
         cleanup_session(session_id)
 
 def cleanup_session(session_id: str):
-    """Clean up an interactive session"""
+    """Clean up an interactive session with improved error handling"""
     try:
         with session_lock:
             session = active_sessions.pop(session_id, None)
@@ -617,6 +635,15 @@ def cleanup_session(session_id: str):
                     os.close(session.slave_fd)
                 except:
                     pass
+
+                # Notify web clients about session termination
+                try:
+                    from app import socketio
+                    socketio.emit('console_session_ended', {
+                        'session_id': session_id
+                    })
+                except Exception as e:
+                    logger.error(f"Failed to emit session end: {e}")
 
     except Exception as e:
         logger.error(f"Error cleaning up session {session_id}: {e}")
