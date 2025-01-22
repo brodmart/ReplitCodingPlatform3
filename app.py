@@ -11,13 +11,14 @@ from sqlalchemy.orm import DeclarativeBase
 from flask_wtf.csrf import CSRFProtect
 from compiler_service import compile_and_run, send_input, get_output, cleanup_session
 from utils.compiler_logger import compiler_logger
+from utils.logging_config import setup_logging
+from utils.socketio_logger import log_socket_event, track_connection, track_session, log_error
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Initialize loggers
+logger = setup_logging('app')
+socketio_logger = setup_logging('socketio')
+compiler_logger = setup_logging('compiler')
+db_logger = setup_logging('database')
 
 # Initialize Socket.IO with enhanced configuration
 socketio = SocketIO(
@@ -38,31 +39,51 @@ db = SQLAlchemy(model_class=Base)
 csrf = CSRFProtect()
 
 def create_app():
-    """Create and configure the Flask application"""
+    """Create and configure the Flask application with enhanced logging"""
+    logger.info("Initializing Flask application")
     app = Flask(__name__)
 
-    # Enhanced configuration
-    app.config.update({
-        'SECRET_KEY': os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
-        'SESSION_TYPE': 'filesystem',
-        'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
-        'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-        'WTF_CSRF_ENABLED': True,
-        'JSON_SORT_KEYS': False,
-        'SOCKET_TIMEOUT': 60,
-        'MAX_CONTENT_LENGTH': 100 * 1024 * 1024  # 100MB max content
-    })
-
+    # Enhanced configuration with logging
     try:
-        # Initialize extensions
-        db.init_app(app)
-        socketio.init_app(app)
-        CORS(app)
-        Session(app)
-        csrf.init_app(app)
+        app.config.update({
+            'SECRET_KEY': os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
+            'SESSION_TYPE': 'filesystem',
+            'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
+            'SQLALCHEMY_TRACK_MODIFICATIONS': False,
+            'WTF_CSRF_ENABLED': True,
+            'JSON_SORT_KEYS': False,
+            'SOCKET_TIMEOUT': 60,
+            'MAX_CONTENT_LENGTH': 100 * 1024 * 1024  # 100MB max content
+        })
+        logger.debug("Application configuration loaded")
+
+        # Initialize extensions with error tracking
+        try:
+            db.init_app(app)
+            logger.info("Database initialized")
+        except Exception as e:
+            logger.error("Database initialization failed", exc_info=True)
+            raise
+
+        try:
+            socketio.init_app(app)
+            logger.info("Socket.IO initialized")
+        except Exception as e:
+            logger.error("Socket.IO initialization failed", exc_info=True)
+            raise
+
+        try:
+            CORS(app)
+            Session(app)
+            csrf.init_app(app)
+            logger.info("CORS, Session, and CSRF protection initialized")
+        except Exception as e:
+            logger.error("Extension initialization failed", exc_info=True)
+            raise
 
         with app.app_context():
             db.create_all()
+            logger.info("Database tables created")
 
         @app.context_processor
         def inject_language():
@@ -71,9 +92,10 @@ def create_app():
         @app.route('/')
         def console():
             """Render the interactive console page"""
+            logger.debug("Rendering console page")
             return render_template('console.html')
 
-        # Register Socket.IO event handlers
+        # Register Socket.IO event handlers with enhanced logging
         setup_websocket_handlers()
 
         logger.info("Application initialized successfully")
@@ -84,33 +106,43 @@ def create_app():
         raise
 
 def setup_websocket_handlers():
-    """Setup WebSocket event handlers for console I/O with improved error handling"""
+    """Setup WebSocket event handlers with comprehensive logging and error handling"""
 
     @socketio.on('connect')
+    @log_socket_event
     def handle_connect():
-        """Handle client connection with enhanced session management"""
+        """Handle client connection with enhanced session management and logging"""
+        client_info = {
+            'sid': request.sid,
+            'remote_addr': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent')
+        }
         logger.info(f"Client connected: {request.sid}")
         session['sid'] = request.sid
+        track_connection(True, client_info)
         emit('connection_established', {'status': 'connected', 'sid': request.sid})
 
     @socketio.on('disconnect')
+    @log_socket_event
     def handle_disconnect():
-        """Handle client disconnection with cleanup"""
+        """Handle client disconnection with cleanup and logging"""
         logger.info(f"Client disconnected: {request.sid}")
         if 'console_session_id' in session:
             try:
-                # Clean up any running console session
                 cleanup_session(session['console_session_id'])
+                logger.debug(f"Cleaned up session: {session['console_session_id']}")
             except Exception as e:
-                logger.error(f"Error cleaning up session: {e}")
+                log_error("cleanup_error", f"Error cleaning up session: {e}")
+        track_connection(False)
         session.clear()
 
     @socketio.on('compile_and_run')
+    @log_socket_event
     def handle_compile_and_run(data):
-        """Handle code compilation and execution with improved error handling"""
+        """Handle code compilation and execution with comprehensive logging"""
         try:
             code = data.get('code')
-            language = data.get('language', 'csharp')  # Default to C#
+            language = data.get('language', 'csharp')
 
             if not code:
                 logger.error("No code provided")
@@ -120,29 +152,30 @@ def setup_websocket_handlers():
             logger.info(f"Starting {language} code compilation")
             logger.debug(f"Code to compile: {code}")
 
-            # Generate unique session ID for tracking
+            # Generate unique session ID and log start
             compilation_session_id = str(uuid.uuid4())
-            logger.info(f"Created compilation session ID: {compilation_session_id}")
+            compiler_logger.info(f"Created compilation session ID: {compilation_session_id}")
 
-            # Log start of compilation
+            # Track compilation metrics
+            start_time = time.time()
             compiler_logger.log_compilation_start(compilation_session_id, code)
 
-            # Emit compilation start event
+            # Emit start event
             emit('compilation_start', {
                 'session_id': compilation_session_id,
-                'timestamp': time.time()
+                'timestamp': start_time
             })
 
             # Attempt compilation with timeout handling
             result = compile_and_run(code, language, session_id=compilation_session_id)
-            logger.info(f"Compilation result: {result}")
+            duration = time.time() - start_time
+            logger.info(f"Compilation completed in {duration:.2f}s: {result}")
 
             if result.get('success'):
                 session_id = result.get('session_id')
                 if session_id:
-                    # Store session ID and emit success
                     session['console_session_id'] = session_id
-                    logger.info(f"Compilation successful, session_id: {session_id}")
+                    track_session(session_id, True, {'language': language})
                     emit('compilation_result', {
                         'success': True,
                         'session_id': session_id,
@@ -153,7 +186,7 @@ def setup_websocket_handlers():
                     try:
                         output = get_output(session_id)
                         if output and output.get('success'):
-                            logger.info(f"Initial output: {output.get('output', '')}")
+                            logger.debug(f"Initial output: {output}")
                             emit('console_output', {
                                 'output': output.get('output', ''),
                                 'waiting_for_input': output.get('waiting_for_input', False)
@@ -161,32 +194,33 @@ def setup_websocket_handlers():
                         else:
                             logger.warning(f"No initial output available: {output}")
                     except Exception as e:
-                        logger.error(f"Error getting initial output: {e}")
+                        log_error("output_error", f"Error getting initial output: {e}")
                         emit('error', {'message': 'Failed to get initial program output'})
                 else:
-                    logger.error("No session ID in successful compilation result")
+                    log_error("session_error", "No session ID in successful compilation result")
                     emit('error', {'message': 'Compilation succeeded but no session created'})
             else:
                 error = result.get('error', 'Compilation failed')
-                logger.error(f"Compilation failed: {error}")
+                log_error("compilation_error", f"Compilation failed: {error}")
                 emit('compilation_result', {
                     'success': False,
                     'error': error
                 })
 
         except Exception as e:
-            logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
+            log_error("compilation_error", f"Error in compile_and_run: {str(e)}")
             emit('error', {'message': f'Failed to compile and run: {str(e)}'})
 
     @socketio.on('input')
+    @log_socket_event
     def handle_input(data):
-        """Handle console input from client with improved error recovery"""
+        """Handle console input with comprehensive logging"""
         try:
             session_id = session.get('console_session_id')
             input_text = data.get('input')
 
             if not session_id or not input_text:
-                logger.error(f"Invalid input data - session_id: {session_id}, input: {input_text}")
+                log_error("input_error", f"Invalid input data - session_id: {session_id}, input: {input_text}")
                 emit('error', {'message': 'Invalid input data'})
                 return
 
@@ -195,35 +229,32 @@ def setup_websocket_handlers():
             logger.debug(f"Send input result: {result}")
 
             if result and result.get('success'):
-                # Wait briefly for output processing
-                import time
-                time.sleep(0.1)
-
+                time.sleep(0.1)  # Brief delay for output processing
                 output = get_output(session_id)
                 logger.debug(f"Get output after input result: {output}")
+
                 if output and output.get('success'):
                     emit('console_output', {
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
                     })
                 else:
-                    logger.error(f"Failed to get output after input: {output}")
+                    log_error("output_error", f"Failed to get output after input: {output}")
                     emit('error', {'message': 'Failed to get program output'})
             else:
-                logger.error(f"Failed to send input: {result}")
+                log_error("input_error", f"Failed to send input: {result}")
                 emit('error', {'message': 'Failed to send input'})
 
         except Exception as e:
-            logger.error(f"Error in handle_input: {str(e)}", exc_info=True)
+            log_error("input_error", f"Error in handle_input: {str(e)}")
             emit('error', {'message': f'Failed to process input: {str(e)}'})
 
     @socketio.on_error()
     def handle_error(e):
-        """Global error handler for all namespaces"""
-        logger.error(f"Socket.IO error: {str(e)}", exc_info=True)
+        """Global error handler with comprehensive logging"""
+        log_error("socketio_error", f"Socket.IO error: {str(e)}")
         emit('error', {'message': 'An unexpected error occurred'})
 
-# Create the application instance
 app = create_app()
 
 if __name__ == '__main__':
