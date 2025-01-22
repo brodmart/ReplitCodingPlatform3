@@ -81,7 +81,8 @@ def create_app():
         'SESSION_PERMANENT': True,
         'PERMANENT_SESSION_LIFETIME': 31536000,
         'WTF_CSRF_ENABLED': True,
-        'WTF_CSRF_TIME_LIMIT': None  # No time limit for CSRF tokens
+        'WTF_CSRF_TIME_LIMIT': None,  # No time limit for CSRF tokens
+        'SERVER_NAME': None  # Allow all hostnames
     })
 
     try:

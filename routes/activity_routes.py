@@ -27,13 +27,6 @@ logger = logging.getLogger(__name__)
 def get_template_code():
     """Get template code for selected language"""
     try:
-        if not request.is_json:
-            logger.error("Invalid request format - not JSON")
-            return jsonify({
-                'success': False,
-                'error': 'Invalid request format'
-            }), 400
-
         data = request.get_json()
         if not data:
             logger.error("Empty request data")
@@ -57,20 +50,24 @@ def get_template_code():
                 'error': f'Unsupported language: {language}'
             }), 400
 
+        # Get template from the utility function
         template = get_template(language)
+
+        # If no template is found, use default templates
         if not template:
             logger.debug(f"Using default template for {language}")
-            # Return default templates if no template is found
             default_templates = {
-                'cpp': '''#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}''',
-                'csharp': '''using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}'''
+                'cpp': '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}',
+                'csharp': 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}'
             }
             template = default_templates.get(language)
 
+        # Set proper headers and return response
         response = jsonify({
             'success': True,
             'template': template
         })
+        response.headers['Content-Type'] = 'application/json'
         return response
 
     except Exception as e:
