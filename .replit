@@ -85,10 +85,6 @@ args = "Build Large C#"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flask Server"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "C++ Test"
 
 [[workflows.workflow.tasks]]
@@ -98,6 +94,10 @@ args = "Test C++ Interactive"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "Test Interactive Compilation"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask Server"
 
 [[workflows.workflow]]
 name = "Create Tables"
@@ -324,21 +324,6 @@ task = "shell.exec"
 args = "dotnet build --project student_tracker.csproj && dotnet run --project student_tracker.csproj"
 
 [[workflows.workflow]]
-name = "Flask Server"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python app.py"
-waitForPort = 5000
-
-[[workflows.workflow]]
 name = "C++ Test"
 author = "agent"
 
@@ -380,6 +365,21 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python test_interactive_console.py"
 
+[[workflows.workflow]]
+name = "Flask Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python app.py"
+waitForPort = 8080
+
 [[ports]]
 localPort = 5000
 externalPort = 80
@@ -387,3 +387,7 @@ externalPort = 80
 [[ports]]
 localPort = 5001
 externalPort = 3000
+
+[[ports]]
+localPort = 8080
+externalPort = 8080

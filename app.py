@@ -146,4 +146,14 @@ app = create_app()
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    try:
+        port = int(os.environ.get('PORT', 8080))
+        logger.info(f"Starting Flask application on port {port}")
+        app.run(
+            host='0.0.0.0',
+            port=port,
+            debug=True
+        )
+    except Exception as e:
+        logger.error(f"Failed to start Flask application: {str(e)}")
+        raise
