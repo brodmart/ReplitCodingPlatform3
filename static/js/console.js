@@ -77,12 +77,10 @@ class InteractiveConsole {
         });
 
         // Input handler with debouncing
-        let inputTimeout;
         this.inputElement.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                clearTimeout(inputTimeout);
-                inputTimeout = setTimeout(() => this.handleInput(), 50);
+                this.handleInput();
             }
         });
     }
@@ -129,6 +127,7 @@ class InteractiveConsole {
         this.outputElement.innerHTML = '';
         this.sessionId = null;
         this.isWaitingForInput = false;
+        this.updateInputState();
     }
 
     scrollToBottom() {
@@ -160,15 +159,15 @@ class InteractiveConsole {
 
     compileAndRun(code) {
         this.clear();
-        this.appendSystemMessage('Compiling C# program...');
-        this.socket.emit('compile_and_run', { 
-            code, 
-            language: 'csharp'
+        this.appendSystemMessage('Compiling and running program...');
+        this.socket.emit('compile_and_run', {
+            code,
+            language: this.currentLanguage
         });
     }
 }
 
 // Export for browser environments
 if (typeof window !== 'undefined') {
-    window.MyInteractiveConsole = InteractiveConsole;
+    window.InteractiveConsole = InteractiveConsole;
 }
