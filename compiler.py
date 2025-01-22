@@ -201,7 +201,12 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
         attr[3] = attr[3] & ~(termios.ICANON | termios.ECHO)  # Raw mode
         termios.tcsetattr(slave_fd, termios.TCSANOW, attr)
 
-        with tempfile.TemporaryDirectory(dir=CACHE_DIR) as temp_dir:
+        # Create a unique temporary directory for this session
+        unique_dir = os.path.join(CACHE_DIR, f"session_{session_id}")
+        os.makedirs(unique_dir, exist_ok=True)
+        logger.debug(f"Created session directory: {unique_dir}")
+
+        with tempfile.TemporaryDirectory(dir=unique_dir) as temp_dir:
             temp_path = Path(temp_dir)
             unique_id = hashlib.md5(code.encode()).hexdigest()[:8]
 
@@ -234,25 +239,42 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                 logger.debug(f"C++ Process started with PID: {process.pid}")
 
             elif language == 'csharp':
-                # Create unique directory for this session
-                session_dir = temp_path / unique_id
-                session_dir.mkdir(exist_ok=True)
+                # Create unique namespace for this session to avoid conflicts
+                namespace_name = f"InteractiveSession_{unique_id}"
 
-                source_file = session_dir / "Program.cs"
+                # Modify the code to use the unique namespace
+                code_lines = code.split('\n')
+                modified_code = []
+                namespace_added = False
+
+                for line in code_lines:
+                    if 'class Program' in line and not namespace_added:
+                        modified_code.extend([
+                            f"namespace {namespace_name} {{",
+                            line
+                        ])
+                        namespace_added = True
+                    else:
+                        modified_code.append(line)
+
+                if namespace_added:
+                    modified_code.append("}")  # Close namespace
+
+                source_file = temp_path / "Program.cs"
                 with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
+                    f.write('\n'.join(modified_code))
 
-                # Create optimized project file
-                project_file = session_dir / "program.csproj"
-                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                # Create optimized project file with unique assembly name
+                project_file = temp_path / "program.csproj"
+                project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
                     <OutputType>Exe</OutputType>
                     <TargetFramework>net7.0</TargetFramework>
                     <ImplicitUsings>enable</ImplicitUsings>
                     <Nullable>enable</Nullable>
                     <PublishReadyToRun>true</PublishReadyToRun>
-                    <RootNamespace>InteractiveSession</RootNamespace>
-                    <AssemblyName>InteractiveSession</AssemblyName>
+                    <RootNamespace>{namespace_name}</RootNamespace>
+                    <AssemblyName>{namespace_name}</AssemblyName>
                   </PropertyGroup>
                 </Project>"""
 
@@ -265,7 +287,7 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(session_dir)
+                    cwd=str(temp_path)
                 )
 
                 if compile_process.returncode != 0:
@@ -280,7 +302,7 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                     stdout=slave_fd,
                     stderr=slave_fd,
                     close_fds=True,
-                    cwd=str(session_dir)
+                    cwd=str(temp_path)
                 )
                 logger.debug(f"C# Process started with PID: {process.pid}")
 
@@ -290,7 +312,7 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                     'error': f"Unsupported language: {language}"
                 }
 
-            # Create and store session with language information
+            # Create and store session
             session = InteractiveSession(process, master_fd, slave_fd)
             session.language = language  # Store language for pattern matching
             with session_lock:

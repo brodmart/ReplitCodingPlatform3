@@ -13,9 +13,9 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/runner/workspace/HelloWorld.csproj",
-      "projectName": "HelloWorld",
-      "projectPath": "/home/runner/workspace/HelloWorld.csproj",
+      "projectUniqueName": "/home/runner/workspace/student_tracker.csproj",
+      "projectName": "student_tracker",
+      "projectPath": "/home/runner/workspace/student_tracker.csproj",
       "packagesPath": "/home/runner/.nuget/packages/",
       "outputPath": "/home/runner/workspace/obj/",
       "projectStyle": "PackageReference",
