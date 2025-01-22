@@ -1,5 +1,6 @@
 import os
 import logging
+import time
 from flask import Flask, render_template, session, request, jsonify
 from flask_login import LoginManager, AnonymousUserMixin, current_user
 from flask_cors import CORS
@@ -11,6 +12,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_app as init_db
 from utils.validation_utils import validate_app_configuration
 from compiler import get_template
+from utils.socketio_logger import log_socket_event, track_connection, track_session, get_current_metrics
 
 # Configure logging
 logging.basicConfig(
@@ -207,32 +209,46 @@ def create_app():
         raise
 
 def setup_websocket_handlers():
-    """Setup WebSocket event handlers for console I/O"""
+    """Setup WebSocket event handlers for console I/O with comprehensive logging"""
     from compiler_service import start_interactive_session, send_input, get_output
 
     @socketio.on('connect')
+    @log_socket_event
     def handle_connect():
-        """Handle client connection"""
+        """Handle client connection with metrics tracking"""
         logger.info(f"Client connected to Socket.IO: {request.sid}")
+        track_connection(connected=True)
+        emit('metrics', get_current_metrics())
 
     @socketio.on('disconnect')
+    @log_socket_event
     def handle_disconnect():
-        """Handle client disconnection"""
+        """Handle client disconnection with cleanup"""
         logger.info(f"Client disconnected from Socket.IO: {request.sid}")
-        # Cleanup any associated session
+        track_connection(connected=False)
+
         if 'console_session_id' in session:
-            logger.info(f"Cleaning up session: {session['console_session_id']}")
+            session_id = session['console_session_id']
+            logger.info(f"Cleaning up session: {session_id}")
+            track_session(session_id, active=False)
             session.pop('console_session_id', None)
 
     @socketio.on_error()
+    @log_socket_event
     def handle_error(e):
-        """Handle Socket.IO errors"""
-        logger.error(f"Socket.IO error: {str(e)}", exc_info=True)
-        emit('error', {'message': 'Internal server error'})
+        """Handle Socket.IO errors with detailed logging"""
+        error_msg = str(e)
+        logger.error(f"Socket.IO error: {error_msg}", exc_info=True)
+        emit('error', {
+            'message': 'Internal server error',
+            'error_id': str(time.time()),
+            'type': e.__class__.__name__
+        })
 
     @socketio.on('session_start')
+    @log_socket_event
     def handle_session_start(data):
-        """Handle new interactive session start"""
+        """Handle new interactive session start with metrics"""
         try:
             session_id = data.get('session_id')
             if not session_id:
@@ -242,14 +258,22 @@ def setup_websocket_handlers():
 
             logger.info(f"Registering Socket.IO for session: {session_id}")
             session['console_session_id'] = session_id
-            emit('connected', {'status': 'success'})
+            track_session(session_id, active=True)
+
+            # Send initial metrics
+            emit('connected', {
+                'status': 'success',
+                'metrics': get_current_metrics()
+            })
+
         except Exception as e:
             logger.error(f"Error in session_start: {str(e)}", exc_info=True)
             emit('error', {'message': 'Failed to start session'})
 
     @socketio.on('input')
+    @log_socket_event
     def handle_input(data):
-        """Handle console input from client"""
+        """Handle console input from client with performance tracking"""
         try:
             session_id = data.get('session_id')
             input_text = data.get('input')
@@ -269,15 +293,23 @@ def setup_websocket_handlers():
                     emit('output', {
                         'type': 'output',
                         'output': output.get('output', ''),
-                        'waiting_for_input': output.get('waiting_for_input', False)
+                        'waiting_for_input': output.get('waiting_for_input', False),
+                        'metrics': get_current_metrics()
                     })
                 else:
                     emit('error', {'message': 'Failed to get output'})
             else:
                 emit('error', {'message': 'Failed to send input'})
+
         except Exception as e:
             logger.error(f"Error in handle_input: {str(e)}", exc_info=True)
             emit('error', {'message': 'Failed to process input'})
+
+    @socketio.on('get_metrics')
+    @log_socket_event
+    def handle_get_metrics():
+        """Handle metrics request"""
+        emit('metrics', get_current_metrics())
 
 # Create the application instance
 app = create_app()

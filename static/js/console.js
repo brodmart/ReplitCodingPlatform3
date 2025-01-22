@@ -107,12 +107,22 @@ class InteractiveConsole {
             this.reconnectAttempts = 0;
             this.appendOutput('Console connected\n', 'console-info');
 
-            // Register current session if exists
-            if (this.sessionId) {
-                this.socket.emit('session_start', {
-                    session_id: this.sessionId
-                });
-            }
+            // Request initial metrics
+            this.socket.emit('get_metrics');
+        });
+
+        this.socket.on('metrics', (metrics) => {
+            console.debug('Socket.IO metrics:', metrics);
+            // Log important metrics
+            const { active_sessions, events_processed, errors, uptime } = metrics;
+            this.appendOutput(
+                `Socket.IO Stats:\n` +
+                `Active Sessions: ${active_sessions}\n` +
+                `Events Processed: ${events_processed}\n` +
+                `Errors: ${errors}\n` +
+                `Uptime: ${Math.round(uptime)}s\n`,
+                'console-info metrics'
+            );
         });
 
         this.socket.on('output', (data) => {
@@ -128,7 +138,10 @@ class InteractiveConsole {
 
         this.socket.on('error', (error) => {
             console.error('Socket.IO error:', error);
-            this.appendError(`Connection error: ${error.message}`);
+            const errorMessage = error.error_id ? 
+                `Error ID: ${error.error_id}\nType: ${error.type}\nMessage: ${error.message}` :
+                error.message;
+            this.appendError(`Connection error: ${errorMessage}`);
         });
 
         this.socket.on('disconnect', (reason) => {
