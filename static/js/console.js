@@ -1,18 +1,15 @@
 /**
- * Simplified Interactive Console class for handling real-time program I/O
+ * Minimal Interactive Console for handling program I/O
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        this.outputElement = options.outputElement || document.getElementById('consoleOutput');
-        this.inputElement = options.inputElement || document.getElementById('consoleInput');
-        this.language = options.language || 'cpp';
+        this.outputElement = options.outputElement || document.getElementById('console-output');
+        this.inputElement = options.inputElement || document.getElementById('console-input');
         this.sessionId = null;
         this.isWaitingForInput = false;
-        this.history = [];
-        this.historyIndex = -1;
 
         if (!this.outputElement || !this.inputElement) {
-            throw new Error('Console requires output and input elements');
+            throw new Error('Console requires valid output and input elements');
         }
 
         // Initialize Socket.IO with minimal configuration
@@ -29,14 +26,14 @@ class InteractiveConsole {
     setupEventHandlers() {
         // Socket.IO event handlers
         this.socket.on('connect', () => {
-            console.debug('Connected to server');
-            this.appendSystemMessage('Connected to console');
+            console.log('Connected to console server');
+            this.appendSystemMessage('Connected to console server');
             this.enableInput();
         });
 
         this.socket.on('disconnect', () => {
-            console.debug('Disconnected from server');
-            this.appendSystemMessage('Disconnected from console');
+            console.log('Disconnected from console server');
+            this.appendSystemMessage('Disconnected from console server');
             this.disableInput();
         });
 
@@ -52,7 +49,7 @@ class InteractiveConsole {
             }
         });
 
-        // Input handlers
+        // Input handler
         this.inputElement.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -68,22 +65,20 @@ class InteractiveConsole {
         if (!input) return;
 
         this.inputElement.value = '';
-        this.appendOutput(`> ${input}\n`, 'console-input');
+        this.appendOutput(`> ${input}\n`);
 
         this.socket.emit('input', {
             session_id: this.sessionId,
             input: input + '\n'
         });
 
-        this.history.push(input);
-        this.historyIndex = this.history.length;
         this.isWaitingForInput = false;
         this.updateInputState();
     }
 
     appendOutput(text, className = 'console-output') {
         const element = document.createElement('div');
-        element.className = `output-line ${className}`;
+        element.className = className;
         element.textContent = text;
         this.outputElement.appendChild(element);
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
@@ -137,7 +132,7 @@ class InteractiveConsole {
     }
 }
 
-// Export to window object
+// Export for browser environments
 if (typeof window !== 'undefined') {
     window.InteractiveConsole = InteractiveConsole;
 }

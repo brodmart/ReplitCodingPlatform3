@@ -1,7 +1,6 @@
 import os
 import logging
-import time
-from flask import Flask, render_template, session, request
+from flask import Flask, session, request
 from flask_socketio import SocketIO, emit
 from flask_session import Session
 from flask_cors import CORS
@@ -9,10 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
 # Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize Socket.IO with minimal configuration
@@ -20,29 +16,24 @@ socketio = SocketIO(
     cors_allowed_origins="*",
     async_mode='eventlet',
     logger=True,
-    engineio_logger=True,
-    ping_timeout=60,
-    ping_interval=25
+    engineio_logger=True
 )
 
-Base = DeclarativeBase()
+class Base(DeclarativeBase):
+    pass
+
 db = SQLAlchemy(model_class=Base)
 
 def create_app():
     """Create and configure the Flask application"""
-    app = Flask(__name__, 
-                static_url_path='',
-                static_folder='static',
-                template_folder='templates')
+    app = Flask(__name__)
 
     # Basic configuration
     app.config.update({
         'SECRET_KEY': os.environ.get("FLASK_SECRET_KEY", "dev_key_for_development_only"),
         'SESSION_TYPE': 'filesystem',
         'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
-        'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-        'WTF_CSRF_ENABLED': True,
-        'WTF_CSRF_TIME_LIMIT': None,
+        'SQLALCHEMY_TRACK_MODIFICATIONS': False
     })
 
     try:
@@ -54,13 +45,6 @@ def create_app():
 
         with app.app_context():
             db.create_all()
-
-        # Initialize session with default language if not set
-        @app.before_request
-        def before_request():
-            if 'lang' not in session:
-                session['lang'] = 'fr'
-                session.modified = True
 
         # Register Socket.IO event handlers
         setup_websocket_handlers()
@@ -74,7 +58,7 @@ def create_app():
 
 def setup_websocket_handlers():
     """Setup WebSocket event handlers for console I/O"""
-    from compiler_service import start_interactive_session, send_input, get_output, compile_and_run
+    from compiler_service import compile_and_run, send_input, get_output
 
     @socketio.on('connect')
     def handle_connect():
@@ -86,8 +70,7 @@ def setup_websocket_handlers():
     def handle_disconnect():
         """Handle client disconnection"""
         logger.info(f"Client disconnected: {request.sid}")
-        if 'console_session_id' in session:
-            session.pop('console_session_id', None)
+        session.pop('console_session_id', None)
         session.pop('sid', None)
 
     @socketio.on('compile_and_run')
@@ -107,22 +90,20 @@ def setup_websocket_handlers():
                 session_id = result.get('session_id')
                 if session_id:
                     session['console_session_id'] = session_id
+                    emit('compilation_result', {
+                        'success': True,
+                        'session_id': session_id,
+                        'interactive': result.get('interactive', False)
+                    })
 
+                    # For interactive programs, get initial output
                     if result.get('interactive'):
-                        # For interactive programs, wait briefly for initial prompt
-                        time.sleep(0.1)
                         output = get_output(session_id)
                         if output and output.get('success'):
                             emit('output', {
                                 'output': output.get('output', ''),
                                 'waiting_for_input': output.get('waiting_for_input', False)
                             })
-
-                emit('compilation_result', {
-                    'success': True,
-                    'session_id': session_id,
-                    'interactive': result.get('interactive', False)
-                })
             else:
                 emit('compilation_result', {
                     'success': False,
@@ -145,10 +126,7 @@ def setup_websocket_handlers():
                 return
 
             result = send_input(session_id, input_text)
-
             if result and result.get('success'):
-                # Get immediate output after input
-                time.sleep(0.1)
                 output = get_output(session_id)
                 if output and output.get('success'):
                     emit('output', {
