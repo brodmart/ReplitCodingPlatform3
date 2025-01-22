@@ -3,6 +3,7 @@ Activity routes with curriculum compliance integration and enhanced learning fea
 """
 import os
 import logging
+import uuid
 from flask import Blueprint, render_template, request, jsonify, session, current_app
 from flask_login import login_required, current_user
 from werkzeug.exceptions import RequestTimeout
@@ -13,6 +14,10 @@ from datetime import datetime
 from routes.static_routes import get_user_language
 from compiler import compile_and_run, get_template
 from flask import make_response
+import time
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
+import threading
 
 # Create Blueprint
 activities = Blueprint('activities', __name__, template_folder='../templates')
@@ -180,6 +185,7 @@ def run_code():
         code = data.get('code', '').strip()
         language = data.get('language', 'cpp').lower()
         activity_id = data.get('activity_id')
+        session_id = data.get('session_id', str(uuid.uuid4()))
 
         if not code:
             logger.error("No code provided in request")
@@ -195,22 +201,38 @@ def run_code():
         logger.debug(f"Code to compile: {code[:200]}...")
 
         try:
+            # Import the compiler logger
+            from utils.compiler_logger import compiler_logger
+            compiler_logger.log_compilation_start(session_id, code)
+
             # Execute with timeout
             logger.debug("Calling compile_and_run")
             result = compile_and_run(
                 code=code,
                 language=language,
-                input_data=None
+                session_id=session_id
             )
             logger.debug(f"Compilation result: {result}")
 
-            # Ensure result is properly formatted
-            if not isinstance(result, dict):
-                logger.error(f"Invalid result type from compile_and_run: {type(result)}")
-                return jsonify({
-                    'success': False,
-                    'error': 'Internal server error: Invalid compiler response'
-                }), 500
+            # Store successful compilation if activity_id is provided
+            if activity_id and result.get('success'):
+                try:
+                    submission = CodeSubmission(
+                        student_id=current_user.id,
+                        activity_id=activity_id,
+                        code=code,
+                        language=language,
+                        success=True,
+                        output=result.get('output', ''),
+                        error=None,
+                        submitted_at=datetime.utcnow()
+                    )
+                    db.session.add(submission)
+                    db.session.commit()
+                except Exception as db_error:
+                    logger.error(f"Database error storing submission: {db_error}")
+                    # Continue execution even if storage fails
+                    pass
 
             # Always return a JSON response with proper headers
             response = jsonify(result)
@@ -218,16 +240,29 @@ def run_code():
             return response
 
         except TimeoutError:
-            logger.error("Code execution timed out")
+            error_msg = "Code execution timed out"
+            logger.error(error_msg)
+            compiler_logger.log_runtime_error(
+                session_id,
+                error_msg,
+                {"stage": "execution", "timeout": True}
+            )
             return jsonify({
                 'success': False,
-                'error': 'Code execution timed out'
+                'error': error_msg
             }), 408
+
         except Exception as exec_error:
-            logger.error(f"Execution error: {str(exec_error)}")
+            error_msg = f"Execution error: {str(exec_error)}"
+            logger.error(error_msg)
+            compiler_logger.log_runtime_error(
+                session_id,
+                str(exec_error),
+                {"stage": "execution"}
+            )
             return jsonify({
                 'success': False,
-                'error': f'Execution error: {str(exec_error)}'
+                'error': error_msg
             }), 500
 
     except Exception as e:
@@ -458,7 +493,6 @@ def view_enhanced_activity(activity_id):
 
 
 #Cleanup inactive sessions periodically
-import threading
 session_lock = threading.Lock()
 active_sessions = {}
 def cleanup_old_sessions():
@@ -476,11 +510,9 @@ def cleanup_old_sessions():
         logger.error(f"Error in cleanup_old_sessions: {e}", exc_info=True)
 
 # Register cleanup on application shutdown
-import atexit
 atexit.register(cleanup_old_sessions)
 
 # Add periodic cleanup
-from apscheduler.schedulers.background import BackgroundScheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_old_sessions, 'interval', minutes=5)
 scheduler.start()
