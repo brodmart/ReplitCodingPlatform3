@@ -59,7 +59,6 @@ async function setEditorTemplate(language) {
     } catch (error) {
         console.error('Error setting template:', error);
         showError(`Failed to change language: ${error.message}`);
-        // Don't rethrow, we've handled the error with user feedback
     }
 }
 
@@ -76,6 +75,9 @@ async function initializeEditor() {
         if (!editorElement) {
             throw new Error('Editor element not found');
         }
+
+        // Clear any existing content
+        editorElement.value = '';
 
         // Initialize CodeMirror with basic configuration
         editorState.editor = CodeMirror.fromTextArea(editorElement, {
@@ -109,19 +111,12 @@ async function initializeEditor() {
             editorState.editor.setOption('mode', getEditorMode(editorState.currentLanguage));
         }
 
-        // Try to load template
-        try {
-            await setEditorTemplate(editorState.currentLanguage);
-        } catch (error) {
-            console.warn('Failed to load template, using default:', error);
-            const defaultTemplate = editorState.currentLanguage === 'cpp' 
-                ? '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}\n'
-                : 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}\n';
-            editorState.editor.setValue(defaultTemplate);
-        }
-
-        // Mark editor as initialized
+        // Mark editor as initialized before loading template
         editorState.isInitialized = true;
+
+        // Load the initial template
+        await setEditorTemplate(editorState.currentLanguage);
+
         console.log('Editor initialized successfully');
 
     } catch (error) {
@@ -163,13 +158,6 @@ function setupEventListeners() {
             }
             editorState.inputBuffer = '';
             editorState.isWaitingForInput = false;
-        });
-    }
-
-    // Auto-save editor content
-    if (editorState.editor) {
-        editorState.editor.on('change', () => {
-            localStorage.setItem('editorContent', editorState.editor.getValue());
         });
     }
 }
