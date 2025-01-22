@@ -1,0 +1,32 @@
+2025-01-22 23:23:56,607 - app:30 - WARNING - Redis not available, falling back to in-memory queue
+2025-01-22 23:23:56,611 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:23:56,612 - app:55 - INFO - Initializing Flask application
+2025-01-22 23:23:56,613 - app:70 - DEBUG - Application configuration loaded
+2025-01-22 23:23:56,641 - app:75 - INFO - Database initialized
+2025-01-22 23:23:56,642 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:23:56,642 - app:82 - INFO - Socket.IO initialized
+2025-01-22 23:23:56,656 - app:91 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:23:57,630 - app:98 - INFO - Database tables created
+2025-01-22 23:23:57,631 - app:113 - INFO - Application initialized successfully
+2025-01-22 23:23:57,631 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000
+2025-01-22 23:23:57,631 - werkzeug:96 - WARNING -  * Debugger is active!
+2025-01-22 23:23:57,633 - werkzeug:96 - INFO -  * Debugger PIN: 458-565-523
+2025-01-22 23:23:57,869 - app:107 - DEBUG - Rendering console page
+2025-01-22 23:23:58,748 - engineio.server:78 - INFO - wFzunLxo5E8URUCAAAAA: Sending packet OPEN data {'sid': 'wFzunLxo5E8URUCAAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:23:58,748 - engineio.server:90 - INFO - wFzunLxo5E8URUCAAAAA: Received request to upgrade to websocket
+2025-01-22 23:23:58,748 - engineio.server:219 - INFO - wFzunLxo5E8URUCAAAAA: Upgrade to websocket successful
+2025-01-22 23:23:58,835 - engineio.server:39 - INFO - wFzunLxo5E8URUCAAAAA: Received packet MESSAGE data 0
+2025-01-22 23:23:58,836 - engineio.server:78 - INFO - wFzunLxo5E8URUCAAAAA: Sending packet MESSAGE data 0{"sid":"WG-uOEvu2uCKDb4vAAAB"}
+2025-01-22 23:23:58,837 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:23:58.837358
+2025-01-22 23:23:58,837 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:23:58,837 - app:132 - INFO - Client connected: WG-uOEvu2uCKDb4vAAAB
+2025-01-22 23:23:58,837 - socketio:108 - INFO - New connection established. Total connections: 1
+2025-01-22 23:23:58,837 - socketio:110 - DEBUG - Client info: {'sid': 'WG-uOEvu2uCKDb4vAAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:23:58,837 - socketio.server:164 - INFO - emitting event "connection_established" to WG-uOEvu2uCKDb4vAAAB [/]
+2025-01-22 23:23:58,838 - engineio.server:78 - INFO - wFzunLxo5E8URUCAAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"WG-uOEvu2uCKDb4vAAAB"}]
+2025-01-22 23:23:58,838 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:23:58,838 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s
+2025-01-22 23:23:58,838 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:24:23,750 - engineio.server:78 - INFO - wFzunLxo5E8URUCAAAAA: Sending packet PING data None
+2025-01-22 23:24:23,824 - engineio.server:39 - INFO - wFzunLxo5E8URUCAAAAA: Received packet PONG data 
+2025-01-22 23:24:28,767 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/utils/logging_config.py', reloading

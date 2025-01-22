@@ -1,0 +1,21 @@
+2025-01-22 23:24:29,748 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:31,514 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:35,615 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:36,241 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:36,554 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:36,980 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:37,382 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:37,558 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:39,482 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:39,483 - compiler:26 - INFO - Starting compilation for session test_interactive_7197948036569024320 - MainProcess:MainThread
+2025-01-22 23:24:40,667 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:43,498 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:44,998 - compiler:26 - INFO - Session test_interactive_7197948036569024320 state changed to: session_started - MainProcess:MainThread
+2025-01-22 23:24:45,286 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:45,286 - compiler:26 - INFO - Starting compilation for session test_interactive_-8479683576073647489 - MainProcess:MainThread
+2025-01-22 23:24:45,622 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:45,632 - compiler:26 - INFO - Starting compilation for session test_interactive_-8561415581150824790 - MainProcess:MainThread
+2025-01-22 23:24:46,313 - compiler:111 - DEBUG - Logging initialized for compiler - MainProcess:MainThread
+2025-01-22 23:24:46,315 - compiler:26 - INFO - Starting compilation for session test_interactive_2438498512826394920 - MainProcess:MainThread
+2025-01-22 23:24:49,712 - compiler:26 - INFO - Session test_interactive_-8479683576073647489 state changed to: session_started - MainProcess:MainThread
+2025-01-22 23:24:51,793 - compiler:26 - INFO - Session test_interactive_-8561415581150824790 state changed to: session_started - MainProcess:MainThread

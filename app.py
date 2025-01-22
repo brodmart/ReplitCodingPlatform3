@@ -122,7 +122,7 @@ def setup_websocket_handlers():
 
     @socketio.on('connect')
     @log_socket_event
-    def handle_connect():
+    def handle_connect(auth=None):
         """Handle client connection with enhanced session management and logging"""
         client_info = {
             'sid': request.sid,
@@ -136,7 +136,7 @@ def setup_websocket_handlers():
 
     @socketio.on('disconnect')
     @log_socket_event
-    def handle_disconnect():
+    def handle_disconnect(auth=None):
         """Handle client disconnection with cleanup and logging"""
         logger.info(f"Client disconnected: {request.sid}")
         if 'console_session_id' in session:

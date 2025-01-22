@@ -1,0 +1,6 @@
+2025-01-22 23:24:46,316 - compiler_service:982 - DEBUG - Starting compilation for code length: 298, language: cpp - MainProcess:MainThread
+2025-01-22 23:24:46,316 - compiler_service:584 - INFO - Starting interactive session for cpp - MainProcess:MainThread
+2025-01-22 23:24:46,317 - compiler_service:585 - DEBUG - Session ID: test_interactive_2438498512826394920 - MainProcess:MainThread
+2025-01-22 23:24:46,317 - compiler_service:595 - INFO - Creating isolated environment - MainProcess:MainThread
+2025-01-22 23:24:46,317 - compiler_service:929 - DEBUG - Created C++ project in /tmp/compiler_env_cpp_21hjihcc - MainProcess:MainThread
+2025-01-22 23:24:47,742 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: Enter your name:  - MainProcess:Thread-1 (monitor_output)
