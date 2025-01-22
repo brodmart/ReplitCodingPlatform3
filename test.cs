@@ -1,6 +1,6 @@
 using System;
 
-namespace TestProgram
+namespace BasicTemplate
 {
     class Program 
     {

@@ -833,8 +833,7 @@ def format_csharp_error(error_msg: str) -> str:
         elif any(pattern in line.lower() for pattern in ["error:", "fatal error:", "build failed"]):
             error_lines.append(f"Compilation Error: {line.strip()}")
 
-    # If no specific error was found, include the original message
-    if not error_lines:
+    # If no specific error was found, include the original message    if not error_lines:
         # Look for any error-like content in the original message
         general_error = re.search(r'(?:error|exception|failed).*$', error_msg, re.IGNORECASE | re.MULTILINE)
         if general_error:
@@ -1304,6 +1303,49 @@ class ProcessMonitor(Thread):
 active_sessions = {}
 session_lock = Lock()
 
+def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
+    """Create an isolated environment for compilation and execution"""
+    # Create unique directory for this compilation
+    unique_id = str(uuid.uuid4())[:8]  # Use shorter ID for path length
+    temp_dir = Path(COMPILER_CACHE_DIR) / f"compile_{unique_id}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    if language == 'csharp':
+        # Create isolated project structure
+        project_name = f"Project_{unique_id}"
+        source_file = temp_dir / "Program.cs"
+        project_file = temp_dir / f"{project_name}.csproj"
+
+        # Write source code
+        with open(source_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+        # Create optimized project file
+        project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>{project_name}</AssemblyName>
+    <RootNamespace>{project_name}</RootNamespace>
+  </PropertyGroup>
+</Project>"""
+        with open(project_file, 'w', encoding='utf-8') as f:
+            f.write(project_content)
+
+        return temp_dir, project_name
+
+    elif language == 'cpp':
+        # Create isolated C++ environment
+        source_file = temp_dir / "program.cpp"
+        with open(source_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+        return temp_dir, "program"
+    else:
+        raise ValueError(f"Unsupported language: {language}")
+
+
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
     Compile and run code with optimized performance and enhanced error handling
@@ -1613,3 +1655,38 @@ def is_interactive_code(code: str, language: str) -> bool:
             'console.readkey'
         ])
     return False
+
+def get_template(language: str) -> str:
+    """Get the template code for a given programming language.
+
+    Args:
+        language (str): The programming language identifier ('cpp' or 'csharp')
+
+    Returns:
+        str: The template code for the specified language
+    """
+    templates = {
+        'cpp': """#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "Hello World!" << endl;
+    return 0;
+}""",
+        'csharp': """using System;
+
+namespace BasicTemplate
+{
+    class Program 
+    {
+        static void Main()
+        {
+            // Your code here
+            Console.WriteLine("Hello World!");
+        }
+    }
+}"""
+    }
+    return templates.get(language.lower(), '')
