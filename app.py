@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, session, request, render_template, g
+from flask import Flask, session, request, render_template
 from flask_socketio import SocketIO, emit
 from flask_session import Session
 from flask_cors import CORS
@@ -9,7 +9,10 @@ from sqlalchemy.orm import DeclarativeBase
 from flask_wtf.csrf import CSRFProtect
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 # Initialize Socket.IO with minimal configuration
@@ -73,25 +76,19 @@ def create_app():
 def setup_websocket_handlers():
     """Setup WebSocket event handlers for console I/O"""
     from compiler_service import compile_and_run, send_input, get_output
-    from utils.socketio_logger import log_socket_event, track_connection, track_session
 
     @socketio.on('connect')
     def handle_connect():
         """Handle client connection"""
         logger.info(f"Client connected: {request.sid}")
         session['sid'] = request.sid
-        track_connection(True)
         emit('connection_established', {'status': 'connected'})
 
     @socketio.on('disconnect')
     def handle_disconnect():
         """Handle client disconnection"""
         logger.info(f"Client disconnected: {request.sid}")
-        if 'console_session_id' in session:
-            track_session(session['console_session_id'], False)
-        session.pop('console_session_id', None)
         session.pop('sid', None)
-        track_connection(False)
 
     @socketio.on('compile_and_run')
     def handle_compile_and_run(data):
@@ -110,24 +107,21 @@ def setup_websocket_handlers():
                 session_id = result.get('session_id')
                 if session_id:
                     session['console_session_id'] = session_id
-                    track_session(session_id, True)
                     emit('compilation_result', {
                         'success': True,
-                        'session_id': session_id,
-                        'interactive': result.get('interactive', False)
+                        'session_id': session_id
                     })
 
-                    # For interactive programs, get initial output
-                    if result.get('interactive'):
-                        logger.debug(f"Getting initial output for session {session_id}")
-                        output = get_output(session_id)
-                        if output and output.get('success'):
-                            emit('output', {
-                                'output': output.get('output', ''),
-                                'waiting_for_input': output.get('waiting_for_input', False)
-                            })
-                        else:
-                            logger.error(f"Failed to get initial output: {output}")
+                    # Get initial output
+                    output = get_output(session_id)
+                    if output and output.get('success'):
+                        emit('output', {
+                            'output': output.get('output', ''),
+                            'waiting_for_input': output.get('waiting_for_input', False)
+                        })
+                    else:
+                        logger.error(f"Failed to get initial output: {output}")
+                        emit('error', {'message': 'Failed to get program output'})
             else:
                 logger.error(f"Compilation failed: {result.get('error')}")
                 emit('compilation_result', {

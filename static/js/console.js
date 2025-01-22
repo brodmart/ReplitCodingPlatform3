@@ -32,7 +32,6 @@ class InteractiveConsole {
         this.socket.on('connect', () => {
             this.reconnectAttempts = 0;
             this.appendSystemMessage('Connected to console server');
-            this.enableInput();
         });
 
         this.socket.on('connect_error', (error) => {
@@ -69,7 +68,7 @@ class InteractiveConsole {
 
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                this.appendSystemMessage(`Running C# program...`);
+                this.appendSystemMessage(`Program compiled successfully, starting execution...`);
             }
         });
 
@@ -110,11 +109,11 @@ class InteractiveConsole {
         }
     }
 
-    appendOutput(text, className = 'console-output') {
-        const element = document.createElement('div');
-        element.className = className;
-        element.textContent = text;
-        this.outputElement.appendChild(element);
+    appendOutput(text, className = '') {
+        const line = document.createElement('div');
+        line.className = `console-line ${className}`;
+        line.textContent = text;
+        this.outputElement.appendChild(line);
         this.scrollToBottom();
     }
 
@@ -162,7 +161,10 @@ class InteractiveConsole {
     compileAndRun(code) {
         this.clear();
         this.appendSystemMessage('Compiling C# program...');
-        this.socket.emit('compile_and_run', { code, language: 'csharp' });
+        this.socket.emit('compile_and_run', { 
+            code, 
+            language: 'csharp'
+        });
     }
 }
 
