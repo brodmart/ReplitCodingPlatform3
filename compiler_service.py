@@ -837,8 +837,7 @@ def format_csharp_error(error_msg: str) -> str:
 
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors with improved detail capture"""
-    if not error_msg:
-        return "Unknown runtime error occurred"
+    if not error_msg:        return "Unknown runtime error occurred"
 
     error_lines = []
     stack_trace= []
@@ -891,7 +890,14 @@ def is_interactive_code(code: str, language: str) -> bool:
     return False
 
 def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
+    """Get the template code for a given programming language.
+
+    Args:
+        language (str): The programming language identifier ('cpp' or 'csharp')
+
+    Returns:
+        str: The template code for the specified language
+    """
     templates = {
         'cpp': """#include <iostream>
 #include <string>
@@ -902,14 +908,22 @@ int main() {
     cout << "Hello World!" << endl;
     return 0;
 }""",
-        'csharp': """using System;
+        'csharp': """// Simple C# Console Program
+using System;
 
 class Program 
 {
-    static void Main()
+    static void Main() 
     {
-        // Your code here
-        Console.WriteLine("Hello World!");
+        try 
+        {
+            // Your code here
+            Console.WriteLine("Hello World!");
+        }
+        catch (Exception e) 
+        {
+            Console.WriteLine($"Error: {e.Message}");
+        }
     }
 }"""
     }
