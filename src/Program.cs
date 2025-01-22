@@ -4,8 +4,22 @@ class Program
 {
     static void Main() 
     {
-        Console.WriteLine("Enter your name:");
-        string? name = Console.ReadLine();
-        Console.WriteLine($"Hello, {name}!");
+        try 
+        {
+            Console.WriteLine("Enter your name:");
+            string? name = Console.ReadLine();
+            if (!string.IsNullOrEmpty(name))
+            {
+                Console.WriteLine($"Hello, {name}!");
+            }
+            else 
+            {
+                Console.WriteLine("No name entered.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+        }
     }
 }

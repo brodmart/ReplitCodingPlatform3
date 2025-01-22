@@ -4,23 +4,12 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <!-- Set the entry point explicitly -->
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <StartupObject>Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Exclude all test files -->
-    <Compile Remove="tests/**/*.cs" />
-    <None Include="tests/**/*.cs" />
-
-    <!-- Exclude student tracker -->
-    <Compile Remove="student_tracker.cs" />
-    <None Include="student_tracker.cs" />
-  </ItemGroup>
-
-  <!-- Include src directory -->
-  <ItemGroup>
-    <Compile Include="src/**/*.cs" />
+    <Compile Include="Program.cs" />
   </ItemGroup>
 
 </Project>
