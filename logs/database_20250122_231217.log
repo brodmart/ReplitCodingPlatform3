@@ -133,3 +133,142 @@ Traceback (most recent call last):
 TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
 2025-01-22 23:12:23,662 - socketio.server:164 - INFO - emitting event "error" to rzriP6fsiR66H3uTAAAD [/]
 2025-01-22 23:12:23,663 - engineio.server:78 - INFO - D9OX5kzKQNnE_69gAAAC: Sending packet MESSAGE data 2["error",{"message":"An unexpected error occurred"}]
+2025-01-22 23:12:40,792 - engineio.server:39 - INFO - D9p86hDIeRdH0FB-AAAE: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}]
+2025-01-22 23:12:40,795 - socketio.server:576 - INFO - received event "compile_and_run" from Y8948FSxFo_D7c4xAAAF [/]
+2025-01-22 23:12:40,799 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:12:40.799434
+2025-01-22 23:12:40,799 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'}
+2025-01-22 23:12:40,799 - app:152 - INFO - Starting csharp code compilation
+2025-01-22 23:12:40,800 - app:153 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+}
+2025-01-22 23:12:40,800 - socketio:134 - ERROR - compilation_error: Error in compile_and_run: 'CompilerLogger' object has no attribute 'info'
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 157, in handle_compile_and_run
+    compiler_logger.info(f"Created compilation session ID: {compilation_session_id}")
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CompilerLogger' object has no attribute 'info'
+2025-01-22 23:12:40,801 - socketio:43 - ERROR - Socket.IO error in compilation_error: Error in compile_and_run: 'CompilerLogger' object has no attribute 'info'
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 157, in handle_compile_and_run
+    compiler_logger.info(f"Created compilation session ID: {compilation_session_id}")
+    ^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'CompilerLogger' object has no attribute 'info'
+2025-01-22 23:12:40,801 - socketio.server:164 - INFO - emitting event "error" to Y8948FSxFo_D7c4xAAAF [/]
+2025-01-22 23:12:40,802 - engineio.server:78 - INFO - D9p86hDIeRdH0FB-AAAE: Sending packet MESSAGE data 2["error",{"message":"Failed to compile and run: 'CompilerLogger' object has no attribute 'info'"}]
+2025-01-22 23:12:40,802 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 0.003s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'}
+2025-01-22 23:12:40,802 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 0.003s
+2025-01-22 23:12:40,802 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:12:46,752 - engineio.server:78 - INFO - BGpMpKeqJ_t35V0uAAAA: Sending packet PING data None
+2025-01-22 23:12:46,825 - engineio.server:39 - INFO - BGpMpKeqJ_t35V0uAAAA: Received packet PONG data 
+2025-01-22 23:12:48,237 - engineio.server:78 - INFO - D9p86hDIeRdH0FB-AAAE: Sending packet PING data None
+2025-01-22 23:12:48,313 - engineio.server:39 - INFO - D9p86hDIeRdH0FB-AAAE: Received packet PONG data 
+2025-01-22 23:13:10,792 - engineio.server:39 - INFO - D9p86hDIeRdH0FB-AAAE: Received packet MESSAGE data 1
+2025-01-22 23:13:10,794 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:13:10.794271
+2025-01-22 23:13:10,794 - socketio:85 - DEBUG - Event context: {'args': "('client disconnect',)", 'kwargs': '{}'}
+2025-01-22 23:13:10,794 - socketio:43 - ERROR - Socket.IO error in handle_disconnect: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:10,795 - socketio:99 - ERROR - Error in Socket.IO event handle_disconnect after 0.000s: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:10,795 - socketio:134 - ERROR - socketio_error: Socket.IO error: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_socketio/__init__.py", line 835, in _handle_event
+    ret = handler(*args)
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:10,796 - socketio:43 - ERROR - Socket.IO error in socketio_error: Socket.IO error: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_socketio/__init__.py", line 835, in _handle_event
+    ret = handler(*args)
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:10,796 - socketio.server:164 - INFO - emitting event "error" to Y8948FSxFo_D7c4xAAAF [/]
+2025-01-22 23:13:10,796 - engineio.server:78 - INFO - D9p86hDIeRdH0FB-AAAE: Sending packet MESSAGE data 2["error",{"message":"An unexpected error occurred"}]
+2025-01-22 23:13:11,024 - engineio.server:78 - INFO - RwIs37u-MoOsGMkLAAAG: Sending packet OPEN data {'sid': 'RwIs37u-MoOsGMkLAAAG', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:13:11,024 - engineio.server:90 - INFO - RwIs37u-MoOsGMkLAAAG: Received request to upgrade to websocket
+2025-01-22 23:13:11,025 - engineio.server:219 - INFO - RwIs37u-MoOsGMkLAAAG: Upgrade to websocket successful
+2025-01-22 23:13:11,805 - engineio.server:78 - INFO - 82CF8sIshQDWH3PZAAAH: Sending packet OPEN data {'sid': '82CF8sIshQDWH3PZAAAH', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0}
+2025-01-22 23:13:11,806 - engineio.server:90 - INFO - 82CF8sIshQDWH3PZAAAH: Received request to upgrade to websocket
+2025-01-22 23:13:11,806 - engineio.server:219 - INFO - 82CF8sIshQDWH3PZAAAH: Upgrade to websocket successful
+2025-01-22 23:13:11,827 - engineio.server:78 - INFO - BGpMpKeqJ_t35V0uAAAA: Sending packet PING data None
+2025-01-22 23:13:11,895 - engineio.server:39 - INFO - 82CF8sIshQDWH3PZAAAH: Received packet MESSAGE data 0
+2025-01-22 23:13:11,896 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:13:11.896410
+2025-01-22 23:13:11,896 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'}
+2025-01-22 23:13:11,896 - socketio:43 - ERROR - Socket.IO error in handle_connect: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:11,897 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:11,897 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:13:11.897545
+2025-01-22 23:13:11,897 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:13:11,897 - app:120 - INFO - Client connected: kaixFUcNZDBpVI3iAAAI
+2025-01-22 23:13:11,897 - socketio:108 - INFO - New connection established. Total connections: 4
+2025-01-22 23:13:11,898 - socketio:110 - DEBUG - Client info: {'sid': 'kaixFUcNZDBpVI3iAAAI', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
+2025-01-22 23:13:11,898 - socketio.server:164 - INFO - emitting event "connection_established" to kaixFUcNZDBpVI3iAAAI [/]
+2025-01-22 23:13:11,898 - engineio.server:78 - INFO - 82CF8sIshQDWH3PZAAAH: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"kaixFUcNZDBpVI3iAAAI"}]
+2025-01-22 23:13:11,898 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '()', 'kwargs': '{}'}
+2025-01-22 23:13:11,898 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s
+2025-01-22 23:13:11,898 - socketio:93 - DEBUG - Event result: None
+2025-01-22 23:13:11,898 - engineio.server:78 - INFO - 82CF8sIshQDWH3PZAAAH: Sending packet MESSAGE data 0{"sid":"kaixFUcNZDBpVI3iAAAI"}
+2025-01-22 23:13:11,900 - engineio.server:39 - INFO - BGpMpKeqJ_t35V0uAAAA: Received packet PONG data 
+2025-01-22 23:13:33,786 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:13:33.786784
+2025-01-22 23:13:33,786 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'}
+2025-01-22 23:13:33,787 - socketio:43 - ERROR - Socket.IO error in handle_disconnect: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:33,787 - socketio:99 - ERROR - Error in Socket.IO event handle_disconnect after 0.000s: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:33,787 - socketio:134 - ERROR - socketio_error: Socket.IO error: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_socketio/__init__.py", line 835, in _handle_event
+    ret = handler(*args)
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:33,788 - socketio:43 - ERROR - Socket.IO error in socketio_error: Socket.IO error: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+Traceback (most recent call last):
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_socketio/__init__.py", line 835, in _handle_event
+    ret = handler(*args)
+          ^^^^^^^^^^^^^^
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-22 23:13:33,788 - socketio.server:164 - INFO - emitting event "error" to kaixFUcNZDBpVI3iAAAI [/]
+2025-01-22 23:13:33,788 - engineio.server:78 - INFO - 82CF8sIshQDWH3PZAAAH: Sending packet MESSAGE data 2["error",{"message":"An unexpected error occurred"}]
+2025-01-22 23:13:34,377 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/utils/compiler_logger.py', reloading

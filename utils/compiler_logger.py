@@ -15,19 +15,31 @@ class CompilerLogger:
     def __init__(self):
         self.log_dir = Path('logs/compiler')
         self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.logger = logger
 
-        # Setup file handler for compiler logs
-        self.compiler_handler = logging.FileHandler(
-            self.log_dir / 'compiler.log'
-        )
-        self.compiler_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        ))
-        logger.addHandler(self.compiler_handler)
+    def debug(self, message: str, *args, **kwargs):
+        """Forward debug messages to logger"""
+        self.logger.debug(message, *args, **kwargs)
+
+    def info(self, message: str, *args, **kwargs):
+        """Forward info messages to logger"""
+        self.logger.info(message, *args, **kwargs)
+
+    def warning(self, message: str, *args, **kwargs):
+        """Forward warning messages to logger"""
+        self.logger.warning(message, *args, **kwargs)
+
+    def error(self, message: str, *args, **kwargs):
+        """Forward error messages to logger"""
+        self.logger.error(message, *args, **kwargs)
+
+    def critical(self, message: str, *args, **kwargs):
+        """Forward critical messages to logger"""
+        self.logger.critical(message, *args, **kwargs)
 
     def log_compilation_start(self, session_id: str, code: str) -> None:
         """Log compilation start event"""
-        logger.info(f"Starting compilation for session {session_id}")
+        self.logger.info(f"Starting compilation for session {session_id}")
         self._log_event(session_id, 'compilation_start', {
             'code_length': len(code),
             'timestamp': datetime.utcnow().isoformat()
@@ -35,7 +47,7 @@ class CompilerLogger:
 
     def log_compilation_error(self, session_id: str, error: Exception, context: Dict[str, Any]) -> None:
         """Log compilation error with context"""
-        logger.error(f"Compilation error in session {session_id}: {str(error)}")
+        self.logger.error(f"Compilation error in session {session_id}: {str(error)}")
         self._log_event(session_id, 'compilation_error', {
             'error_type': error.__class__.__name__,
             'error_message': str(error),
@@ -45,7 +57,7 @@ class CompilerLogger:
 
     def log_runtime_error(self, session_id: str, error: str, context: Dict[str, Any]) -> None:
         """Log runtime errors during program execution"""
-        logger.error(f"Runtime error in session {session_id}: {error}")
+        self.logger.error(f"Runtime error in session {session_id}: {error}")
         self._log_event(session_id, 'runtime_error', {
             'error_message': error,
             'context': context,
@@ -54,7 +66,7 @@ class CompilerLogger:
 
     def log_execution_state(self, session_id: str, state: str, details: Optional[Dict[str, Any]] = None) -> None:
         """Log program execution state changes"""
-        logger.info(f"Session {session_id} state changed to: {state}")
+        self.logger.info(f"Session {session_id} state changed to: {state}")
         self._log_event(session_id, 'execution_state', {
             'state': state,
             'details': details or {},
@@ -86,7 +98,7 @@ class CompilerLogger:
                 json.dump(existing_logs, f, indent=2)
 
         except Exception as e:
-            logger.error(f"Error writing to log file: {str(e)}")
+            self.logger.error(f"Error writing to log file: {str(e)}")
 
     def analyze_session_errors(self, session_id: str) -> Dict[str, Any]:
         """Analyze errors for a specific session"""
@@ -127,7 +139,7 @@ class CompilerLogger:
             }
 
         except Exception as e:
-            logger.error(f"Error analyzing session logs: {str(e)}")
+            self.logger.error(f"Error analyzing session logs: {str(e)}")
             return {'error': str(e)}
 
 # Global compiler logger instance

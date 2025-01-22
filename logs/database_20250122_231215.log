@@ -8,3 +8,4 @@
 2025-01-22 23:12:16,417 - app:101 - INFO - Application initialized successfully
 2025-01-22 23:12:16,421 - __main__:22 - INFO - Starting Flask server with SocketIO on port 5000
 2025-01-22 23:12:16,424 - werkzeug:96 - INFO -  * Restarting with stat
+2025-01-22 23:13:34,536 - werkzeug:96 - INFO -  * Restarting with stat
