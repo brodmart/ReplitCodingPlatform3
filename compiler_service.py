@@ -678,7 +678,98 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         logger.debug(f"3.1 Created temporary directory: {temp_dir}")
         logger.debug(f"3.2 Project name: {project_name}")
 
-        if language == 'cpp':
+        if language == 'csharp':
+            try:
+                project_file = os.path.join(temp_dir, f"{project_name}.csproj")
+
+                # Enhanced compilation command with better error handling
+                compile_cmd = [
+                    'dotnet', 'build',
+                    project_file,
+                    '--configuration', 'Release',
+                    '--nologo',
+                    '/p:GenerateFullPaths=true',
+                    '/consoleloggerparameters:NoSummary;Verbosity=detailed'
+                ]
+
+                logger.info("4. Starting C# compilation")
+                logger.debug(f"4.1 Compilation command: {' '.join(compile_cmd)}")
+
+                compile_process = subprocess.run(
+                    compile_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=temp_dir
+                )
+
+                if compile_process.returncode != 0:
+                    error_msg = format_csharp_error(compile_process.stderr)
+                    logger.error(f"5. C# compilation failed")
+                    logger.debug(f"5.1 Raw compilation output:\n{compile_process.stderr}")
+                    logger.error(f"5.2 Formatted error: {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'metrics': metrics
+                    }
+
+                logger.info("5. C# compilation successful")
+                dll_path = os.path.join(temp_dir, "bin", "Release", "net7.0", f"{project_name}.dll")
+                logger.debug(f"5.1 DLL path: {dll_path}")
+
+                if not os.path.exists(dll_path):
+                    error_msg = "Compilation succeeded but executable not found"
+                    logger.error(f"6. {error_msg}")
+                    return {
+                        'success': False,
+                        'error': error_msg,
+                        'metrics': metrics
+                    }
+
+                logger.info("6. Starting program execution")
+                run_process = subprocess.run(
+                    ['dotnet', dll_path],
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME,
+                    cwd=temp_dir,
+                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
+                )
+
+                if run_process.returncode != 0:
+                    error_msg = format_csharp_error(run_process.stderr)
+                    logger.error(f"7. Runtime error occurred: {error_msg}")
+                    return {
+                        'success': False,
+                        'error': f"Runtime Error: {error_msg}",
+                        'metrics': metrics
+                    }
+
+                logger.info("7. Program executed successfully")
+                return {
+                    'success': True,
+                    'output': run_process.stdout,
+                    'metrics': metrics
+                }
+
+            except subprocess.TimeoutExpired:
+                logger.error("Compilation timed out")
+                return {
+                    'success': False,
+                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds",
+                    'metrics': metrics
+                }
+            except Exception as e:
+                logger.error(f"Unexpected C# error: {str(e)}\n{traceback.format_exc()}")
+                return {
+                    'success': False,
+                    'error': f"Unexpected error: {str(e)}",
+                    'metrics': metrics
+                }
+
+        elif language == 'cpp':
             # Set up C++ compilation
             source_file = os.path.join(temp_dir, "program.cpp")
             executable = os.path.join(temp_dir, "program")
@@ -720,7 +811,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
-                    timeout=MAX_EXECUTION_TIME
+                    timeout=MAXEXECUTION_TIME
                 )
 
                 if run_process.returncode != 0:
@@ -744,88 +835,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'metrics': metrics
                 }
 
-        elif language == 'csharp':
-            try:
-                project_file = os.path.join(temp_dir, f"{project_name}.csproj")
-
-                # Compile with better error handling
-                compile_cmd = [
-                    'dotnet', 'build',
-                    project_file,
-                    '--configuration', 'Release',
-                    '--nologo',
-                    '/p:GenerateFullPaths=true',
-                    '/consoleloggerparameters:NoSummary'
-                ]
-
-                logger.info("Building project...")
-                compile_process = subprocess.run(
-                    compile_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME,
-                    cwd=temp_dir
-                )
-
-                if compile_process.returncode != 0:
-                    logger.error(f"C# compilation failed: {compile_process.stderr}")
-                    return {
-                        'success': False,
-                        'error': format_csharp_error(compile_process.stderr),
-                        'metrics': metrics
-                    }
-
-                # Run the compiled program
-                dll_path = os.path.join(temp_dir, "bin", "Release", "net7.0", f"{project_name}.dll")
-                if not os.path.exists(dll_path):
-                    logger.error(f"DLL not found at {dll_path}")
-                    return {
-                        'success': False,
-                        'error': "Build succeeded but executable not found",
-                        'metrics': metrics
-                    }
-
-                logger.info("Running program...")
-                run_process = subprocess.run(
-                    ['dotnet', dll_path],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME,
-                    cwd=temp_dir,
-                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
-                )
-
-                if run_process.returncode != 0:
-                    logger.error(f"C# runtime error: {run_process.stderr}")
-                    return {
-                        'success': False,
-                        'error': format_runtime_error(run_process.stderr),
-                        'metrics': metrics
-                    }
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'metrics': metrics
-                }
-
-            except subprocess.TimeoutExpired:
-                phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
-                error_msg = f"{phase.capitalize()} timed out after {MAX_COMPILATION_TIME if phase == 'compilation' else MAX_EXECUTION_TIME} seconds"
-                logger.error(error_msg)
-                return {
-                    'success': False,
-                    'error': error_msg,
-                    'metrics': metrics
-                }
-            except Exception as e:
-                logger.error(f"Unexpected C# error: {str(e)}\n{traceback.format_exc()}")
-                return {                    'success': False,
-                    'error': f"Unexpected error: {str(e)}",
-                    'metrics': metrics
-                }
-
         else:
             return {
                 'success': False,
@@ -835,7 +844,8 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
 
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}\n{traceback.format_exc()}"
-        logger.error(error_msg)        return {
+        logger.error(error_msg)
+        return {
             'success': False,
             'error': error_msg,
             'metrics': metrics
@@ -876,7 +886,8 @@ def format_csharp_error(error_msg: str) -> str:
 
 def format_runtime_error(error_msg: str) -> str:
     """Format runtime errors with improved detail capture"""
-    if not error_msg:        return "Unknown runtime error occurred"
+    if not error_msg:
+        return "Unknown runtime error occurred"
 
     error_lines = []
     stack_trace= []
