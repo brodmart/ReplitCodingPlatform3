@@ -8,6 +8,7 @@ class InteractiveConsole {
         this.onCommand = options.onCommand;
         this.onInput = options.onInput;
         this.onClear = options.onClear;
+        this.language = options.language || 'cpp';  // Track current language
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console requires output and input elements');
@@ -26,6 +27,10 @@ class InteractiveConsole {
         this.retryAttempts = 3;
         this.retryDelay = 1000; // ms
         this.errorCount = 0;
+        this.inputPromptPatterns = {
+            cpp: ['cin', 'getline', 'scanf', 'enter', 'input', '?', ':'],
+            csharp: ['console.read', 'console.readline', 'readkey', 'enter', 'input', '?', ':']
+        };
 
         this.setupEventListeners();
         this.clear();
@@ -116,7 +121,8 @@ class InteractiveConsole {
 
                     const data = await response.json();
                     if (data.success) {
-                        this.appendOutput(`${input}\n`, 'console-input');
+                        // Show input in console with appropriate styling
+                        this.appendOutput(input + '\n', 'console-input user-input');
                         this.isWaitingForInput = false;
                         return;
                     } else {
@@ -255,11 +261,25 @@ class InteractiveConsole {
             .trim();
 
         if (cleanedText) {
+            // Check for input prompts in the text
+            const patterns = this.inputPromptPatterns[this.language.toLowerCase()] || [];
+            const lowerText = cleanedText.toLowerCase();
+
+            const isInputPrompt = patterns.some(pattern => lowerText.includes(pattern));
+            const className = isInputPrompt ? 'console-output input-prompt' : 'console-output';
+
             const lines = cleanedText.split('\n');
             for (const line of lines) {
                 if (line.trim() || lines.length > 1) {
-                    this.appendOutput(line + '\n', 'console-output');
+                    this.appendOutput(line + '\n', className);
                 }
+            }
+
+            // If this looks like an input prompt, enable input
+            if (isInputPrompt) {
+                this.isWaitingForInput = true;
+                this.enable();
+                this.inputElement.focus();
             }
         }
     }
@@ -381,6 +401,9 @@ class InteractiveConsole {
             }
             this.startPollingOutput();
         }
+    }
+    setLanguage(language) {
+        this.language = language;
     }
 }
 

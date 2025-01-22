@@ -51,6 +51,18 @@ class InteractiveSession:
         self.waiting_for_input = False
         self.last_activity = time.time()
         self.partial_line = ""
+        self.input_patterns = {
+            'cpp': [
+                'cin', 'std::cin', 'getline', 'scanf',
+                'enter', 'input', '?', ':'
+            ],
+            'csharp': [
+                'Console.Read', 'Console.ReadLine',
+                'ReadKey', 'enter', 'input', '?', ':'
+            ]
+        }
+        self.output_buffer_size = 8192
+        self.encoding = 'utf-8'
 
 def compile_and_run(code: Optional[str] = None, 
                    language: Optional[str] = None,
@@ -156,14 +168,17 @@ def compile_and_run(code: Optional[str] = None,
         }
 
 def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
-    """Start an interactive session with proper PTY handling"""
+    """Enhanced interactive session startup"""
     logger.info(f"Starting interactive session for {language}")
 
     try:
         session_id = str(uuid.uuid4())
+        logger.debug(f"Session ID: {session_id}")
 
-        # Create PTY
+        # Create PTY with proper terminal settings
         master_fd, slave_fd = pty.openpty()
+        logger.debug(f"PTY created for {language}: master_fd={master_fd}, slave_fd={slave_fd}")
+
         # Set terminal size
         term_size = struct.pack('HHHH', 24, 80, 0, 0)
         fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, term_size)
@@ -172,13 +187,13 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
             temp_path = Path(temp_dir)
 
             if language == 'cpp':
-                # Compile C++ code
                 source_file = temp_path / "program.cpp"
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
+                # Compile with optimizations and warning flags
                 compile_process = subprocess.run(
-                    ['g++', '-std=c++17', str(source_file), '-o', str(temp_path / "program")],
+                    ['g++', '-std=c++17', '-Wall', '-O2', str(source_file), '-o', str(temp_path / "program")],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME
@@ -190,7 +205,6 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                         'error': format_cpp_error(compile_process.stderr)
                     }
 
-                # Start the program
                 process = subprocess.Popen(
                     [str(temp_path / "program")],
                     stdin=slave_fd,
@@ -198,16 +212,31 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                     stderr=slave_fd,
                     close_fds=True
                 )
+                logger.debug(f"C++ Process started with PID: {process.pid}")
 
             elif language == 'csharp':
-                # Set up C# project
                 source_file = temp_path / "Program.cs"
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
+                # Create optimized project file
+                project_file = temp_path / "program.csproj"
+                project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net7.0</TargetFramework>
+                    <ImplicitUsings>enable</ImplicitUsings>
+                    <Nullable>enable</Nullable>
+                    <PublishReadyToRun>true</PublishReadyToRun>
+                  </PropertyGroup>
+                </Project>"""
+
+                with open(project_file, 'w', encoding='utf-8') as f:
+                    f.write(project_content)
+
                 # Compile C# code
                 compile_process = subprocess.run(
-                    ['dotnet', 'build', str(source_file), '--nologo', '-o', str(temp_path)],
+                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME
@@ -219,15 +248,15 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                         'error': format_csharp_error(compile_process.stderr)
                     }
 
-                # Start the program
                 process = subprocess.Popen(
-                    ['dotnet', 'run', '--project', str(source_file), '--no-build'],
+                    ['dotnet', 'run', '--project', str(project_file), '--no-build'],
                     stdin=slave_fd,
                     stdout=slave_fd,
                     stderr=slave_fd,
                     close_fds=True,
                     cwd=str(temp_path)
                 )
+                logger.debug(f"C# Process started with PID: {process.pid}")
 
             else:
                 return {
@@ -235,8 +264,9 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                     'error': f"Unsupported language: {language}"
                 }
 
-            # Create and store session
+            # Create and store session with language information
             session = InteractiveSession(process, master_fd, slave_fd)
+            session.language = language  # Store language for pattern matching
             with session_lock:
                 active_sessions[session_id] = session
 
@@ -247,6 +277,7 @@ def start_interactive_session(code: str, language: str) -> Dict[str, Any]:
                 daemon=True
             )
             monitor_thread.start()
+            logger.debug("Output monitoring thread started")
 
             return {
                 'success': True,
@@ -274,41 +305,41 @@ def handle_interactive_session(session_id: str, action: str, input_data: Optiona
                     'error': "Session not found"
                 }
 
-            if action == 'get_output':
-                output = ''.join(session.stdout_buffer)
-                session.stdout_buffer.clear()
+        if action == 'get_output':
+            output = ''.join(session.stdout_buffer)
+            session.stdout_buffer.clear()
+            return {
+                'success': True,
+                'output': output,
+                'waiting_for_input': session.waiting_for_input
+            }
+
+        elif action == 'send_input':
+            if not input_data:
                 return {
-                    'success': True,
-                    'output': output,
-                    'waiting_for_input': session.waiting_for_input
+                    'success': False,
+                    'error': "No input data provided"
                 }
 
-            elif action == 'send_input':
-                if not input_data:
-                    return {
-                        'success': False,
-                        'error': "No input data provided"
-                    }
-
-                try:
-                    os.write(session.master_fd, input_data.encode())
-                    session.waiting_for_input = False
-                    return {'success': True}
-                except OSError as e:
-                    logger.error(f"Error sending input: {e}")
-                    return {
-                        'success': False,
-                        'error': "Failed to send input"
-                    }
-
-            elif action == 'terminate':
-                cleanup_session(session_id)
+            try:
+                os.write(session.master_fd, input_data.encode())
+                session.waiting_for_input = False
                 return {'success': True}
+            except OSError as e:
+                logger.error(f"Error sending input: {e}")
+                return {
+                    'success': False,
+                    'error': "Failed to send input"
+                }
 
-            return {
-                'success': False,
-                'error': f"Unknown action: {action}"
-            }
+        elif action == 'terminate':
+            cleanup_session(session_id)
+            return {'success': True}
+
+        return {
+            'success': False,
+            'error': f"Unknown action: {action}"
+        }
 
     except Exception as e:
         logger.error(f"Error handling interactive session: {e}")
@@ -318,7 +349,7 @@ def handle_interactive_session(session_id: str, action: str, input_data: Optiona
         }
 
 def monitor_output(session_id: str):
-    """Monitor output from an interactive session"""
+    """Enhanced output monitoring for interactive sessions"""
     chunk_size = 1024
     try:
         with session_lock:
@@ -333,7 +364,7 @@ def monitor_output(session_id: str):
                     cleanup_session(session_id)
                     break
 
-                # Read output from master PTY
+                # Read output from master PTY with timeout
                 ready, _, _ = select.select([session.master_fd], [], [], 0.1)
                 if not ready:
                     continue
@@ -341,24 +372,48 @@ def monitor_output(session_id: str):
                 data = os.read(session.master_fd, chunk_size)
                 if data:
                     try:
-                        decoded = data.decode('utf-8', errors='replace')
-                        session.stdout_buffer.append(decoded)
+                        # Process output with improved encoding handling
+                        decoded = data.decode(session.encoding, errors='replace')
+                        session.partial_line += decoded
 
-                        # Check for input prompts
+                        # Process complete lines
+                        if '\n' in session.partial_line or '\r' in session.partial_line:
+                            lines = session.partial_line.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+                            session.partial_line = lines[-1]  # Keep incomplete line
+                            complete_lines = lines[:-1]  # Process complete lines
+
+                            for line in complete_lines:
+                                if line.strip():  # Only process non-empty lines
+                                    session.stdout_buffer.append(line + '\n')
+
+                            # Trim buffer if it gets too large
+                            if len(session.stdout_buffer) > session.output_buffer_size:
+                                session.stdout_buffer = session.stdout_buffer[-session.output_buffer_size:]
+
+                        # Check for input prompts in both partial and complete lines
+                        current_text = session.partial_line
                         if not session.waiting_for_input:
-                            if any(pattern in decoded.lower() for pattern in [
-                                'input', 'enter', '?', ':', 'cin', 'readline'
-                            ]):
+                            # Get language-specific patterns
+                            patterns = session.input_patterns.get(
+                                getattr(session, 'language', ''), 
+                                session.input_patterns['csharp']  # Default to C# patterns
+                            )
+
+                            # Check for input patterns
+                            if any(pattern.lower() in current_text.lower() for pattern in patterns):
                                 session.waiting_for_input = True
+                                logger.debug(f"Input prompt detected: {current_text}")
 
                     except Exception as e:
                         logger.error(f"Error processing output: {e}")
                         continue
 
             except (OSError, IOError) as e:
+                if e.errno == 5:  # Input/output error, usually due to closed PTY
+                    cleanup_session(session_id)
+                    break
                 logger.error(f"Error reading from PTY: {e}")
-                cleanup_session(session_id)
-                break
+                continue
 
     except Exception as e:
         logger.error(f"Error in monitor_output: {e}")
