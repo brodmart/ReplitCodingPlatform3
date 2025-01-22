@@ -10,11 +10,11 @@ namespace LargeCodeTest
         static async Task Main(string[] args)
         {
             Console.WriteLine("Starting large code test...");
-            
+
             // Generate and process large amounts of data
             var numbers = Enumerable.Range(1, 100000).ToList();
             var processedData = await ProcessDataAsync(numbers);
-            
+
             Console.WriteLine($"Processed {processedData.Count} items");
             PrintSummary(processedData);
         }
@@ -32,23 +32,24 @@ namespace LargeCodeTest
         private static async Task<int> ProcessItemAsync(int item)
         {
             await Task.Delay(1); // Simulate some async work
-            return item * 2;
+            return checked(item * 2); // Add checked arithmetic
         }
 
         private static void PrintSummary(List<int> data)
         {
-            var sum = data.Sum();
+            // Convert to long before summing to prevent overflow
+            var sum = data.Select(x => (long)x).Sum();
             var avg = data.Average();
             var max = data.Max();
             var min = data.Min();
-            
+
             Console.WriteLine($"Summary Statistics:");
             Console.WriteLine($"Sum: {sum:N0}");
             Console.WriteLine($"Average: {avg:N2}");
             Console.WriteLine($"Maximum: {max:N0}");
             Console.WriteLine($"Minimum: {min:N0}");
-            
-            // Generate some more computations to make the code larger
+
+            // Group analysis - also convert to long for sums
             var groups = data
                 .GroupBy(x => x % 10)
                 .OrderBy(g => g.Key)
@@ -56,10 +57,10 @@ namespace LargeCodeTest
                     Remainder = g.Key,
                     Count = g.Count(),
                     Average = g.Average(),
-                    Sum = g.Sum()
+                    Sum = g.Select(x => (long)x).Sum()
                 })
                 .ToList();
-                
+
             Console.WriteLine("\nGroup Analysis:");
             foreach (var group in groups)
             {
@@ -68,7 +69,7 @@ namespace LargeCodeTest
         }
     }
 
-    // Add some additional classes to increase code size
+    // Rest of the classes remain unchanged
     public class DataProcessor
     {
         public static double CalculateComplexMetric(IEnumerable<int> data)
@@ -78,7 +79,7 @@ namespace LargeCodeTest
                 .Select(x => Math.Pow(x, 2))
                 .Average();
         }
-        
+
         public static Dictionary<int, double> GenerateStatistics(IEnumerable<int> data)
         {
             return data
