@@ -1,6 +1,6 @@
 import logging
 import os
-from app import app
+from app import app, socketio
 
 # Configure logging
 logging.basicConfig(
@@ -19,13 +19,16 @@ if __name__ == '__main__':
 
         # Ensure the port is set and valid
         port = int(os.environ.get('PORT', 5000))
-        logger.info(f"Starting Flask server on port {port}")
+        logger.info(f"Starting Flask server with SocketIO on port {port}")
 
-        # Start the Flask application with proper host binding
-        app.run(
-            host='0.0.0.0',  # Bind to all interfaces
+        # Start the Flask application with SocketIO
+        socketio.run(
+            app,
+            host='0.0.0.0',
             port=port,
-            debug=True
+            debug=True,
+            use_reloader=True,
+            log_output=True
         )
     except Exception as e:
         logger.error(f"Failed to start Flask server: {e}", exc_info=True)

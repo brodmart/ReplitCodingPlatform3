@@ -742,42 +742,104 @@ def get_output(session_id: str) -> Dict[str, Any]:
 
 def cleanup_session(session_id: str) -> None:
     """Clean up resources for a session with proper PTY cleanup"""
-    if session_id in active_sessions:
-        session = activesessions[session_id]
+    if sessionid in active_sessions:
+        session = active_sessions[session_id]
         logger.debug(f"Cleaning up session {session_id}")
         try:
-            if session.process and session.process.poll() is None:
+            # Cleanup process
+            if session.process:
                 try:
-                    group_id = os.getpgid(session.process.pid)
-                    os.killpg(group_id, signal.SIGTERM)
-                    logger.debug(f"Sent SIGTERM to process group {group_id}")
-                except:
-                    session.process.terminate()
-                    logger.debug("Sent terminate signal to process")
-
-                try:
-                    session.process.wait(timeout=2)
+                    os.killpg(os.getpgid(session.process.pid), signal.SIGTERM)
+                    session.process.wait(timeout=5)
+                except (ProcessLookupError, psutil.NoSuchProcess):
+                    pass
                 except subprocess.TimeoutExpired:
-                    session.process.kill()
-                    session.process.wait()
-                    logger.debug("Process killed after timeout")
+                    os.killpg(os.getpgid(session.process.pid), signal.SIGKILL)
 
+            # Close PTY file descriptors
             if session.master_fd is not None:
                 try:
                     os.close(session.master_fd)
-                    logger.debug("Closed master PTY")
-                except:
+                except OSError:
+                    pass
+            if session.slave_fd is not None:
+                try:
+                    os.close(session.slave_fd)
+                except OSError:
                     pass
 
-            if os.path.exists(session.temp_dir):
-                shutil.rmtree(session.temp_dir, ignore_errors=True)
-                logger.debug(f"Removed temporary directory: {session.temp_dir}")
+            # Cleanup temp directory
+            if session.temp_dir and os.path.exists(session.temp_dir):
+                try:
+                    shutil.rmtree(session.temp_dir)
+                except Exception as e:
+                    logger.error(f"Error cleaning up temp directory: {e}")
+
+            # Remove session from active sessions
+            del active_sessions[session_id]
+            logger.info(f"Session {session_id} cleaned up successfully")
+
         except Exception as e:
-            logger.error(f"Error cleaning up session {session_id}: {e}")
-        finally:
-            with session_lock:
-                del active_sessions[session_id]
-                logger.debug(f"Removed session {session_id} from active_sessions")
+            logger.error(f"Error during session cleanup: {e}")
+
+# Define constants
+MAX_COMPILATION_TIME = 30  # seconds
+MAX_SESSION_LIFETIME = 3600  # 1 hour
+CLEANUP_INTERVAL = 300  # 5 minutes
+
+# Dictionary to store active sessions
+active_sessions: Dict[str, CompilerSession] = {}
+
+def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
+    """Create an isolated environment for compilation and execution"""
+    # Create unique project name
+    project_name = f"Project_{get_code_hash(code, language)[:8]}"
+
+    # Create temp directory using mkdtemp
+    temp_dir = Path(tempfile.mkdtemp(prefix='compiler_cache/compile_'))
+    temp_dir.chmod(0o755)
+
+    if language == 'csharp':
+        # Create project file
+        project_file = temp_dir / f"{project_name}.csproj"
+        with open(project_file, 'w', encoding='utf-8') as f:
+            f.write(f"""<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>""")
+
+        # Create Program.cs
+        program_file = temp_dir / "Program.cs"
+        with open(program_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+    return temp_dir, project_name
+
+def parse_csharp_errors(error_output: str) -> List[CompilationError]:
+    """Parse C# compiler error output into structured format"""
+    errors = []
+    error_pattern = re.compile(r'(.+?)\((\d+),(\d+)\):\s*(warning|error)\s+(\w+):\s*(.+)')
+
+    for line in error_output.splitlines():
+        match = error_pattern.match(line)
+        if match:
+            file_path, line_num, col_num, level, code, message = match.groups()
+            if level == 'error':
+                error = CompilationError(
+                    error_type='CompilationError',
+                    message=message,
+                    file=os.path.basename(file_path),
+                    line=int(line_num),
+                    column=int(col_num),
+                    code=code
+                )
+                errors.append(error)
+
+    return errors
 
 class ProcessMonitor(Thread):
     def __init__(self, process, timeout=30, memory_limit_mb=512):

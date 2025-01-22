@@ -1,11 +1,12 @@
 import os
 import logging
 from flask import Flask, render_template, session, request, jsonify
-from flask_login import LoginManager, AnonymousUserMixin
+from flask_login import LoginManager, AnonymousUserMixin, current_user
 from flask_cors import CORS
 from flask_wtf.csrf import CSRFProtect
 from flask_session import Session
 from flask_migrate import Migrate
+from flask_socketio import SocketIO, emit
 from werkzeug.middleware.proxy_fix import ProxyFix
 from database import db, init_app as init_db
 from utils.validation_utils import validate_app_configuration
@@ -18,6 +19,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Initialize Socket.IO
+socketio = SocketIO()
+
 # Define anonymous user class
 class Anonymous(AnonymousUserMixin):
     def __init__(self):
@@ -26,7 +30,7 @@ class Anonymous(AnonymousUserMixin):
 def register_blueprints(app):
     """Register Flask blueprints lazily"""
     with app.app_context():
-        # Import blueprints here to avoid circular dependencies and early loading
+        # Import blueprints here to avoid circular dependencies
         from routes.auth_routes import auth
         from routes.activity_routes import activities
         from routes.tutorial import tutorial_bp
@@ -141,24 +145,20 @@ def create_app():
     })
 
     try:
-        # Validate application configuration
-        if not validate_app_configuration(app):
-            raise RuntimeError("Application configuration validation failed")
-
-        # Initialize extensions and create session directory
-        os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
-
         # Initialize database first
         init_db(app)
         migrate = Migrate(app, db)
 
-        # Initialize other extensions lazily
+        # Initialize Socket.IO with eventlet
+        socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
+
+        # Initialize other extensions
         CORS(app)
         csrf = CSRFProtect()
         csrf.init_app(app)
         Session(app)
 
-        # Setup Login Manager lazily
+        # Setup Login Manager
         login_manager = LoginManager()
         login_manager.init_app(app)
         login_manager.anonymous_user = Anonymous
@@ -177,11 +177,10 @@ def create_app():
 
         # Setup template routes with CSRF protection
         setup_template_routes(app, csrf)
+        setup_websocket_handlers()
 
         # Register blueprints after database is initialized
         register_blueprints(app)
-
-        # Setup error handlers
         setup_error_handlers(app)
 
         # Initialize session with default language if not set
@@ -199,8 +198,65 @@ def create_app():
         logger.critical(f"Failed to initialize application: {str(e)}", exc_info=True)
         raise
 
+def setup_websocket_handlers():
+    """Setup WebSocket event handlers for console I/O"""
+    from compiler_service import start_interactive_session, send_input, get_output
+
+    @socketio.on('connect')
+    def handle_connect():
+        logger.info("Client connected to WebSocket")
+
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        logger.info("Client disconnected from WebSocket")
+
+    @socketio.on('session_start')
+    def handle_session_start(data):
+        """Handle new interactive session start"""
+        try:
+            session_id = data.get('session_id')
+            if not session_id:
+                logger.error("No session ID provided")
+                return
+
+            logger.info(f"Registering WebSocket for session: {session_id}")
+            # Associate the session ID with this socket
+            session['console_session_id'] = session_id
+        except Exception as e:
+            logger.error(f"Error in session_start: {str(e)}")
+
+    @socketio.on('input')
+    def handle_input(data):
+        """Handle console input from client"""
+        try:
+            session_id = data.get('session_id')
+            input_text = data.get('input')
+
+            if not session_id or not input_text:
+                logger.error("Missing session_id or input")
+                return
+
+            logger.debug(f"Sending input to session {session_id}: {input_text}")
+            result = send_input(session_id, input_text)
+
+            if result and result.get('success'):
+                # Get immediate output after input
+                output = get_output(session_id)
+                if output and output.get('success'):
+                    emit('output', {
+                        'type': 'output',
+                        'output': output.get('output', ''),
+                        'waiting_for_input': output.get('waiting_for_input', False)
+                    })
+        except Exception as e:
+            logger.error(f"Error in handle_input: {str(e)}")
+            emit('error', {'message': 'Failed to process input'})
+
 # Create the application instance
 app = create_app()
 
 # Add ProxyFix middleware
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+if __name__ == '__main__':
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
