@@ -312,56 +312,101 @@ def get_code_hash(code: str, language: str) -> str:
 
 @dataclass
 class CompilerSession:
-    """Manages a single compilation/execution session"""
-
-    def __init__(self, session_id: str, temp_dir: str):
-        self.session_id = session_id
-        self.temp_dir = temp_dir
-        self.process: Optional[subprocess.Popen] = None
-        self.master_fd: Optional[int] = None
-        self.slave_fd: Optional[int] = None
-        self.output_thread: Optional[Thread] = None
-        self.output_buffer: List[str] = []
-        self.waiting_for_input = False
-        self.last_activity = threading.Event()
-        self.stop_event = threading.Event()
-        self.metrics = CompilationMetrics(time.time())
-        self.error_tracker = ErrorTracker()
-        self.partial_line: str = ""  # Buffer for partial output lines
+    """Manages a single compilation/execution session with improved resource handling"""
+    session_id: str
+    temp_dir: str
+    process: Optional[subprocess.Popen] = None
+    master_fd: Optional[int] = None
+    slave_fd: Optional[int] = None
+    output_thread: Optional[Thread] = None
+    output_buffer: List[str] = field(default_factory=list)
+    waiting_for_input: bool = False
+    last_activity: Event = field(default_factory=Event)
+    stop_event: Event = field(default_factory=Event)
+    metrics: CompilationMetrics = field(default_factory=lambda: CompilationMetrics(time.time()))
+    error_tracker: ErrorTracker = field(default_factory=ErrorTracker)
+    _buffer: str = ""
+    _partial_line: str = ""
+    _streams_closed: bool = False
+    _cleanup_lock: Lock = field(default_factory=Lock)
+    _access_lock: Lock = field(default_factory=Lock)
 
     def is_active(self) -> bool:
         """Check if the session is still active"""
-        return (self.process is not None and 
-                self.process.poll() is None and 
-                not self.stop_event.is_set())
+        with self._access_lock:
+            return (self.process is not None and 
+                    self.process.poll() is None and 
+                    not self.stop_event.is_set())
+
+    def append_output(self, text: str) -> None:
+        """Thread-safe method to append output"""
+        with self._access_lock:
+            self.output_buffer.append(text)
+
+    def get_output(self) -> List[str]:
+        """Thread-safe method to get output"""
+        with self._access_lock:
+            return self.output_buffer.copy()
+
+    def set_waiting_for_input(self, value: bool) -> None:
+        """Thread-safe method to set waiting_for_input"""
+        with self._access_lock:
+            self.waiting_for_input = value
 
     def cleanup(self) -> None:
-        """Cleanup session resources"""
-        self.stop_event.set()
+        """Cleanup session resources with improved file descriptor handling"""
+        with self._cleanup_lock:
+            if self._streams_closed:
+                return
 
-        if self.process and self.process.poll() is None:
-            try:
-                self.process.terminate()
-                self.process.wait(timeout=1)
-            except subprocess.TimeoutExpired:
-                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+            logger.debug(f"Starting cleanup for session {self.session_id}")
+            self.stop_event.set()
 
-        # Close PTY file descriptors
-        for fd in (self.master_fd, self.slave_fd):
-            if fd is not None:
+            # Terminate process if still running
+            if self.process and self.process.poll() is None:
                 try:
-                    os.close(fd)
-                except OSError:
-                    pass
+                    self.process.terminate()
+                    self.process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
+                    except OSError as e:
+                        logger.error(f"Error killing process group: {e}")
 
-        if self.output_thread and self.output_thread.is_alive():
-            self.output_thread.join(timeout=1)
+            # Close PTY file descriptors
+            for fd in (self.master_fd, self.slave_fd):
+                if fd is not None:
+                    try:
+                        os.close(fd)
+                    except OSError as e:
+                        if e.errno != errno.EBADF:
+                            logger.error(f"Error closing file descriptor {fd}: {e}")
 
-        if os.path.exists(self.temp_dir):
-            try:
-                shutil.rmtree(self.temp_dir)
-            except OSError as e:
-                logger.error(f"Failed to remove temp directory: {e}")
+            # Close process streams
+            if self.process:
+                for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
+                    if stream:
+                        try:
+                            stream.close()
+                        except Exception as e:
+                            logger.error(f"Error closing process stream: {e}")
+
+            # Wait for output thread to finish
+            if self.output_thread and self.output_thread.is_alive():
+                try:
+                    self.output_thread.join(timeout=2)
+                except Exception as e:
+                    logger.error(f"Error joining output thread: {e}")
+
+            # Clean up temp directory
+            if os.path.exists(self.temp_dir):
+                try:
+                    shutil.rmtree(self.temp_dir)
+                except OSError as e:
+                    logger.error(f"Failed to remove temp directory: {e}")
+
+            self._streams_closed = True
+            logger.debug(f"Session {self.session_id} cleaned up successfully")
 
 # Global session management
 active_sessions: Dict[str, CompilerSession] = {}
@@ -391,7 +436,6 @@ def cleanup_session(session_id: str) -> None:
             session = active_sessions[session_id]
             session.cleanup()
             del active_sessions[session_id]
-            logger.debug(f"Session {session_id} cleaned up successfully")
 
 def cleanup_inactive_sessions() -> None:
     """Clean up inactive sessions"""
@@ -439,109 +483,122 @@ def clean_terminal_output(output: str) -> str:
     return cleaned.strip()
 
 def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_size: int = 1024) -> None:
-    """Enhanced output monitoring with proper buffer handling"""
+    """Monitor process output with improved input detection and resource handling"""
+    def check_for_input_prompt(text: str) -> bool:
+        """Check if text contains input prompt indicators with improved pattern matching"""
+        if not text:
+            return False
+
+        text = text.lower()
+        # Immediate indicators that almost always indicate input
+        if any(x in text for x in ('cin', 'readline', 'readkey', 'read-line', 'input')):
+            return True
+
+        # Common input patterns with weights
+        input_patterns = {
+            r'\b(enter|type|input)\b': 2,  # Strong indicators
+            r'[?:>]$': 1,                  # End of line indicators
+            r'\bname\b': 1,                # Context-specific indicator
+            r'\bchoice\b': 1,              # Interactive prompts
+        }
+
+        score = 0
+        for pattern, weight in input_patterns.items():
+            if re.search(pattern, text, re.IGNORECASE):
+                score += weight
+
+        return score >= 1  # Return true if we have enough confidence
+
     try:
+        buffer = ""
         while not session.stop_event.is_set() and process.poll() is None:
-            readable = []
-            if session.master_fd is not None:
-                try:
-                    readable, _, _ = select.select([session.master_fd], [], [], 0.1)
-                except select.error:
-                    break
+            if session.master_fd is None:
+                break
 
-            for fd in readable:
-                try:
-                    data = os.read(fd, chunk_size)
-                    if data:
-                        try:
-                            decoded = data.decode('utf-8', errors='replace')
-                            # Combine with any partial line from previous read
-                            full_data = session.partial_line + decoded
+            try:
+                readable, _, _ = select.select([session.master_fd], [], [], 0.1)
 
-                            # Split into lines, keeping the last partial line
-                            lines = full_data.splitlines(True)  # Keep line endings
-                            if lines:
-                                # Handle partial lines
-                                if not full_data.endswith('\n'):
-                                    session.partial_line = lines[-1]
-                                    lines = lines[:-1]
-                                else:
-                                    session.partial_line = ""
-
-                                # Process complete lines with enhanced input detection
-                                for line in lines:
-                                    cleaned = clean_terminal_output(line)
-                                    if cleaned:  # Only append non-empty output
-                                        session.output_buffer.append(cleaned)
-                                        logger.debug(f"Raw output received: {cleaned}")
-
-                                        # Enhanced input prompt detection
-                                        if not session.waiting_for_input:
-                                            # Common input patterns for both C++ and C#
-                                            input_patterns = [
-                                                'input', 'enter', 'type', '?', ':', '>',
-                                                'choice', 'select', 'press', 'continue',
-                                                'cin', 'Console.ReadLine', 'ReadKey'
-                                            ]
-
-                                            # Get recent output for context (last line is most important)
-                                            recent_output = cleaned.lower()
-
-                                            # Improved prompt detection
-                                            is_input_prompt = (
-                                                any(pattern in recent_output for pattern in input_patterns) or
-                                                recent_output.rstrip().endswith(':') or
-                                                recent_output.rstrip().endswith('> ') or
-                                                (recent_output.count('\n') == 0 and
-                                                 any(char in recent_output for char in '?:>'))
-                                            )
-
-                                            if is_input_prompt:
-                                                session.waiting_for_input = True
-                                                logger.debug(f"Input prompt detected: {cleaned}")
-
-                        except Exception as e:
-                            logger.error(f"Error processing output: {e}")
+                for fd in readable:
+                    try:
+                        data = os.read(fd, chunk_size)
+                        if not data:
                             continue
-                except (OSError, IOError) as e:
-                    if e.errno != errno.EAGAIN:
-                        logger.error(f"Error reading from PTY: {e}")
-                        break
-                    continue
 
-            time.sleep(0.05)  # Small delay to prevent CPU overuse
+                        decoded = data.decode('utf-8', errors='replace')
+                        buffer += decoded
+
+                        # Check buffer before processing for early input detection
+                        if not session.waiting_for_input and check_for_input_prompt(buffer):
+                            session.set_waiting_for_input(True)
+                            logger.debug(f"Early input prompt detected in buffer: {buffer}")
+
+                        # Process complete lines
+                        while '\n' in buffer:
+                            line, buffer = buffer.split('\n', 1)
+                            cleaned = clean_terminal_output(line)
+                            if cleaned:
+                                session.append_output(cleaned)
+                                logger.debug(f"Output received: {cleaned}")
+
+                                # Check for input prompt in complete line
+                                if not session.waiting_for_input and check_for_input_prompt(cleaned):
+                                    session.set_waiting_for_input(True)
+                                    logger.debug(f"Input prompt detected in line: {cleaned}")
+
+                        # Check remaining buffer for input prompt
+                        if buffer and not session.waiting_for_input:
+                            cleaned_buffer = clean_terminal_output(buffer)
+                            if cleaned_buffer and check_for_input_prompt(cleaned_buffer):
+                                session.set_waiting_for_input(True)
+                                logger.debug(f"Input prompt detected in partial buffer: {cleaned_buffer}")
+
+                    except (OSError, IOError) as e:
+                        if e.errno != errno.EAGAIN:
+                            logger.error(f"Error reading from PTY: {e}")
+                            return
+                        continue
+
+            except (select.error, OSError) as e:
+                logger.error(f"Select error: {e}")
+                break
+
+            time.sleep(0.05)
             session.last_activity.set()
+
     except Exception as e:
         logger.error(f"Error in monitor_output: {traceback.format_exc()}")
+
     finally:
-        # Process any remaining partial line
-        if session.partial_line:
-            cleaned = clean_terminal_output(session.partial_line)
+        # Process any remaining buffer
+        if buffer:
+            cleaned = clean_terminal_output(buffer)
             if cleaned:
-                session.output_buffer.append(cleaned)
-                logger.debug(f"Final partial line: {cleaned}")
+                session.append_output(cleaned)
+                if not session.waiting_for_input and check_for_input_prompt(cleaned):
+                    session.set_waiting_for_input(True)
+                logger.debug(f"Final buffer processed: {cleaned}")
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved error handling and logging"""
     try:
-        logger.info("=== Interactive Session Initialization ===")
-        logger.info(f"1. Starting interactive session for {language}")
-        logger.debug(f"1.1 Session ID: {session.session_id}")
-        logger.debug(f"1.2 Code preview:\n{code[:200]}...")  # Log first 200 chars of code
+        logger.info(f"Starting interactive session for {language}")
+        logger.debug(f"Session ID: {session.session_id}")
+
+        if language not in ('csharp', 'cpp'):
+            return {
+                'success': False,
+                'error': f"Interactive mode not supported for {language}",
+                'metrics': session.metrics.to_dict()
+            }
 
         # Create isolated environment
-        logger.info("2. Creating isolated environment")
+        logger.info("Creating isolated environment")
         temp_dir, project_name = create_isolated_environment(code, language)
         session.temp_dir = str(temp_dir)
-        logger.debug(f"2.1 Temporary directory created: {temp_dir}")
 
         if language == 'csharp':
             try:
                 project_file = Path(session.temp_dir) / f"{project_name}.csproj"
-                logger.info("3. Starting C# compilation")
-                logger.debug(f"3.1 Project file: {project_file}")
-
-                # Enhanced compilation command with better error handling
                 compile_cmd = [
                     'dotnet', 'build',
                     str(project_file),
@@ -550,9 +607,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     '/p:GenerateFullPaths=true',
                     '/consoleloggerparameters:NoSummary;Verbosity=detailed'
                 ]
-                logger.debug(f"3.2 Compilation command: {' '.join(compile_cmd)}")
 
-                # Run compilation with timeout
                 compile_process = subprocess.run(
                     compile_cmd,
                     capture_output=True,
@@ -561,17 +616,11 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     cwd=str(session.temp_dir)
                 )
 
-                # Log compilation output for debugging
-                logger.debug(f"3.3 Compilation stdout:\n{compile_process.stdout}")
-                logger.debug(f"3.4 Compilation stderr:\n{compile_process.stderr}")
-
                 if compile_process.returncode != 0:
                     errors = parse_csharp_errors(compile_process.stderr or compile_process.stdout)
                     for error in errors:
                         session.error_tracker.add_error(error)
                     error_summary = session.error_tracker.get_summary()
-                    logger.error("4. Compilation failed")
-                    logger.error(f"4.1 Error summary: {json.dumps(error_summary, indent=2)}")
                     session.cleanup()
                     return {
                         'success': False,
@@ -579,18 +628,11 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                         'metrics': session.metrics.to_dict()
                     }
 
-                logger.info("4. Compilation successful")
                 dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
-                logger.debug(f"4.1 DLL path: {dll_path}")
-
-                # Create PTY for interactive I/O
-                logger.info("5. Setting up interactive console")
                 master_fd, slave_fd = create_pty()
                 session.master_fd = master_fd
                 session.slave_fd = slave_fd
-                logger.debug(f"5.1 PTY created: master_fd={master_fd}, slave_fd={slave_fd}")
 
-                # Start the program with PTY support
                 process = subprocess.Popen(
                     ['dotnet', str(dll_path)],
                     stdin=slave_fd,
@@ -607,17 +649,12 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     }
                 )
 
-                time.sleep(0.5)
-
-                os.close(slave_fd)  # Close slave fd after process start
+                os.close(slave_fd)
                 session.process = process
-                logger.debug(f"C# Process started with PID: {process.pid}")
 
-                # Start output monitoring
                 session.output_thread = Thread(target=monitor_output, args=(process, session))
                 session.output_thread.daemon = True
                 session.output_thread.start()
-                logger.debug("Output monitoring thread started")
 
                 return {
                     'success': True,
@@ -628,7 +665,6 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
             except subprocess.TimeoutExpired:
                 session.cleanup()
-                logger.error("C# compilation timed out")
                 return {
                     'success': False,
                     'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds",
@@ -636,12 +672,10 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 }
 
         elif language == 'cpp':
-            # Write code to temp file
             source_file = Path(session.temp_dir) / "program.cpp"
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(code)
 
-            # Enhanced compilation command with better error handling
             executable = Path(session.temp_dir) / "program"
             compile_process = subprocess.run(
                 ['g++', '-std=c++17', '-O2', '-Wall', str(source_file), '-o', str(executable)],
@@ -652,7 +686,6 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
             if compile_process.returncode != 0:
                 error_msg = compile_process.stderr
-                logger.error(f"C++ compilation failed: {error_msg}")
                 session.cleanup()
                 return {
                     'success': False,
@@ -661,14 +694,10 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 }
 
             executable.chmod(0o755)
-
-            # Create PTY for interactive I/O
             master_fd, slave_fd = create_pty()
             session.master_fd = master_fd
             session.slave_fd = slave_fd
-            logger.debug(f"PTY created: master_fd={master_fd}, slave_fd={slave_fd}")
 
-            # Start the program with PTY support
             try:
                 process = subprocess.Popen(
                     [str(executable)],
@@ -681,15 +710,12 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     env={"TERM": "xterm-256color"}
                 )
 
-                os.close(slave_fd)  # Close slave fd after process start
+                os.close(slave_fd)
                 session.process = process
-                logger.debug(f"Process started with PID: {process.pid}")
 
-                # Start output monitoring
                 session.output_thread = Thread(target=monitor_output, args=(process, session))
                 session.output_thread.daemon = True
                 session.output_thread.start()
-                logger.debug("Output monitoring thread started")
 
                 return {
                     'success': True,
@@ -707,13 +733,6 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     'metrics': session.metrics.to_dict()
                 }
 
-        else:
-            return {
-                'success': False,
-                'error': f"Interactive mode not supported for {language}",
-                'metrics': session.metrics.to_dict()
-            }
-
     except Exception as e:
         if session and session.session_id in active_sessions:
             session.cleanup()
@@ -724,77 +743,93 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             'metrics': session.metrics.to_dict() if session else {}
         }
 
-def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
-    """Send input to an interactive session with improved error handling"""
-    if session_id not in active_sessions:
-        logger.error(f"Invalid session ID: {session_id}")
-        return {'success': False, 'error': 'Invalid session'}
-
-    session = active_sessions[session_id]
-    logger.debug(f"Sending input to session {session_id}: {input_data}")
-
+def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
+    """Send input to an interactive session with improved synchronization"""
     try:
-        if session.process and session.process.poll() is None:
-            if session.master_fd is not None:
-                input_bytes = (input_data + '\n').encode('utf-8')
-                bytes_written = os.write(session.master_fd, input_bytes)
-                session.waiting_for_input = False
-                logger.debug(f"Input sent to process: {input_data} ({bytes_written} bytes)")
-                return {'success': True}
-            else:
-                logger.error("PTY not available")
-                return {'success': False, 'error': 'PTY not available'}
-        else:
-            logger.error("Process not running")
-            return {'success': False, 'error': 'Process not running'}
+        with session_lock:
+            if session_id not in active_sessions:
+                logger.error(f"Invalid session ID: {session_id}")
+                return {'success': False, 'error': 'Invalid session ID'}
+
+            session = active_sessions[session_id]
+            if not session.is_active():
+                logger.error("Process not running")
+                return {'success': False, 'error': 'Process not running'}
+
+            # Ensure input ends with newline
+            if not input_text.endswith('\n'):
+                input_text += '\n'
+
+            # Write to master PTY with proper locking
+            with session._access_lock:
+                if session.master_fd is not None:
+                    try:
+                        bytes_written = os.write(session.master_fd, input_text.encode())
+                        if bytes_written > 0:
+                            logger.debug(f"Input sent: {input_text.strip()} ({bytes_written} bytes)")
+                            session.set_waiting_for_input(False)
+                            return {'success': True}
+                        else:
+                            logger.error("Failed to write input (0 bytes written)")
+                            return {'success': False, 'error': 'Failed to write input'}
+                    except OSError as e:
+                        logger.error(f"Error writing to PTY: {e}")
+                        if e.errno == errno.EBADF:
+                            session.cleanup()  # Clean up session if file descriptor is invalid
+                            return {'success': False, 'error': f'Failed to send input: {str(e)}'}
+                else:
+                    logger.error("No PTY master file descriptor available")
+                    return {'success': False, 'error': "No PTY master file descriptor available"}
+
     except Exception as e:
         logger.error(f"Error sending input: {str(e)}")
         return {'success': False, 'error': str(e)}
 
 def get_output(session_id: str) -> Dict[str, Any]:
-    """Get output from an interactive session with improved error handling"""
-    if session_id not in active_sessions:
-        logger.error(f"Invalid session ID: {session_id}")
-        return {'success': False, 'error': 'Invalid session'}
-
-    session = active_sessions[session_id]
+    """Get output from an interactive session with improved synchronization"""
     try:
-        if not session.process:
-            logger.error("No active process")
-            return {'success': False, 'error':'No active process'}
+        with session_lock:
+            if session_id not in active_sessions:
+                logger.error(f"Invalid session ID: {session_id}")
+                return {'success': False, 'error': 'Invalid session ID'}
 
-        # Ensure we give the process time to produce output
-        time.sleep(0.1)
+            session = active_sessions[session_id]
+            if not session.is_active():
+                return {'success': False, 'error': 'Process not running'}
 
-        # Check if process has terminated
-        if session.process.poll() is not None:
-            logger.debug(f"Process terminated with exit code: {session.process.poll()}")
-            error_output = session.process.stderr.read() if session.process.stderr else ""
-            return {
-                'success': False,
-                'error': f'Process terminated: {error_output}',
-                'exit_code': session.process.poll()
-            }
+            # Wait briefly for output
+            time.sleep(0.1)
 
-        # Get accumulated output
-        output_lines = session.output_buffer.copy()
-        session.output_buffer.clear()
+            # Get output with proper locking
+            with session._access_lock:
+                output_lines = session.get_output()
+                # Keep last few lines in buffer for context
+                if output_lines:
+                    session.output_buffer = output_lines[-5:]
 
-        # Format output
-        output_text = "\n".join(output_lines) if output_lines else ""
+                # Format output
+                output_text = '\n'.join(output_lines) if output_lines else ""
 
-        return {
-            'success': True,
-            'output': output_text,
-            'waiting_for_input': session.waiting_for_input
-        }
+                # Check if process has ended
+                if session.process and session.process.poll() is not None:
+                    logger.debug(f"Process ended with code: {session.process.poll()}")
+                    session.cleanup()  # Ensure cleanup happens when process ends
+                    return {
+                        'success': True,
+                        'output': output_text,
+                        'session_ended': True
+                    }
+
+                return {
+                    'success': True,
+                    'output': output_text,
+                    'waiting_for_input': session.waiting_for_input,
+                    'session_ended': False
+                }
 
     except Exception as e:
-        logger.error(f"Error getting output: {traceback.format_exc()}")
-        return {
-            'success': False,
-            'error': f'Error getting output: {str(e)}'
-        }
+        logger.error(f"Error getting output: {str(e)}")
+        return {'success': False, 'error': str(e)}
 
 # Add active_sessions at the top level after other imports
 active_sessions: Dict[str, CompilerSession] = {}
@@ -805,7 +840,51 @@ def cleanup_session(session_id: str) -> None:
     with session_lock:
         if session_id in active_sessions:
             session = active_sessions[session_id]
-            session.cleanup()
+
+            # Stop the monitoring thread
+            session.stop_event.set()
+
+            # Close process if it's still running
+            if session.process and session.process.poll() is None:
+                try:
+                    session.process.terminate()
+                    session.process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(os.getpgid(session.process.pid), signal.SIGKILL)
+                    except OSError as e:
+                        logger.error(f"Error killing process group: {e}")
+
+            # Properly close file descriptors
+            for fd in (session.master_fd, session.slave_fd):
+                if fd is not None:
+                    try:
+                        os.close(fd)
+                    except OSError as e:
+                        if e.errno != errno.EBADF:  # Ignore already closed file descriptors
+                            logger.error(f"Error closing file descriptor {fd}: {e}")
+
+            # Close process file descriptors
+            if session.process:
+                for stream in (session.process.stdin, session.process.stdout, session.process.stderr):
+                    if stream:
+                        try:
+                            stream.close()
+                        except Exception as e:
+                            logger.error(f"Error closing process stream: {e}")
+
+            # Wait for output thread to finish
+            if session.output_thread and session.output_thread.is_alive():
+                session.output_thread.join(timeout=2)
+
+            # Clean up temporary directory
+            if os.path.exists(session.temp_dir):
+                try:
+                    shutil.rmtree(session.temp_dir)
+                except OSError as e:
+                    logger.error(f"Failed to remove temp directory: {e}")
+
+            # Remove from active sessions
             del active_sessions[session_id]
             logger.debug(f"Session {session_id} cleaned up successfully")
 
@@ -820,80 +899,66 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     logger.debug(f"Creating isolated environment for {language}")
 
     # Create temp directory with unique name
-    temp_dir = Path(tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR))
-    logger.debug(f"Created temp directory: {temp_dir}")
+    temp_dir = Path(tempfile.mkdtemp(prefix='compiler_cache/compile_'))
 
     if language == 'csharp':
-        project_name = Path(temp_dir).name
+        project_name = 'Program'
+        # Create project directory
+        project_dir = temp_dir
+        project_dir.mkdir(parents=True, exist_ok=True)
 
         # Write source code
-        source_file = temp_dir / "Program.cs"
-        logger.debug(f"Writing C# source code to {source_file}")
-
-        # Check if code already has required structure
-        stripped_code = code.strip()
-        has_class = "class Program" in stripped_code
-        has_main = "static void Main" in stripped_code or "static async Task Main" in stripped_code
-
-        # Only add missing structure
-        if not has_class and not has_main:
-            processed_code = f"""using System;
-            
-public class Program 
-{{
-    public static void Main() 
-    {{
-        {stripped_code}
-    }}
-}}"""
-        elif not has_class:
-            processed_code = f"""using System;
-            
-public class Program 
-{{
-    {stripped_code}
-}}"""
-        elif not has_main:
-            # Preserve existing class but add Main method
-            processed_code = stripped_code.replace("class Program", 
-                """class Program 
-{
-    public static void Main() 
-    {""") + "\n    }\n}"
-        else:
-            processed_code = stripped_code
-
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(processed_code)
-        logger.debug(f"Source code written successfully:\n{processed_code}")
-
-        # Create project file
-        project_file = temp_dir / f"{project_name}.csproj"
-        logger.debug(f"Creating project file: {project_file}")
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-</Project>"""
-        with open(project_file, 'w') as f:
-            f.write(project_content)
-        logger.debug("Project file created successfully")
-
-        return temp_dir, project_name
-
-    elif language == 'cpp':
-        # Write source code directly for C++
-        source_file = temp_dir / "program.cpp"
+        source_file = project_dir / 'Program.cs'
         with open(source_file, 'w', encoding='utf-8') as f:
             f.write(code)
 
-        return temp_dir, "program"
+        # Create project file
+        project_file = project_dir / f'{project_name}.csproj'
+        project_content = """<Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net7.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+            </PropertyGroup>
+        </Project>"""
 
-    else:
-        raise ValueError(f"Unsupported language: {language}")
+        with open(project_file, 'w', encoding='utf-8') as f:
+            f.write(project_content)
+
+    elif language == 'cpp':
+        project_name = 'program'
+        source_file = temp_dir / f'{project_name}.cpp'
+        with open(source_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+    return temp_dir, project_name
+
+# Add MAX_COMPILATION_TIME constant
+MAX_COMPILATION_TIME = 30  # seconds
+
+def parse_csharp_errors(error_output: str) -> List[CompilationError]:
+    """Parse C# compiler error output into structured format"""
+    errors = []
+    error_pattern = re.compile(
+        r'(.*?)\((\d+),(\d+)\):\s*(error|warning)\s*(\w+):\s*(.+?)(?=\r?\n\s*\w+\d+\:|\Z)',
+        re.DOTALL
+    )
+
+    matches = error_pattern.finditer(error_output)
+    for match in matches:
+        file_path, line, column, level, code, message = match.groups()
+        if level == 'error':
+            errors.append(CompilationError(
+                error_type='CSharpCompilation',
+                message=message.strip(),
+                file=file_path.strip(),
+                line=int(line),
+                column=int(column),
+                code=code
+            ))
+
+    return errors
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
     """
