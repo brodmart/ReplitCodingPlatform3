@@ -841,95 +841,78 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             logger.error(f"Failed to clean up temporary directory {temp_path}: {e}")
 
 def format_csharp_error(error_msg: str) -> str:
-    """Enhanced error message formatting for C# compiler and runtime errors"""
+    """Enhanced error message formatting for C# compiler errors"""
     if not error_msg:
         return "Unknown error occurred"
 
     error_lines = []
-    current_error = []
 
+    # Split into lines and process each one
     for line in error_msg.splitlines():
-        # Handle compiler errors
-        if re.search(r'error CS\d+:', line):
-            if current_error:
-                error_lines.append(' '.join(current_error))
-                current_error = []
+        # Look for compiler error pattern: file(line,col): error CSxxxx: message
+        if "error CS" in line:
+            try:
+                # Extract error code and message
+                error_parts = line.split("error CS")
+                if len(error_parts) > 1:
+                    error_code = error_parts[1].split(':', 1)[0]
+                    error_message = error_parts[1].split(':', 1)[1].strip()
+                    # Clean up the file path and line numbers
+                    error_message = re.sub(r'\[.+?\]', '', error_message)
+                    error_lines.append(f"Compilation Error (CS{error_code}): {error_message}")
+            except Exception as e:
+                logger.error(f"Error parsing compiler message: {e}")
+                error_lines.append(f"Compilation Error: {line.strip()}")
 
-            # Extract error number and message
-            match = re.search(r'error CS(\d+):\s*(.+?)\s*\[.+?\]$', line)
-            if match:
-                error_num, message = match.groups()
-                error_lines.append(f"Compilation Error (CS{error_num}): {message}")
-            else:
-                error_lines.append(f"Compilation Error: {line.split(':', 1)[1].strip()}")
+        # Also capture build errors that don't follow the CS#### pattern
+        elif any(pattern in line.lower() for pattern in ["error:", "fatal error:", "build failed"]):
+            error_lines.append(f"Compilation Error: {line.strip()}")
 
-        # Handle runtime errors
-        elif "Unhandled exception" in line:
-            if current_error:
-                error_lines.append(' '.join(current_error))
-                current_error = []
-            exception_match = re.search(r':\s*(.+?)(?:\s+at\s+|$)', line)
-            if exception_match:
-                error_lines.append(f"Runtime Error: {exception_match.group(1)}")
+    # If no specific error was found, include the original message
+    if not error_lines:
+        # Look for any error-like content in the original message
+        general_error = re.search(r'(?:error|exception|failed).*$', error_msg, re.IGNORECASE | re.MULTILINE)
+        if general_error:
+            error_lines.append(f"Compilation Error: {general_error.group(0).strip()}")
+        else:
+            error_lines.append(error_msg.strip())
 
-        # Handle stack trace information
-        elif line.strip().startswith("at "):
-            current_error.append(line.strip())
-
-        # Handle other error patterns
-        elif any(pattern in line.lower() for pattern in ["error:", "exception:", "failed:", "fatal:"]):
-            error_lines.append(f"Error: {line.strip()}")
-
-    # Add any remaining error context
-    if current_error:
-        error_lines.append(' '.join(current_error))
-
-    # Combine all errors, limiting stack trace
-    formatted_error = '\n'.join(error_lines[:5])  # Limit to first 5 lines for clarity
-
-    return formatted_error if formatted_error else error_msg.strip()
+    return "\n".join(error_lines)
 
 def format_runtime_error(error_msg: str) -> str:
-    """Format runtime errors with improved readability"""
+    """Format runtime errors with improved detail capture"""
     if not error_msg:
         return "Unknown runtime error occurred"
 
-    # Extract the most relevant part of the error message
-    lines = error_msg.splitlines()
     error_lines = []
+    stack_trace = []
 
-    for line in lines:
-        # Look for common runtime error patterns
-        if any(pattern in line for pattern in [
-            "System.Exception",
-            "System.ArgumentException",
-            "System.NullReferenceException",
-            "System.IndexOutOfRangeException",
-            "System.InvalidOperationException"
-        ]):
-            # Extract the exception type and message
-            parts = line.split(': ', 1)
-            if len(parts) > 1:
-                exc_type = parts[0].split('.')[-1]  # Get just the exception name
-                error_lines.append(f"Runtime Error ({exc_type}): {parts[1]}")
-            else:
-                error_lines.append(f"Runtime Error: {line}")
+    for line in error_msg.splitlines():
+        # Capture exception type and message
+        if "Exception:" in line:
+            exception_match = re.search(r'([a-zA-Z.]+Exception:)\s*(.+)', line)
+            if exception_match:
+                exc_type, exc_msg = exception_match.groups()
+                exc_type = exc_type.split('.')[-1]  # Get just the exception name
+                error_lines.append(f"Runtime Error ({exc_type.rstrip(':')}) - {exc_msg.strip()}")
 
-        # Include relevant stack trace information
-        elif line.strip().startswith("at ") and len(error_lines) < 3:
+        # Capture stack trace information (limit to 3 lines)
+        elif line.strip().startswith("at ") and len(stack_trace) < 3:
             # Clean up stack trace line
             trace_line = re.sub(r'at\s+', '', line.strip())
             trace_line = re.sub(r'\s+in\s+.+?:\w+\s*$', '', trace_line)
-            error_lines.append(f"Location: {trace_line}")
+            stack_trace.append(f"Location: {trace_line}")
 
-    # If no specific error pattern was found, include the first non-empty line
+    # If no exception was found, look for other error indicators
     if not error_lines:
-        for line in lines:
-            if line.strip():
+        for line in error_msg.splitlines():
+            if any(pattern in line.lower() for pattern in ["error", "failed", "fault", "invalid"]):
                 error_lines.append(f"Runtime Error: {line.strip()}")
                 break
 
-    return '\n'.join(error_lines) if error_lines else "Unspecified runtime error occurred"
+    # Combine error message with relevant stack trace
+    result = error_lines + stack_trace if error_lines else ["Runtime Error: " + error_msg.strip()]
+    return "\n".join(result)
 
 def is_interactive_code(code: str, language: str) -> bool:
     """Determine if code requires interactive I/O based on language-specific patterns."""
