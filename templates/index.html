@@ -5,8 +5,6 @@
 <!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
-<!-- Xterm.js CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.css">
 <!-- Add CSRF token meta tag -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="interface-lang" content="{{ lang }}">
@@ -37,6 +35,17 @@
         white-space: pre-wrap;
         word-wrap: break-word;
     }
+    .console-input-line {
+        display: flex;
+        align-items: center;
+    }
+    .console-prompt {
+        margin-right: 8px;
+    }
+    .console-input-field {
+        flex-grow: 1;
+    }
+
 </style>
 {% endblock %}
 
@@ -73,9 +82,14 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <div id="terminal-container">
-                    <div id="terminal-output"></div>
-                    <input type="text" id="terminal-input" class="form-control" autocomplete="off" />
+                <div class="console-container">
+                    <div id="consoleOutput"></div>
+                    <div class="console-input-line">
+                        <span class="console-prompt">&gt;</span>
+                        <input type="text" id="consoleInput" class="console-input-field" 
+                               placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
+                               autocomplete="off" disabled>
+                    </div>
                 </div>
             </div>
         </div>
@@ -89,37 +103,47 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+
 <!-- Load our scripts -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 
 <script>
-// Initialize components when DOM is ready
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        // Initialize editor first
-        await initializeEditor();
+let consoleInstance;
+let editor;
 
-        // Initialize interactive console
-        const console = new InteractiveConsole({
-            outputElement: document.getElementById('terminal-output'),
-            inputElement: document.getElementById('terminal-input'),
-            onCommand: async (input) => {
-                // Handle command input
-                console.log('Command received:', input);
-            },
-            onClear: () => {
-                console.log('Console cleared');
-            }
+// Initialize components when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        // Initialize CodeMirror editor
+        editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'text/x-c++src',
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: true,
+            viewportMargin: Infinity
         });
 
-        // Store console instance globally
-        window.consoleInstance = console;
+        // Initialize interactive console
+        consoleInstance = new InteractiveConsole({
+            outputElement: document.getElementById('consoleOutput'),
+            inputElement: document.getElementById('consoleInput')
+        });
+
+        // Handle language change
+        document.getElementById('languageSelect').addEventListener('change', function(e) {
+            const mode = e.target.value === 'cpp' ? 'text/x-c++src' : 'text/x-csharp';
+            editor.setOption('mode', mode);
+        });
 
         // Handle run button click
-        document.getElementById('runButton')?.addEventListener('click', async () => {
+        document.getElementById('runButton').addEventListener('click', async function() {
             const language = document.getElementById('languageSelect').value;
-            const code = window.editor.getValue();
+            const code = editor.getValue();
 
             try {
                 const response = await fetch('/activities/run_code', {
@@ -134,32 +158,46 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const data = await response.json();
 
                 if (data.success) {
-                    console.clear();
+                    consoleInstance.clear();
                     if (data.interactive) {
-                        console.setSession(data.session_id);
+                        consoleInstance.setSession(data.session_id);
                     } else if (data.output) {
-                        console.appendOutput(data.output);
+                        consoleInstance.appendOutput(data.output);
                     }
                 } else {
-                    console.appendError(data.error || 'Failed to run code');
+                    consoleInstance.appendError(data.error || 'Failed to run code');
                 }
             } catch (error) {
-                console.appendError(`Error running code: ${error.message}`);
+                consoleInstance.appendError(`Error running code: ${error.message}`);
             }
         });
 
         // Add clear console handler
-        document.getElementById('clearConsole')?.addEventListener('click', () => {
-            console.clear();
+        document.getElementById('clearConsole')?.addEventListener('click', function() {
+            consoleInstance?.clear();
         });
 
-        console.log('Components initialized successfully');
+        // Get initial template code
+        fetch('/activities/get_template', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify({
+                language: document.getElementById('languageSelect').value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.template) {
+                editor.setValue(data.template);
+            }
+        })
+        .catch(error => console.error('Error loading template:', error));
+
     } catch (error) {
         console.error('Failed to initialize components:', error);
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'alert alert-danger';
-        errorDiv.textContent = 'Failed to initialize components. Please refresh the page.';
-        document.body.insertBefore(errorDiv, document.body.firstChild);
     }
 });
 </script>

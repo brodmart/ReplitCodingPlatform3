@@ -595,3 +595,47 @@ def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List
     except Exception as e:
         logger.error(f"Parallel compilation failed: {e}")
         return [{'success': False, 'error': str(e)}] * len(codes)
+
+
+def get_template(language: str) -> str:
+    """Get the template code for a given language"""
+    cpp_template = """#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    string name;
+    int age;
+
+    cout << "Enter your name: ";
+    getline(cin, name);
+
+    cout << "Enter your age: ";
+    cin >> age;
+
+    cout << "Hello, " << name << "! ";
+    cout << "You are " << age << " years old." << endl;
+    return 0;
+}"""
+
+    csharp_template = """using System;
+
+class Program {
+    static void Main() {
+        Console.Write("Enter your name: ");
+        string name = Console.ReadLine();
+
+        Console.Write("Enter your age: ");
+        if (int.TryParse(Console.ReadLine(), out int age)) {
+            Console.WriteLine($"Hello {name}, you are {age} years old!");
+        } else {
+            Console.WriteLine($"Hello {name}, invalid age entered!");
+        }
+    }
+}"""
+
+    templates = {
+        'cpp': cpp_template,
+        'csharp': csharp_template
+    }
+    return templates.get(language, '')

@@ -1,6 +1,5 @@
 /**
  * Enhanced Interactive Console class for handling real-time program I/O
- * Improved output formatting and error handling for web-based interaction
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -26,6 +25,7 @@ class InteractiveConsole {
         this.duplicateThreshold = 100; // ms to consider output as duplicate
         this.retryAttempts = 3;
         this.retryDelay = 1000; // ms
+        this.errorCount = 0;
 
         this.setupEventListeners();
         this.clear();
@@ -70,7 +70,7 @@ class InteractiveConsole {
             }
         });
 
-        // Handle paste events for input
+        // Handle paste events
         this.inputElement.addEventListener('paste', (e) => {
             if (!this.isEnabled) return;
 
@@ -98,7 +98,7 @@ class InteractiveConsole {
             let retryCount = 0;
             while (retryCount < this.retryAttempts) {
                 try {
-                    const response = await fetch('/send_input', {
+                    const response = await fetch('/activities/send_input', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ class InteractiveConsole {
         } else if (input) {
             this.history.push(input);
             this.historyIndex = this.history.length;
-            this.appendOutput(`> ${input}\n`);
+            this.appendOutput(`> ${input}\n`, 'console-input');
 
             if (this.onCommand) {
                 await this.onCommand(input);
@@ -146,7 +146,7 @@ class InteractiveConsole {
     async handleCtrlC() {
         if (this.sessionId) {
             try {
-                const response = await fetch('/terminate_session', {
+                const response = await fetch('/activities/terminate_session', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -158,12 +158,13 @@ class InteractiveConsole {
                 });
 
                 if (response.ok) {
-                    this.appendOutput('^C\n');
+                    this.appendOutput('^C\n', 'console-input');
                     this.sessionId = null;
                     this.isWaitingForInput = false;
                     this.enable();
                     if (this.pollInterval) {
-                        clearInterval(this.pollInterval);
+                        clearTimeout(this.pollInterval);
+                        this.pollInterval = null;
                     }
                 }
             } catch (error) {
@@ -180,7 +181,7 @@ class InteractiveConsole {
             if (!this.sessionId) return;
 
             try {
-                const response = await fetch(`/get_output?session_id=${this.sessionId}`);
+                const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`);
                 if (!response.ok) {
                     throw new Error('Failed to get output');
                 }
@@ -192,10 +193,8 @@ class InteractiveConsole {
                     }
 
                     if (data.waiting_for_input !== undefined) {
-                        const wasWaiting = this.isWaitingForInput;
                         this.isWaitingForInput = data.waiting_for_input;
-
-                        if (this.isWaitingForInput && !wasWaiting) {
+                        if (this.isWaitingForInput) {
                             this.enable();
                             this.inputElement.focus();
                         }
@@ -205,22 +204,26 @@ class InteractiveConsole {
                         this.sessionId = null;
                         this.isWaitingForInput = false;
                         if (this.pollInterval) {
-                            clearInterval(this.pollInterval);
+                            clearTimeout(this.pollInterval);
+                            this.pollInterval = null;
                         }
+                        this.enable();
                         return;
                     }
+
+                    // Reset error count on successful poll
+                    this.errorCount = 0;
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
-                // Don't show error to user unless it persists
-                if (++this.errorCount > 3) {
-                    this.appendError('Connection error: Failed to get console output');
-                }
-                return;
-            }
+                this.errorCount++;
 
-            // Reset error count on successful poll
-            this.errorCount = 0;
+                // Show error to user if it persists
+                if (this.errorCount > 3) {
+                    this.appendError('Connection error: Failed to get console output');
+                    return;
+                }
+            }
 
             // Continue polling if session is active
             if (this.sessionId) {
@@ -228,14 +231,13 @@ class InteractiveConsole {
             }
         };
 
-        // Initialize error counter
-        this.errorCount = 0;
         // Start polling
+        this.errorCount = 0;
         pollOutput();
     }
 
     processAndAppendOutput(text) {
-        // Prevent duplicate output that might come from rapid polling
+        // Prevent duplicate output from rapid polling
         const now = Date.now();
         if (now - this.lastOutputTime < this.duplicateThreshold && 
             this.outputBuffer.length > 0 && 
@@ -244,37 +246,32 @@ class InteractiveConsole {
         }
         this.lastOutputTime = now;
 
-        // Clean up common console artifacts and normalize output
+        // Clean up and normalize output
         let cleanedText = text
-            .replace(/\r\n/g, '\n')  // Normalize line endings
-            .replace(/\r/g, '\n')    // Replace any remaining \r with \n
-            .replace(/\n+/g, '\n')   // Remove multiple consecutive newlines
-            .replace(/^\n+/, '')     // Remove leading newlines
-            .trim();                 // Remove trailing whitespace
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .replace(/\n+/g, '\n')
+            .replace(/^\n+/, '')
+            .trim();
 
         if (cleanedText) {
-            // Split into lines and process each separately
             const lines = cleanedText.split('\n');
             for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (trimmedLine || lines.length > 1) { // Keep empty lines only if there are multiple lines
-                    this.appendOutput(line + '\n');
+                if (line.trim() || lines.length > 1) {
+                    this.appendOutput(line + '\n', 'console-output');
                 }
             }
         }
     }
 
     appendOutput(text, className = '') {
-        const processedText = this.processAnsiCodes(String(text));
-
-        // Split into lines while preserving empty lines
+        const processedText = this.processAnsiCodes(text);
         const lines = processedText.split(/(\n)/);
 
         for (const line of lines) {
             if (line === '\n') {
-                // Add empty line
                 this.outputElement.appendChild(document.createElement('br'));
-            } else if (line.trim() || className) { // Allow empty lines if they have a specific class
+            } else if (line.trim() || className) {
                 const lineElement = document.createElement('div');
                 lineElement.className = `console-line ${className}`;
                 lineElement.innerHTML = line;
@@ -282,7 +279,7 @@ class InteractiveConsole {
             }
         }
 
-        // Trim output if it exceeds maxBufferSize
+        // Trim output buffer
         while (this.outputElement.children.length > this.maxBufferSize) {
             this.outputElement.removeChild(this.outputElement.firstChild);
         }
@@ -299,7 +296,6 @@ class InteractiveConsole {
     }
 
     processAnsiCodes(text) {
-        // Enhanced ANSI color mapping
         const ansiColorMap = {
             '30': 'ansi-black',
             '31': 'ansi-red',
@@ -322,7 +318,6 @@ class InteractiveConsole {
             '4': 'ansi-underline'
         };
 
-        // Process ANSI escape sequences
         return text
             .replace(/\x1b\[([0-9;]*)m/g, (match, p1) => {
                 if (p1 === '0' || p1 === '') return '</span>';
@@ -331,8 +326,7 @@ class InteractiveConsole {
                     .filter(Boolean)
                     .join(' ');
                 return classes ? `<span class="${classes}">` : '';
-            })
-            .replace(/\r\n|\r|\n/g, '<br>');
+            });
     }
 
     clear() {
@@ -382,9 +376,8 @@ class InteractiveConsole {
     setSession(sessionId) {
         this.sessionId = sessionId;
         if (sessionId) {
-            // Clear any existing polling interval
             if (this.pollInterval) {
-                clearInterval(this.pollInterval);
+                clearTimeout(this.pollInterval);
             }
             this.startPollingOutput();
         }
@@ -392,8 +385,6 @@ class InteractiveConsole {
 }
 
 // Export to window object
-try {
+if (typeof window !== 'undefined') {
     window.InteractiveConsole = InteractiveConsole;
-} catch (error) {
-    console.error('Failed to export InteractiveConsole:', error);
 }

@@ -180,16 +180,18 @@ def run_code():
             'error': str(e)
         }), 500
 
-@activities.route('/activities/get_output', methods=['POST'])
+@activities.route('/activities/get_output', methods=['GET', 'POST'])
 @json_login_required
 def get_output():
     """Get output from a running interactive program"""
     try:
-        if not request.is_json:
-            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
-
-        data = request.get_json()
-        session_id = data.get('session_id')
+        if request.method == 'GET':
+            session_id = request.args.get('session_id')
+        else:
+            if not request.is_json:
+                return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+            data = request.get_json()
+            session_id = data.get('session_id')
 
         if not session_id:
             return jsonify({'success': False, 'error': 'No session ID provided'}), 400
