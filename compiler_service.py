@@ -13,15 +13,16 @@ from threading import Lock, Thread, Event
 import select
 import io
 import hashlib
+import uuid
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Performance tuning constants
-MAX_COMPILATION_TIME = 30  # seconds
-MAX_EXECUTION_TIME = 15    # seconds
-MEMORY_LIMIT = 512        # MB
+MAX_COMPILATION_TIME = 60    # seconds, increased from 30
+MAX_EXECUTION_TIME = 30     # seconds, increased from 15
+MEMORY_LIMIT = 1024        # MB, increased from 512
 COMPILER_CACHE_DIR = "/tmp/compiler_cache"
 CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
 
@@ -50,17 +51,112 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'metrics': metrics
         }
 
+    # Check if code is interactive
+    if is_interactive_code(code, language):
+        logger.info("Detected interactive code, starting interactive session")
+        session_id = str(uuid.uuid4())
+        temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
+        session = CompilerSession(session_id, temp_dir)
+
+        with session_lock:
+            active_sessions[session_id] = session
+
+        try:
+            result = start_interactive_session(session, code, language)
+            if result['success']:
+                result['interactive'] = True
+                result['session_id'] = session_id
+            else:
+                cleanup_session(session_id)
+            return result
+        except Exception as e:
+            cleanup_session(session_id)
+            return {
+                'success': False,
+                'error': str(e),
+                'metrics': metrics
+            }
+
     # Create a unique temporary directory for this compilation
     temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
     temp_path = Path(temp_dir)
 
     try:
-        if language == 'csharp':
+        if language == 'cpp':
+            # Set up C++ compilation
+            source_file = temp_path / "program.cpp"
+            executable = temp_path / "program"
+
+            # Write source code with proper encoding
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(code)
+
+            # Enhanced compilation command with optimizations
+            compile_cmd = [
+                'g++',
+                '-std=c++17',  # Use modern C++
+                '-O2',         # Optimize
+                '-Wall',       # Enable warnings
+                str(source_file),
+                '-o',
+                str(executable)
+            ]
+
+            try:
+                # Compile with proper resource limits
+                compile_process = subprocess.run(
+                    compile_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_COMPILATION_TIME
+                )
+
+                if compile_process.returncode != 0:
+                    return {
+                        'success': False,
+                        'error': f"Compilation Error: {compile_process.stderr}",
+                        'metrics': metrics
+                    }
+
+                # Set executable permissions
+                executable.chmod(0o755)
+
+                # Run the compiled program
+                run_process = subprocess.run(
+                    [str(executable)],
+                    input=input_data.encode() if input_data else None,
+                    capture_output=True,
+                    text=True,
+                    timeout=MAX_EXECUTION_TIME
+                )
+
+                if run_process.returncode != 0:
+                    return {
+                        'success': False,
+                        'error': f"Runtime Error: {run_process.stderr}",
+                        'metrics': metrics
+                    }
+
+                return {
+                    'success': True,
+                    'output': run_process.stdout,
+                    'metrics': metrics
+                }
+
+            except subprocess.TimeoutExpired as e:
+                phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
+                return {
+                    'success': False,
+                    'error': f"{phase.capitalize()} timed out",
+                    'metrics': metrics
+                }
+
+        elif language == 'csharp':
             # Set up C# project structure
             source_file = temp_path / "Program.cs"
             project_file = temp_path / "program.csproj"
 
-            # Write source code
+            # Write source code with proper encoding
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(code)
 
@@ -78,25 +174,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 f.write(project_content)
 
             try:
-                # First restore packages
-                logger.info("Restoring NuGet packages...")
-                restore_cmd = ['dotnet', 'restore', str(project_file)]
-                restore_process = subprocess.run(
-                    restore_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                    cwd=str(temp_path)
-                )
-
-                if restore_process.returncode != 0:
-                    logger.error(f"Package restore failed: {restore_process.stderr}")
-                    return {
-                        'success': False,
-                        'error': f"Package restore failed: {restore_process.stderr}",
-                        'metrics': metrics
-                    }
-
                 # Compile using optimized build command
                 compile_cmd = [
                     'dotnet', 'build',
@@ -119,7 +196,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 metrics['compilation_time'] = time.time() - metrics['start_time']
 
                 if compile_process.returncode != 0:
-                    logger.error(f"Compilation failed: {compile_process.stderr}")
                     return {
                         'success': False,
                         'error': format_csharp_error(compile_process.stderr),
@@ -129,7 +205,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 # Run the compiled program
                 dll_path = temp_path / "bin" / "Release" / "net7.0" / "program.dll"
                 if not dll_path.exists():
-                    logger.error(f"No executable found in {dll_path.parent}")
                     return {
                         'success': False,
                         'error': "Build succeeded but no executable found",
@@ -137,21 +212,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 logger.info("Running program...")
-                run_cmd = ['dotnet', str(dll_path)]
                 run_process = subprocess.run(
-                    run_cmd,
+                    ['dotnet', str(dll_path)],
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
                     timeout=MAX_EXECUTION_TIME,
-                    cwd=str(temp_path)
+                    cwd=str(temp_path),
+                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
                 )
 
                 metrics['execution_time'] = time.time() - (metrics['start_time'] + metrics['compilation_time'])
                 metrics['total_time'] = time.time() - metrics['start_time']
 
                 if run_process.returncode != 0:
-                    logger.error(f"Execution failed: {run_process.stderr}")
                     return {
                         'success': False,
                         'error': format_runtime_error(run_process.stderr),
@@ -232,7 +306,6 @@ def format_runtime_error(error_msg: str) -> str:
     except Exception:
         return f"Runtime Error: {error_msg}"
 
-#rest of the file
 class CompilerSession:
     """Session handler for interactive compilation."""
     def __init__(self, session_id: str, temp_dir: str):
@@ -249,70 +322,62 @@ def is_interactive_code(code: str, language: str) -> bool:
     """Detect if code is likely interactive based on input patterns"""
     code_lower = code.lower()
     if language == 'cpp':
-        return 'cin' in code_lower or 'getline' in code_lower
+        return 'cin' in code_lower or 'getline' in code_lower or 'cout' in code_lower
     elif language == 'csharp':
-        return 'console.readline' in code_lower or 'console.read' in code_lower or 'readkey' in code_lower
-    return False  # Default case for unsupported languages
+        return ('console.readline' in code_lower or 
+                'console.read' in code_lower or 
+                'console.write' in code_lower or
+                'readkey' in code_lower)
+    return False
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session for the given code"""
     try:
         logger.debug(f"Starting interactive session for {language}")
-        process = None
-
-        # Set up files
-        source_file = Path(session.temp_dir) / f"program.{language.lower()}"
-        executable = Path(session.temp_dir) / ("program.exe" if language == "csharp" else "program")
-
-        # Enhanced C# code preprocessing
         if language == 'csharp':
-            # Don't wrap if code already contains namespace/class definition
-            if 'namespace' in code or 'class Program' in code:
+            # Don't wrap code that already has a Program class
+            if 'class Program' in code:
                 modified_code = code
             else:
                 modified_code = f"""using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Globalization;
+using System.Text;
 
-namespace ConsoleApplication {{
-    class Program {{
-        static void Main(string[] args) {{
-            try {{
-                CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-                {code}
-            }}
-            catch (Exception e) {{
-                Console.WriteLine($"Runtime Error: {{e.Message}}");
-            }}
-        }}
-    }}
-}}"""
+{code}"""
 
-            # Write the code with proper encoding
+            # Write code to temp file
+            source_file = Path(session.temp_dir) / "Program.cs"
             with open(source_file, 'w', encoding='utf-8') as f:
                 f.write(modified_code)
 
-            # Enhanced compilation command with proper references
-            compile_cmd = [
-                'dotnet',
-                'build',
-                str(source_file),
-                '-o',
-                str(executable.parent),
-                '/p:GenerateFullPaths=true',
-                '/consoleloggerparameters:NoSummary'
-            ]
+            # Create project file for proper console app with console input support
+            project_file = Path(session.temp_dir) / "program.csproj"
+            project_content = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+</Project>"""
+            with open(project_file, 'w', encoding='utf-8') as f:
+                f.write(project_content)
 
             try:
+                # Compile with enhanced settings for console I/O
                 start_time = time.time()
                 compile_process = subprocess.run(
-                    compile_cmd,
+                    ['dotnet', 'build', str(project_file),
+                     '--configuration', 'Release',
+                     '--nologo',
+                     '/p:GenerateFullPaths=true',
+                     '/consoleloggerparameters:NoSummary'],
                     capture_output=True,
                     text=True,
-                    timeout=60  # Increased timeout for larger codebases
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=str(session.temp_dir)
                 )
                 compilation_time = time.time() - start_time
 
@@ -322,70 +387,44 @@ namespace ConsoleApplication {{
                         'error': format_csharp_error(compile_process.stderr)
                     }
 
-                # Set executable permissions
-                os.chmod(executable, 0o755)
-
-                # Enhanced environment for better console handling
-                env = os.environ.copy()
-                env['MONO_IOMAP'] = 'all'
-                env['MONO_TRACE_LISTENER'] = 'Console.Out'
-                env['MONO_DEBUG'] = 'handle-sigint'
-                env['MONO_THREADS_PER_CPU'] = '2'
-                env['MONO_GC_PARAMS'] = 'mode=throughput'
-                env['TERM'] = 'xterm'
-                env['COLUMNS'] = '80'
-                env['LINES'] = '25'
-
-                # Run with dotnet, using Popen for interactive I/O
+                # Run with enhanced interactive I/O settings
+                dll_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / "program.dll"
                 process = subprocess.Popen(
-                    ['dotnet', str(executable)],
+                    ['dotnet', str(dll_path)],
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     text=True,
-                    bufsize=1,
-                    env=env,
-                    preexec_fn=os.setsid
+                    bufsize=1,  # Line buffering
+                    cwd=str(session.temp_dir),
+                    env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
                 )
 
                 session.process = process
 
-                # Set up process monitor
-                monitor = ProcessMonitor(process, timeout=300)  # Increased timeout for larger programs
-                monitor.start()
-
-                # Start monitoring thread for real-time output
+                # Start output monitoring thread
                 def monitor_output():
-                    try:
-                        while process.poll() is None:
-                            readable, _, _ = select.select(
-                                [process.stdout, process.stderr], [], [], 0.1)
+                    while process.poll() is None:
+                        # Check both stdout and stderr
+                        readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
-                            for stream in readable:
-                                line = stream.readline()
-                                if line:
-                                    if stream == process.stdout:
-                                        session.stdout_buffer.append(line)
-                                        logger.debug(f"Output: {line.strip()}")
-
-                                        # Enhanced input prompt detection
-                                        if any(prompt in line.lower() for prompt in [
-                                            'input', 'enter', 'type', '?', ':', '>',
-                                            'choix', 'votre choix', 'choisir', 'entrer',
-                                            'saisir', 'tapez', 'press', 'continue'
-                                        ]):
-                                            session.waiting_for_input = True
-                                            logger.debug("Waiting for input")
-                                    else:
-                                        session.stderr_buffer.append(line)
-                                        logger.debug(f"Error: {line.strip()}")
-                                    session.last_activity = time.time()
-
-                    except Exception as e:
-                        logger.error(f"Error in monitor_output: {e}")
-                    finally:
-                        monitor.stop()
-                        cleanup_session(session.session_id)
+                        for stream in readable:
+                            # Read character by character for Console.Write support
+                            char = stream.read(1)
+                            if char:
+                                if stream == process.stdout:
+                                    session.stdout_buffer.append(char)
+                                    # Check for input prompts (both with and without newline)
+                                    recent_output = ''.join(session.stdout_buffer[-100:])
+                                    if any(prompt in recent_output.lower() for prompt in [
+                                        'input', 'enter', 'type', '?', ':', '>',
+                                        'choice', 'select', 'press', 'continue',
+                                        'choix', 'votre choix', 'entrer'
+                                    ]):
+                                        session.waiting_for_input = True
+                                else:
+                                    session.stderr_buffer.append(char)
+                                session.last_activity = time.time()
 
                 session.output_thread = Thread(target=monitor_output)
                 session.output_thread.daemon = True
@@ -399,31 +438,19 @@ namespace ConsoleApplication {{
                 }
 
             except subprocess.TimeoutExpired:
-                if process:
-                    cleanup_session(session.session_id)
                 return {
                     'success': False,
-                    'error': "Compilation timeout"
-                }
-            except Exception as e:
-                if process:
-                    cleanup_session(session.session_id)
-                logger.error(f"Error executing C# code: {e}")
-                return {
-                    'success': False,
-                    'error': str(e)
+                    'error': f"Compilation timed out after {MAX_COMPILATION_TIME} seconds"
                 }
 
-        elif language == 'cpp':
-            # C++ specific implementation
+        else:
             return {
                 'success': False,
-                'error': "C++ interactive mode not implemented"
+                'error': f"Interactive mode not supported for {language}"
             }
 
     except Exception as e:
         logger.error(f"Error in start_interactive_session: {e}")
-        cleanup_session(session.session_id)
         return {
             'success': False,
             'error': str(e)
