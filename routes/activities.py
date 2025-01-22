@@ -388,13 +388,8 @@ def get_template_code():
             }), 400
 
         data = request.get_json()
-        language = data.get('language', '').lower()
-
-        if not language:
-            return jsonify({
-                'success': False,
-                'error': 'Language not specified'
-            }), 400
+        # Make language optional with a default value
+        language = data.get('language', 'cpp').lower() if data else 'cpp'
 
         template_code = get_template(language)
 
@@ -410,7 +405,7 @@ def get_template_code():
         })
 
     except Exception as e:
-        logger.error(f"Error getting template: {str(e)}", exc_info=True)
+        logger.error(f"Error getting template: {str(e)}")
         return jsonify({
             'success': False,
             'error': f"An error occurred while getting the template: {str(e)}"

@@ -25,9 +25,9 @@ async function initializeEditor() {
             throw new Error('Editor element not found');
         }
 
-        // Initialize CodeMirror with error handling
+        // Initialize CodeMirror with basic configuration first
         editorState.editor = CodeMirror.fromTextArea(editorElement, {
-            mode: getEditorMode(editorState.currentLanguage),
+            mode: getEditorMode('cpp'), // Start with C++ as default
             theme: 'dracula',
             lineNumbers: true,
             autoCloseBrackets: true,
@@ -35,6 +35,7 @@ async function initializeEditor() {
             indentUnit: 4,
             tabSize: 4,
             lineWrapping: true,
+            viewportMargin: Infinity,
             extraKeys: {
                 "Tab": function(cm) {
                     if (cm.somethingSelected()) {
@@ -48,57 +49,18 @@ async function initializeEditor() {
             }
         });
 
-        // Initialize xterm.js terminal with input handling
-        const terminalElement = document.getElementById('terminal');
-        if (terminalElement) {
-            editorState.terminal = new Terminal({
-                cursorBlink: true,
-                convertEol: true,
-                fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-                fontSize: 14,
-                rows: 10
-            });
-
-            const fitAddon = new FitAddon.FitAddon();
-            editorState.terminal.loadAddon(fitAddon);
-            editorState.terminal.open(terminalElement);
-            fitAddon.fit();
-
-            // Handle terminal input
-            editorState.terminal.onData(data => {
-                if (editorState.isWaitingForInput) {
-                    if (data === '\r') { // Enter key
-                        editorState.terminal.write('\r\n');
-                        const input = editorState.inputBuffer + '\n';
-                        editorState.inputBuffer = '';
-                        editorState.isWaitingForInput = false;
-                        if (editorState.inputCallback) {
-                            editorState.inputCallback(input);
-                        }
-                    } else if (data === '\u007f') { // Backspace
-                        if (editorState.inputBuffer.length > 0) {
-                            editorState.inputBuffer = editorState.inputBuffer.slice(0, -1);
-                            editorState.terminal.write('\b \b');
-                        }
-                    } else {
-                        editorState.inputBuffer += data;
-                        editorState.terminal.write(data);
-                    }
-                }
-            });
-        }
-
         // Get the language from the select element
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
-            editorState.currentLanguage = languageSelect.value;
+            editorState.currentLanguage = languageSelect.value || 'cpp';
+            editorState.editor.setOption('mode', getEditorMode(editorState.currentLanguage));
         }
-
-        // Set initial template
-        await setEditorTemplate(editorState.currentLanguage);
 
         // Set up event listeners
         setupEventListeners();
+
+        // Try to load template
+        await setEditorTemplate(editorState.currentLanguage);
 
         // Mark editor as initialized
         editorState.isInitialized = true;
@@ -116,7 +78,7 @@ function getEditorMode(language) {
         'cpp': 'text/x-c++src',
         'csharp': 'text/x-csharp'
     };
-    return modes[language] || 'text/x-c++src';
+    return modes[language.toLowerCase()] || 'text/x-c++src';
 }
 
 // Set up event listeners
@@ -131,15 +93,16 @@ function setupEventListeners() {
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', handleLanguageChange);
-        // Set initial language
-        editorState.currentLanguage = languageSelect.value;
     }
 
     // Clear console button
     const clearButton = document.getElementById('clearConsole');
-    if (clearButton && editorState.terminal) {
+    if (clearButton) {
         clearButton.addEventListener('click', () => {
-            editorState.terminal.clear();
+            const consoleOutput = document.getElementById('consoleOutput');
+            if (consoleOutput) {
+                consoleOutput.innerHTML = '';
+            }
             editorState.inputBuffer = '';
             editorState.isWaitingForInput = false;
         });
@@ -155,23 +118,23 @@ function setupEventListeners() {
 
 // Handle language change
 async function handleLanguageChange(event) {
-    const newLanguage = event.target.value;
-    console.log('Language changed to:', newLanguage);
-
-    if (newLanguage === editorState.currentLanguage) return;
-
-    editorState.currentLanguage = newLanguage;
-    editorState.editor.setOption('mode', getEditorMode(newLanguage));
-
     try {
+        const newLanguage = event.target.value;
+        console.log('Language changed to:', newLanguage);
+
+        if (newLanguage === editorState.currentLanguage) return;
+
+        editorState.currentLanguage = newLanguage;
+        editorState.editor.setOption('mode', getEditorMode(newLanguage));
+
         await setEditorTemplate(newLanguage);
     } catch (error) {
-        console.error('Error setting template:', error);
-        showError('Failed to set template for ' + newLanguage);
+        console.error('Error changing language:', error);
+        showError('Failed to change language: ' + error.message);
     }
 }
 
-// Set editor template
+// Set editor template with improved error handling
 async function setEditorTemplate(language) {
     console.log('Setting template for language:', language);
 
@@ -180,19 +143,22 @@ async function setEditorTemplate(language) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
             },
             body: JSON.stringify({ language: language })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch template');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
         if (data.success && data.template) {
             editorState.editor.setValue(data.template);
             editorState.editor.clearHistory();
+
+            // Position cursor appropriately based on language
             const cursorLine = language === 'cpp' ? 4 : 6;
             editorState.editor.setCursor(cursorLine, 4);
         } else {
@@ -200,9 +166,36 @@ async function setEditorTemplate(language) {
         }
     } catch (error) {
         console.error('Error setting template:', error);
+        // Use default template if fetch fails
+        const defaultTemplate = language === 'cpp' 
+            ? '#include <iostream>\n\nint main() {\n    // Your code here\n    return 0;\n}\n'
+            : 'using System;\n\nclass Program {\n    static void Main() {\n        // Your code here\n    }\n}\n';
+
+        editorState.editor.setValue(defaultTemplate);
+        editorState.editor.clearHistory();
         throw error;
     }
 }
+
+// Show error message
+function showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.className = 'alert alert-danger position-fixed top-0 end-0 m-3';
+    errorDiv.style.zIndex = '1050';
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    setTimeout(() => errorDiv.remove(), 5000);
+}
+
+// Initialize everything when the DOM is ready
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        await initializeEditor();
+    } catch (error) {
+        console.error('Failed to initialize editor:', error);
+        showError('Failed to initialize editor. Please refresh the page.');
+    }
+});
 
 // Run code with enhanced error handling and output
 async function runCode() {
@@ -332,22 +325,3 @@ async function startPollingOutput(sessionId) {
     // Start polling
     poll();
 }
-
-// Show error message
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'alert alert-danger';
-    errorDiv.textContent = message;
-    document.body.insertBefore(errorDiv, document.body.firstChild);
-    setTimeout(() => errorDiv.remove(), 5000);
-}
-
-// Initialize everything when the DOM is ready
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        await initializeEditor();
-    } catch (error) {
-        console.error('Failed to initialize editor:', error);
-        showError('Failed to initialize editor. Please refresh the page.');
-    }
-});
