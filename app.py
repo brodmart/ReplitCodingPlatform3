@@ -36,7 +36,8 @@ def create_app():
         'SESSION_TYPE': 'filesystem',
         'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
         'SQLALCHEMY_TRACK_MODIFICATIONS': False,
-        'WTF_CSRF_ENABLED': True
+        'WTF_CSRF_ENABLED': True,
+        'JSON_SORT_KEYS': False  # Preserve output order
     })
 
     try:
@@ -77,7 +78,6 @@ def setup_websocket_handlers():
     from utils.socketio_logger import log_socket_event, track_connection, track_session
 
     @socketio.on('connect')
-    @log_socket_event
     def handle_connect():
         """Handle client connection"""
         logger.info(f"Client connected: {request.sid}")
@@ -86,7 +86,6 @@ def setup_websocket_handlers():
         emit('connection_established', {'status': 'connected'})
 
     @socketio.on('disconnect')
-    @log_socket_event
     def handle_disconnect():
         """Handle client disconnection"""
         logger.info(f"Client disconnected: {request.sid}")
@@ -97,18 +96,16 @@ def setup_websocket_handlers():
         track_connection(False)
 
     @socketio.on('compile_and_run')
-    @log_socket_event
     def handle_compile_and_run(data):
         """Handle code compilation and execution"""
         try:
             code = data.get('code')
-            language = data.get('language', 'cpp')
-
             if not code:
                 emit('error', {'message': 'No code provided'})
                 return
 
-            result = compile_and_run(code, language)
+            logger.info("Compiling and running C# code...")
+            result = compile_and_run(code, 'csharp')
 
             if result.get('success'):
                 session_id = result.get('session_id')
@@ -137,10 +134,9 @@ def setup_websocket_handlers():
 
         except Exception as e:
             logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
-            emit('error', {'message': 'Internal server error'})
+            emit('error', {'message': f'Failed to compile and run: {str(e)}'})
 
     @socketio.on('input')
-    @log_socket_event
     def handle_input(data):
         """Handle console input from client"""
         try:
@@ -159,16 +155,15 @@ def setup_websocket_handlers():
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
                     })
+            else:
+                emit('error', {'message': 'Failed to send input'})
 
         except Exception as e:
             logger.error(f"Error in handle_input: {str(e)}", exc_info=True)
-            emit('error', {'message': 'Failed to process input'})
-
-# Setup Socket.IO handlers when app is created
-setup_websocket_handlers()
+            emit('error', {'message': f'Failed to process input: {str(e)}'})
 
 # Create the application instance
 app = create_app()
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=True, log_output=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)

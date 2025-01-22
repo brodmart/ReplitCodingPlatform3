@@ -1,5 +1,5 @@
 /**
- * Minimal Interactive Console for handling program I/O
+ * Interactive Console for handling program I/O
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -9,7 +9,7 @@ class InteractiveConsole {
         this.isWaitingForInput = false;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 3;
-        this.currentLanguage = null;
+        this.currentLanguage = 'csharp';
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console requires valid output and input elements');
@@ -69,9 +69,12 @@ class InteractiveConsole {
 
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                this.currentLanguage = data.language;
-                this.appendSystemMessage(`Running ${this.currentLanguage.toUpperCase()} program...`);
+                this.appendSystemMessage(`Running C# program...`);
             }
+        });
+
+        this.socket.on('error', (data) => {
+            this.appendError(`Server error: ${data.message}`);
         });
 
         // Input handler with debouncing
@@ -89,7 +92,7 @@ class InteractiveConsole {
         if (!this.isEnabled || !this.sessionId) return;
 
         const input = this.inputElement.value.trim();
-        if (!input && this.currentLanguage !== 'cpp') return; // Allow empty input for C++ programs
+        if (!input) return;
 
         try {
             this.inputElement.value = '';
@@ -127,7 +130,6 @@ class InteractiveConsole {
         this.outputElement.innerHTML = '';
         this.sessionId = null;
         this.isWaitingForInput = false;
-        this.currentLanguage = null;
     }
 
     scrollToBottom() {
@@ -157,9 +159,10 @@ class InteractiveConsole {
         }
     }
 
-    compileAndRun(code, language) {
+    compileAndRun(code) {
         this.clear();
-        this.socket.emit('compile_and_run', { code, language });
+        this.appendSystemMessage('Compiling C# program...');
+        this.socket.emit('compile_and_run', { code, language: 'csharp' });
     }
 }
 
