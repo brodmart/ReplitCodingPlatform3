@@ -26,10 +26,7 @@ class InteractiveConsole {
         this.history = [];
         this.historyIndex = -1;
         this.maxBufferSize = 4096;
-        this.inputPromptPatterns = {
-            cpp: ['>', '>>'],
-            python: ['>>>', '...']
-        };
+        this.inputBuffer = '';
     }
 
     setupSocketHandlers() {
@@ -41,11 +38,13 @@ class InteractiveConsole {
         this.socket.on('disconnect', () => {
             console.debug('Socket.IO disconnected');
             this.appendSystemMessage('Console disconnected. Attempting to reconnect...');
+            this.disableInput();
         });
 
         this.socket.on('error', (error) => {
             console.error('Socket.IO error:', error);
             this.appendError(`Error: ${error.message}`);
+            this.disableInput();
         });
 
         this.socket.on('compilation_result', (result) => {
@@ -63,7 +62,11 @@ class InteractiveConsole {
         this.socket.on('output', (data) => {
             console.debug('Received output:', data);
             if (data.output) {
-                this.appendOutput(data.output);
+                // Clean and process the output
+                const processedOutput = this.processAnsiCodes(data.output.replace(/\r\n/g, '\n'));
+                this.appendOutput(processedOutput);
+
+                // Update waiting for input state
                 this.isWaitingForInput = data.waiting_for_input || false;
                 if (this.isWaitingForInput) {
                     this.enableInput();
@@ -71,6 +74,14 @@ class InteractiveConsole {
                     this.disableInput();
                 }
             }
+
+            if (data.error) {
+                this.appendError(data.error);
+                this.disableInput();
+            }
+
+            // Auto-scroll to bottom
+            this.outputElement.scrollTop = this.outputElement.scrollHeight;
         });
     }
 
@@ -86,16 +97,12 @@ class InteractiveConsole {
                     }
                     break;
                 case 'ArrowUp':
-                    if (!this.isWaitingForInput) {
-                        e.preventDefault();
-                        this.navigateHistory(-1);
-                    }
+                    e.preventDefault();
+                    this.navigateHistory(-1);
                     break;
                 case 'ArrowDown':
-                    if (!this.isWaitingForInput) {
-                        e.preventDefault();
-                        this.navigateHistory(1);
-                    }
+                    e.preventDefault();
+                    this.navigateHistory(1);
                     break;
                 case 'c':
                     if (e.ctrlKey) {
@@ -133,64 +140,72 @@ class InteractiveConsole {
     }
 
     async handleInput() {
-        const input = this.inputElement.value.trim();
+        const input = this.inputElement.value;
         this.inputElement.value = '';
+
+        if (!input) return;
+
+        // Add input to history
+        this.history.push(input);
+        this.historyIndex = this.history.length;
 
         if (this.sessionId && this.isWaitingForInput) {
             if (this.socket && this.socket.connected) {
+                // Append the input to our buffer
+                this.inputBuffer += input;
+
+                // Display the input with proper styling
+                this.appendOutput(input + '\n', 'console-input');
+
+                // Send the input with a newline
                 this.socket.emit('input', {
                     session_id: this.sessionId,
                     input: input + '\n'
                 });
-                this.appendOutput(input + '\n', 'user-input');
+
+                // Temporarily disable input until we get more output
                 this.isWaitingForInput = false;
                 this.disableInput();
-                return;
             } else {
                 this.appendError('Not connected to server. Reconnecting...');
                 this.socket.connect();
             }
-        } else if (input) {
-            this.history.push(input);
-            this.historyIndex = this.history.length;
+        } else {
+            // For non-interactive mode, just show the input
             this.appendOutput(`> ${input}\n`, 'console-input');
-
-            // Assuming onCommand remains for non-interactive commands.
-            //if (this.onCommand) {
-            //    await this.onCommand(input);
-            //}
         }
     }
 
     async handleCtrlC() {
         if (this.sessionId) {
             if (this.socket && this.socket.connected) {
-                this.socket.emit('interrupt');
+                this.socket.emit('interrupt', { session_id: this.sessionId });
                 this.appendOutput('^C\n', 'console-input');
-                this.handleSessionEnd(); // Handle session end through Socket.IO
+                this.handleSessionEnd();
             } else {
-                this.appendError('Not connected to server, cannot interrupt');
+                this.appendError('Not connected to server');
             }
         }
     }
 
     appendOutput(text, className = 'console-output') {
-        const processedText = this.processAnsiCodes(text);
-        const lines = processedText.split('\n');
+        const lines = text.split('\n');
         for (const line of lines) {
-            if (line.trim() || className.includes('user-input')) {
+            if (line.trim() || className.includes('input')) {
                 const element = document.createElement('div');
-                element.className = className;
-                element.innerHTML = line; // Use innerHTML for ANSI codes
+                element.className = `output-line ${className}`;
+                element.innerHTML = line || '&nbsp;';  // Use &nbsp; for empty lines
                 this.outputElement.appendChild(element);
             }
         }
-        this.outputElement.scrollTop = this.outputElement.scrollHeight;
 
-        // Trim output buffer
+        // Trim output buffer if needed
         while (this.outputElement.children.length > this.maxBufferSize) {
             this.outputElement.removeChild(this.outputElement.firstChild);
         }
+
+        // Auto-scroll
+        this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
     appendError(message) {
@@ -203,21 +218,22 @@ class InteractiveConsole {
 
     clear() {
         this.outputElement.innerHTML = '';
+        this.inputBuffer = '';
         this.isWaitingForInput = false;
         this.sessionId = null;
-        this.history = [];
-        this.historyIndex = -1;
     }
 
     enableInput() {
         this.isEnabled = true;
         this.inputElement.disabled = false;
+        this.inputElement.placeholder = this.isWaitingForInput ? 'Enter input...' : 'Type a command...';
         this.inputElement.focus();
     }
 
     disableInput() {
         this.isEnabled = false;
         this.inputElement.disabled = true;
+        this.inputElement.placeholder = 'Processing...';
     }
 
     setLanguage(language) {
@@ -245,6 +261,7 @@ class InteractiveConsole {
 
     setSession(sessionId) {
         this.sessionId = sessionId;
+        this.clear();
         if (sessionId && this.socket && this.socket.connected) {
             this.socket.emit('session_start', {
                 session_id: sessionId
@@ -255,11 +272,9 @@ class InteractiveConsole {
     handleSessionEnd() {
         this.sessionId = null;
         this.isWaitingForInput = false;
-        this.enableInput();
+        this.inputBuffer = '';
         this.appendOutput('\nSession ended.\n', 'console-info');
-        if (this.socket) {
-            this.socket.close();
-        }
+        this.disableInput();
     }
 
     processAnsiCodes(text) {

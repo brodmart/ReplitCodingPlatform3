@@ -8,9 +8,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def test_csharp_interactive():
+def test_interactive_csharp():
     """Test C# interactive console functionality"""
-    print("\nStarting C# Interactive Test:")
+    print("\nTesting C# Interactive Console:")
     code = """
 using System;
 class Program {
@@ -31,6 +31,7 @@ class Program {
 
     try:
         result = compile_and_run(code, "csharp", session_id=session_id)
+        print("Initial result:", result)
 
         if result['success'] and result.get('interactive'):
             session_id = result['session_id']
@@ -40,36 +41,33 @@ class Program {
             # Wait for initial prompt and show it
             time.sleep(1)
             output = get_output(session_id)
-            if not output['success']:
-                compiler_logger.log_runtime_error(session_id, "Failed to get initial output", output)
-            print("\nInitial prompt:", output.get('output', ''))
+            print("\nInitial output:", output)
 
-            # Send first input (name) and show what we're sending
-            print("\nSending input: 'John'")
-            send_result = send_input(session_id, "John")
-            if not send_result['success']:
-                compiler_logger.log_runtime_error(session_id, "Failed to send input", send_result)
-            time.sleep(0.5)
+            if output['success'] and output.get('waiting_for_input'):
+                # Send first input (name) and show what we're sending
+                print("\nSending input: 'John'")
+                send_result = send_input(session_id, "John\n")
+                print("Input result:", send_result)
+                time.sleep(0.5)
 
-            # Get output after first input
-            output = get_output(session_id)
-            if not output['success']:
-                compiler_logger.log_runtime_error(session_id, "Failed to get output after first input", output)
-            print("Program output:", output.get('output', ''))
+                # Get output after first input
+                output = get_output(session_id)
+                print("After name input:", output)
 
-            # Send second input (age) and show what we're sending
-            print("\nSending input: '25'")
-            send_result = send_input(session_id, "25")
-            if not send_result['success']:
-                compiler_logger.log_runtime_error(session_id, "Failed to send second input", send_result)
-            time.sleep(0.5)
+                if output['success'] and output.get('waiting_for_input'):
+                    # Send second input (age) and show what we're sending
+                    print("\nSending input: '25'")
+                    send_result = send_input(session_id, "25\n")
+                    print("Second input result:", send_result)
+                    time.sleep(0.5)
 
-            # Get final output
-            final_output = get_output(session_id)
-            if not final_output['success']:
-                compiler_logger.log_runtime_error(session_id, "Failed to get final output", final_output)
-            print("\nFinal program output:", final_output.get('output', ''))
-            result['test_output'] = final_output
+                    # Get final output
+                    final_output = get_output(session_id)
+                    print("\nFinal output:", final_output)
+                else:
+                    print("Not waiting for age input as expected")
+            else:
+                print("Initial input state not correct:", output)
 
             compiler_logger.log_execution_state(session_id, 'test_completed', {
                 'outputs_received': bool(final_output.get('output')),
@@ -90,13 +88,11 @@ class Program {
     return result
 
 if __name__ == "__main__":
-    # Only run tests when explicitly called
     print("\n=== Testing Interactive Console Functionality ===")
-    print("\nTesting C# Interactive Console:")
     try:
-        csharp_result = test_csharp_interactive()
+        csharp_result = test_interactive_csharp()
         print("\nC# Test Complete!")
-        print("C# Success:", csharp_result['success'])
+        print("Success:", csharp_result['success'])
     except Exception as e:
         logger.error(f"Test failed with error: {str(e)}")
         raise
