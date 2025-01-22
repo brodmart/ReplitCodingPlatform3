@@ -123,6 +123,10 @@ args = "View Updated Context"
 task = "workflow.run"
 args = "Build Large C#"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Interactive Console"
+
 [[workflows.workflow]]
 name = "File Server"
 author = "agent"
@@ -494,6 +498,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "dotnet build --project student_tracker.csproj && dotnet run --project student_tracker.csproj"
+
+[[workflows.workflow]]
+name = "Test Interactive Console"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 test_interactive_console.py"
 
 [[ports]]
 localPort = 5000

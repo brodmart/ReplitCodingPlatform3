@@ -334,7 +334,76 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
     """Start an interactive session for the given code"""
     try:
         logger.debug(f"Starting interactive session for {language}")
-        if language == 'csharp':
+
+        if language == 'cpp':
+            # Write code to temp file
+            source_file = Path(session.temp_dir) / "program.cpp"
+            with open(source_file, 'w', encoding='utf-8') as f:
+                f.write(code)
+
+            # Compile C++ code
+            executable = Path(session.temp_dir) / "program"
+            compile_process = subprocess.run(
+                ['g++', '-std=c++17', str(source_file), '-o', str(executable)],
+                capture_output=True,
+                text=True,
+                timeout=MAX_COMPILATION_TIME
+            )
+
+            if compile_process.returncode != 0:
+                return {
+                    'success': False,
+                    'error': f"Compilation Error: {compile_process.stderr}"
+                }
+
+            # Make executable
+            executable.chmod(0o755)
+
+            # Start interactive process
+            process = subprocess.Popen(
+                [str(executable)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,  # Line buffering
+                cwd=str(session.temp_dir)
+            )
+
+            session.process = process
+
+            # Start output monitoring thread
+            def monitor_output():
+                while process.poll() is None:
+                    readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
+
+                    for stream in readable:
+                        char = stream.read(1)
+                        if char:
+                            if stream == process.stdout:
+                                session.stdout_buffer.append(char)
+                                # Check for input prompts
+                                recent_output = ''.join(session.stdout_buffer[-100:])
+                                if any(prompt in recent_output.lower() for prompt in [
+                                    'input', 'enter', 'type', '?', ':', '>',
+                                    'choice', 'select', 'press', 'continue'
+                                ]):
+                                    session.waiting_for_input = True
+                            else:
+                                session.stderr_buffer.append(char)
+                            session.last_activity = time.time()
+
+            session.output_thread = Thread(target=monitor_output)
+            session.output_thread.daemon = True
+            session.output_thread.start()
+
+            return {
+                'success': True,
+                'session_id': session.session_id,
+                'interactive': True
+            }
+
+        elif language == 'csharp':
             # Don't wrap code that already has a Program class
             if 'class Program' in code:
                 modified_code = code
@@ -402,19 +471,17 @@ using System.Text;
 
                 session.process = process
 
-                # Start output monitoring thread
+                # Start output monitoring thread with improved prompt detection
                 def monitor_output():
                     while process.poll() is None:
-                        # Check both stdout and stderr
                         readable, _, _ = select.select([process.stdout, process.stderr], [], [], 0.1)
 
                         for stream in readable:
-                            # Read character by character for Console.Write support
                             char = stream.read(1)
                             if char:
                                 if stream == process.stdout:
                                     session.stdout_buffer.append(char)
-                                    # Check for input prompts (both with and without newline)
+                                    # Enhanced prompt detection for both languages
                                     recent_output = ''.join(session.stdout_buffer[-100:])
                                     if any(prompt in recent_output.lower() for prompt in [
                                         'input', 'enter', 'type', '?', ':', '>',
