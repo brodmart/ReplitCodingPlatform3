@@ -30,37 +30,18 @@ Critical: All code compilation and I/O interactions MUST happen within the web i
 - All student interactions must occur through the web interface
 - Compiler service must integrate directly with the web console
 
-## Core Educational Requirements:
-1. **Multi-Level Curriculum Support**:
-   - Support for multiple Ontario curriculum levels:
-     * ICS4U (Grade 12 University)
-     * ICS3U (Grade 11 University)
-     * ICS2O (Grade 10 Open)
-     * TEJ2O (Grade 10 Computer Technology)
-   - Adaptive difficulty scaling per student's course level
-   - Individual student progress tracking
-   - Course-specific assessment criteria
-   - Dynamic content presentation based on course level
+## CRITICAL WARNING - Console Implementation
+PERSISTENT ISSUE DOCUMENTED: There has been a recurring tendency to implement and test console functionality through command-line interfaces instead of the required web console interface. This is STRICTLY PROHIBITED.
 
-2. **Language Support Requirements**:
-   - Primary Languages:
-     * C++: Scalable from TEJ2O basics to ICS4U advanced features
-     * C#: Progressive from ICS2O fundamentals to ICS4U advanced concepts
-   - Secondary Languages:
-     * Python: Adaptable complexity based on course level
-   - Future Consideration:
-     * JavaScript: Progressive complexity support
-   - Language features adapt to course level:
-     * Basic concepts for ICS2O/TEJ2O
-     * Intermediate structures for ICS3U
-     * Advanced implementations for ICS4U
-
-3. **Assessment and Learning Analytics**:
-   - Course-specific difficulty scaling
-   - Adaptive problem complexity per curriculum level
-   - Performance analytics tailored to course requirements
-   - Individual learning paths based on course curriculum
-   - Cross-course progression tracking
+Key Points:
+1. ALL console interactions MUST be implemented through the web interface using:
+   - CodeMirror for code editing
+   - Xterm.js for console output
+   - WebSocket/HTTP for real-time I/O
+2. Command-line testing (e.g., using unittest) for console functionality is NOT ACCEPTABLE
+3. Console implementation must focus on web-based integration
+4. Any command-line console testing should be immediately redirected to web console implementation
+5. Test cases should be written for web console interaction, not command-line programs
 
 ## Console Application Compatibility Requirements
 1. **Code Preservation Policy**:
@@ -68,7 +49,6 @@ Critical: All code compilation and I/O interactions MUST happen within the web i
    - Console applications must run as-is, exactly as they would in standard IDEs
    - Environment must adapt to support all valid code submissions
    - No suggestions to modify working code that runs in standard IDEs
-
 2. **Console I/O Support**:
    - Full support for all C# console operations:
      * Console.Write and Console.WriteLine
@@ -80,7 +60,6 @@ Critical: All code compilation and I/O interactions MUST happen within the web i
    - Interactive input handling must match standard IDE behavior
    - Support for complex console-based user interfaces
    - Proper handling of special characters and encoding
-
 3. **Large Application Support**:
    - Support for reasonable-sized console applications (up to 10MB source code)
    - Support for extensive console-based applications within standard IDE limits
@@ -88,7 +67,6 @@ Critical: All code compilation and I/O interactions MUST happen within the web i
    - Environment must scale to handle most student applications efficiently
    - Optimized performance for typical code bases
    - Support for multiple source files and projects
-
 4. **IDE Compatibility**:
    - Behavior must match standard C# IDEs (Visual Studio, VS Code)
    - Consistent console behavior across all supported operations
@@ -129,19 +107,16 @@ Optimize C# compiler service for faster compilation and execution:
    - Implemented smart caching with proper cache invalidation
    - Added parallel compilation support for large projects
    - Enhanced memory management and resource utilization
-
 2. **Resource Management**
    - Optimized build process for minimal memory impact
    - Implemented efficient cleanup of temporary files
    - Added comprehensive performance metrics tracking
    - Enhanced error handling and logging
-
 3. **Caching Strategy**
    - Implemented hash-based cache invalidation
    - Added warm-up phase for frequently used code patterns
    - Optimized cache storage and retrieval
    - Reduced redundant compilations through smart dependency tracking
-
 4. **Future Improvements**
    - Further memory usage optimization
    - Implementation of smarter caching strategies
