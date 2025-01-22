@@ -890,14 +890,7 @@ def is_interactive_code(code: str, language: str) -> bool:
     return False
 
 def get_template(language: str) -> str:
-    """Get the template code for a given programming language.
-
-    Args:
-        language (str): The programming language identifier ('cpp' or 'csharp')
-
-    Returns:
-        str: The template code for the specified language
-    """
+    """Get the template code for a given programming language."""
     templates = {
         'cpp': """#include <iostream>
 #include <string>
@@ -908,21 +901,23 @@ int main() {
     cout << "Hello World!" << endl;
     return 0;
 }""",
-        'csharp': """// Simple C# Console Program
-using System;
+        'csharp': """using System;
 
-class Program 
+namespace ConsoleApp 
 {
-    static void Main() 
+    class Program 
     {
-        try 
+        static void Main(string[] args) 
         {
-            // Your code here
-            Console.WriteLine("Hello World!");
-        }
-        catch (Exception e) 
-        {
-            Console.WriteLine($"Error: {e.Message}");
+            try 
+            {
+                // Your code here
+                Console.WriteLine("Hello World!");
+            }
+            catch (Exception e) 
+            {
+                Console.WriteLine($"Error: {e.Message}");
+            }
         }
     }
 }"""
