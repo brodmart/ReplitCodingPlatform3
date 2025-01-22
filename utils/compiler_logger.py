@@ -4,18 +4,18 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 from pathlib import Path
+from .logging_config import setup_logging
 
-# Configure logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+# Initialize logger with our configuration
+logger = setup_logging('compiler')
 
 class CompilerLogger:
     """Handles logging for C# compiler service"""
-    
+
     def __init__(self):
         self.log_dir = Path('logs/compiler')
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Setup file handler for compiler logs
         self.compiler_handler = logging.FileHandler(
             self.log_dir / 'compiler.log'
@@ -64,27 +64,27 @@ class CompilerLogger:
     def _log_event(self, session_id: str, event_type: str, data: Dict[str, Any]) -> None:
         """Write structured log entry to session log file"""
         log_file = self.log_dir / f"session_{session_id}.json"
-        
+
         try:
             existing_logs = []
             if log_file.exists():
                 with open(log_file, 'r') as f:
                     existing_logs = json.load(f)
-            
+
             if not isinstance(existing_logs, list):
                 existing_logs = []
-            
+
             log_entry = {
                 'event_type': event_type,
                 'timestamp': datetime.utcnow().isoformat(),
                 'data': data
             }
-            
+
             existing_logs.append(log_entry)
-            
+
             with open(log_file, 'w') as f:
                 json.dump(existing_logs, f, indent=2)
-                
+
         except Exception as e:
             logger.error(f"Error writing to log file: {str(e)}")
 

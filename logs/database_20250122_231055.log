@@ -1,0 +1,54 @@
+2025-01-22 23:10:55,130 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:10:55,131 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:10:55,355 - app:63 - INFO - Database initialized
+2025-01-22 23:10:55,548 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:10:55,551 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:10:55,562 - app:43 - INFO - Initializing Flask application
+2025-01-22 23:10:55,563 - app:58 - DEBUG - Application configuration loaded
+2025-01-22 23:10:55,627 - app:63 - INFO - Database initialized
+2025-01-22 23:10:55,725 - app:63 - INFO - Database initialized
+2025-01-22 23:10:55,810 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:10:55,815 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:10:55,893 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:10:56,035 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:10:56,037 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:10:56,066 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:10:56,215 - engineio.server:112 - INFO - Server initialized for eventlet.
+2025-01-22 23:10:56,221 - app:70 - INFO - Socket.IO initialized
+2025-01-22 23:10:56,255 - app:79 - INFO - CORS, Session, and CSRF protection initialized
+2025-01-22 23:10:57,465 - app:86 - INFO - Database tables created
+2025-01-22 23:10:57,465 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:10:57,675 - app:86 - INFO - Database tables created
+2025-01-22 23:10:57,677 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:10:57,737 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+
+2025-01-22 23:10:57,911 - __main__:333 - INFO - Starting ICD2O curriculum import process...
+2025-01-22 23:10:57,980 - __main__:108 - ERROR - Error during verification: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+Traceback (most recent call last):
+  File "/home/runner/workspace/scripts/verify_c21.py", line 55, in verify_c21
+    ).first()
+      ^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2728, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2827, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2362, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2235, in _execute_internal
+    bind = self.get_bind(**bind_arguments)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/session.py", line 53, in get_bind
+    engines = self._db.engines
+              ^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 690, in engines
+    raise RuntimeError(
+RuntimeError: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+2025-01-22 23:10:58,024 - __main__:58 - ERROR - Error clearing existing data: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+2025-01-22 23:10:58,025 - __main__:387 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+2025-01-22 23:10:58,901 - app:86 - INFO - Database tables created
+2025-01-22 23:10:58,915 - app:101 - INFO - Application initialized successfully
+2025-01-22 23:10:59,151 - __main__:47 - INFO - Starting ICS3U curriculum import process...
+2025-01-22 23:10:59,248 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
