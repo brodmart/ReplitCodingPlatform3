@@ -13,49 +13,53 @@ const editorState = {
 // Set editor template with improved error handling and CSRF token
 async function setEditorTemplate(language) {
     if (!language) {
-        throw new Error('Language parameter is required');
+        console.error('Language parameter is required');
+        showError('Invalid language selection');
+        return;
     }
-
-    console.log('Setting template for language:', language);
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
         if (!csrfToken) {
-            throw new Error('CSRF token not found');
+            console.error('CSRF token not found');
+            showError('Security token missing. Please refresh the page.');
+            return;
         }
 
+        console.log(`Setting template for language: ${language}`);
         const response = await fetch('/activities/get_template', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-CSRF-Token': csrfToken
             },
-            body: JSON.stringify({ language })
+            body: JSON.stringify({ language: language })
         });
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            throw new Error(errorData.error || `Failed to load template (${response.status})`);
         }
 
         const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to get template');
+        if (!data.success || !data.template) {
+            throw new Error(data.error || 'Template not found');
         }
 
-        if (!data.template) {
-            throw new Error('Template not found');
+        if (editorState.editor) {
+            editorState.editor.setValue(data.template);
+            editorState.editor.clearHistory();
+            // Position cursor appropriately based on language
+            const cursorLine = language === 'cpp' ? 4 : 6;
+            editorState.editor.setCursor(cursorLine, 4);
+        } else {
+            console.error('Editor not initialized');
+            showError('Editor initialization failed');
         }
-
-        editorState.editor.setValue(data.template);
-        editorState.editor.clearHistory();
-
-        // Position cursor appropriately based on language
-        const cursorLine = language === 'cpp' ? 4 : 6;
-        editorState.editor.setCursor(cursorLine, 4);
     } catch (error) {
         console.error('Error setting template:', error);
-        throw error; // Re-throw to allow fallback template in initializeEditor
+        showError(`Failed to change language: ${error.message}`);
+        // Don't rethrow, we've handled the error with user feedback
     }
 }
 
@@ -73,7 +77,7 @@ async function initializeEditor() {
             throw new Error('Editor element not found');
         }
 
-        // Initialize CodeMirror with basic configuration first
+        // Initialize CodeMirror with basic configuration
         editorState.editor = CodeMirror.fromTextArea(editorElement, {
             mode: getEditorMode('cpp'), // Start with C++ as default
             theme: 'dracula',
@@ -95,6 +99,9 @@ async function initializeEditor() {
             }
         });
 
+        // Set up event listeners
+        setupEventListeners();
+
         // Get the language from the select element
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
@@ -102,10 +109,7 @@ async function initializeEditor() {
             editorState.editor.setOption('mode', getEditorMode(editorState.currentLanguage));
         }
 
-        // Set up event listeners
-        setupEventListeners();
-
-        // Try to load template with default fallback
+        // Try to load template
         try {
             await setEditorTemplate(editorState.currentLanguage);
         } catch (error) {
@@ -122,7 +126,7 @@ async function initializeEditor() {
 
     } catch (error) {
         console.error('Editor initialization failed:', error);
-        throw error; // Re-throw to be caught by the DOM ready handler
+        showError('Failed to initialize editor');
     }
 }
 
@@ -137,16 +141,16 @@ function getEditorMode(language) {
 
 // Set up event listeners
 function setupEventListeners() {
-    // Run button
-    const runButton = document.getElementById('runButton');
-    if (runButton) {
-        runButton.addEventListener('click', runCode);
-    }
-
     // Language selector
     const languageSelect = document.getElementById('languageSelect');
     if (languageSelect) {
         languageSelect.addEventListener('change', handleLanguageChange);
+    }
+
+    // Run button
+    const runButton = document.getElementById('runButton');
+    if (runButton) {
+        runButton.addEventListener('click', runCode);
     }
 
     // Clear console button
@@ -174,26 +178,14 @@ function setupEventListeners() {
 async function handleLanguageChange(event) {
     if (!event.target) return;
 
-    try {
-        const newLanguage = event.target.value;
-        if (!newLanguage) {
-            throw new Error('Invalid language selection');
-        }
+    const newLanguage = event.target.value;
+    if (!newLanguage || newLanguage === editorState.currentLanguage) return;
 
-        console.log('Language changed to:', newLanguage);
-
-        if (newLanguage === editorState.currentLanguage) return;
-
-        editorState.currentLanguage = newLanguage;
-        editorState.editor.setOption('mode', getEditorMode(newLanguage));
-
-        await setEditorTemplate(newLanguage);
-    } catch (error) {
-        console.error('Error changing language:', error);
-        showError(`Failed to change language: ${error.message}`);
-    }
+    console.log('Language changed to:', newLanguage);
+    editorState.currentLanguage = newLanguage;
+    editorState.editor.setOption('mode', getEditorMode(newLanguage));
+    await setEditorTemplate(newLanguage);
 }
-
 
 // Show error message
 function showError(message) {

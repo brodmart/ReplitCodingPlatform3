@@ -28,13 +28,13 @@ def register_blueprints(app):
     with app.app_context():
         # Import blueprints here to avoid circular dependencies and early loading
         from routes.auth_routes import auth
-        from routes.activity_routes import activities  # Use the consolidated activity routes
+        from routes.activity_routes import activities
         from routes.tutorial import tutorial_bp
         from routes.static_routes import static_pages
         from routes.curriculum_routes import curriculum_bp
 
         app.register_blueprint(auth)
-        app.register_blueprint(activities)  # Register the consolidated activities blueprint
+        app.register_blueprint(activities)
         app.register_blueprint(tutorial_bp, url_prefix='/tutorial')
         app.register_blueprint(static_pages)
         app.register_blueprint(curriculum_bp, url_prefix='/curriculum')
@@ -56,6 +56,60 @@ def setup_error_handlers(app):
     def request_entity_too_large(error):
         logger.warning(f"413 error: {error}")
         return render_template('errors/413.html'), 413
+
+def setup_template_routes(app, csrf):
+    """Setup template-related routes with proper CSRF protection"""
+    @app.route('/activities/get_template', methods=['POST'])
+    def get_code_template():
+        """Get code template for a specific programming language."""
+        try:
+            # Verify CSRF token manually since we're handling JSON
+            csrf.protect()
+
+            data = request.get_json()
+            if not data:
+                logger.warning("Template request had no JSON data")
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid request format'
+                }), 400
+
+            language = data.get('language')
+            if not language:
+                logger.warning("Template request missing language parameter")
+                return jsonify({
+                    'success': False,
+                    'error': 'Language parameter is required'
+                }), 400
+
+            language = language.lower()
+            if language not in ['cpp', 'csharp']:
+                logger.warning(f"Unsupported language requested: {language}")
+                return jsonify({
+                    'success': False,
+                    'error': f'Unsupported language: {language}'
+                }), 400
+
+            template = get_template(language)
+            if not template:
+                logger.warning(f"No template found for language: {language}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Template not found'
+                }), 404
+
+            logger.info(f"Successfully retrieved template for {language}")
+            return jsonify({
+                'success': True,
+                'template': template
+            })
+
+        except Exception as e:
+            logger.error(f"Error getting template: {str(e)}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': 'Internal server error'
+            }), 500
 
 def create_app():
     """Create and configure the Flask application"""
@@ -121,46 +175,8 @@ def create_app():
                 logger.error(f"Error loading user: {str(e)}")
                 return None
 
-        # Add template loading route
-        @app.route('/activities/get_template', methods=['POST'])
-        def get_code_template():
-            try:
-                data = request.get_json()
-                if not data or 'language' not in data:
-                    logger.warning("Template request missing language parameter")
-                    return jsonify({
-                        'success': False,
-                        'error': 'Language parameter is required'
-                    }), 400
-
-                language = data['language'].lower()
-                if language not in ['cpp', 'csharp']:
-                    logger.warning(f"Unsupported language requested: {language}")
-                    return jsonify({
-                        'success': False,
-                        'error': 'Unsupported language'
-                    }), 400
-
-                template = get_template(language)
-                if not template:
-                    logger.warning(f"No template found for language: {language}")
-                    return jsonify({
-                        'success': False,
-                        'error': 'Template not found'
-                    }), 404
-
-                logger.debug(f"Successfully retrieved template for {language}")
-                return jsonify({
-                    'success': True,
-                    'template': template
-                })
-
-            except Exception as e:
-                logger.error(f"Error getting template: {str(e)}")
-                return jsonify({
-                    'success': False,
-                    'error': 'Internal server error'
-                }), 500
+        # Setup template routes with CSRF protection
+        setup_template_routes(app, csrf)
 
         # Register blueprints after database is initialized
         register_blueprints(app)
@@ -191,7 +207,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
 if __name__ == '__main__':
     try:
-        port = int(os.environ.get('PORT', 8080))
+        port = int(os.environ.get('PORT', 5000))
         logger.info(f"Starting Flask application on port {port}")
         app.run(
             host='0.0.0.0',
