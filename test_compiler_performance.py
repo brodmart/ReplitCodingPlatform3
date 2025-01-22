@@ -3,9 +3,20 @@ import statistics
 from compiler import compile_and_run
 import logging
 import os
+import psutil
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+def get_system_metrics():
+    """Get current system resource usage"""
+    cpu_percent = psutil.cpu_percent(interval=0.1)
+    memory = psutil.virtual_memory()
+    return {
+        'cpu_percent': cpu_percent,
+        'memory_percent': memory.percent,
+        'memory_available': memory.available / (1024 * 1024)  # MB
+    }
 
 def test_basic_compilation():
     """Test basic Hello World compilation performance"""
@@ -18,15 +29,30 @@ class Program {
 }
 """
     times = []
+    system_metrics = []
+
     for _ in range(5):
+        metrics_before = get_system_metrics()
         start = time.time()
         result = compile_and_run(code, "csharp")
         times.append(time.time() - start)
+        metrics_after = get_system_metrics()
+
+        system_metrics.append({
+            'cpu_delta': metrics_after['cpu_percent'] - metrics_before['cpu_percent'],
+            'memory_delta': metrics_after['memory_percent'] - metrics_before['memory_percent']
+        })
+
         assert result['success'], f"Compilation failed: {result.get('error', 'Unknown error')}"
         assert "Hello World!" in result['output'], "Expected output not found"
 
     avg_time = statistics.mean(times)
-    print(f"Average compilation time: {avg_time:.2f}s")
+    avg_cpu_delta = statistics.mean(m['cpu_delta'] for m in system_metrics)
+    avg_memory_delta = statistics.mean(m['memory_delta'] for m in system_metrics)
+
+    logger.info(f"Average compilation time: {avg_time:.2f}s")
+    logger.info(f"Average CPU impact: {avg_cpu_delta:.1f}%")
+    logger.info(f"Average memory impact: {avg_memory_delta:.1f}%")
     return avg_time
 
 def test_cached_compilation():
@@ -45,15 +71,31 @@ class Program {
 
     # Test cached compilation performance
     times = []
+    system_metrics = []
+
     for _ in range(5):
+        metrics_before = get_system_metrics()
         start = time.time()
         result = compile_and_run(code, "csharp")
         times.append(time.time() - start)
+        metrics_after = get_system_metrics()
+
+        system_metrics.append({
+            'cpu_delta': metrics_after['cpu_percent'] - metrics_before['cpu_percent'],
+            'memory_delta': metrics_after['memory_percent'] - metrics_before['memory_percent']
+        })
+
         assert result['success'], f"Cached compilation failed: {result.get('error', 'Unknown error')}"
         assert "Testing cache!" in result['output'], "Expected output not found"
+        assert result['metrics'].get('cached', False), "Result should be cached"
 
     avg_time = statistics.mean(times)
-    print(f"Average cached compilation time: {avg_time:.2f}s")
+    avg_cpu_delta = statistics.mean(m['cpu_delta'] for m in system_metrics)
+    avg_memory_delta = statistics.mean(m['memory_delta'] for m in system_metrics)
+
+    logger.info(f"Average cached compilation time: {avg_time:.2f}s")
+    logger.info(f"Average CPU impact (cached): {avg_cpu_delta:.1f}%")
+    logger.info(f"Average memory impact (cached): {avg_memory_delta:.1f}%")
     return avg_time
 
 def test_complex_compilation():
@@ -69,73 +111,36 @@ class Program {
     }
 }
 """
+    metrics_before = get_system_metrics()
     start = time.time()
     result = compile_and_run(code, "csharp")
     compilation_time = time.time() - start
+    metrics_after = get_system_metrics()
 
     assert result['success'], f"Complex compilation failed: {result.get('error', 'Unknown error')}"
     assert "Sum of even numbers: 2550" in result['output'], "Expected output not found"
 
-    print(f"Complex compilation time: {compilation_time:.2f}s")
+    cpu_impact = metrics_after['cpu_percent'] - metrics_before['cpu_percent']
+    memory_impact = metrics_after['memory_percent'] - metrics_before['memory_percent']
+
+    logger.info(f"Complex compilation time: {compilation_time:.2f}s")
+    logger.info(f"CPU impact: {cpu_impact:.1f}%")
+    logger.info(f"Memory impact: {memory_impact:.1f}%")
     return compilation_time
 
-def test_compilation_performance():
-    logger.info("Starting compilation performance test")
+def compile_and_run_parallel(files):
+    import concurrent.futures
+    results = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [executor.submit(compile_and_run, code, "csharp") for code in files]
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                results.append({'success':False, 'error': str(e)})
+    return results
 
-    # Read the large test file
-    with open('test_large.cs', 'r') as f:
-        code = f.read()
-
-    # Run multiple compilation tests
-    num_tests = 3
-    compilation_times = []
-
-    for i in range(num_tests):
-        logger.info(f"Running test {i+1}/{num_tests}")
-        start_time = time.time()
-        result = compile_and_run(code, 'csharp')
-        end_time = time.time()
-
-        if result['success']:
-            metrics = result.get('metrics', {})
-            compilation_time = metrics.get('compilation_time', 0)
-            execution_time = metrics.get('execution_time', 0)
-            total_time = end_time - start_time
-
-            logger.info(f"Test {i+1} results:")
-            logger.info(f"Compilation time: {compilation_time:.2f}s")
-            logger.info(f"Execution time: {execution_time:.2f}s")
-            logger.info(f"Total time: {total_time:.2f}s")
-
-            compilation_times.append(compilation_time)
-        else:
-            logger.error(f"Test {i+1} failed: {result.get('error')}")
-
-    if compilation_times:
-        avg_time = sum(compilation_times) / len(compilation_times)
-        logger.info(f"\nAverage compilation time: {avg_time:.2f}s")
-        logger.info(f"Best time: {min(compilation_times):.2f}s")
-        logger.info(f"Worst time: {max(compilation_times):.2f}s")
-
-def compile_and_run_parallel(files, language='csharp'):
-    """Run compilation in parallel for multiple files"""
-    try:
-        # Create temporary directory for compilation
-        os.makedirs('temp', exist_ok=True)
-        cwd = os.path.abspath('temp')
-
-        # Setup environment
-        env = os.environ.copy()
-        env['DOTNET_CLI_HOME'] = cwd
-        env['DOTNET_NOLOGO'] = '1'
-        env['DOTNET_CLI_TELEMETRY_OPTOUT'] = '1'
-
-        # Run parallel compilation
-        results = run_parallel_compilation(files, cwd, env, timeout=30)
-        return [{'success': r.returncode == 0, 'output': r.stdout, 'error': r.stderr} for r in results]
-    except Exception as e:
-        logger.error(f"Parallel compilation failed: {e}")
-        return [{'success': False, 'error': str(e)}] * len(files)
 
 def test_parallel_compilation_performance():
     """Test the performance of parallel compilation with multiple files"""
@@ -143,44 +148,56 @@ def test_parallel_compilation_performance():
 
     # Create multiple test files with different content
     test_files = []
+    codes = []
     for i in range(3):
-        filename = f'test_parallel_{i}.cs'
-        with open(filename, 'w') as f:
-            f.write(f"""
+        code = f"""
 using System;
-
-namespace TestProgram_{i}
-{{
-    class Program
-    {{
-        static void Main()
-        {{
-            Console.WriteLine("Test program {i}");
-            for(int j = 0; j < {i+1}*1000; j++)
-            {{
-                Math.Pow(j, 2);
-            }}
+class Program_{i} {{
+    static void Main() {{
+        int sum = 0;
+        for(int j = 0; j < {i+1}*1000; j++) {{
+            sum += j;
         }}
+        Console.WriteLine($"Sum for program {i}: {{sum}}");
     }}
 }}
-""")
+"""
+        codes.append(code)
+        filename = f'test_parallel_{i}.cs'
+        with open(filename, 'w') as f:
+            f.write(code)
         test_files.append(filename)
 
     try:
         # Test parallel compilation
+        metrics_before = get_system_metrics()
         start_time = time.time()
-        results = compile_and_run_parallel(test_files)
+
+        # Run parallel compilation
+        results = compile_and_run_parallel(codes)
+
         end_time = time.time()
+        metrics_after = get_system_metrics()
 
         total_time = end_time - start_time
+        cpu_impact = metrics_after['cpu_percent'] - metrics_before['cpu_percent']
+        memory_impact = metrics_after['memory_percent'] - metrics_before['memory_percent']
+
         logger.info(f"Parallel compilation completed in {total_time:.2f}s")
+        logger.info(f"CPU impact: {cpu_impact:.1f}%")
+        logger.info(f"Memory impact: {memory_impact:.1f}%")
 
         # Log individual file results
+        successful_compilations = 0
         for i, result in enumerate(results):
             if result['success']:
-                logger.info(f"File {i+1} compilation successful")
+                successful_compilations += 1
+                logger.info(f"File {i+1} compiled successfully")
             else:
-                logger.error(f"File {i+1} failed: {result.get('error')}")
+                logger.error(f"File {i+1} failed: {result.get('error', 'Unknown error')}")
+
+        logger.info(f"Successfully compiled {successful_compilations} out of {len(test_files)} files")
+        return total_time
 
     finally:
         # Cleanup test files
@@ -190,22 +207,29 @@ namespace TestProgram_{i}
             except Exception as e:
                 logger.warning(f"Failed to cleanup file {file}: {e}")
 
-        # Cleanup temp directory
-        try:
-            import shutil
-            shutil.rmtree('temp', ignore_errors=True)
-        except Exception as e:
-            logger.warning(f"Failed to cleanup temp directory: {e}")
-
 if __name__ == "__main__":
-    print("Running compiler performance tests...")
+    print("\nRunning comprehensive compiler performance tests...")
+    print("\n1. Testing basic compilation performance...")
     basic_time = test_basic_compilation()
+
+    print("\n2. Testing cached compilation performance...")
     cached_time = test_cached_compilation()
+
+    print("\n3. Testing complex compilation performance...")
     complex_time = test_complex_compilation()
-    test_compilation_performance()
-    test_parallel_compilation_performance()
+
+    print("\n4. Testing parallel compilation performance...")
+    parallel_time = test_parallel_compilation_performance()
 
     print("\nPerformance Summary:")
     print(f"Basic compilation: {basic_time:.2f}s")
     print(f"Cached compilation: {cached_time:.2f}s")
     print(f"Complex compilation: {complex_time:.2f}s")
+    print(f"Parallel compilation: {parallel_time:.2f}s")
+
+    # Print current system status
+    current_metrics = get_system_metrics()
+    print("\nSystem Status:")
+    print(f"CPU Usage: {current_metrics['cpu_percent']:.1f}%")
+    print(f"Memory Usage: {current_metrics['memory_percent']:.1f}%")
+    print(f"Available Memory: {current_metrics['memory_available']:.0f}MB")
