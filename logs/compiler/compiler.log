@@ -305,3 +305,21 @@
 2025-01-22 19:04:16,671 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_4946843011790812087
 2025-01-22 19:04:20,530 - utils.compiler_logger - INFO - Session test_interactive_-578619780063435019 state changed to: session_started
 2025-01-22 19:04:21,091 - utils.compiler_logger - INFO - Session test_interactive_4946843011790812087 state changed to: session_started
+2025-01-22 19:12:09,560 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-3854350733530365825
+2025-01-22 19:12:10,050 - utils.compiler_logger - INFO - Session test_interactive_-3854350733530365825 state changed to: session_started
+2025-01-22 19:12:11,066 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-3854350733530365825: Failed to get initial output
+2025-01-22 19:12:11,069 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-6930025719370442168
+2025-01-22 19:12:14,513 - utils.compiler_logger - INFO - Session test_interactive_-6930025719370442168 state changed to: session_started
+2025-01-22 19:12:15,515 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-6930025719370442168: Failed to get initial output
+2025-01-22 19:12:58,004 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_6924633867368820921
+2025-01-22 19:12:58,452 - utils.compiler_logger - INFO - Session test_interactive_6924633867368820921 state changed to: session_started
+2025-01-22 19:12:59,454 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_6924633867368820921: Failed to get initial output
+2025-01-22 19:12:59,456 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-1042348032581061616
+2025-01-22 19:13:02,818 - utils.compiler_logger - INFO - Session test_interactive_-1042348032581061616 state changed to: session_started
+2025-01-22 19:13:03,820 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_-1042348032581061616: Failed to get initial output
+2025-01-22 19:13:46,965 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_1287398163820160216
+2025-01-22 19:13:48,429 - utils.compiler_logger - INFO - Session test_interactive_1287398163820160216 state changed to: session_started
+2025-01-22 19:13:48,430 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_1287398163820160216: Failed to get initial output
+2025-01-22 19:13:48,432 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_2707565762510816100
+2025-01-22 19:13:52,567 - utils.compiler_logger - INFO - Session test_interactive_2707565762510816100 state changed to: session_started
+2025-01-22 19:13:52,569 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_2707565762510816100: Failed to get initial output

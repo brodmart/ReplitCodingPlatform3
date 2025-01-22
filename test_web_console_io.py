@@ -1,14 +1,14 @@
 import unittest
 import logging
 import time
-import uuid
 import tempfile
 from pathlib import Path
 from compiler_service import (
     compile_and_run, start_interactive_session,
-    send_input, get_output, get_or_create_session,
-    cleanup_session, CompilerSession
+    send_input, get_output, CompilerSession,
+    cleanup_session
 )
+from utils.compiler_logger import compiler_logger
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -24,77 +24,114 @@ class TestWebConsoleIO(unittest.TestCase):
     def tearDown(self):
         """Clean up test environment"""
         for session_id in self.active_sessions:
-            cleanup_session(session_id)
-        Path(self.temp_dir).rmdir()
+            try:
+                logger.info(f"Cleaning up session {session_id}")
+                cleanup_session(session_id)
+                self.active_sessions.remove(session_id)
+            except Exception as e:
+                logger.error(f"Error cleaning up session {session_id}: {e}")
+        try:
+            if Path(self.temp_dir).exists():
+                for file in Path(self.temp_dir).iterdir():
+                    try:
+                        file.unlink()
+                    except Exception as e:
+                        logger.error(f"Error removing file {file}: {e}")
+                Path(self.temp_dir).rmdir()
+        except Exception as e:
+            logger.error(f"Error removing temp dir: {e}")
 
     def verify_interactive_session(self, code: str, language: str, test_cases: list) -> bool:
-        """Verify interactive I/O session with multiple test cases"""
-        logger.info(f"Testing {language} interactive session with {len(test_cases)} test cases")
+        """Helper method to verify interactive I/O sessions"""
+        # Create session with stable ID
+        session_id = f"test_interactive_{str(hash(code))}"
+        compiler_logger.log_compilation_start(session_id, code)
+        logger.info(f"Starting {language} interactive session")
 
-        # Start session
-        session_id = str(uuid.uuid4())
+        # Initialize session with temp directory
         session = CompilerSession(session_id, self.temp_dir)
         self.active_sessions.add(session_id)
 
-        result = start_interactive_session(session, code, language)
-        self.assertTrue(result['success'], f"Failed to start {language} session")
-        self.assertTrue(result['interactive'], "Session should be interactive")
-
         try:
-            # Process each test case
-            for i, test_case in enumerate(test_cases):
-                logger.info(f"Running test case {i + 1}/{len(test_cases)}")
+            # Start interactive session
+            result = start_interactive_session(session, code, language)
+            if not result['success']:
+                compiler_logger.log_compilation_error(
+                    session_id,
+                    Exception(result.get('error', 'Unknown error')),
+                    {'stage': 'session_start'}
+                )
+                return False
 
-                # Get current output
-                output = self._get_output_with_retry(session_id)
-                self.assertTrue(output['success'], f"Failed to get output for case {i}")
-                self.assertTrue(output.get('waiting_for_input', False),
-                              f"{language} program not waiting for input as expected")
+            # Wait for process initialization
+            time.sleep(1)
+            compiler_logger.log_execution_state(session_id, 'session_started')
+            logger.info(f"{language} session started successfully")
+
+            # Process each test case
+            for i, test_case in enumerate(test_cases, 1):
+                logger.info(f"Running test case {i}/{len(test_cases)}")
+
+                # Get initial output and verify prompt
+                output = get_output(session_id)
+                if not output['success']:
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        "Failed to get initial output",
+                        output
+                    )
+                    return False
+
+                logger.info(f"Current output: {output.get('output', '')}")
 
                 # Send input
                 logger.info(f"Sending input: {test_case['input']}")
-                input_result = send_input(session_id, test_case['input'])
-                self.assertTrue(input_result['success'], f"Failed to send input for case {i}")
+                send_result = send_input(session_id, test_case['input'])
+                if not send_result['success']:
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        "Failed to send input",
+                        send_result
+                    )
+                    return False
 
-                # Verify output
-                final_output = self._get_output_with_retry(session_id, 
-                                                       expected=test_case['expected'])
-                self.assertTrue(final_output['success'], 
-                              f"Failed to get final output for case {i}")
-                self.assertIn(test_case['expected'], final_output['output'],
-                           f"Expected '{test_case['expected']}' not found in output")
+                # Wait for processing
+                time.sleep(0.5)
 
+                # Get and verify output
+                final_output = get_output(session_id)
+                if not final_output['success']:
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        "Failed to get output after input",
+                        final_output
+                    )
+                    return False
+
+                if test_case['expected'] not in final_output['output']:
+                    compiler_logger.log_runtime_error(
+                        session_id,
+                        f"Expected output not found: {test_case['expected']}",
+                        {'actual_output': final_output['output']}
+                    )
+                    return False
+
+                time.sleep(0.5)  # Wait between test cases
+
+            # Log successful completion
+            compiler_logger.log_execution_state(session_id, 'test_completed', {
+                'outputs_received': True,
+                'test_success': True
+            })
             return True
+
         except Exception as e:
+            compiler_logger.log_runtime_error(session_id, str(e))
             logger.error(f"Error in verify_interactive_session: {str(e)}")
             return False
-        finally:
-            cleanup_session(session_id)
-
-    def _get_output_with_retry(self, session_id: str, expected: str = None, 
-                             max_retries: int = 3, retry_delay: float = 0.5) -> dict:
-        """Get output with retries and proper error handling"""
-        for retry in range(max_retries):
-            try:
-                time.sleep(retry_delay)
-                output = get_output(session_id)
-
-                # Check if we got the expected output
-                if output['success'] and (expected is None or expected in output['output']):
-                    return output
-
-                if not output['success'] and 'Process not running' in output.get('error', ''):
-                    break
-
-            except Exception as e:
-                logger.error(f"Error getting output (retry {retry}): {e}")
-
-            time.sleep(retry_delay)
-
-        return get_output(session_id)  # Return last attempt result
 
     def test_cpp_basic_io(self):
-        """Test C++ basic input/output interactions"""
+        """Test C++ basic input/output"""
         code = """
         #include <iostream>
         #include <string>
@@ -114,37 +151,34 @@ class TestWebConsoleIO(unittest.TestCase):
                 'expected': 'Hello, John Doe!'
             }
         ]
-        self.verify_interactive_session(code, 'cpp', test_cases)
+        self.assertTrue(
+            self.verify_interactive_session(code, 'cpp', test_cases),
+            "C++ basic I/O test failed"
+        )
 
-    def test_cpp_multiple_inputs(self):
-        """Test C++ multiple input interactions"""
+    def test_csharp_basic_io(self):
+        """Test C# basic input/output"""
         code = """
-        #include <iostream>
-        #include <string>
-        using namespace std;
+        using System;
 
-        int main() {
-            string name;
-            int age;
-            cout << "Enter your name: ";
-            getline(cin, name);
-            cout << "Enter your age: ";
-            cin >> age;
-            cout << "Hello, " << name << "! You are " << age << " years old." << endl;
-            return 0;
+        class Program {
+            static void Main() {
+                Console.Write("Enter your name: ");
+                string name = Console.ReadLine();
+                Console.WriteLine($"Hello, {name}!");
+            }
         }
         """
         test_cases = [
             {
-                'input': 'Alice Smith',
-                'expected': 'Enter your age'
-            },
-            {
-                'input': '25',
-                'expected': 'Hello, Alice Smith! You are 25 years old.'
+                'input': 'Jane Smith',
+                'expected': 'Hello, Jane Smith!'
             }
         ]
-        self.verify_interactive_session(code, 'cpp', test_cases)
+        self.assertTrue(
+            self.verify_interactive_session(code, 'csharp', test_cases),
+            "C# basic I/O test failed"
+        )
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

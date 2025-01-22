@@ -1,0 +1,31 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-22T19:13:46.965634",
+    "data": {
+      "code_length": 298,
+      "timestamp": "2025-01-22T19:13:46.965572"
+    }
+  },
+  {
+    "event_type": "execution_state",
+    "timestamp": "2025-01-22T19:13:48.429808",
+    "data": {
+      "state": "session_started",
+      "details": {},
+      "timestamp": "2025-01-22T19:13:48.429575"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-22T19:13:48.430748",
+    "data": {
+      "error_message": "Failed to get initial output",
+      "context": {
+        "success": false,
+        "error": "Invalid session ID"
+      },
+      "timestamp": "2025-01-22T19:13:48.430662"
+    }
+  }
+]
