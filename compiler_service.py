@@ -89,20 +89,18 @@ def clean_terminal_output(output: str) -> str:
     cleaned = re.sub(r'Build started.+?Build succeeded.+?\n', '', cleaned, flags=re.MULTILINE | re.DOTALL)
     cleaned = re.sub(r'\[0K', '', cleaned)  # Remove EL (Erase in Line) sequences
 
-    # Normalize line endings and whitespace
+    # Normalize line endings and whitespace while preserving prompts
     cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)  # Normalize line endings
     cleaned = re.sub(r'^\s*\n', '', cleaned)  # Remove empty lines at start
     cleaned = re.sub(r'\n\s*$', '\n', cleaned)  # Clean trailing whitespace
     cleaned = re.sub(r'\s*=\s*$', '', cleaned)  # Remove trailing equals signs
     cleaned = re.sub(r'[\n\r]+', '\n', cleaned)  # Collapse multiple newlines
+
+    # Preserve important prompts
     cleaned = re.sub(r'(?<=:)\s+(?=\w)', ' ', cleaned)  # Normalize spacing after colons
+    cleaned = re.sub(r'(?<=[>:])\s+$', ' ', cleaned)  # Keep space after prompts
 
-    # Handle C# specific prompt patterns
-    cleaned = re.sub(r'Press any key to continue[.]*', '', cleaned)
-    cleaned = re.sub(r'Type.+?to exit[.]*', '', cleaned)
-    cleaned = re.sub(r'Microsoft \(R\).+?Runtime.+?\n', '', cleaned, flags=re.MULTILINE)
-
-    # Clean up remaining control characters
+    # Clean up remaining control characters while preserving prompts
     cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
 
     return cleaned.strip()
@@ -130,43 +128,44 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                             # Split into lines, keeping the last partial line
                             lines = full_data.splitlines(True)  # Keep line endings
                             if lines:
+                                # Handle partial lines
                                 if not full_data.endswith('\n'):
                                     session.partial_line = lines[-1]
                                     lines = lines[:-1]
                                 else:
                                     session.partial_line = ""
 
-                            # Process complete lines with enhanced input detection
-                            for line in lines:
-                                cleaned = clean_terminal_output(line)
-                                if cleaned:  # Only append non-empty output
-                                    session.stdout_buffer.append(cleaned)
-                                    logger.debug(f"Raw output received: {cleaned}")
+                                # Process complete lines with enhanced input detection
+                                for line in lines:
+                                    cleaned = clean_terminal_output(line)
+                                    if cleaned:  # Only append non-empty output
+                                        session.stdout_buffer.append(cleaned)
+                                        logger.debug(f"Raw output received: {cleaned}")
 
-                                    # Enhanced input prompt detection
-                                    if not session.waiting_for_input:
-                                        # Get recent output for context
-                                        recent_output = ''.join(session.stdout_buffer[-3:]).lower()
+                                        # Enhanced input prompt detection
+                                        if not session.waiting_for_input:
+                                            # Common input patterns for both C++ and C#
+                                            input_patterns = [
+                                                'input', 'enter', 'type', '?', ':', '>',
+                                                'choice', 'select', 'press', 'continue',
+                                                'cin', 'Console.ReadLine', 'ReadKey'
+                                            ]
 
-                                        # Common input patterns
-                                        input_patterns = [
-                                            'input', 'enter', 'type', '?', ':', '>',
-                                            'choice', 'select', 'press', 'continue',
-                                            'name', 'age', 'value'
-                                        ]
+                                            # Get recent output for context (last line is most important)
+                                            recent_output = cleaned.lower()
 
-                                        # Check for input patterns
-                                        is_input_prompt = (
-                                            any(pattern in recent_output for pattern in input_patterns) or
-                                            recent_output.rstrip().endswith(':') or
-                                            recent_output.rstrip().endswith('> ') or
-                                            (recent_output.count('\n') == 0 and 
-                                             any(char in recent_output for char in '?:>'))
-                                        )
+                                            # Improved prompt detection
+                                            is_input_prompt = (
+                                                any(pattern in recent_output for pattern in input_patterns) or
+                                                recent_output.rstrip().endswith(':') or
+                                                recent_output.rstrip().endswith('> ') or
+                                                (recent_output.count('\n') == 0 and 
+                                                 any(char in recent_output for char in '?:>'))
+                                            )
 
-                                        if is_input_prompt:
-                                            session.waiting_for_input = True
-                                            logger.debug(f"Input prompt detected in: {recent_output}")
+                                            if is_input_prompt:
+                                                session.waiting_for_input = True
+                                                logger.debug(f"Input prompt detected: {cleaned}")
 
                         except Exception as e:
                             logger.error(f"Error processing output: {e}")
@@ -176,22 +175,6 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                         logger.error(f"Error reading from PTY: {e}")
                         break
                     continue
-
-            # Check stderr separately using read instead of read1
-            if process.stderr:
-                try:
-                    stderr_data = process.stderr.read(chunk_size)
-                    if stderr_data:
-                        try:
-                            decoded = stderr_data.decode('utf-8', errors='replace')
-                            cleaned = clean_terminal_output(decoded)
-                            if cleaned:  # Only append non-empty output
-                                session.stderr_buffer.append(cleaned)
-                                logger.debug(f"Stderr received: {cleaned}")
-                        except Exception as e:
-                            logger.error(f"Error processing stderr: {e}")
-                except Exception as e:
-                    logger.error(f"Error reading stderr: {e}")
 
             time.sleep(0.05)  # Small delay to prevent CPU overuse
             session.last_activity = time.time()
@@ -205,30 +188,6 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
             if cleaned:
                 session.stdout_buffer.append(cleaned)
                 logger.debug(f"Final partial line: {cleaned}")
-
-        # Ensure we collect any remaining output
-        try:
-            if session.master_fd is not None:
-                while True:
-                    try:
-                        data = os.read(session.master_fd, chunk_size)
-                        if data:
-                            decoded = data.decode('utf-8', errors='replace')
-                            cleaned = clean_terminal_output(decoded)
-                            if cleaned:  # Only append non-empty output
-                                session.stdout_buffer.append(cleaned)
-                                logger.debug(f"Final output received: {cleaned}")
-                    except (OSError, IOError):
-                        break
-        except Exception as e:
-            logger.error(f"Error collecting final output: {e}")
-
-        if session.master_fd is not None:
-            try:
-                os.close(session.master_fd)
-                logger.debug("Closed master PTY in monitor_output")
-            except:
-                pass
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved isolation and I/O handling"""
@@ -1560,3 +1519,97 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             shutil.rmtree(temp_dir)
         except Exception as e:
             logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
+
+def format_csharp_error(error_msg: str) -> str:
+    """Enhanced error message formatting for C# compiler errors"""
+    if not error_msg:
+        return "Unknown error occurred"
+
+    error_lines = []
+
+    # Split into lines and process each one
+    for line in error_msg.splitlines():
+        # Look for compiler error pattern: file(line,col): error CSxxxx: message
+        if "error CS" in line:
+            try:
+                # Extract error code and message
+                error_parts = line.split("error CS")
+                if len(error_parts) > 1:
+                    error_code = error_parts[1].split(':', 1)[0]
+                    error_message = error_parts[1].split(':', 1)[1].strip()
+                    # Clean up the file path and line numbers
+                    error_message = re.sub(r'\[.+?\]', '', error_message)
+                    error_lines.append(f"Compilation Error (CS{error_code}): {error_message}")
+            except Exception as e:
+                logger.error(f"Error parsing compiler message: {e}")
+                error_lines.append(f"Compilation Error: {line.strip()}")
+
+        # Also capture build errors that don't follow the CS#### pattern
+        elif any(pattern in line.lower() for pattern in ["error:", "fatal error:", "build failed"]):
+            error_lines.append(f"Compilation Error: {line.strip()}")
+
+    # If no specific error was found, include the original message
+    if not error_lines:
+        # Look for any error-like content in the original message
+        general_error = re.search(r'(?:error|exception|failed).*$', error_msg, re.IGNORECASE | re.MULTILINE)
+        if general_error:
+            error_lines.append(f"Compilation Error: {general_error.group(0).strip()}")
+        else:
+            error_lines.append(error_msg.strip())
+
+    return "\n".join(error_lines)
+
+def format_runtime_error(error_msg: str) -> str:
+    """Format runtime errors with improved detail capture"""
+    if not error_msg:
+        return "Unknown runtime error occurred"
+
+    error_lines = []
+    stack_trace = []
+
+    for line in error_msg.splitlines():
+        # Capture exception type and message
+        if "Exception:" in line:
+            exception_match = re.search(r'([a-zA-Z.]+Exception:)\s*(.+)', line)
+            if exception_match:
+                exc_type, exc_msg = exception_match.groups()
+                exc_type = exc_type.split('.')[-1]  # Get just the exception name
+                error_lines.append(f"Runtime Error ({exc_type.rstrip(':')}) - {exc_msg.strip()}")
+
+        # Capture stack trace information (limit to 3 lines)
+        elif line.strip().startswith("at ") and len(stack_trace) < 3:
+            # Clean up stack trace line
+            trace_line = re.sub(r'at\s+', '', line.strip())
+            trace_line = re.sub(r'\s+in\s+.+?:\w+\s*$', '', trace_line)
+            stack_trace.append(f"Location: {trace_line}")
+
+    # If no exception was found, look for other error indicators
+    if not error_lines:
+        for line in error_msg.splitlines():
+            if any(pattern in line.lower() for pattern in ["error", "failed", "fault", "invalid"]):
+                error_lines.append(f"Runtime Error: {line.strip()}")
+                break
+
+    # Combine error message with relevant stack trace
+    result = error_lines + stack_trace if error_lines else ["Runtime Error: " + error_msg.strip()]
+    return "\n".join(result)
+
+def is_interactive_code(code: str, language: str) -> bool:
+    """Determine if code requires interactive I/O based on language-specific patterns."""
+    code = code.lower()
+
+    if language == 'cpp':
+        # Check for common C++ input patterns
+        return any(pattern in code for pattern in [
+            'cin', 'getline',
+            'std::cin', 'std::getline',
+            'scanf', 'gets', 'fgets'
+        ])
+    elif language == 'csharp':
+        # Check for common C# input patterns
+        return any(pattern in code for pattern in [
+            'console.read', 'console.readline',
+            'console.in', 'console.keyavailable',
+            'console.readkey'
+        ])
+    return False

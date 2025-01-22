@@ -24,6 +24,8 @@ class InteractiveConsole {
         this.pollInterval = null;
         this.lastOutputTime = Date.now();
         this.duplicateThreshold = 100; // ms to consider output as duplicate
+        this.retryAttempts = 3;
+        this.retryDelay = 1000; // ms
 
         this.setupEventListeners();
         this.clear();
@@ -56,7 +58,7 @@ class InteractiveConsole {
                 case 'c':
                     if (e.ctrlKey) {
                         e.preventDefault();
-                        this.handleCtrlC();
+                        await this.handleCtrlC();
                     }
                     break;
                 case 'l':
@@ -68,17 +70,22 @@ class InteractiveConsole {
             }
         });
 
-        // Improved paste handling for multi-line input
+        // Handle paste events for input
         this.inputElement.addEventListener('paste', (e) => {
+            if (!this.isEnabled) return;
+
+            e.preventDefault();
+            const text = e.clipboardData.getData('text');
             if (this.isWaitingForInput) {
-                e.preventDefault();
-                const text = e.clipboardData.getData('text');
-                const lines = text.split('\n');
-                if (lines.length > 0) {
-                    // Only take the first line for single-line input prompts
-                    this.inputElement.value = lines[0];
+                // For interactive input, only take the first line
+                const firstLine = text.split('\n')[0];
+                this.inputElement.value = firstLine;
+                if (firstLine) {
                     this.handleEnterKey();
                 }
+            } else {
+                // For command input, can accept multiple lines
+                this.inputElement.value = text;
             }
         });
     }
@@ -88,32 +95,42 @@ class InteractiveConsole {
         this.inputElement.value = '';
 
         if (this.sessionId && this.isWaitingForInput) {
-            try {
-                const response = await fetch('/send_input', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    body: JSON.stringify({
-                        session_id: this.sessionId,
-                        input: input + '\n'
-                    })
-                });
+            let retryCount = 0;
+            while (retryCount < this.retryAttempts) {
+                try {
+                    const response = await fetch('/send_input', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+                        },
+                        body: JSON.stringify({
+                            session_id: this.sessionId,
+                            input: input + '\n'
+                        })
+                    });
 
-                if (!response.ok) {
-                    throw new Error('Failed to send input');
-                }
+                    if (!response.ok) {
+                        throw new Error(`Failed to send input: ${response.statusText}`);
+                    }
 
-                const data = await response.json();
-                if (data.success) {
-                    this.appendOutput(`${input}\n`, 'console-input');
-                    this.isWaitingForInput = false;
-                } else {
-                    this.appendError(`Error: ${data.error}`);
+                    const data = await response.json();
+                    if (data.success) {
+                        this.appendOutput(`${input}\n`, 'console-input');
+                        this.isWaitingForInput = false;
+                        return;
+                    } else {
+                        throw new Error(data.error || 'Failed to send input');
+                    }
+                } catch (error) {
+                    console.error(`Attempt ${retryCount + 1} failed:`, error);
+                    retryCount++;
+                    if (retryCount === this.retryAttempts) {
+                        this.appendError(`Error sending input: ${error.message}`);
+                        return;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, this.retryDelay));
                 }
-            } catch (error) {
-                this.appendError(`Error sending input: ${error.message}`);
             }
         } else if (input) {
             this.history.push(input);
@@ -122,6 +139,36 @@ class InteractiveConsole {
 
             if (this.onCommand) {
                 await this.onCommand(input);
+            }
+        }
+    }
+
+    async handleCtrlC() {
+        if (this.sessionId) {
+            try {
+                const response = await fetch('/terminate_session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
+                    },
+                    body: JSON.stringify({
+                        session_id: this.sessionId
+                    })
+                });
+
+                if (response.ok) {
+                    this.appendOutput('^C\n');
+                    this.sessionId = null;
+                    this.isWaitingForInput = false;
+                    this.enable();
+                    if (this.pollInterval) {
+                        clearInterval(this.pollInterval);
+                    }
+                }
+            } catch (error) {
+                console.error('Error terminating session:', error);
+                this.appendError('Failed to terminate session');
             }
         }
     }
@@ -144,9 +191,11 @@ class InteractiveConsole {
                         this.processAndAppendOutput(data.output);
                     }
 
-                    if (data.waiting_for_input !== this.isWaitingForInput) {
+                    if (data.waiting_for_input !== undefined) {
+                        const wasWaiting = this.isWaitingForInput;
                         this.isWaitingForInput = data.waiting_for_input;
-                        if (this.isWaitingForInput) {
+
+                        if (this.isWaitingForInput && !wasWaiting) {
                             this.enable();
                             this.inputElement.focus();
                         }
@@ -155,14 +204,23 @@ class InteractiveConsole {
                     if (data.session_ended) {
                         this.sessionId = null;
                         this.isWaitingForInput = false;
-                        clearInterval(this.pollInterval);
+                        if (this.pollInterval) {
+                            clearInterval(this.pollInterval);
+                        }
                         return;
                     }
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
-                this.appendError('Connection error: Failed to get console output');
+                // Don't show error to user unless it persists
+                if (++this.errorCount > 3) {
+                    this.appendError('Connection error: Failed to get console output');
+                }
+                return;
             }
+
+            // Reset error count on successful poll
+            this.errorCount = 0;
 
             // Continue polling if session is active
             if (this.sessionId) {
@@ -170,6 +228,8 @@ class InteractiveConsole {
             }
         };
 
+        // Initialize error counter
+        this.errorCount = 0;
         // Start polling
         pollOutput();
     }
@@ -184,7 +244,7 @@ class InteractiveConsole {
         }
         this.lastOutputTime = now;
 
-        // Clean up common console artifacts
+        // Clean up common console artifacts and normalize output
         let cleanedText = text
             .replace(/\r\n/g, '\n')  // Normalize line endings
             .replace(/\r/g, '\n')    // Replace any remaining \r with \n
@@ -193,7 +253,14 @@ class InteractiveConsole {
             .trim();                 // Remove trailing whitespace
 
         if (cleanedText) {
-            this.appendOutput(cleanedText + '\n');
+            // Split into lines and process each separately
+            const lines = cleanedText.split('\n');
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                if (trimmedLine || lines.length > 1) { // Keep empty lines only if there are multiple lines
+                    this.appendOutput(line + '\n');
+                }
+            }
         }
     }
 
@@ -207,7 +274,7 @@ class InteractiveConsole {
             if (line === '\n') {
                 // Add empty line
                 this.outputElement.appendChild(document.createElement('br'));
-            } else if (line.trim()) {
+            } else if (line.trim() || className) { // Allow empty lines if they have a specific class
                 const lineElement = document.createElement('div');
                 lineElement.className = `console-line ${className}`;
                 lineElement.innerHTML = line;
@@ -232,6 +299,7 @@ class InteractiveConsole {
     }
 
     processAnsiCodes(text) {
+        // Enhanced ANSI color mapping
         const ansiColorMap = {
             '30': 'ansi-black',
             '31': 'ansi-red',
@@ -254,6 +322,7 @@ class InteractiveConsole {
             '4': 'ansi-underline'
         };
 
+        // Process ANSI escape sequences
         return text
             .replace(/\x1b\[([0-9;]*)m/g, (match, p1) => {
                 if (p1 === '0' || p1 === '') return '</span>';
@@ -291,27 +360,6 @@ class InteractiveConsole {
         }
     }
 
-    handleCtrlC() {
-        if (this.isWaitingForInput) {
-            this.appendOutput('^C\n');
-            this.isWaitingForInput = false;
-            this.enable();
-            // Send termination signal to backend
-            if (this.sessionId) {
-                fetch('/terminate_session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
-                    },
-                    body: JSON.stringify({
-                        session_id: this.sessionId
-                    })
-                }).catch(console.error);
-            }
-        }
-    }
-
     navigateHistory(direction) {
         if (!this.history.length) return;
 
@@ -334,6 +382,10 @@ class InteractiveConsole {
     setSession(sessionId) {
         this.sessionId = sessionId;
         if (sessionId) {
+            // Clear any existing polling interval
+            if (this.pollInterval) {
+                clearInterval(this.pollInterval);
+            }
             this.startPollingOutput();
         }
     }

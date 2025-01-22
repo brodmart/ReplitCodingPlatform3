@@ -16,6 +16,7 @@ from compiler import compile_and_run
 from flask import make_response
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
+import threading
 
 activities = Blueprint('activities', __name__, template_folder='../templates')
 logger = logging.getLogger(__name__)
@@ -179,33 +180,40 @@ def run_code():
             'error': str(e)
         }), 500
 
-@activities.route('/get_output', methods=['GET'])
-def get_session_output():
+@activities.route('/activities/get_output', methods=['POST'])
+@json_login_required
+def get_output():
     """Get output from a running interactive program"""
-    session_id = request.args.get('session_id')
-    logger.debug(f"Getting output for session {session_id}")
-
-    if not session_id:
-        return jsonify({'success': False, 'error': 'No session ID provided'}), 400
-
     try:
-        result = get_output(session_id)
-        if not result['success']:
-            cleanup_session(session_id)
-            return jsonify(result), 400
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+
+        if not session_id:
+            return jsonify({'success': False, 'error': 'No session ID provided'}), 400
+
+        # Get output from compiler service
+        result = compile_and_run(
+            code=None,  # No code needed for getting output
+            language=None,  # No language needed for getting output
+            session_id=session_id,
+            action='get_output'
+        )
 
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error getting output: {str(e)}", exc_info=True)
-        cleanup_session(session_id)
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-@activities.route('/send_input', methods=['POST'])
-def send_session_input():
+@activities.route('/activities/send_input', methods=['POST'])
+@json_login_required
+def send_input():
     """Send input to a running interactive program"""
     try:
         if not request.is_json:
@@ -213,20 +221,55 @@ def send_session_input():
 
         data = request.get_json()
         session_id = data.get('session_id')
-        input_text = data.get('input', '')
+        input_text = data.get('input')
 
-        if not session_id:
-            return jsonify({'success': False, 'error': 'No session ID provided'}), 400
+        if not session_id or input_text is None:
+            return jsonify({'success': False, 'error': 'Missing required fields'}), 400
 
-        result = send_input(session_id, input_text)
-        if not result['success']:
-            cleanup_session(session_id)
-            return jsonify(result), 400
+        # Send input through compiler service
+        result = compile_and_run(
+            code=None,  # No code needed for sending input
+            language=None,  # No language needed for sending input
+            session_id=session_id,
+            action='send_input',
+            input_data=input_text
+        )
 
         return jsonify(result)
 
     except Exception as e:
         logger.error(f"Error sending input: {str(e)}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@activities.route('/activities/terminate_session', methods=['POST'])
+@json_login_required
+def terminate_session():
+    """Terminate an interactive program session"""
+    try:
+        if not request.is_json:
+            return jsonify({'success': False, 'error': 'Invalid request format'}), 400
+
+        data = request.get_json()
+        session_id = data.get('session_id')
+
+        if not session_id:
+            return jsonify({'success': False, 'error': 'No session ID provided'}), 400
+
+        # Terminate session through compiler service
+        result = compile_and_run(
+            code=None,  # No code needed for termination
+            language=None,  # No language needed for termination
+            session_id=session_id,
+            action='terminate'
+        )
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error terminating session: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': str(e)
@@ -380,5 +423,3 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_old_sessions, 'interval', minutes=5)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
-
-import threading

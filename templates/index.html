@@ -27,6 +27,16 @@
     .CodeMirror {
         height: 100% !important;
     }
+    .console-input {
+        color: #4CAF50;
+    }
+    .console-error {
+        color: #f44336;
+    }
+    .console-line {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
 </style>
 {% endblock %}
 
@@ -63,7 +73,10 @@
                 </div>
             </div>
             <div class="card-body p-0">
-                <div id="terminal-container"></div>
+                <div id="terminal-container">
+                    <div id="terminal-output"></div>
+                    <input type="text" id="terminal-input" class="form-control" autocomplete="off" />
+                </div>
             </div>
         </div>
     </div>
@@ -76,11 +89,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
-<!-- Load Xterm.js -->
-<script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.9.0/lib/xterm-addon-web-links.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xterm-addon-search@0.13.0/lib/xterm-addon-search.js"></script>
 <!-- Load our scripts -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
@@ -92,78 +100,57 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Initialize editor first
         await initializeEditor();
 
-        // Initialize terminal with enhanced configuration
-        const terminal = new Terminal({
-            cursorBlink: true,
-            fontSize: 14,
-            fontFamily: 'Consolas, Monaco, monospace',
-            theme: {
-                background: '#1e1e1e',
-                foreground: '#d4d4d4'
+        // Initialize interactive console
+        const console = new InteractiveConsole({
+            outputElement: document.getElementById('terminal-output'),
+            inputElement: document.getElementById('terminal-input'),
+            onCommand: async (input) => {
+                // Handle command input
+                console.log('Command received:', input);
             },
-            convertEol: true,
-            scrollback: 1000,
-            allowProposedApi: true
+            onClear: () => {
+                console.log('Console cleared');
+            }
         });
 
-        const terminalContainer = document.getElementById('terminal-container');
-        if (!terminalContainer) {
-            throw new Error('Terminal container not found');
-        }
+        // Store console instance globally
+        window.consoleInstance = console;
 
-        terminal.open(terminalContainer);
+        // Handle run button click
+        document.getElementById('runButton')?.addEventListener('click', async () => {
+            const language = document.getElementById('languageSelect').value;
+            const code = window.editor.getValue();
 
-        // Add addons
-        const fitAddon = new FitAddon.FitAddon();
-        const webLinksAddon = new WebLinksAddon.WebLinksAddon();
-        const searchAddon = new SearchAddon.SearchAddon();
-
-        terminal.loadAddon(fitAddon);
-        terminal.loadAddon(webLinksAddon);
-        terminal.loadAddon(searchAddon);
-
-        // Initial fit
-        fitAddon.fit();
-
-        // Store terminal instance globally
-        window.terminal = terminal;
-
-        // Handle terminal resize
-        const resizeObserver = new ResizeObserver(() => {
-            fitAddon.fit();
-            terminal.scrollToBottom();
-        });
-        resizeObserver.observe(terminalContainer);
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            fitAddon.fit();
-            terminal.scrollToBottom();
-        });
-
-        // Add input handling
-        terminal.onData(data => {
-            if (window.currentSession) {
-                fetch('/activities/send_input', {
+            try {
+                const response = await fetch('/activities/run_code', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
                     },
-                    body: JSON.stringify({
-                        session_id: window.currentSession,
-                        input: data
-                    })
-                }).catch(error => {
-                    console.error('Error sending input:', error);
-                    terminal.write('\r\n\x1b[31mError sending input\x1b[0m\r\n');
+                    body: JSON.stringify({ language, code })
                 });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    console.clear();
+                    if (data.interactive) {
+                        console.setSession(data.session_id);
+                    } else if (data.output) {
+                        console.appendOutput(data.output);
+                    }
+                } else {
+                    console.appendError(data.error || 'Failed to run code');
+                }
+            } catch (error) {
+                console.appendError(`Error running code: ${error.message}`);
             }
         });
 
         // Add clear console handler
         document.getElementById('clearConsole')?.addEventListener('click', () => {
-            terminal.clear();
+            console.clear();
         });
 
         console.log('Components initialized successfully');
