@@ -1,0 +1,6 @@
+2025-01-22 23:31:22,320 - compiler_service:982 - DEBUG - Starting compilation for code length: 318, language: csharp - MainProcess:MainThread
+2025-01-22 23:31:22,330 - compiler_service:584 - INFO - Starting interactive session for csharp - MainProcess:MainThread
+2025-01-22 23:31:22,330 - compiler_service:585 - DEBUG - Session ID: test_interactive_-3346810669672839146 - MainProcess:MainThread
+2025-01-22 23:31:22,330 - compiler_service:595 - INFO - Creating isolated environment - MainProcess:MainThread
+2025-01-22 23:31:22,331 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_jbesslgj - MainProcess:MainThread
+2025-01-22 23:31:27,253 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name:  - MainProcess:Thread-1 (monitor_output)

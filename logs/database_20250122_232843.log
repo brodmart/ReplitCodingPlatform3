@@ -11,3 +11,4 @@
 2025-01-22 23:28:44,096 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
 2025-01-22 23:28:44,098 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
 2025-01-22 23:28:44,101 - werkzeug:96 - INFO -  * Restarting with stat - MainProcess:MainThread
+2025-01-22 23:31:02,378 - werkzeug:96 - INFO -  * Restarting with stat - MainProcess:MainThread

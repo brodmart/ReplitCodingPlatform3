@@ -68,10 +68,16 @@ class InteractiveConsole {
                 this.appendError(data.error);
                 return;
             }
+
             if (data.output !== undefined) {
                 console.debug('Processing output:', { output: data.output, waiting: data.waiting_for_input });
-                this.appendOutput(data.output);
-                this.isWaitingForInput = data.waiting_for_input || false;
+                // Only append non-empty output
+                if (data.output && data.output.trim().length > 0) {
+                    this.appendOutput(data.output);
+                }
+
+                // Always update input state for interactive sessions
+                this.isWaitingForInput = data.waiting_for_input !== false;  // Default to true for interactive
                 this.updateInputState();
             }
         });
@@ -95,6 +101,12 @@ class InteractiveConsole {
                 this.sessionId = data.session_id;
                 console.debug(`Session started: ${this.sessionId}`);
                 this.appendSystemMessage('Program compiled successfully, waiting for output...');
+
+                // Enable input for interactive sessions by default
+                if (data.interactive) {
+                    this.isWaitingForInput = true;
+                    this.updateInputState();
+                }
             }
         });
 
@@ -202,7 +214,9 @@ class InteractiveConsole {
             isWaitingForInput: this.isWaitingForInput,
             sessionId: this.sessionId
         });
-        if (this.isWaitingForInput) {
+
+        // Enable input if we have a session and are waiting for input
+        if (this.sessionId && this.isWaitingForInput) {
             this.enableInput();
         } else {
             this.disableInput();

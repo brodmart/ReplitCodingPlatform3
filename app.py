@@ -194,14 +194,14 @@ def setup_websocket_handlers():
                     emit('compilation_result', {
                         'success': True,
                         'session_id': session_id,
-                        'interactive': result.get('interactive', False),
+                        'interactive': result.get('interactive', True),  # Force interactive for C#
                         'metrics': {
                             'compilation_time': duration
                         }
                     })
 
                     # Add delay for program initialization
-                    time.sleep(0.1)  # Brief delay for program to start
+                    time.sleep(0.2)  # Increased delay for more reliable output capture
 
                     # Get and emit initial output with error handling
                     try:
@@ -210,7 +210,8 @@ def setup_websocket_handlers():
                         if output and output.get('success'):
                             emit('output', {
                                 'output': output.get('output', ''),
-                                'waiting_for_input': True  # Force enable input for interactive programs
+                                'waiting_for_input': True,  # Force enable input initially
+                                'error': None
                             })
                         else:
                             logger.warning(f"No initial output available: {output}")

@@ -1,0 +1,39 @@
+2025-01-22 23:31:26,261 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-22 23:31:26,263 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-22 23:31:26,268 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:31:26,269 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-22 23:31:26,271 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-22 23:31:26,310 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-22 23:31:26,310 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:31:26,310 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-22 23:31:26,320 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-22 23:31:27,275 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-22 23:31:27,276 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-22 23:31:27,276 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-22 23:31:27,276 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-22 23:31:27,278 - werkzeug:96 - INFO -  * Debugger PIN: 140-319-401 - MainProcess:MainThread
+2025-01-22 23:31:27,503 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-22 23:31:28,478 - engineio.server:78 - INFO - FH8KfeguApDWUFmDAAAA: Sending packet OPEN data {'sid': 'FH8KfeguApDWUFmDAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-2
+2025-01-22 23:31:28,485 - engineio.server:90 - INFO - FH8KfeguApDWUFmDAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-22 23:31:28,485 - engineio.server:219 - INFO - FH8KfeguApDWUFmDAAAA: Upgrade to websocket successful - MainProcess:GreenThread-2
+2025-01-22 23:31:28,574 - engineio.server:39 - INFO - FH8KfeguApDWUFmDAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-22 23:31:28,584 - engineio.server:78 - INFO - FH8KfeguApDWUFmDAAAA: Sending packet MESSAGE data 0{"sid":"sF-SBNP3yOvbHM47AAAB"} - MainProcess:GreenThread-2
+2025-01-22 23:31:28,585 - app:132 - INFO - Client connected: sF-SBNP3yOvbHM47AAAB - MainProcess:GreenThread-2
+2025-01-22 23:31:28,586 - engineio.server:78 - INFO - FH8KfeguApDWUFmDAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"sF-SBNP3yOvbHM47AAAB"}] - MainProcess:GreenThread-2
+2025-01-22 23:31:28,937 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-22 23:31:29,219 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-3
+2025-01-22 23:31:29,547 - engineio.server:78 - INFO - d56-d4mz1W-qlBWGAAAC: Sending packet OPEN data {'sid': 'd56-d4mz1W-qlBWGAAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-4
+2025-01-22 23:31:29,547 - engineio.server:90 - INFO - d56-d4mz1W-qlBWGAAAC: Received request to upgrade to websocket - MainProcess:GreenThread-4
+2025-01-22 23:31:29,548 - engineio.server:219 - INFO - d56-d4mz1W-qlBWGAAAC: Upgrade to websocket successful - MainProcess:GreenThread-4
+2025-01-22 23:31:29,555 - engineio.server:39 - INFO - d56-d4mz1W-qlBWGAAAC: Received packet MESSAGE data 0 - MainProcess:GreenThread-4
+2025-01-22 23:31:29,556 - engineio.server:78 - INFO - d56-d4mz1W-qlBWGAAAC: Sending packet MESSAGE data 0{"sid":"1qLcYbdtsctIHfRbAAAD"} - MainProcess:GreenThread-4
+2025-01-22 23:31:29,557 - app:132 - INFO - Client connected: 1qLcYbdtsctIHfRbAAAD - MainProcess:GreenThread-4
+2025-01-22 23:31:29,557 - engineio.server:78 - INFO - d56-d4mz1W-qlBWGAAAC: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"1qLcYbdtsctIHfRbAAAD"}] - MainProcess:GreenThread-4
+2025-01-22 23:31:29,810 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet OPEN data {'sid': 'g38NbB22Wkb4Fbu2AAAE', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-5
+2025-01-22 23:31:29,810 - engineio.server:90 - INFO - g38NbB22Wkb4Fbu2AAAE: Received request to upgrade to websocket - MainProcess:GreenThread-5
+2025-01-22 23:31:29,811 - engineio.server:219 - INFO - g38NbB22Wkb4Fbu2AAAE: Upgrade to websocket successful - MainProcess:GreenThread-5
+2025-01-22 23:31:29,890 - engineio.server:39 - INFO - g38NbB22Wkb4Fbu2AAAE: Received packet MESSAGE data 0 - MainProcess:GreenThread-5
+2025-01-22 23:31:29,891 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet MESSAGE data 0{"sid":"8pJWCbIr_-MDkad8AAAF"} - MainProcess:GreenThread-5
+2025-01-22 23:31:29,892 - app:132 - INFO - Client connected: 8pJWCbIr_-MDkad8AAAF - MainProcess:GreenThread-5
+2025-01-22 23:31:29,894 - engineio.server:78 - INFO - g38NbB22Wkb4Fbu2AAAE: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"8pJWCbIr_-MDkad8AAAF"}] - MainProcess:GreenThread-5
+2025-01-22 23:31:30,071 - app:141 - INFO - Client disconnected: 1qLcYbdtsctIHfRbAAAD - MainProcess:GreenThread-4
