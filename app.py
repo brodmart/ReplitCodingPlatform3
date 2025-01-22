@@ -204,16 +204,3 @@ app = create_app()
 
 # Add ProxyFix middleware
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-if __name__ == '__main__':
-    try:
-        port = int(os.environ.get('PORT', 5000))
-        logger.info(f"Starting Flask application on port {port}")
-        app.run(
-            host='0.0.0.0',  # Bind to all interfaces
-            port=port,
-            debug=True
-        )
-    except Exception as e:
-        logger.error(f"Failed to start Flask application: {str(e)}")
-        raise
