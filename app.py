@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, session, request
+from flask import Flask, session, request, render_template
 from flask_socketio import SocketIO, emit
 from flask_session import Session
 from flask_cors import CORS
@@ -45,6 +45,11 @@ def create_app():
 
         with app.app_context():
             db.create_all()
+
+        # Add console route
+        @app.route('/')
+        def console():
+            return render_template('console.html')
 
         # Register Socket.IO event handlers
         setup_websocket_handlers()
