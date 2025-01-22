@@ -1,0 +1,19 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-22T19:57:31.063051",
+    "data": {
+      "code_length": 318,
+      "timestamp": "2025-01-22T19:57:31.063005"
+    }
+  },
+  {
+    "event_type": "execution_state",
+    "timestamp": "2025-01-22T19:57:33.064443",
+    "data": {
+      "state": "session_started",
+      "details": {},
+      "timestamp": "2025-01-22T19:57:33.064143"
+    }
+  }
+]
