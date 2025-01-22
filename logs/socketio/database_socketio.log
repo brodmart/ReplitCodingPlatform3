@@ -36,3 +36,56 @@
 2025-01-22 23:24:48,461 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.005s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-5
 2025-01-22 23:24:48,462 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.005s - MainProcess:GreenThread-5
 2025-01-22 23:24:48,463 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-5
+2025-01-22 23:25:17,870 - socketio.server:576 - INFO - received event "compile_and_run" from 8HqY6zVxoIMm1ZwnAAAD [/] - MainProcess:GreenThread-4
+2025-01-22 23:25:17,871 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:25:17.871217 - MainProcess:GreenThread-8
+2025-01-22 23:25:17,871 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-8
+2025-01-22 23:25:17,872 - socketio.server:164 - INFO - emitting event "compilation_start" to 8HqY6zVxoIMm1ZwnAAAD [/] - MainProcess:GreenThread-8
+2025-01-22 23:25:21,975 - socketio:119 - INFO - Session c10cf988-8a84-4a30-ba1d-6adc6ee68579 activated. Total active sessions: 1 - MainProcess:GreenThread-8
+2025-01-22 23:25:21,976 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 4.103536605834961} - MainProcess:GreenThread-8
+2025-01-22 23:25:21,976 - socketio.server:164 - INFO - emitting event "compilation_result" to 8HqY6zVxoIMm1ZwnAAAD [/] - MainProcess:GreenThread-8
+2025-01-22 23:26:27,054 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:26:27.054901 - MainProcess:GreenThread-2
+2025-01-22 23:26:27,055 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-2
+2025-01-22 23:26:27,055 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-2
+2025-01-22 23:26:27,055 - socketio:110 - DEBUG - Client info: {'sid': '7guZxlNSJSYhX5k2AAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'} - MainProcess:GreenThread-2
+2025-01-22 23:26:27,055 - socketio.server:164 - INFO - emitting event "connection_established" to 7guZxlNSJSYhX5k2AAAB [/] - MainProcess:GreenThread-2
+2025-01-22 23:26:27,055 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-2
+2025-01-22 23:26:27,055 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:GreenThread-2
+2025-01-22 23:26:27,056 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-2
+2025-01-22 23:26:43,517 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:26:43.517566 - MainProcess:GreenThread-2
+2025-01-22 23:26:43,517 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-2
+2025-01-22 23:26:43,518 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-2
+2025-01-22 23:26:43,518 - socketio:110 - DEBUG - Client info: {'sid': 'EhXGRNJiOqpqXgNhAAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'} - MainProcess:GreenThread-2
+2025-01-22 23:26:43,518 - socketio.server:164 - INFO - emitting event "connection_established" to EhXGRNJiOqpqXgNhAAAB [/] - MainProcess:GreenThread-2
+2025-01-22 23:26:43,523 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.006s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-2
+2025-01-22 23:26:43,523 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.006s - MainProcess:GreenThread-2
+2025-01-22 23:26:43,524 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-2
+2025-01-22 23:26:53,549 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:26:53.549003 - MainProcess:GreenThread-2
+2025-01-22 23:26:53,549 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-2
+2025-01-22 23:26:53,549 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-2
+2025-01-22 23:26:53,549 - socketio:110 - DEBUG - Client info: {'sid': 'oNQC6GEXvRdb7LCSAAAB', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'} - MainProcess:GreenThread-2
+2025-01-22 23:26:53,549 - socketio.server:164 - INFO - emitting event "connection_established" to oNQC6GEXvRdb7LCSAAAB [/] - MainProcess:GreenThread-2
+2025-01-22 23:26:53,549 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-2
+2025-01-22 23:26:53,550 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:GreenThread-2
+2025-01-22 23:26:53,550 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-2
+2025-01-22 23:26:54,750 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:26:54.750868 - MainProcess:GreenThread-4
+2025-01-22 23:26:54,751 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-4
+2025-01-22 23:26:54,751 - socketio:108 - INFO - New connection established. Total connections: 2 - MainProcess:GreenThread-4
+2025-01-22 23:26:54,751 - socketio:110 - DEBUG - Client info: {'sid': 'NTOqTeA5lW50LA7CAAAD', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36'} - MainProcess:GreenThread-4
+2025-01-22 23:26:54,751 - socketio.server:164 - INFO - emitting event "connection_established" to NTOqTeA5lW50LA7CAAAD [/] - MainProcess:GreenThread-4
+2025-01-22 23:26:54,752 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.002s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-4
+2025-01-22 23:26:54,752 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.002s - MainProcess:GreenThread-4
+2025-01-22 23:26:54,753 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-4
+2025-01-22 23:26:55,048 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-22 23:26:55.048153 - MainProcess:GreenThread-5
+2025-01-22 23:26:55,048 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-5
+2025-01-22 23:26:55,048 - socketio:108 - INFO - New connection established. Total connections: 3 - MainProcess:GreenThread-5
+2025-01-22 23:26:55,050 - socketio:110 - DEBUG - Client info: {'sid': 'Bz0PEWtThtTX2kivAAAF', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'} - MainProcess:GreenThread-5
+2025-01-22 23:26:55,050 - socketio.server:164 - INFO - emitting event "connection_established" to Bz0PEWtThtTX2kivAAAF [/] - MainProcess:GreenThread-5
+2025-01-22 23:26:55,050 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.003s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-5
+2025-01-22 23:26:55,050 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.003s - MainProcess:GreenThread-5
+2025-01-22 23:26:55,050 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-5
+2025-01-22 23:26:55,349 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-22 23:26:55.349633 - MainProcess:GreenThread-4
+2025-01-22 23:26:55,349 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-4
+2025-01-22 23:26:55,356 - socketio:113 - INFO - Connection closed. Remaining connections: 2 - MainProcess:GreenThread-4
+2025-01-22 23:26:55,357 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.008s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-4
+2025-01-22 23:26:55,357 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.008s - MainProcess:GreenThread-4
+2025-01-22 23:26:55,359 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-4

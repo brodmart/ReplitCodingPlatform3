@@ -205,7 +205,7 @@ def setup_websocket_handlers():
                         output = get_output(session_id)
                         if output and output.get('success'):
                             logger.debug(f"Initial output: {output}")
-                            emit('console_output', {
+                            emit('output', {
                                 'output': output.get('output', ''),
                                 'waiting_for_input': output.get('waiting_for_input', False)
                             })
