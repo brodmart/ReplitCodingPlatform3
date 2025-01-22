@@ -21,19 +21,14 @@ class InteractiveConsole {
         this.maxBufferSize = 4096;
         this.outputBuffer = [];
         this.sessionId = null;
-        this.pollInterval = null;
         this.lastOutputTime = Date.now();
         this.duplicateThreshold = 100; // ms to consider output as duplicate
-        this.retryAttempts = 3;
-        this.retryDelay = 1000; // ms
-        this.errorCount = 0;
-        this.webSocket = null; // This is no longer used
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
-        this.socket = null; // Socket.IO object
+        this.socket = null; // Socket.IO instance
 
         this.setupEventListeners();
-        this.setupSocketIO(); // Use Socket.IO instead of raw WebSocket
+        this.setupSocketIO();
         this.clear();
         this.enable();
     }
@@ -97,46 +92,61 @@ class InteractiveConsole {
     }
 
     setupSocketIO() {
-        // Connect to Socket.IO endpoint
-        this.socket = io();
+        // Connect to Socket.IO endpoint with reconnection options
+        this.socket = io({
+            reconnection: true,
+            reconnectionAttempts: this.maxReconnectAttempts,
+            reconnectionDelay: 1000,
+            reconnectionDelayMax: 5000,
+            timeout: 20000,
+            autoConnect: true
+        });
 
         this.socket.on('connect', () => {
-            console.debug('SocketIO connection established');
+            console.debug('Socket.IO connection established');
             this.reconnectAttempts = 0;
+            this.appendOutput('Console connected\n', 'console-info');
 
-            // If we have an active session, register it
+            // Register current session if exists
             if (this.sessionId) {
-                this.socket.emit('register_session', {
+                this.socket.emit('session_start', {
                     session_id: this.sessionId
                 });
             }
         });
 
         this.socket.on('output', (data) => {
-            this.processAndAppendOutput(data.output);
-            this.isWaitingForInput = data.waiting_for_input || false;
-            if (this.isWaitingForInput) {
-                this.enable();
-                this.inputElement.focus();
+            if (data.type === 'output') {
+                this.processAndAppendOutput(data.output);
+                this.isWaitingForInput = data.waiting_for_input || false;
+                if (this.isWaitingForInput) {
+                    this.enable();
+                    this.inputElement.focus();
+                }
             }
         });
 
-        this.socket.on('session_ended', () => {
-            this.handleSessionEnd();
+        this.socket.on('error', (error) => {
+            console.error('Socket.IO error:', error);
+            this.appendError(`Connection error: ${error.message}`);
         });
 
-        this.socket.on('disconnect', () => {
-            console.debug('SocketIO connection lost');
-            // Fall back to polling if connection is lost
-            if (!this.pollInterval && this.sessionId) {
-                this.startPollingOutput();
+        this.socket.on('disconnect', (reason) => {
+            console.debug('Socket.IO disconnected:', reason);
+            this.appendOutput('Console disconnected. Attempting to reconnect...\n', 'console-warning');
+
+            if (reason === 'io server disconnect') {
+                // Server disconnected explicitly
+                this.socket.connect();
             }
         });
 
         this.socket.on('connect_error', (error) => {
-            console.error('SocketIO connection error:', error);
-            if (!this.pollInterval && this.sessionId) {
-                this.startPollingOutput();
+            console.error('Socket.IO connection error:', error);
+            this.reconnectAttempts++;
+
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                this.appendError('Failed to connect to server after multiple attempts');
             }
         });
     }
@@ -146,53 +156,17 @@ class InteractiveConsole {
         this.inputElement.value = '';
 
         if (this.sessionId && this.isWaitingForInput) {
-            let retryCount = 0;
-            while (retryCount < this.retryAttempts) {
-                try {
-                    // Try Socket.IO first
-                    if (this.socket && this.socket.connected) {
-                        this.socket.emit('input', {
-                            session_id: this.sessionId,
-                            input: input + '\n'
-                        });
-                        this.appendOutput(input + '\n', 'console-input user-input');
-                        this.isWaitingForInput = false;
-                        return;
-                    }
-
-                    // Fall back to HTTP
-                    const response = await fetch('/console/send_input', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
-                        },
-                        body: JSON.stringify({
-                            session_id: this.sessionId,
-                            input: input + '\n'
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Failed to send input: ${response.statusText}`);
-                    }
-
-                    const data = await response.json();
-                    if (data.success) {
-                        this.appendOutput(input + '\n', 'console-input user-input');
-                        this.isWaitingForInput = false;
-                        return;
-                    }
-                    throw new Error(data.error || 'Failed to send input');
-                } catch (error) {
-                    console.error(`Attempt ${retryCount + 1} failed:`, error);
-                    retryCount++;
-                    if (retryCount === this.retryAttempts) {
-                        this.appendError(`Error sending input: ${error.message}`);
-                        return;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-                }
+            if (this.socket && this.socket.connected) {
+                this.socket.emit('input', {
+                    session_id: this.sessionId,
+                    input: input + '\n'
+                });
+                this.appendOutput(input + '\n', 'console-input user-input');
+                this.isWaitingForInput = false;
+                return;
+            } else {
+                this.appendError('Not connected to server. Reconnecting...');
+                this.socket.connect();
             }
         } else if (input) {
             this.history.push(input);
@@ -212,90 +186,13 @@ class InteractiveConsole {
                 this.appendOutput('^C\n', 'console-input');
                 this.handleSessionEnd(); // Handle session end through Socket.IO
             } else {
-                try {
-                    const response = await fetch('/activities/terminate_session', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content
-                        },
-                        body: JSON.stringify({
-                            session_id: this.sessionId
-                        })
-                    });
-
-                    if (response.ok) {
-                        this.appendOutput('^C\n', 'console-input');
-                        this.sessionId = null;
-                        this.isWaitingForInput = false;
-                        this.enable();
-                        if (this.pollInterval) {
-                            clearTimeout(this.pollInterval);
-                            this.pollInterval = null;
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error terminating session:', error);
-                    this.appendError('Failed to terminate session');
-                }
+                this.appendError('Not connected to server, cannot interrupt');
             }
         }
     }
 
     startPollingOutput() {
-        if (!this.sessionId) return;
-
-        const pollOutput = async () => {
-            if (!this.sessionId) return;
-
-            try {
-                const response = await fetch(`/activities/get_output?session_id=${this.sessionId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to get output');
-                }
-
-                const data = await response.json();
-                if (data.success) {
-                    if (data.output) {
-                        this.processAndAppendOutput(data.output);
-                    }
-
-                    if (data.waiting_for_input !== undefined) {
-                        this.isWaitingForInput = data.waiting_for_input;
-                        if (this.isWaitingForInput) {
-                            this.enable();
-                            this.inputElement.focus();
-                        }
-                    }
-
-                    if (data.session_ended) {
-                        this.handleSessionEnd();
-                        return;
-                    }
-
-                    // Reset error count on successful poll
-                    this.errorCount = 0;
-                }
-            } catch (error) {
-                console.error('Error polling output:', error);
-                this.errorCount++;
-
-                // Show error to user if it persists
-                if (this.errorCount > 3) {
-                    this.appendError('Connection error: Failed to get console output');
-                    return;
-                }
-            }
-
-            // Continue polling if session is active
-            if (this.sessionId) {
-                this.pollInterval = setTimeout(pollOutput, 100);
-            }
-        };
-
-        // Start polling
-        this.errorCount = 0;
-        pollOutput();
+        //This function is removed as it is no longer needed with Socket.IO
     }
 
     processAndAppendOutput(text) {
@@ -451,21 +348,10 @@ class InteractiveConsole {
 
     setSession(sessionId) {
         this.sessionId = sessionId;
-        if (sessionId) {
-            // Register session with Socket.IO if available
-            if (this.socket && this.socket.connected) {
-                this.socket.emit('register_session', { session_id: sessionId });
-            } else {
-                this.startPollingOutput();
-            }
-        } else {
-            if (this.pollInterval) {
-                clearInterval(this.pollInterval);
-                this.pollInterval = null;
-            }
-            if (this.socket) {
-                this.socket.close();
-            }
+        if (sessionId && this.socket && this.socket.connected) {
+            this.socket.emit('session_start', { 
+                session_id: sessionId 
+            });
         }
     }
     setLanguage(language) {
@@ -474,10 +360,6 @@ class InteractiveConsole {
     handleSessionEnd() {
         this.sessionId = null;
         this.isWaitingForInput = false;
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-            this.pollInterval = null;
-        }
         this.enable();
         this.appendOutput('\nSession ended.\n', 'console-info');
         if (this.socket) {

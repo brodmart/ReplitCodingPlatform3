@@ -149,8 +149,16 @@ def create_app():
         init_db(app)
         migrate = Migrate(app, db)
 
-        # Initialize Socket.IO with eventlet
-        socketio.init_app(app, cors_allowed_origins="*", async_mode='eventlet')
+        # Initialize Socket.IO with proper configuration
+        socketio.init_app(
+            app,
+            cors_allowed_origins="*",
+            async_mode='eventlet',
+            logger=True,
+            engineio_logger=True,
+            ping_timeout=60,
+            ping_interval=25
+        )
 
         # Initialize other extensions
         CORS(app)
@@ -204,11 +212,23 @@ def setup_websocket_handlers():
 
     @socketio.on('connect')
     def handle_connect():
-        logger.info("Client connected to WebSocket")
+        """Handle client connection"""
+        logger.info(f"Client connected to Socket.IO: {request.sid}")
 
     @socketio.on('disconnect')
     def handle_disconnect():
-        logger.info("Client disconnected from WebSocket")
+        """Handle client disconnection"""
+        logger.info(f"Client disconnected from Socket.IO: {request.sid}")
+        # Cleanup any associated session
+        if 'console_session_id' in session:
+            logger.info(f"Cleaning up session: {session['console_session_id']}")
+            session.pop('console_session_id', None)
+
+    @socketio.on_error()
+    def handle_error(e):
+        """Handle Socket.IO errors"""
+        logger.error(f"Socket.IO error: {str(e)}", exc_info=True)
+        emit('error', {'message': 'Internal server error'})
 
     @socketio.on('session_start')
     def handle_session_start(data):
@@ -217,13 +237,15 @@ def setup_websocket_handlers():
             session_id = data.get('session_id')
             if not session_id:
                 logger.error("No session ID provided")
+                emit('error', {'message': 'Session ID required'})
                 return
 
-            logger.info(f"Registering WebSocket for session: {session_id}")
-            # Associate the session ID with this socket
+            logger.info(f"Registering Socket.IO for session: {session_id}")
             session['console_session_id'] = session_id
+            emit('connected', {'status': 'success'})
         except Exception as e:
-            logger.error(f"Error in session_start: {str(e)}")
+            logger.error(f"Error in session_start: {str(e)}", exc_info=True)
+            emit('error', {'message': 'Failed to start session'})
 
     @socketio.on('input')
     def handle_input(data):
@@ -234,6 +256,7 @@ def setup_websocket_handlers():
 
             if not session_id or not input_text:
                 logger.error("Missing session_id or input")
+                emit('error', {'message': 'Invalid input data'})
                 return
 
             logger.debug(f"Sending input to session {session_id}: {input_text}")
@@ -248,8 +271,12 @@ def setup_websocket_handlers():
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
                     })
+                else:
+                    emit('error', {'message': 'Failed to get output'})
+            else:
+                emit('error', {'message': 'Failed to send input'})
         except Exception as e:
-            logger.error(f"Error in handle_input: {str(e)}")
+            logger.error(f"Error in handle_input: {str(e)}", exc_info=True)
             emit('error', {'message': 'Failed to process input'})
 
 # Create the application instance
