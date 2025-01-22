@@ -96,6 +96,7 @@ def setup_websocket_handlers():
         try:
             code = data.get('code')
             if not code:
+                logger.error("No code provided")
                 emit('error', {'message': 'No code provided'})
                 return
 
@@ -113,20 +114,20 @@ def setup_websocket_handlers():
                         'session_id': session_id
                     })
 
-                    # Get initial output
-                    logger.debug(f"Getting initial output for session {session_id}")
-                    output = get_output(session_id)
-                    logger.debug(f"Initial output result: {output}")
+                # Get initial output
+                logger.debug(f"Getting initial output for session {session_id}")
+                output = get_output(session_id)
+                logger.debug(f"Initial output result: {output}")
 
-                    if output and output.get('success'):
-                        logger.info(f"Emitting initial output: {output.get('output')}")
-                        emit('output', {
-                            'output': output.get('output', ''),
-                            'waiting_for_input': output.get('waiting_for_input', False)
-                        })
-                    else:
-                        logger.error(f"Failed to get initial output: {output}")
-                        emit('error', {'message': 'Failed to get program output'})
+                if output and output.get('success'):
+                    logger.info(f"Emitting initial output: {output.get('output')}")
+                    emit('output', {
+                        'output': output.get('output', ''),
+                        'waiting_for_input': output.get('waiting_for_input', False)
+                    }, broadcast=False)  # Ensure output goes only to the requesting client
+                else:
+                    logger.error(f"Failed to get initial output: {output}")
+                    emit('error', {'message': 'Failed to get program output'})
             else:
                 logger.error(f"Compilation failed: {result.get('error')}")
                 emit('compilation_result', {
@@ -146,6 +147,7 @@ def setup_websocket_handlers():
             input_text = data.get('input')
 
             if not session_id or not input_text:
+                logger.error(f"Invalid input data - session_id: {session_id}, input: {input_text}")
                 emit('error', {'message': 'Invalid input data'})
                 return
 
@@ -160,7 +162,7 @@ def setup_websocket_handlers():
                     emit('output', {
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
-                    })
+                    }, broadcast=False)  # Ensure output goes only to the requesting client
                 else:
                     logger.error(f"Failed to get output after input: {output}")
                     emit('error', {'message': 'Failed to get program output'})

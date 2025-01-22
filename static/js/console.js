@@ -30,11 +30,13 @@ class InteractiveConsole {
 
     setupEventHandlers() {
         this.socket.on('connect', () => {
+            console.debug('Socket connected');
             this.reconnectAttempts = 0;
             this.appendSystemMessage('Connected to console server');
         });
 
         this.socket.on('connect_error', (error) => {
+            console.error('Socket connection error:', error);
             this.appendError(`Connection error: ${error.message}`);
             this.reconnectAttempts++;
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -44,11 +46,13 @@ class InteractiveConsole {
         });
 
         this.socket.on('disconnect', () => {
+            console.debug('Socket disconnected');
             this.appendSystemMessage('Disconnected from console server');
             this.disableInput();
         });
 
         this.socket.on('output', (data) => {
+            console.debug('Received output:', data);
             if (data.error) {
                 this.appendError(data.error);
                 return;
@@ -61,6 +65,7 @@ class InteractiveConsole {
         });
 
         this.socket.on('compilation_result', (data) => {
+            console.debug('Received compilation result:', data);
             if (!data.success) {
                 this.appendError(`Compilation error: ${data.error}`);
                 return;
@@ -73,10 +78,11 @@ class InteractiveConsole {
         });
 
         this.socket.on('error', (data) => {
+            console.error('Server error:', data);
             this.appendError(`Server error: ${data.message}`);
         });
 
-        // Input handler with debouncing
+        // Input handler
         this.inputElement.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -86,12 +92,16 @@ class InteractiveConsole {
     }
 
     async handleInput() {
-        if (!this.isEnabled || !this.sessionId) return;
+        if (!this.isEnabled || !this.sessionId) {
+            console.debug('Input handler: not enabled or no session');
+            return;
+        }
 
         const input = this.inputElement.value.trim();
         if (!input) return;
 
         try {
+            console.debug('Sending input:', input);
             this.inputElement.value = '';
             this.appendOutput(`> ${input}\n`, 'console-input');
 
@@ -103,6 +113,7 @@ class InteractiveConsole {
             this.isWaitingForInput = false;
             this.updateInputState();
         } catch (error) {
+            console.error('Input handler error:', error);
             this.appendError(`Failed to send input: ${error.message}`);
         }
     }
@@ -116,10 +127,12 @@ class InteractiveConsole {
     }
 
     appendError(message) {
+        console.error('Console error:', message);
         this.appendOutput(`Error: ${message}\n`, 'console-error');
     }
 
     appendSystemMessage(message) {
+        console.debug('System message:', message);
         this.appendOutput(`System: ${message}\n`, 'console-system');
     }
 
@@ -158,6 +171,7 @@ class InteractiveConsole {
     }
 
     compileAndRun(code) {
+        console.debug('Compiling and running code:', { language: this.currentLanguage });
         this.clear();
         this.appendSystemMessage('Compiling and running program...');
         this.socket.emit('compile_and_run', {
