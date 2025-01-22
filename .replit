@@ -131,6 +131,10 @@ args = "Test Interactive Console"
 task = "workflow.run"
 args = "Flask Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "C++ Test"
+
 [[workflows.workflow]]
 name = "File Server"
 author = "agent"
@@ -531,6 +535,20 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python app.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "C++ Test"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "g++ test_input.cpp -o test_program && ./test_program"
 
 [[ports]]
 localPort = 5000
