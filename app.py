@@ -114,10 +114,10 @@ def setup_websocket_handlers():
                         'session_id': session_id
                     })
 
-                # Get initial output
-                logger.debug(f"Getting initial output for session {session_id}")
+                # Get initial output immediately after successful compilation
+                logger.info(f"Getting initial output for session {session_id}")
                 output = get_output(session_id)
-                logger.debug(f"Initial output result: {output}")
+                logger.info(f"Initial output received: {output}")
 
                 if output and output.get('success'):
                     logger.info(f"Emitting initial output: {output.get('output')}")
@@ -126,13 +126,15 @@ def setup_websocket_handlers():
                         'waiting_for_input': output.get('waiting_for_input', False)
                     }, broadcast=False)  # Ensure output goes only to the requesting client
                 else:
-                    logger.error(f"Failed to get initial output: {output}")
-                    emit('error', {'message': 'Failed to get program output'})
+                    error_msg = 'Failed to get program output'
+                    logger.error(f"{error_msg}: {output}")
+                    emit('error', {'message': error_msg})
             else:
-                logger.error(f"Compilation failed: {result.get('error')}")
+                error = result.get('error', 'Compilation failed')
+                logger.error(f"Compilation failed: {error}")
                 emit('compilation_result', {
                     'success': False,
-                    'error': result.get('error', 'Compilation failed')
+                    'error': error
                 })
 
         except Exception as e:

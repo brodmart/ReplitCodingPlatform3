@@ -73,7 +73,8 @@ class InteractiveConsole {
 
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                this.appendSystemMessage(`Program compiled successfully, starting execution...`);
+                console.debug(`Session started: ${this.sessionId}`);
+                this.appendSystemMessage('Program compiled successfully, waiting for output...');
             }
         });
 
@@ -171,13 +172,26 @@ class InteractiveConsole {
     }
 
     compileAndRun(code) {
-        console.debug('Compiling and running code:', { language: this.currentLanguage });
+        console.debug('Compiling and running code:', { code, language: this.currentLanguage });
         this.clear();
         this.appendSystemMessage('Compiling and running program...');
+
+        // Clear any existing session
+        this.sessionId = null;
+        this.isWaitingForInput = false;
+
         this.socket.emit('compile_and_run', {
             code,
             language: this.currentLanguage
         });
+
+        // Set a timeout to detect if we don't get a response
+        setTimeout(() => {
+            if (!this.sessionId) {
+                console.error('Compilation timeout - no response received');
+                this.appendError('Compilation timeout - no response received from server');
+            }
+        }, 10000);
     }
 }
 
