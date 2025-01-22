@@ -1,0 +1,14 @@
+2025-01-22 23:38:41,765 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-22 23:38:41,768 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-22 23:38:41,774 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:38:41,775 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-22 23:38:41,785 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-22 23:38:41,899 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-22 23:38:41,899 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:38:41,901 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-22 23:38:41,912 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-22 23:38:42,877 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-22 23:38:42,884 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-22 23:38:42,885 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-22 23:38:42,889 - werkzeug:96 - INFO -  * Restarting with stat - MainProcess:MainThread
+2025-01-22 23:40:35,098 - werkzeug:96 - INFO -  * Restarting with stat - MainProcess:MainThread

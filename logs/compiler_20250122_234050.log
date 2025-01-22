@@ -1,0 +1,21 @@
+2025-01-22 23:40:50,086 - compiler_service:1025 - DEBUG - Starting compilation for code length: 318, language: csharp - MainProcess:MainThread
+2025-01-22 23:40:50,086 - compiler_service:615 - INFO - Starting interactive session for csharp - MainProcess:MainThread
+2025-01-22 23:40:50,086 - compiler_service:616 - DEBUG - Session ID: test_interactive_2562924428697013598 - MainProcess:MainThread
+2025-01-22 23:40:50,086 - compiler_service:626 - INFO - Creating isolated environment - MainProcess:MainThread
+2025-01-22 23:40:50,087 - compiler_service:966 - DEBUG - Created C# project in /tmp/compiler_env_csharp_ltorxv82 - MainProcess:MainThread
+2025-01-22 23:40:50,440 - compiler_service:1025 - DEBUG - Starting compilation for code length: 318, language: csharp - MainProcess:MainThread
+2025-01-22 23:40:50,441 - compiler_service:615 - INFO - Starting interactive session for csharp - MainProcess:MainThread
+2025-01-22 23:40:50,441 - compiler_service:616 - DEBUG - Session ID: test_interactive_-6742847887510924632 - MainProcess:MainThread
+2025-01-22 23:40:50,441 - compiler_service:626 - INFO - Creating isolated environment - MainProcess:MainThread
+2025-01-22 23:40:50,441 - compiler_service:966 - DEBUG - Created C# project in /tmp/compiler_env_csharp_qgqpggkf - MainProcess:MainThread
+2025-01-22 23:40:50,688 - compiler_service:1025 - DEBUG - Starting compilation for code length: 298, language: cpp - MainProcess:MainThread
+2025-01-22 23:40:50,688 - compiler_service:615 - INFO - Starting interactive session for cpp - MainProcess:MainThread
+2025-01-22 23:40:50,689 - compiler_service:616 - DEBUG - Session ID: test_interactive_751604118671888728 - MainProcess:MainThread
+2025-01-22 23:40:50,689 - compiler_service:626 - INFO - Creating isolated environment - MainProcess:MainThread
+2025-01-22 23:40:50,689 - compiler_service:972 - DEBUG - Created C++ project in /tmp/compiler_env_cpp_1dh80_y0 - MainProcess:MainThread
+2025-01-22 23:40:51,282 - compiler_service:555 - DEBUG - Input prompt detected in immediate buffer: Enter your name:  - MainProcess:Thread-1 (monitor_output)
+2025-01-22 23:40:51,282 - compiler_service:579 - DEBUG - Flushed buffer: Enter your name: - MainProcess:Thread-1 (monitor_output)
+2025-01-22 23:40:54,810 - compiler_service:555 - DEBUG - Input prompt detected in immediate buffer: [?1h=Enter your name:  - MainProcess:Thread-1 (monitor_output)
+2025-01-22 23:40:54,812 - compiler_service:579 - DEBUG - Flushed buffer: Enter your name: - MainProcess:Thread-1 (monitor_output)
+2025-01-22 23:40:54,856 - compiler_service:555 - DEBUG - Input prompt detected in immediate buffer: [?1h=Enter your name:  - MainProcess:Thread-1 (monitor_output)
+2025-01-22 23:40:54,857 - compiler_service:579 - DEBUG - Flushed buffer: Enter your name: - MainProcess:Thread-1 (monitor_output)

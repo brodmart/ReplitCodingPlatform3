@@ -446,22 +446,37 @@ def cleanup_inactive_sessions() -> None:
             cleanup_session(session_id)
 
 def create_pty() -> tuple[int, int]:
-    """Create a new PTY pair with proper settings"""
+    """Create a new PTY pair with improved settings for interactive programs"""
     master_fd, slave_fd = pty.openpty()
 
-    # Set raw mode on the master side
+    # Configure terminal settings for interactive programs
     term_attrs = termios.tcgetattr(master_fd)
+
+    # Disable input canonicalization and echo
     term_attrs[3] = term_attrs[3] & ~(termios.ECHO | termios.ICANON)
-    term_attrs[0] = term_attrs[0] | termios.BRKINT | termios.PARMRK
+
+    # Enable special character processing and flow control
+    term_attrs[0] = term_attrs[0] | termios.BRKINT | termios.PARMRK | termios.INPCK | termios.ISTRIP
+
+    # Set output processing flags
+    term_attrs[1] = term_attrs[1] | termios.OPOST
+
+    # Apply settings
     termios.tcsetattr(master_fd, termios.TCSANOW, term_attrs)
 
-    # Set window size
+    # Set window size - use standard terminal dimensions
     winsize = struct.pack("HHHH", 24, 80, 0, 0)
     fcntl.ioctl(master_fd, termios.TIOCSWINSZ, winsize)
 
     # Set non-blocking mode
     flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
     fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+    # Configure slave PTY
+    slave_attrs = termios.tcgetattr(slave_fd)
+    slave_attrs[3] = slave_attrs[3] & ~(termios.ECHO | termios.ICANON)
+    slave_attrs[0] = slave_attrs[0] | termios.BRKINT | termios.PARMRK
+    termios.tcsetattr(slave_fd, termios.TCSANOW, slave_attrs)
 
     return master_fd, slave_fd
 
@@ -511,12 +526,19 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
 
     try:
         buffer = ""
+        initial_output_timeout = 5.0  # Longer timeout for initial output
+        start_time = time.time()
+
         while not session.stop_event.is_set() and process.poll() is None:
             if session.master_fd is None:
                 break
 
             try:
-                readable, _, _ = select.select([session.master_fd], [], [], 0.1)
+                # Use longer timeout initially to ensure we capture startup output
+                elapsed_time = time.time() - start_time
+                timeout = 0.5 if elapsed_time > initial_output_timeout else 0.1
+
+                readable, _, _ = select.select([session.master_fd], [], [], timeout)
 
                 for fd in readable:
                     try:
@@ -527,30 +549,38 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                         decoded = data.decode('utf-8', errors='replace')
                         buffer += decoded
 
-                        # Check buffer before processing for early input detection
+                        # Always check immediate buffer for input prompts
                         if not session.waiting_for_input and check_for_input_prompt(buffer):
                             session.set_waiting_for_input(True)
-                            logger.debug(f"Early input prompt detected in buffer: {buffer}")
+                            logger.debug(f"Input prompt detected in immediate buffer: {buffer}")
 
                         # Process complete lines
+                        lines_processed = False
                         while '\n' in buffer:
                             line, buffer = buffer.split('\n', 1)
                             cleaned = clean_terminal_output(line)
                             if cleaned:
                                 session.append_output(cleaned)
                                 logger.debug(f"Output received: {cleaned}")
+                                lines_processed = True
 
-                                # Check for input prompt in complete line
                                 if not session.waiting_for_input and check_for_input_prompt(cleaned):
                                     session.set_waiting_for_input(True)
                                     logger.debug(f"Input prompt detected in line: {cleaned}")
 
-                        # Check remaining buffer for input prompt
-                        if buffer and not session.waiting_for_input:
+                        # Handle remaining buffer if no lines were processed
+                        if not lines_processed and buffer:
                             cleaned_buffer = clean_terminal_output(buffer)
-                            if cleaned_buffer and check_for_input_prompt(cleaned_buffer):
-                                session.set_waiting_for_input(True)
-                                logger.debug(f"Input prompt detected in partial buffer: {cleaned_buffer}")
+                            if cleaned_buffer:
+                                # Check if buffer appears to be complete
+                                if buffer.endswith((':', '>', '?')) or len(buffer) > 10:
+                                    session.append_output(cleaned_buffer)
+                                    buffer = ""
+                                    logger.debug(f"Flushed buffer: {cleaned_buffer}")
+
+                                if not session.waiting_for_input and check_for_input_prompt(cleaned_buffer):
+                                    session.set_waiting_for_input(True)
+                                    logger.debug(f"Input prompt detected in buffer: {cleaned_buffer}")
 
                     except (OSError, IOError) as e:
                         if e.errno != errno.EAGAIN:
@@ -562,7 +592,8 @@ def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_si
                 logger.error(f"Select error: {e}")
                 break
 
-            time.sleep(0.05)
+            # Shorter sleep interval for better responsiveness
+            time.sleep(0.01)
             session.last_activity.set()
 
     except Exception as e:
@@ -645,16 +676,28 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                         **os.environ,
                         'DOTNET_CONSOLE_ENCODING': 'utf-8',
                         'TERM': 'xterm-256color',
-                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true'
+                        'DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION': 'true',
+                        'COMPlus_EnableDiagnostics': '0',
+                        'DOTNET_CLI_UI_LANGUAGE': 'en-US',
+                        'DOTNET_RUNNING_IN_CONTAINER': 'false',
+                        'DOTNET_EnableWriteXorExecute': '0'
                     }
                 )
 
                 os.close(slave_fd)
                 session.process = process
 
-                session.output_thread = Thread(target=monitor_output, args=(process, session))
+                # Initialize output monitoring with specific buffer settings
+                session.output_thread = Thread(
+                    target=monitor_output,
+                    args=(process, session),
+                    kwargs={'chunk_size': 4096}  # Larger chunk size for better output capture
+                )
                 session.output_thread.daemon = True
                 session.output_thread.start()
+
+                # Wait briefly for initial program startup
+                time.sleep(0.5)
 
                 return {
                     'success': True,

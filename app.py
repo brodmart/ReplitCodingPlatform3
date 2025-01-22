@@ -191,34 +191,47 @@ def setup_websocket_handlers():
                         'language': language,
                         'compilation_time': duration
                     })
+
+                    # First, notify client of successful compilation
                     emit('compilation_result', {
                         'success': True,
                         'session_id': session_id,
-                        'interactive': result.get('interactive', True),  # Force interactive for C#
+                        'interactive': True,  # Force interactive for C#
                         'metrics': {
                             'compilation_time': duration
                         }
                     })
 
                     # Add delay for program initialization
-                    time.sleep(0.2)  # Increased delay for more reliable output capture
+                    time.sleep(0.5)  # Increased delay for more reliable output capture
 
-                    # Get and emit initial output with error handling
-                    try:
-                        output = get_output(session_id)
-                        logger.debug(f"Initial program output: {output}")
-                        if output and output.get('success'):
-                            emit('output', {
-                                'output': output.get('output', ''),
-                                'waiting_for_input': True,  # Force enable input initially
-                                'error': None
-                            })
-                        else:
-                            logger.warning(f"No initial output available: {output}")
-                            emit('error', {'message': 'No initial output available'})
-                    except Exception as e:
-                        log_error("output_error", f"Error getting initial output: {e}")
-                        emit('error', {'message': 'Failed to get initial program output'})
+                    # Multiple attempts to get initial output
+                    max_attempts = 3
+                    for attempt in range(max_attempts):
+                        try:
+                            output = get_output(session_id)
+                            logger.debug(f"Initial program output (attempt {attempt + 1}): {output}")
+
+                            if output and output.get('success'):
+                                if output.get('output'):  # Only emit if there's actual output
+                                    emit('output', {
+                                        'output': output.get('output'),
+                                        'waiting_for_input': True,  # Force enable input initially
+                                        'error': None
+                                    })
+                                    break
+                            else:
+                                if attempt == max_attempts - 1:  # Last attempt
+                                    logger.warning(f"No initial output available after {max_attempts} attempts")
+                                    emit('error', {'message': 'No initial output available'})
+
+                            if attempt < max_attempts - 1:  # Don't sleep on last attempt
+                                time.sleep(0.2)  # Wait between attempts
+
+                        except Exception as e:
+                            if attempt == max_attempts - 1:  # Only log error on last attempt
+                                log_error("output_error", f"Error getting initial output: {e}")
+                                emit('error', {'message': 'Failed to get initial program output'})
                 else:
                     log_error("session_error", "No session ID in successful compilation result")
                     emit('error', {'message': 'Compilation succeeded but no session created'})

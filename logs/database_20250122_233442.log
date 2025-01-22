@@ -1,0 +1,60 @@
+2025-01-22 23:34:42,649 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-22 23:34:42,651 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-22 23:34:42,655 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:34:42,656 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-22 23:34:42,658 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-22 23:34:42,694 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-22 23:34:42,695 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:34:42,695 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-22 23:34:42,707 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-22 23:34:43,673 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-22 23:34:43,674 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-22 23:34:43,675 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-22 23:34:43,676 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-22 23:34:43,678 - werkzeug:96 - INFO -  * Debugger PIN: 893-680-686 - MainProcess:MainThread
+2025-01-22 23:34:43,920 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-22 23:34:44,840 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet OPEN data {'sid': '8Cns_lf2Art3AfOOAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-2
+2025-01-22 23:34:44,841 - engineio.server:90 - INFO - 8Cns_lf2Art3AfOOAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-22 23:34:44,842 - engineio.server:219 - INFO - 8Cns_lf2Art3AfOOAAAA: Upgrade to websocket successful - MainProcess:GreenThread-2
+2025-01-22 23:34:44,928 - engineio.server:39 - INFO - 8Cns_lf2Art3AfOOAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-22 23:34:44,929 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet MESSAGE data 0{"sid":"KvMO3FBayqFkpZeZAAAB"} - MainProcess:GreenThread-2
+2025-01-22 23:34:44,930 - app:132 - INFO - Client connected: KvMO3FBayqFkpZeZAAAB - MainProcess:GreenThread-2
+2025-01-22 23:34:44,931 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"KvMO3FBayqFkpZeZAAAB"}] - MainProcess:GreenThread-2
+2025-01-22 23:34:45,333 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-3
+2025-01-22 23:34:45,606 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-22 23:34:45,896 - engineio.server:78 - INFO - 7TEvPg6WI8N4e1HtAAAC: Sending packet OPEN data {'sid': '7TEvPg6WI8N4e1HtAAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-4
+2025-01-22 23:34:45,896 - engineio.server:90 - INFO - 7TEvPg6WI8N4e1HtAAAC: Received request to upgrade to websocket - MainProcess:GreenThread-4
+2025-01-22 23:34:45,897 - engineio.server:219 - INFO - 7TEvPg6WI8N4e1HtAAAC: Upgrade to websocket successful - MainProcess:GreenThread-4
+2025-01-22 23:34:45,946 - engineio.server:39 - INFO - 7TEvPg6WI8N4e1HtAAAC: Received packet MESSAGE data 0 - MainProcess:GreenThread-4
+2025-01-22 23:34:45,947 - engineio.server:78 - INFO - 7TEvPg6WI8N4e1HtAAAC: Sending packet MESSAGE data 0{"sid":"EvGaaVIThqkiFmbUAAAD"} - MainProcess:GreenThread-4
+2025-01-22 23:34:45,985 - app:132 - INFO - Client connected: EvGaaVIThqkiFmbUAAAD - MainProcess:GreenThread-4
+2025-01-22 23:34:45,988 - engineio.server:78 - INFO - 7TEvPg6WI8N4e1HtAAAC: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"EvGaaVIThqkiFmbUAAAD"}] - MainProcess:GreenThread-4
+2025-01-22 23:34:46,096 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet OPEN data {'sid': 'spZPCPwCCFfokde7AAAE', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-5
+2025-01-22 23:34:46,096 - engineio.server:90 - INFO - spZPCPwCCFfokde7AAAE: Received request to upgrade to websocket - MainProcess:GreenThread-5
+2025-01-22 23:34:46,097 - engineio.server:219 - INFO - spZPCPwCCFfokde7AAAE: Upgrade to websocket successful - MainProcess:GreenThread-5
+2025-01-22 23:34:46,183 - engineio.server:39 - INFO - spZPCPwCCFfokde7AAAE: Received packet MESSAGE data 0 - MainProcess:GreenThread-5
+2025-01-22 23:34:46,184 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet MESSAGE data 0{"sid":"ra92pXcfXgf2RVdMAAAF"} - MainProcess:GreenThread-5
+2025-01-22 23:34:46,187 - app:132 - INFO - Client connected: ra92pXcfXgf2RVdMAAAF - MainProcess:GreenThread-5
+2025-01-22 23:34:46,188 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"ra92pXcfXgf2RVdMAAAF"}] - MainProcess:GreenThread-5
+2025-01-22 23:34:46,504 - app:141 - INFO - Client disconnected: EvGaaVIThqkiFmbUAAAD - MainProcess:GreenThread-4
+2025-01-22 23:35:09,845 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet PING data None - MainProcess:GreenThread-6
+2025-01-22 23:35:09,922 - engineio.server:39 - INFO - 8Cns_lf2Art3AfOOAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:35:11,100 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet PING data None - MainProcess:GreenThread-7
+2025-01-22 23:35:11,176 - engineio.server:39 - INFO - spZPCPwCCFfokde7AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:35:34,924 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet PING data None - MainProcess:GreenThread-8
+2025-01-22 23:35:34,997 - engineio.server:39 - INFO - 8Cns_lf2Art3AfOOAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:35:36,178 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet PING data None - MainProcess:GreenThread-9
+2025-01-22 23:35:36,252 - engineio.server:39 - INFO - spZPCPwCCFfokde7AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:35:59,999 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet PING data None - MainProcess:GreenThread-10
+2025-01-22 23:36:00,077 - engineio.server:39 - INFO - 8Cns_lf2Art3AfOOAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:36:01,255 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet PING data None - MainProcess:GreenThread-11
+2025-01-22 23:36:01,329 - engineio.server:39 - INFO - spZPCPwCCFfokde7AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:36:25,078 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet PING data None - MainProcess:GreenThread-12
+2025-01-22 23:36:25,155 - engineio.server:39 - INFO - 8Cns_lf2Art3AfOOAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:36:26,331 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet PING data None - MainProcess:GreenThread-13
+2025-01-22 23:36:26,433 - engineio.server:39 - INFO - spZPCPwCCFfokde7AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:36:50,156 - engineio.server:78 - INFO - 8Cns_lf2Art3AfOOAAAA: Sending packet PING data None - MainProcess:GreenThread-14
+2025-01-22 23:36:50,230 - engineio.server:39 - INFO - 8Cns_lf2Art3AfOOAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-22 23:36:51,434 - engineio.server:78 - INFO - spZPCPwCCFfokde7AAAE: Sending packet PING data None - MainProcess:GreenThread-15
+2025-01-22 23:36:51,509 - engineio.server:39 - INFO - spZPCPwCCFfokde7AAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-22 23:37:14,048 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading - MainProcess:MainThread
