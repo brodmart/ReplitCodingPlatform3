@@ -25,13 +25,15 @@ import threading
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Constants
-MAX_COMPILATION_TIME = 20
-MAX_EXECUTION_TIME = 5
+# Constants section update
+MAX_COMPILATION_TIME = 30  # Increased from 20
+MAX_EXECUTION_TIME = 10   # Increased from 5
 MEMORY_LIMIT = 512
 MAX_PARALLEL_COMPILATIONS = min(os.cpu_count() or 4, 8)
 CACHE_DIR = "/tmp/compiler_cache"
 CACHE_SIZE_LIMIT = 1024 * 1024 * 1024
+CONNECTION_TIMEOUT = 45  # New timeout for socket connections
+RETRY_ATTEMPTS = 3      # Number of retry attempts
 
 # Initialize cache
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -68,7 +70,7 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None, 
     """Enhanced compile and run function with interactive session support and logging"""
     logger.info(f"Starting compile_and_run for {language}")
 
-    if not code:
+    if not code and not session_id:
         return {
             'success': False,
             'error': "No code provided"
@@ -76,17 +78,15 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None, 
 
     try:
         # Log compilation start if session_id is provided
-        if session_id:
+        if session_id and code:
             from utils.compiler_logger import compiler_logger
             compiler_logger.log_compilation_start(session_id, code)
+            logger.info(f"Starting compilation for session {session_id}")
 
         # Check if code is interactive
-        if is_interactive_code(code, language):
+        if code and is_interactive_code(code, language):
             logger.info("Detected interactive code, starting interactive session")
-            # If session_id is provided, use it for the interactive session
-            if session_id:
-                return start_interactive_session(code, language, session_id)
-            return start_interactive_session(code, language)
+            return start_interactive_session(code, language, session_id)
 
         # Non-interactive compilation and execution
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -129,55 +129,114 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None, 
             elif language == 'csharp':
                 logger.debug("Starting C# compilation process")
                 source_file = temp_path / "Program.cs"
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
 
-                # Create project file
-                project_file = temp_path / "program.csproj"
-                project_content = """<Project Sdk="Microsoft.NET.Sdk">
-                  <PropertyGroup>
-                    <OutputType>Exe</OutputType>
-                    <TargetFramework>net7.0</TargetFramework>
-                    <ImplicitUsings>enable</ImplicitUsings>
-                    <Nullable>enable</Nullable>
-                    <PublishReadyToRun>true</PublishReadyToRun>
-                  </PropertyGroup>
-                </Project>"""
+                if code:  # Only write file if code is provided
+                    with open(source_file, 'w', encoding='utf-8') as f:
+                        f.write(code)
 
-                with open(project_file, 'w', encoding='utf-8') as f:
-                    f.write(project_content)
+                    # Create project file with optimized settings
+                    project_file = temp_path / "program.csproj"
+                    project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                      <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net7.0</TargetFramework>
+                        <ImplicitUsings>enable</ImplicitUsings>
+                        <Nullable>enable</Nullable>
+                        <PublishReadyToRun>true</PublishReadyToRun>
+                        <ServerGarbageCollection>true</ServerGarbageCollection>
+                        <InvariantGlobalization>true</InvariantGlobalization>
+                      </PropertyGroup>
+                    </Project>"""
 
-                # Build with detailed logging
-                compile_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path)
-                )
+                    with open(project_file, 'w', encoding='utf-8') as f:
+                        f.write(project_content)
 
-                if compile_process.returncode != 0:
-                    error_msg = format_csharp_error(compile_process.stderr)
-                    if session_id:
-                        compiler_logger.log_compilation_error(
-                            session_id,
-                            Exception(error_msg),
-                            {"stage": "compilation", "language": "csharp"}
+                    # Build with detailed logging and retry logic
+                    retry_count = 0
+                    while retry_count < RETRY_ATTEMPTS:
+                        try:
+                            compile_process = subprocess.run(
+                                ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
+                                capture_output=True,
+                                text=True,
+                                timeout=MAX_COMPILATION_TIME,
+                                cwd=str(temp_path)
+                            )
+
+                            if compile_process.returncode != 0:
+                                error_msg = format_csharp_error(compile_process.stderr)
+                                if session_id:
+                                    compiler_logger.log_compilation_error(
+                                        session_id,
+                                        Exception(error_msg),
+                                        {"stage": "compilation", "language": "csharp", "attempt": retry_count + 1}
+                                    )
+                                if retry_count == RETRY_ATTEMPTS - 1:
+                                    return {
+                                        'success': False,
+                                        'error': error_msg
+                                    }
+                            else:
+                                break  # Successful compilation, exit retry loop
+
+                        except subprocess.TimeoutExpired:
+                            if retry_count == RETRY_ATTEMPTS - 1:
+                                raise
+                            logger.warning(f"Compilation timeout, attempt {retry_count + 1}")
+
+                        retry_count += 1
+                        time.sleep(1)  # Short delay between retries
+
+                    # Run the compiled program with improved error handling
+                    try:
+                        process = subprocess.run(
+                            ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                            input=input_data.encode() if input_data else None,
+                            capture_output=True,
+                            text=True,
+                            timeout=MAX_EXECUTION_TIME,
+                            cwd=str(temp_path)
                         )
-                    return {
-                        'success': False,
-                        'error': error_msg
-                    }
 
-                # Run the compiled program
-                process = subprocess.run(
-                    ['dotnet', 'run', '--project', str(project_file), '--no-build'],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME,
-                    cwd=str(temp_path)
-                )
+                        # Handle execution results
+                        if process.returncode != 0:
+                            error_msg = process.stderr
+                            if session_id:
+                                compiler_logger.log_runtime_error(
+                                    session_id,
+                                    error_msg,
+                                    {"stage": "execution", "language": "csharp"}
+                                )
+                            return {
+                                'success': False,
+                                'error': error_msg
+                            }
+
+                        # Log successful execution
+                        if session_id:
+                            compiler_logger.log_execution_state(
+                                session_id,
+                                'completed',
+                                {"language": "csharp", "interactive": False}
+                            )
+
+                        return {
+                            'success': True,
+                            'output': process.stdout
+                        }
+
+                    except subprocess.TimeoutExpired as e:
+                        error_msg = f"Program execution timed out after {MAX_EXECUTION_TIME} seconds"
+                        if session_id:
+                            compiler_logger.log_runtime_error(
+                                session_id,
+                                error_msg,
+                                {"stage": "execution", "timeout": True}
+                            )
+                        return {
+                            'success': False,
+                            'error': error_msg
+                        }
 
             else:
                 error_msg = f"Unsupported language: {language}"
@@ -192,55 +251,16 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None, 
                     'error': error_msg
                 }
 
-            # Handle execution results
-            if process.returncode != 0:
-                error_msg = process.stderr
-                if session_id:
-                    compiler_logger.log_runtime_error(
-                        session_id,
-                        error_msg,
-                        {"stage": "execution", "language": language}
-                    )
-                return {
-                    'success': False,
-                    'error': error_msg
-                }
-
-            # Log successful execution
-            if session_id:
-                compiler_logger.log_execution_state(
-                    session_id,
-                    'completed',
-                    {"language": language, "interactive": False}
-                )
-
-            return {
-                'success': True,
-                'output': process.stdout
-            }
-
-    except subprocess.TimeoutExpired as e:
-        error_msg = f"Process timed out: {str(e)}"
-        if session_id:
-            compiler_logger.log_runtime_error(
-                session_id,
-                error_msg,
-                {"stage": "timeout", "language": language}
-            )
-        return {
-            'success': False,
-            'error': error_msg
-        }
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}"
+        logger.error(f"Error in compile_and_run: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         if session_id:
             compiler_logger.log_runtime_error(
                 session_id,
                 error_msg,
                 {"stage": "unknown", "language": language}
             )
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
         return {
             'success': False,
             'error': error_msg
