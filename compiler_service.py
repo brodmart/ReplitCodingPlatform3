@@ -359,7 +359,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     }
                 )
 
-                time.sleep(0.5) #Added delay for C#
+                time.sleep(0.5)
 
                 os.close(slave_fd)  # Close slave fd after process start
                 session.process = process
@@ -577,7 +577,8 @@ class ProcessMonitor(Thread):
         try:
             os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
         except:
-            if self.process.poll() is None:                self.process.terminate()
+            if self.process.poll() is None:
+                self.process.terminate()
     def stop(self):
         self.stopped.set()
         self._terminate_process()
@@ -585,6 +586,49 @@ class ProcessMonitor(Thread):
 # Initialize session management
 active_sessions = {}
 session_lock = Lock()
+
+def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
+    """Create an isolated environment for compilation and execution"""
+    # Create unique directory for this compilation
+    unique_id = str(uuid.uuid4())[:8]  # Use shorter ID for path length
+    temp_dir = Path(COMPILER_CACHE_DIR) / f"compile_{unique_id}"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    if language == 'csharp':
+        # Create isolated project structure
+        project_name = f"Project_{unique_id}"
+        source_file = temp_dir / "Program.cs"
+        project_file = temp_dir / f"{project_name}.csproj"
+
+        # Write source code
+        with open(source_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+
+        # Create optimized project file
+        project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>{project_name}</AssemblyName>
+    <RootNamespace>{project_name}</RootNamespace>
+  </PropertyGroup>
+</Project>"""
+        with open(project_file, 'w', encoding='utf-8') as f:
+            f.write(project_content)
+
+        return temp_dir, project_name
+
+    elif language == 'cpp':
+        # Create isolated C++ environment
+        source_file = temp_dir / "program.cpp"
+        with open(source_file, 'w', encoding='utf-8') as f:
+            f.write(code)
+        return temp_dir, "program"
+    else:
+        raise ValueError(f"Unsupported language: {language}")
+
 
 def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -600,45 +644,41 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'metrics': metrics
         }
 
-    # Check if code is interactive
-    if is_interactive_code(code, language):
-        logger.info("Detected interactive code, starting interactive session")
-        session_id = str(uuid.uuid4())
-        temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
-        session = CompilerSession(session_id, temp_dir)
-
-        with session_lock:
-            active_sessions[session_id] = session
-
-        try:
-            result = start_interactive_session(session, code, language)
-            if result['success']:
-                result['interactive'] = True
-                result['session_id'] = session_id
-            else:
-                cleanup_session(session_id)
-            return result
-        except Exception as e:
-            cleanup_session(session_id)
-            return {
-                'success': False,
-                'error': str(e),
-                'metrics': metrics
-            }
-
-    # Create a unique temporary directory for this compilation
-    temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
-    temp_path = Path(temp_dir)
-
     try:
+        # Check if code is interactive
+        if is_interactive_code(code, language):
+            logger.info("Detected interactive code, starting interactive session")
+            session_id = str(uuid.uuid4())
+            temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
+            session = CompilerSession(session_id, temp_dir)
+
+            with session_lock:
+                active_sessions[session_id] = session
+
+            try:
+                result = start_interactive_session(session, code, language)
+                if result['success']:
+                    result['interactive'] = True
+                    result['session_id'] = session_id
+                else:
+                    cleanup_session(session_id)
+                return result
+            except Exception as e:
+                logger.error(f"Error in interactive session: {str(e)}\n{traceback.format_exc()}")
+                cleanup_session(session_id)
+                return {
+                    'success': False,
+                    'error': f"Interactive session error: {str(e)}",
+                    'metrics': metrics
+                }
+
+        # Create isolated environment for compilation
+        temp_dir, project_name = create_isolated_environment(code, language)
+
         if language == 'cpp':
             # Set up C++ compilation
-            source_file = temp_path / "program.cpp"
-            executable = temp_path / "program"
-
-            # Write source code with proper encoding
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(code)
+            source_file = os.path.join(temp_dir, "program.cpp")
+            executable = os.path.join(temp_dir, "program")
 
             # Enhanced compilation command with optimizations
             compile_cmd = [
@@ -647,9 +687,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 '-O2',         # Optimize
                 '-Wall',       # Enable warnings
                 '-pipe',
-                str(source_file),
+                source_file,
                 '-o',
-                str(executable)
+                executable
             ]
 
             try:
@@ -669,11 +709,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 # Set executable permissions
-                executable.chmod(0o755)
+                os.chmod(executable, 0o755)
 
                 # Run the compiled program
                 run_process = subprocess.run(
-                    [str(executable)],
+                    [executable],
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
@@ -702,34 +742,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 }
 
         elif language == 'csharp':
-            # Set up C# project structure
-            source_file = temp_path / "Program.cs"
-            project_file = temp_path / "program.csproj"
-
-            # Write source code with proper encoding
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(code)
-
-            # Create optimized project file
-            project_content = """<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <ServerGarbageCollection>true</ServerGarbageCollection>
-    <InvariantGlobalization>true</InvariantGlobalization>
-  </PropertyGroup>
-</Project>"""
-            with open(project_file, 'w', encoding='utf-8') as f:
-                f.write(project_content)
-
             try:
-                # Compile using optimized build command
+                project_file = os.path.join(temp_dir, f"{project_name}.csproj")
+
+                # Compile with better error handling
                 compile_cmd = [
                     'dotnet', 'build',
-                    str(project_file),
+                    project_file,
                     '--configuration', 'Release',
                     '--nologo',
                     '/p:GenerateFullPaths=true',
@@ -742,12 +761,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path)
+                    cwd=temp_dir
                 )
 
-                metrics['compilation_time'] = time.time() - metrics['start_time']
-
                 if compile_process.returncode != 0:
+                    logger.error(f"C# compilation failed: {compile_process.stderr}")
                     return {
                         'success': False,
                         'error': format_csharp_error(compile_process.stderr),
@@ -755,29 +773,28 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 # Run the compiled program
-                dll_path = temp_path / "bin" / "Release" / "net7.0" / "program.dll"
-                if not dll_path.exists():
+                dll_path = os.path.join(temp_dir, "bin", "Release", "net7.0", f"{project_name}.dll")
+                if not os.path.exists(dll_path):
+                    logger.error(f"DLL not found at {dll_path}")
                     return {
                         'success': False,
-                        'error': "Build succeeded but no executable found",
+                        'error': "Build succeeded but executable not found",
                         'metrics': metrics
                     }
 
                 logger.info("Running program...")
                 run_process = subprocess.run(
-                    ['dotnet', str(dll_path)],
+                    ['dotnet', dll_path],
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
                     timeout=MAX_EXECUTION_TIME,
-                    cwd=str(temp_path),
+                    cwd=temp_dir,
                     env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
                 )
 
-                metrics['execution_time'] = time.time() - (metrics['start_time'] + metrics['compilation_time'])
-                metrics['total_time'] = time.time() - metrics['start_time']
-
                 if run_process.returncode != 0:
+                    logger.error(f"C# runtime error: {run_process.stderr}")
                     return {
                         'success': False,
                         'error': format_runtime_error(run_process.stderr),
@@ -790,13 +807,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'metrics': metrics
                 }
 
-            except subprocess.TimeoutExpired as e:
+            except subprocess.TimeoutExpired:
                 phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
                 error_msg = f"{phase.capitalize()} timed out after {MAX_COMPILATION_TIME if phase == 'compilation' else MAX_EXECUTION_TIME} seconds"
                 logger.error(error_msg)
                 return {
                     'success': False,
                     'error': error_msg,
+                    'metrics': metrics
+                }
+            except Exception as e:
+                logger.error(f"Unexpected C# error: {str(e)}\n{traceback.format_exc()}")
+                return {
+                    'success': False,
+                    'error': f"Unexpected error: {str(e)}",
                     'metrics': metrics
                 }
 
@@ -818,9 +842,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     finally:
         # Clean up temporary directory
         try:
-            shutil.rmtree(temp_path)
+            shutil.rmtree(temp_dir)
         except Exception as e:
-            logger.error(f"Failed to clean up temporary directory {temp_path}: {e}")
+            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
 
 def format_csharp_error(error_msg: str) -> str:
     """Enhanced error message formatting for C# compiler errors"""
@@ -924,7 +948,7 @@ from pathlib import Path
 def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     """Create an isolated environment for compilation and execution"""
     # Create unique directory for this compilation
-    unique_id = str(uuid.uuid4())
+    unique_id = str(uuid.uuid4())[:8]  # Use shorter ID for path length
     temp_dir = Path(COMPILER_CACHE_DIR) / f"compile_{unique_id}"
     temp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -1335,45 +1359,41 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             'metrics': metrics
         }
 
-    # Check if code is interactive
-    if is_interactive_code(code, language):
-        logger.info("Detected interactive code, starting interactive session")
-        session_id = str(uuid.uuid4())
-        temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
-        session = CompilerSession(session_id, temp_dir)
-
-        with session_lock:
-            active_sessions[session_id] = session
-
-        try:
-            result = start_interactive_session(session, code, language)
-            if result['success']:
-                result['interactive'] = True
-                result['session_id'] = session_id
-            else:
-                cleanup_session(session_id)
-            return result
-        except Exception as e:
-            cleanup_session(session_id)
-            return {
-                'success': False,
-                'error': str(e),
-                'metrics': metrics
-            }
-
-    # Create a unique temporary directory for this compilation
-    temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
-    temp_path = Path(temp_dir)
-
     try:
+        # Check if code is interactive
+        if is_interactive_code(code, language):
+            logger.info("Detected interactive code, starting interactive session")
+            session_id = str(uuid.uuid4())
+            temp_dir = tempfile.mkdtemp(prefix='compile_', dir=COMPILER_CACHE_DIR)
+            session = CompilerSession(session_id, temp_dir)
+
+            with session_lock:
+                active_sessions[session_id] = session
+
+            try:
+                result = start_interactive_session(session, code, language)
+                if result['success']:
+                    result['interactive'] = True
+                    result['session_id'] = session_id
+                else:
+                    cleanup_session(session_id)
+                return result
+            except Exception as e:
+                logger.error(f"Error in interactive session: {str(e)}\n{traceback.format_exc()}")
+                cleanup_session(session_id)
+                return {
+                    'success': False,
+                    'error': f"Interactive session error: {str(e)}",
+                    'metrics': metrics
+                }
+
+        # Create isolated environment for compilation
+        temp_dir, project_name = create_isolated_environment(code, language)
+
         if language == 'cpp':
             # Set up C++ compilation
-            source_file = temp_path / "program.cpp"
-            executable = temp_path / "program"
-
-            # Write source code with proper encoding
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(code)
+            source_file = os.path.join(temp_dir, "program.cpp")
+            executable = os.path.join(temp_dir, "program")
 
             # Enhanced compilation command with optimizations
             compile_cmd = [
@@ -1382,9 +1402,9 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 '-O2',         # Optimize
                 '-Wall',       # Enable warnings
                 '-pipe',
-                str(source_file),
+                source_file,
                 '-o',
-                str(executable)
+                executable
             ]
 
             try:
@@ -1404,11 +1424,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 # Set executable permissions
-                executable.chmod(0o755)
+                os.chmod(executable, 0o755)
 
                 # Run the compiled program
                 run_process = subprocess.run(
-                    [str(executable)],
+                    [executable],
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
@@ -1437,34 +1457,13 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 }
 
         elif language == 'csharp':
-            # Set up C# project structure
-            source_file = temp_path / "Program.cs"
-            project_file = temp_path / "program.csproj"
-
-            # Write source code with proper encoding
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(code)
-
-            # Create optimized project file
-            project_content = """<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PublishReadyToRun>true</PublishReadyToRun>
-    <ServerGarbageCollection>true</ServerGarbageCollection>
-    <InvariantGlobalization>true</InvariantGlobalization>
-  </PropertyGroup>
-</Project>"""
-            with open(project_file, 'w', encoding='utf-8') as f:
-                f.write(project_content)
-
             try:
-                # Compile using optimized build command
+                project_file = os.path.join(temp_dir, f"{project_name}.csproj")
+
+                # Compile with better error handling
                 compile_cmd = [
                     'dotnet', 'build',
-                    str(project_file),
+                    project_file,
                     '--configuration', 'Release',
                     '--nologo',
                     '/p:GenerateFullPaths=true',
@@ -1477,12 +1476,11 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     capture_output=True,
                     text=True,
                     timeout=MAX_COMPILATION_TIME,
-                    cwd=str(temp_path)
+                    cwd=temp_dir
                 )
 
-                metrics['compilation_time'] = time.time() - metrics['start_time']
-
                 if compile_process.returncode != 0:
+                    logger.error(f"C# compilation failed: {compile_process.stderr}")
                     return {
                         'success': False,
                         'error': format_csharp_error(compile_process.stderr),
@@ -1490,29 +1488,28 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     }
 
                 # Run the compiled program
-                dll_path = temp_path / "bin" / "Release" / "net7.0" / "program.dll"
-                if not dll_path.exists():
+                dll_path = os.path.join(temp_dir, "bin", "Release", "net7.0", f"{project_name}.dll")
+                if not os.path.exists(dll_path):
+                    logger.error(f"DLL not found at {dll_path}")
                     return {
                         'success': False,
-                        'error': "Build succeeded but no executable found",
+                        'error': "Build succeeded but executable not found",
                         'metrics': metrics
                     }
 
                 logger.info("Running program...")
                 run_process = subprocess.run(
-                    ['dotnet', str(dll_path)],
+                    ['dotnet', dll_path],
                     input=input_data.encode() if input_data else None,
                     capture_output=True,
                     text=True,
                     timeout=MAX_EXECUTION_TIME,
-                    cwd=str(temp_path),
+                    cwd=temp_dir,
                     env={**os.environ, 'DOTNET_CONSOLE_ENCODING': 'utf-8'}
                 )
 
-                metrics['execution_time'] = time.time() - (metrics['start_time'] + metrics['compilation_time'])
-                metrics['total_time'] = time.time() - metrics['start_time']
-
                 if run_process.returncode != 0:
+                    logger.error(f"C# runtime error: {run_process.stderr}")
                     return {
                         'success': False,
                         'error': format_runtime_error(run_process.stderr),
@@ -1525,13 +1522,20 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     'metrics': metrics
                 }
 
-            except subprocess.TimeoutExpired as e:
+            except subprocess.TimeoutExpired:
                 phase = "compilation" if time.time() - metrics['start_time'] < MAX_COMPILATION_TIME else "execution"
                 error_msg = f"{phase.capitalize()} timed out after {MAX_COMPILATION_TIME if phase == 'compilation' else MAX_EXECUTION_TIME} seconds"
                 logger.error(error_msg)
                 return {
                     'success': False,
                     'error': error_msg,
+                    'metrics': metrics
+                }
+            except Exception as e:
+                logger.error(f"Unexpected C# error: {str(e)}\n{traceback.format_exc()}")
+                return {
+                    'success': False,
+                    'error': f"Unexpected error: {str(e)}",
                     'metrics': metrics
                 }
 
@@ -1553,100 +1557,6 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
     finally:
         # Clean up temporary directory
         try:
-            shutil.rmtree(temp_path)
+            shutil.rmtree(temp_dir)
         except Exception as e:
-            logger.error(f"Failed to clean up temporary directory {temp_path}: {e}")
-
-def format_csharp_error(error_msg: str) -> str:
-    """Enhanced error message formatting for C# compiler errors"""
-    if not error_msg:
-        return "Unknown error occurred"
-
-    error_lines = []
-
-    # Split into lines and process each one
-    for line in error_msg.splitlines():
-        # Look for compiler error pattern: file(line,col): error CSxxxx: message
-        if "error CS" in line:
-            try:
-                # Extract error code and message
-                error_parts = line.split("error CS")
-                if len(error_parts) > 1:
-                    error_code = error_parts[1].split(':', 1)[0]
-                    error_message = error_parts[1].split(':', 1)[1].strip()
-                    # Clean up the file path and line numbers
-                    error_message = re.sub(r'\[.+?\]', '', error_message)
-                    error_lines.append(f"Compilation Error (CS{error_code}): {error_message}")
-            except Exception as e:
-                logger.error(f"Error parsing compiler message: {e}")
-                error_lines.append(f"Compilation Error: {line.strip()}")
-
-        # Also capture build errors that don't follow the CS#### pattern
-        elif any(pattern in line.lower() for pattern in ["error:", "fatal error:", "build failed"]):
-            error_lines.append(f"Compilation Error: {line.strip()}")
-
-    # If no specific error was found, include the original message
-    if not error_lines:
-        # Look for any error-like content in the original message
-        general_error = re.search(r'(?:error|exception|failed).*$', error_msg, re.IGNORECASE | re.MULTILINE)
-        if general_error:
-            error_lines.append(f"Compilation Error: {general_error.group(0).strip()}")
-        else:
-            error_lines.append(error_msg.strip())
-
-    return "\n".join(error_lines)
-
-def format_runtime_error(error_msg: str) -> str:
-    """Format runtime errors with improved detail capture"""
-    if not error_msg:
-        return "Unknown runtime error occurred"
-
-    error_lines = []
-    stack_trace = []
-
-    for line in error_msg.splitlines():
-        # Capture exception type and message
-        if "Exception:" in line:
-            exception_match = re.search(r'([a-zA-Z.]+Exception:)\s*(.+)', line)
-            if exception_match:
-                exc_type, exc_msg = exception_match.groups()
-                exc_type = exc_type.split('.')[-1]  # Get just the exception name
-                error_lines.append(f"Runtime Error ({exc_type.rstrip(':')}) - {exc_msg.strip()}")
-
-        # Capture stack trace information (limit to 3 lines)
-        elif line.strip().startswith("at ") and len(stack_trace) < 3:
-            # Clean up stack trace line
-            trace_line = re.sub(r'at\s+', '', line.strip())
-            trace_line = re.sub(r'\s+in\s+.+?:\w+\s*$', '', trace_line)
-            stack_trace.append(f"Location: {trace_line}")
-
-    # If no exception was found, look for other error indicators
-    if not error_lines:
-        for line in error_msg.splitlines():
-            if any(pattern in line.lower() for pattern in ["error", "failed", "fault", "invalid"]):
-                error_lines.append(f"Runtime Error: {line.strip()}")
-                break
-
-    # Combine error message with relevant stack trace
-    result = error_lines + stack_trace if error_lines else ["Runtime Error: " + error_msg.strip()]
-    return "\n".join(result)
-
-def is_interactive_code(code: str, language: str) -> bool:
-    """Determine if code requires interactive I/O based on language-specific patterns."""
-    code = code.lower()
-
-    if language == 'cpp':
-        # Check for common C++ input patterns
-        return any(pattern in code for pattern in [
-            'cin', 'getline',
-            'std::cin', 'std::getline',
-            'scanf', 'gets', 'fgets'
-        ])
-    elif language == 'csharp':
-        # Check for common C# input patterns
-        return any(pattern in code for pattern in [
-            'console.read', 'console.readline',
-            'console.in', 'console.keyavailable',
-            'console.readkey'
-        ])
-    return False
+            logger.error(f"Failed to clean up temporary directory {temp_dir}: {e}")
