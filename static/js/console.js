@@ -5,43 +5,84 @@ class InteractiveConsole {
     constructor(options = {}) {
         this.outputElement = options.outputElement;
         this.inputElement = options.inputElement;
-        this.onCommand = options.onCommand;
-        this.onInput = options.onInput;
-        this.onClear = options.onClear;
         this.language = options.language || 'cpp';
+        this.isWaitingForInput = false;
+        this.sessionId = null;
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console requires output and input elements');
         }
 
+        this.socket = io({
+            reconnection: true,
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000,
+            timeout: 20000
+        });
+
+        this.setupSocketHandlers();
+        this.setupInputHandlers();
+        this.clear();
         this.history = [];
         this.historyIndex = -1;
-        this.inputBuffer = '';
-        this.isWaitingForInput = false;
         this.maxBufferSize = 4096;
-        this.outputBuffer = [];
-        this.sessionId = null;
-        this.lastOutputTime = Date.now();
-        this.duplicateThreshold = 100; // ms to consider output as duplicate
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
-        this.socket = null; // Socket.IO instance
-
-        this.setupEventListeners();
-        this.setupSocketIO();
-        this.clear();
-        this.enable();
+        this.inputPromptPatterns = {
+            cpp: ['>', '>>'],
+            python: ['>>>', '...']
+        };
     }
 
-    setupEventListeners() {
+    setupSocketHandlers() {
+        this.socket.on('connect', () => {
+            console.debug('Socket.IO connected');
+            this.appendSystemMessage('Console connected');
+        });
+
+        this.socket.on('disconnect', () => {
+            console.debug('Socket.IO disconnected');
+            this.appendSystemMessage('Console disconnected. Attempting to reconnect...');
+        });
+
+        this.socket.on('error', (error) => {
+            console.error('Socket.IO error:', error);
+            this.appendError(`Error: ${error.message}`);
+        });
+
+        this.socket.on('compilation_result', (result) => {
+            console.debug('Compilation result:', result);
+            if (result.success) {
+                this.sessionId = result.session_id;
+                if (!result.interactive && result.output) {
+                    this.appendOutput(result.output);
+                }
+            } else {
+                this.appendError(`Compilation Error: ${result.error}`);
+            }
+        });
+
+        this.socket.on('output', (data) => {
+            console.debug('Received output:', data);
+            if (data.output) {
+                this.appendOutput(data.output);
+                this.isWaitingForInput = data.waiting_for_input || false;
+                if (this.isWaitingForInput) {
+                    this.enableInput();
+                } else {
+                    this.disableInput();
+                }
+            }
+        });
+    }
+
+    setupInputHandlers() {
         this.inputElement.addEventListener('keydown', async (e) => {
             if (!this.isEnabled) return;
 
-            switch(e.key) {
+            switch (e.key) {
                 case 'Enter':
                     if (!e.shiftKey) {
                         e.preventDefault();
-                        await this.handleEnterKey();
+                        await this.handleInput();
                     }
                     break;
                 case 'ArrowUp':
@@ -82,7 +123,7 @@ class InteractiveConsole {
                 const firstLine = text.split('\n')[0];
                 this.inputElement.value = firstLine;
                 if (firstLine) {
-                    this.handleEnterKey();
+                    this.handleInput();
                 }
             } else {
                 // For command input, can accept multiple lines
@@ -91,80 +132,7 @@ class InteractiveConsole {
         });
     }
 
-    setupSocketIO() {
-        // Connect to Socket.IO endpoint with reconnection options
-        this.socket = io({
-            reconnection: true,
-            reconnectionAttempts: this.maxReconnectAttempts,
-            reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            timeout: 20000,
-            autoConnect: true
-        });
-
-        this.socket.on('connect', () => {
-            console.debug('Socket.IO connection established');
-            this.reconnectAttempts = 0;
-            this.appendOutput('Console connected\n', 'console-info');
-
-            // Request initial metrics
-            this.socket.emit('get_metrics');
-        });
-
-        this.socket.on('metrics', (metrics) => {
-            console.debug('Socket.IO metrics:', metrics);
-            // Log important metrics
-            const { active_sessions, events_processed, errors, uptime } = metrics;
-            this.appendOutput(
-                `Socket.IO Stats:\n` +
-                `Active Sessions: ${active_sessions}\n` +
-                `Events Processed: ${events_processed}\n` +
-                `Errors: ${errors}\n` +
-                `Uptime: ${Math.round(uptime)}s\n`,
-                'console-info metrics'
-            );
-        });
-
-        this.socket.on('output', (data) => {
-            if (data.type === 'output') {
-                this.processAndAppendOutput(data.output);
-                this.isWaitingForInput = data.waiting_for_input || false;
-                if (this.isWaitingForInput) {
-                    this.enable();
-                    this.inputElement.focus();
-                }
-            }
-        });
-
-        this.socket.on('error', (error) => {
-            console.error('Socket.IO error:', error);
-            const errorMessage = error.error_id ? 
-                `Error ID: ${error.error_id}\nType: ${error.type}\nMessage: ${error.message}` :
-                error.message;
-            this.appendError(`Connection error: ${errorMessage}`);
-        });
-
-        this.socket.on('disconnect', (reason) => {
-            console.debug('Socket.IO disconnected:', reason);
-            this.appendOutput('Console disconnected. Attempting to reconnect...\n', 'console-warning');
-
-            if (reason === 'io server disconnect') {
-                // Server disconnected explicitly
-                this.socket.connect();
-            }
-        });
-
-        this.socket.on('connect_error', (error) => {
-            console.error('Socket.IO connection error:', error);
-            this.reconnectAttempts++;
-
-            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                this.appendError('Failed to connect to server after multiple attempts');
-            }
-        });
-    }
-
-    async handleEnterKey() {
+    async handleInput() {
         const input = this.inputElement.value.trim();
         this.inputElement.value = '';
 
@@ -174,8 +142,9 @@ class InteractiveConsole {
                     session_id: this.sessionId,
                     input: input + '\n'
                 });
-                this.appendOutput(input + '\n', 'console-input user-input');
+                this.appendOutput(input + '\n', 'user-input');
                 this.isWaitingForInput = false;
+                this.disableInput();
                 return;
             } else {
                 this.appendError('Not connected to server. Reconnecting...');
@@ -186,9 +155,10 @@ class InteractiveConsole {
             this.historyIndex = this.history.length;
             this.appendOutput(`> ${input}\n`, 'console-input');
 
-            if (this.onCommand) {
-                await this.onCommand(input);
-            }
+            // Assuming onCommand remains for non-interactive commands.
+            //if (this.onCommand) {
+            //    await this.onCommand(input);
+            //}
         }
     }
 
@@ -204,81 +174,92 @@ class InteractiveConsole {
         }
     }
 
-    startPollingOutput() {
-        //This function is removed as it is no longer needed with Socket.IO
-    }
-
-    processAndAppendOutput(text) {
-        // Prevent duplicate output from rapid polling
-        const now = Date.now();
-        if (now - this.lastOutputTime < this.duplicateThreshold && 
-            this.outputBuffer.length > 0 && 
-            this.outputBuffer[this.outputBuffer.length - 1] === text) {
-            return;
-        }
-        this.lastOutputTime = now;
-
-        // Clean up and normalize output
-        let cleanedText = text
-            .replace(/\r\n/g, '\n')
-            .replace(/\r/g, '\n')
-            .replace(/\n+/g, '\n')
-            .replace(/^\n+/, '')
-            .trim();
-
-        if (cleanedText) {
-            // Check for input prompts in the text
-            const patterns = this.inputPromptPatterns[this.language.toLowerCase()] || [];
-            const lowerText = cleanedText.toLowerCase();
-
-            const isInputPrompt = patterns.some(pattern => lowerText.includes(pattern));
-            const className = isInputPrompt ? 'console-output input-prompt' : 'console-output';
-
-            const lines = cleanedText.split('\n');
-            for (const line of lines) {
-                if (line.trim() || lines.length > 1) {
-                    this.appendOutput(line + '\n', className);
-                }
-            }
-
-            // If this looks like an input prompt, enable input
-            if (isInputPrompt) {
-                this.isWaitingForInput = true;
-                this.enable();
-                this.inputElement.focus();
-            }
-        }
-    }
-
-    appendOutput(text, className = '') {
+    appendOutput(text, className = 'console-output') {
         const processedText = this.processAnsiCodes(text);
-        const lines = processedText.split(/(\n)/);
-
+        const lines = processedText.split('\n');
         for (const line of lines) {
-            if (line === '\n') {
-                this.outputElement.appendChild(document.createElement('br'));
-            } else if (line.trim() || className) {
-                const lineElement = document.createElement('div');
-                lineElement.className = `console-line ${className}`;
-                lineElement.innerHTML = line;
-                this.outputElement.appendChild(lineElement);
+            if (line.trim() || className.includes('user-input')) {
+                const element = document.createElement('div');
+                element.className = className;
+                element.innerHTML = line; // Use innerHTML for ANSI codes
+                this.outputElement.appendChild(element);
             }
         }
+        this.outputElement.scrollTop = this.outputElement.scrollHeight;
 
         // Trim output buffer
         while (this.outputElement.children.length > this.maxBufferSize) {
             this.outputElement.removeChild(this.outputElement.firstChild);
         }
-
-        this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
-    appendError(errorMessage) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'console-error';
-        errorDiv.textContent = errorMessage;
-        this.outputElement.appendChild(errorDiv);
-        this.outputElement.scrollTop = this.outputElement.scrollHeight;
+    appendError(message) {
+        this.appendOutput(message, 'console-error');
+    }
+
+    appendSystemMessage(message) {
+        this.appendOutput(message, 'console-system');
+    }
+
+    clear() {
+        this.outputElement.innerHTML = '';
+        this.isWaitingForInput = false;
+        this.sessionId = null;
+        this.history = [];
+        this.historyIndex = -1;
+    }
+
+    enableInput() {
+        this.isEnabled = true;
+        this.inputElement.disabled = false;
+        this.inputElement.focus();
+    }
+
+    disableInput() {
+        this.isEnabled = false;
+        this.inputElement.disabled = true;
+    }
+
+    setLanguage(language) {
+        this.language = language;
+    }
+
+    navigateHistory(direction) {
+        if (!this.history.length) return;
+
+        this.historyIndex += direction;
+
+        if (this.historyIndex >= this.history.length) {
+            this.historyIndex = this.history.length - 1;
+        } else if (this.historyIndex < 0) {
+            this.historyIndex = 0;
+        }
+
+        this.inputElement.value = this.history[this.historyIndex];
+        // Move cursor to end of input
+        setTimeout(() => {
+            this.inputElement.selectionStart = this.inputElement.value.length;
+            this.inputElement.selectionEnd = this.inputElement.value.length;
+        }, 0);
+    }
+
+    setSession(sessionId) {
+        this.sessionId = sessionId;
+        if (sessionId && this.socket && this.socket.connected) {
+            this.socket.emit('session_start', {
+                session_id: sessionId
+            });
+        }
+    }
+
+    handleSessionEnd() {
+        this.sessionId = null;
+        this.isWaitingForInput = false;
+        this.enableInput();
+        this.appendOutput('\nSession ended.\n', 'console-info');
+        if (this.socket) {
+            this.socket.close();
+        }
     }
 
     processAnsiCodes(text) {
@@ -313,71 +294,6 @@ class InteractiveConsole {
                     .join(' ');
                 return classes ? `<span class="${classes}">` : '';
             });
-    }
-
-    clear() {
-        if (this.outputElement) {
-            this.outputElement.innerHTML = '';
-            this.outputBuffer = [];
-            if (this.onClear) {
-                this.onClear();
-            }
-        }
-    }
-
-    enable() {
-        if (this.inputElement) {
-            this.isEnabled = true;
-            this.inputElement.disabled = false;
-            this.inputElement.focus();
-        }
-    }
-
-    disable() {
-        if (this.inputElement) {
-            this.isEnabled = false;
-            this.inputElement.disabled = true;
-        }
-    }
-
-    navigateHistory(direction) {
-        if (!this.history.length) return;
-
-        this.historyIndex += direction;
-
-        if (this.historyIndex >= this.history.length) {
-            this.historyIndex = this.history.length - 1;
-        } else if (this.historyIndex < 0) {
-            this.historyIndex = 0;
-        }
-
-        this.inputElement.value = this.history[this.historyIndex];
-        // Move cursor to end of input
-        setTimeout(() => {
-            this.inputElement.selectionStart = this.inputElement.value.length;
-            this.inputElement.selectionEnd = this.inputElement.value.length;
-        }, 0);
-    }
-
-    setSession(sessionId) {
-        this.sessionId = sessionId;
-        if (sessionId && this.socket && this.socket.connected) {
-            this.socket.emit('session_start', { 
-                session_id: sessionId 
-            });
-        }
-    }
-    setLanguage(language) {
-        this.language = language;
-    }
-    handleSessionEnd() {
-        this.sessionId = null;
-        this.isWaitingForInput = false;
-        this.enable();
-        this.appendOutput('\nSession ended.\n', 'console-info');
-        if (this.socket) {
-            this.socket.close();
-        }
     }
 }
 

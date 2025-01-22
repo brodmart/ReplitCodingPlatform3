@@ -210,7 +210,7 @@ def create_app():
 
 def setup_websocket_handlers():
     """Setup WebSocket event handlers for console I/O with comprehensive logging"""
-    from compiler_service import start_interactive_session, send_input, get_output
+    from compiler_service import start_interactive_session, send_input, get_output, compile_and_run
 
     @socketio.on('connect')
     @log_socket_event
@@ -245,35 +245,56 @@ def setup_websocket_handlers():
             'type': e.__class__.__name__
         })
 
-    @socketio.on('session_start')
+    @socketio.on('compile_and_run')
     @log_socket_event
-    def handle_session_start(data):
-        """Handle new interactive session start with metrics"""
+    def handle_compile_and_run(data):
+        """Handle code compilation and execution"""
         try:
-            session_id = data.get('session_id')
-            if not session_id:
-                logger.error("No session ID provided")
-                emit('error', {'message': 'Session ID required'})
+            code = data.get('code')
+            language = data.get('language')
+
+            if not code or not language:
+                emit('error', {'message': 'Missing code or language'})
                 return
 
-            logger.info(f"Registering Socket.IO for session: {session_id}")
-            session['console_session_id'] = session_id
-            track_session(session_id, active=True)
+            logger.info(f"Starting compilation for {language}")
+            result = compile_and_run(code, language)
 
-            # Send initial metrics
-            emit('connected', {
-                'status': 'success',
-                'metrics': get_current_metrics()
-            })
+            if result['success']:
+                session_id = result.get('session_id')
+                if session_id:
+                    session['console_session_id'] = session_id
+                    track_session(session_id, active=True)
+
+                emit('compilation_result', {
+                    'success': True,
+                    'interactive': result.get('interactive', False),
+                    'output': result.get('output', ''),
+                    'session_id': session_id
+                })
+
+                # If there's immediate output, send it
+                if result.get('interactive'):
+                    output = get_output(session_id)
+                    if output and output.get('success'):
+                        emit('output', {
+                            'output': output.get('output', ''),
+                            'waiting_for_input': output.get('waiting_for_input', False)
+                        })
+            else:
+                emit('compilation_result', {
+                    'success': False,
+                    'error': result.get('error', 'Unknown error')
+                })
 
         except Exception as e:
-            logger.error(f"Error in session_start: {str(e)}", exc_info=True)
-            emit('error', {'message': 'Failed to start session'})
+            logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
+            emit('error', {'message': 'Failed to compile and run code'})
 
     @socketio.on('input')
     @log_socket_event
     def handle_input(data):
-        """Handle console input from client with performance tracking"""
+        """Handle console input from client"""
         try:
             session_id = data.get('session_id')
             input_text = data.get('input')
@@ -288,13 +309,12 @@ def setup_websocket_handlers():
 
             if result and result.get('success'):
                 # Get immediate output after input
+                time.sleep(0.1)  # Small delay to ensure output is ready
                 output = get_output(session_id)
                 if output and output.get('success'):
                     emit('output', {
-                        'type': 'output',
                         'output': output.get('output', ''),
-                        'waiting_for_input': output.get('waiting_for_input', False),
-                        'metrics': get_current_metrics()
+                        'waiting_for_input': output.get('waiting_for_input', False)
                     })
                 else:
                     emit('error', {'message': 'Failed to get output'})
@@ -310,6 +330,7 @@ def setup_websocket_handlers():
     def handle_get_metrics():
         """Handle metrics request"""
         emit('metrics', get_current_metrics())
+
 
 # Create the application instance
 app = create_app()
