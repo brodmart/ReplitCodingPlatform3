@@ -1,0 +1,16 @@
+2025-01-22 23:16:14,279 - compiler:42 - INFO - Starting compilation for session test_interactive_718595765797430151
+2025-01-22 23:16:14,285 - compiler_service:982 - DEBUG - Starting compilation for code length: 318, language: csharp
+2025-01-22 23:16:14,286 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:16:14,286 - compiler_service:585 - DEBUG - Session ID: test_interactive_718595765797430151
+2025-01-22 23:16:14,286 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:16:14,287 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_45jj1nm6
+2025-01-22 23:16:14,835 - compiler:42 - INFO - Starting compilation for session test_interactive_4406987348043013957
+2025-01-22 23:16:14,837 - compiler_service:982 - DEBUG - Starting compilation for code length: 318, language: csharp
+2025-01-22 23:16:14,837 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:16:14,837 - compiler_service:585 - DEBUG - Session ID: test_interactive_4406987348043013957
+2025-01-22 23:16:14,838 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:16:14,838 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_717nll2k
+2025-01-22 23:16:20,362 - compiler:69 - INFO - Session test_interactive_718595765797430151 state changed to: session_started
+2025-01-22 23:16:20,454 - compiler:69 - INFO - Session test_interactive_4406987348043013957 state changed to: session_started
+2025-01-22 23:16:20,533 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name: 
+2025-01-22 23:16:20,603 - compiler_service:533 - DEBUG - Early input prompt detected in buffer: [?1h=Enter your name: 

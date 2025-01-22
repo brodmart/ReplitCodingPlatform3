@@ -133,3 +133,36 @@ Traceback (most recent call last):
 TypeError: setup_websocket_handlers.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
 2025-01-22 23:13:48,408 - socketio.server:164 - INFO - emitting event "error" to N7lxwXxOCPCoKdraAAAF [/]
 2025-01-22 23:13:48,408 - engineio.server:78 - INFO - hWKXTLji95ceM0T0AAAE: Sending packet MESSAGE data 2["error",{"message":"An unexpected error occurred"}]
+2025-01-22 23:14:11,005 - engineio.server:78 - INFO - wRKKXJ-vxNsQyq6KAAAA: Sending packet PING data None
+2025-01-22 23:14:11,079 - engineio.server:39 - INFO - wRKKXJ-vxNsQyq6KAAAA: Received packet PONG data 
+2025-01-22 23:14:12,693 - engineio.server:78 - INFO - EwpWQrPErcSaoDNcAAAC: Sending packet PING data None
+2025-01-22 23:14:12,767 - engineio.server:39 - INFO - EwpWQrPErcSaoDNcAAAC: Received packet PONG data 
+2025-01-22 23:14:16,438 - engineio.server:39 - INFO - EwpWQrPErcSaoDNcAAAC: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}]
+2025-01-22 23:14:16,439 - socketio.server:576 - INFO - received event "compile_and_run" from paQHjE1xzlrGhxXKAAAD [/]
+2025-01-22 23:14:16,439 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-22 23:14:16.439932
+2025-01-22 23:14:16,440 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'}
+2025-01-22 23:14:16,440 - app:152 - INFO - Starting csharp code compilation
+2025-01-22 23:14:16,440 - app:153 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+}
+2025-01-22 23:14:16,440 - compiler:26 - INFO - Created compilation session ID: c787acc4-d6a7-4f83-b583-bbd0eba93e9b
+2025-01-22 23:14:16,440 - compiler:42 - INFO - Starting compilation for session c787acc4-d6a7-4f83-b583-bbd0eba93e9b
+2025-01-22 23:14:16,441 - socketio.server:164 - INFO - emitting event "compilation_start" to paQHjE1xzlrGhxXKAAAD [/]
+2025-01-22 23:14:16,441 - engineio.server:78 - INFO - EwpWQrPErcSaoDNcAAAC: Sending packet MESSAGE data 2["compilation_start",{"session_id":"c787acc4-d6a7-4f83-b583-bbd0eba93e9b","timestamp":1737587656.4405866}]
+2025-01-22 23:14:16,441 - compiler_service:982 - DEBUG - Starting compilation for code length: 198, language: csharp
+2025-01-22 23:14:16,441 - compiler_service:584 - INFO - Starting interactive session for csharp
+2025-01-22 23:14:16,442 - compiler_service:585 - DEBUG - Session ID: c787acc4-d6a7-4f83-b583-bbd0eba93e9b
+2025-01-22 23:14:16,442 - compiler_service:595 - INFO - Creating isolated environment
+2025-01-22 23:14:16,442 - compiler_service:923 - DEBUG - Created C# project in /tmp/compiler_env_csharp_y9sp8h46
+2025-01-22 23:14:20,694 - app:172 - INFO - Compilation completed in 4.25s: {'success': True, 'session_id': 'c787acc4-d6a7-4f83-b583-bbd0eba93e9b', 'interactive': True, 'metrics': {'compilation_time': 0.0, 'execution_time': 0.0, 'total_time': 4.252380609512329, 'peak_memory': 0.0, 'avg_cpu_usage': 0.0, 'error_count': 0, 'warning_count': 0, 'cached': False, 'build_success_rate': 0, 'stages': {}}}
+2025-01-22 23:14:20,694 - socketio:119 - INFO - Session c787acc4-d6a7-4f83-b583-bbd0eba93e9b activated. Total active sessions: 1
+2025-01-22 23:14:20,694 - socketio:121 - DEBUG - Session context: {'language': 'csharp'}
+2025-01-22 23:14:20,694 - socketio.server:164 - INFO - emitting event "compilation_result" to paQHjE1xzlrGhxXKAAAD [/]
+2025-01-22 23:14:20,695 - engineio.server:78 - INFO - EwpWQrPErcSaoDNcAAAC: Sending packet MESSAGE data 2["compilation_result",{"success":true,"session_id":"c787acc4-d6a7-4f83-b583-bbd0eba93e9b","interactive":true}]
+2025-01-22 23:16:10,496 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading

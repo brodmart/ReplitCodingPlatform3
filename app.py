@@ -29,7 +29,9 @@ socketio = SocketIO(
     ping_timeout=60,
     ping_interval=25,
     max_http_buffer_size=1e8,
-    async_handlers=True
+    async_handlers=True,
+    message_queue='memory://',  # Use in-memory queue for better performance
+    always_connect=True,        # Attempt to maintain persistent connections
 )
 
 class Base(DeclarativeBase):
@@ -156,17 +158,17 @@ def setup_websocket_handlers():
             compilation_session_id = str(uuid.uuid4())
             compiler_logger.info(f"Created compilation session ID: {compilation_session_id}")
 
-            # Track compilation metrics
+            # Track compilation metrics with extended timeout
             start_time = time.time()
             compiler_logger.log_compilation_start(compilation_session_id, code)
 
-            # Emit start event
+            # Emit start event with session ID
             emit('compilation_start', {
                 'session_id': compilation_session_id,
                 'timestamp': start_time
             })
 
-            # Attempt compilation with timeout handling
+            # Attempt compilation with extended timeout handling
             result = compile_and_run(code, language, session_id=compilation_session_id)
             duration = time.time() - start_time
             logger.info(f"Compilation completed in {duration:.2f}s: {result}")
@@ -175,14 +177,20 @@ def setup_websocket_handlers():
                 session_id = result.get('session_id')
                 if session_id:
                     session['console_session_id'] = session_id
-                    track_session(session_id, True, {'language': language})
+                    track_session(session_id, True, {
+                        'language': language,
+                        'compilation_time': duration
+                    })
                     emit('compilation_result', {
                         'success': True,
                         'session_id': session_id,
-                        'interactive': result.get('interactive', False)
+                        'interactive': result.get('interactive', False),
+                        'metrics': {
+                            'compilation_time': duration
+                        }
                     })
 
-                    # Get and emit initial output
+                    # Get and emit initial output with error handling
                     try:
                         output = get_output(session_id)
                         if output and output.get('success'):
@@ -193,6 +201,7 @@ def setup_websocket_handlers():
                             })
                         else:
                             logger.warning(f"No initial output available: {output}")
+                            emit('error', {'message': 'No initial output available'})
                     except Exception as e:
                         log_error("output_error", f"Error getting initial output: {e}")
                         emit('error', {'message': 'Failed to get initial program output'})
@@ -204,12 +213,16 @@ def setup_websocket_handlers():
                 log_error("compilation_error", f"Compilation failed: {error}")
                 emit('compilation_result', {
                     'success': False,
-                    'error': error
+                    'error': error,
+                    'metrics': {
+                        'compilation_time': duration
+                    }
                 })
 
         except Exception as e:
             log_error("compilation_error", f"Error in compile_and_run: {str(e)}")
             emit('error', {'message': f'Failed to compile and run: {str(e)}'})
+            raise
 
     @socketio.on('input')
     @log_socket_event
@@ -258,4 +271,4 @@ def setup_websocket_handlers():
 app = create_app()
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=True, log_output=True)

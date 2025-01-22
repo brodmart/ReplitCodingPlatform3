@@ -8,9 +8,9 @@ class InteractiveConsole {
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 3;
+        this.maxReconnectAttempts = 5; // Increased from 3 to 5
         this.currentLanguage = 'csharp';
-        this.compilationTimeout = 30000; // Increased to 30 seconds
+        this.compilationTimeout = 60000; // Increased from 30s to 60s
 
         if (!this.outputElement || !this.inputElement) {
             console.error('Console initialization failed: Missing required elements');
@@ -22,8 +22,10 @@ class InteractiveConsole {
             transports: ['websocket'],
             reconnection: true,
             reconnectionAttempts: this.maxReconnectAttempts,
-            reconnectionDelay: 1000,
-            timeout: this.compilationTimeout
+            reconnectionDelay: 2000, // Increased from 1s to 2s
+            timeout: this.compilationTimeout,
+            pingTimeout: 60000,
+            pingInterval: 25000
         });
 
         console.debug('Initializing Interactive Console...');
@@ -52,6 +54,10 @@ class InteractiveConsole {
         this.socket.on('disconnect', (reason) => {
             console.warn('Socket disconnected:', reason);
             this.appendSystemMessage(`Disconnected from console server (${reason})`);
+            if (reason === 'io server disconnect') {
+                // Server initiated disconnect, try to reconnect
+                this.socket.connect();
+            }
             this.disableInput();
         });
 
@@ -72,6 +78,13 @@ class InteractiveConsole {
 
         this.socket.on('compilation_result', (data) => {
             console.debug('Received compilation result:', data);
+
+            // Clear any existing compilation timeout
+            if (this.compilationTimeoutId) {
+                clearTimeout(this.compilationTimeoutId);
+                this.compilationTimeoutId = null;
+            }
+
             if (!data.success) {
                 console.error('Compilation failed:', data.error);
                 this.appendError(`Compilation error: ${data.error}`);
@@ -82,18 +95,16 @@ class InteractiveConsole {
                 this.sessionId = data.session_id;
                 console.debug(`Session started: ${this.sessionId}`);
                 this.appendSystemMessage('Program compiled successfully, waiting for output...');
-
-                // Clear any existing compilation timeout
-                if (this.compilationTimeoutId) {
-                    clearTimeout(this.compilationTimeoutId);
-                    this.compilationTimeoutId = null;
-                }
             }
         });
 
         this.socket.on('error', (data) => {
             console.error('Server error:', data);
             this.appendError(`Server error: ${data.message}`);
+            // Attempt to reconnect on server errors
+            if (this.socket.connected) {
+                this.socket.disconnect().connect();
+            }
         });
 
         // Input handler with enhanced error logging
@@ -206,23 +217,24 @@ class InteractiveConsole {
         this.clear();
         this.appendSystemMessage('Compiling and running program...');
 
-        // Clear any existing session
+        // Clear any existing session and timeout
         this.sessionId = null;
         this.isWaitingForInput = false;
-
-        // Set compilation timeout handler
         if (this.compilationTimeoutId) {
             clearTimeout(this.compilationTimeoutId);
         }
 
+        // Set compilation timeout handler with automatic reconnect
         this.compilationTimeoutId = setTimeout(() => {
             if (!this.sessionId) {
                 console.error('Compilation timeout - no response received');
-                this.appendError('Compilation timeout - no response received from server. This might be due to high server load or a complex compilation. Please try again.');
-                // Attempt to reconnect socket
+                this.appendError('Compilation timeout - no response received from server. Attempting to reconnect...');
                 if (this.socket.connected) {
-                    this.socket.disconnect().connect();
+                    this.socket.disconnect();
                 }
+                setTimeout(() => {
+                    this.socket.connect();
+                }, 1000);
             }
         }, this.compilationTimeout);
 
