@@ -200,14 +200,17 @@ def setup_websocket_handlers():
                         }
                     })
 
+                    # Add delay for program initialization
+                    time.sleep(0.1)  # Brief delay for program to start
+
                     # Get and emit initial output with error handling
                     try:
                         output = get_output(session_id)
+                        logger.debug(f"Initial program output: {output}")
                         if output and output.get('success'):
-                            logger.debug(f"Initial output: {output}")
                             emit('output', {
                                 'output': output.get('output', ''),
-                                'waiting_for_input': output.get('waiting_for_input', False)
+                                'waiting_for_input': True  # Force enable input for interactive programs
                             })
                         else:
                             logger.warning(f"No initial output available: {output}")

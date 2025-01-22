@@ -1,0 +1,13 @@
+2025-01-22 23:28:37,549 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-22 23:28:37,550 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-22 23:28:37,920 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:28:37,925 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-22 23:28:37,938 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-22 23:28:38,409 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-22 23:28:38,411 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-22 23:28:38,411 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-22 23:28:38,428 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-22 23:28:39,447 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-22 23:28:39,448 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-22 23:28:39,491 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-22 23:28:39,666 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
