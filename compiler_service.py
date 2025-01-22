@@ -566,23 +566,35 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     unique_id = str(uuid.uuid4())[:8]
     temp_dir = Path(COMPILER_CACHE_DIR) / f"compile_{unique_id}"
     temp_dir.mkdir(parents=True, exist_ok=True)
+    logger.debug(f"Created temp directory: {temp_dir}")
 
     if language == 'csharp':
         project_name = f"Project_{unique_id}"
         source_file = temp_dir / "Program.cs"
         project_file = temp_dir / f"{project_name}.csproj"
 
-        # Write source code
+        # Write source code with better namespace handling
+        logger.debug(f"Writing C# source code to {source_file}")
         with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
+            # Wrap user code in proper namespace to avoid conflicts
+            wrapped_code = f"""namespace {project_name}
+{{
+    public class Program
+    {{
+        {code.strip()}
+    }}
+}}"""
+            f.write(wrapped_code)
+            logger.debug("Source code written successfully")
 
         # Create optimized project file with explicit SDK reference
+        logger.debug(f"Creating project file: {project_file}")
         project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <ImplicitUsings>disable</ImplicitUsings>
+    <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>{project_name}</AssemblyName>
     <RootNamespace>{project_name}</RootNamespace>
@@ -595,6 +607,7 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
 </Project>"""
         with open(project_file, 'w', encoding='utf-8') as f:
             f.write(project_content)
+            logger.debug("Project file created successfully")
 
         return temp_dir, project_name
 
@@ -808,8 +821,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 }
             except Exception as e:
                 logger.error(f"Unexpected C# error: {str(e)}\n{traceback.format_exc()}")
-                return {
-                    'success': False,
+                return {                    'success': False,
                     'error': f"Unexpected error: {str(e)}",
                     'metrics': metrics
                 }
@@ -950,3 +962,32 @@ namespace ConsoleApp
 }"""
     }
     return templates.get(language.lower(), '')
+
+def format_csharp_error(error_output: str) -> str:
+    """Format C# compilation errors for better readability"""
+    try:
+        # Remove build engine noise
+        error_lines = error_output.split('\n')
+        formatted_errors = []
+
+        for line in error_lines:
+            # Skip build engine and empty lines
+            if not line.strip() or 'Build FAILED.' in line or 'Time Elapsed' in line:
+                continue
+
+            # Parse error line format: file(line,col): error CS####: message
+            if ': error CS' in line:
+                parts = line.split(': error CS')
+                if len(parts) == 2:
+                    error_code = parts[1].split(':')[0]
+                    error_message = parts[1].split(':', 1)[1].strip()
+                    location = parts[0].split('(')[0]
+                    formatted_errors.append(f"Compilation Error (CS{error_code}): {error_message}\nLocation: {location}")
+
+        if formatted_errors:
+            return "\n".join(formatted_errors)
+        else:
+            return f"Unknown C# compilation error:\n{error_output}"
+    except Exception as e:
+        logger.error(f"Error formatting C# error message: {str(e)}")
+        return error_output
