@@ -670,3 +670,10 @@
 2025-01-22 22:05:42,330 - utils.compiler_logger - INFO - Session test_interactive_-941612741060119720 state changed to: session_started
 2025-01-22 22:05:43,611 - utils.compiler_logger - INFO - Session test_interactive_-4228798292509172566 state changed to: session_started
 2025-01-22 22:05:46,161 - utils.compiler_logger - INFO - Session test_interactive_5047193141362906001 state changed to: session_started
+2025-01-22 22:39:19,594 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_881927978070475813
+2025-01-22 22:39:23,234 - utils.compiler_logger - INFO - Session test_interactive_881927978070475813 state changed to: session_started
+2025-01-22 22:39:23,850 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_2746346404705558764
+2025-01-22 22:39:24,094 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_-5723285444154427095
+2025-01-22 22:39:24,383 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_3827440214524304555
+2025-01-22 22:39:26,018 - utils.compiler_logger - INFO - Session test_interactive_2746346404705558764 state changed to: session_started
+2025-01-22 22:39:27,730 - utils.compiler_logger - INFO - Session test_interactive_-5723285444154427095 state changed to: session_started

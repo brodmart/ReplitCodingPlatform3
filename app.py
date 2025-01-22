@@ -1,5 +1,7 @@
 import os
 import logging
+import uuid
+import time
 from flask import Flask, session, request, render_template
 from flask_socketio import SocketIO, emit
 from flask_session import Session
@@ -118,8 +120,21 @@ def setup_websocket_handlers():
             logger.info(f"Starting {language} code compilation")
             logger.debug(f"Code to compile: {code}")
 
+            # Generate unique session ID for tracking
+            compilation_session_id = str(uuid.uuid4())
+            logger.info(f"Created compilation session ID: {compilation_session_id}")
+
+            # Log start of compilation
+            compiler_logger.log_compilation_start(compilation_session_id, code)
+
+            # Emit compilation start event
+            emit('compilation_start', {
+                'session_id': compilation_session_id,
+                'timestamp': time.time()
+            })
+
             # Attempt compilation with timeout handling
-            result = compile_and_run(code, language)
+            result = compile_and_run(code, language, session_id=compilation_session_id)
             logger.info(f"Compilation result: {result}")
 
             if result.get('success'):
