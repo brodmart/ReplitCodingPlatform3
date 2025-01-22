@@ -126,6 +126,36 @@ class TestWebConsoleIO(unittest.TestCase):
         ]
         self.verify_interactive_session(code, 'cpp', test_cases)
 
+    def test_cpp_multiple_inputs(self):
+        """Test C++ multiple input interactions"""
+        code = """
+        #include <iostream>
+        #include <string>
+        using namespace std;
+
+        int main() {
+            string name;
+            int age;
+            cout << "Enter your name: ";
+            getline(cin, name);
+            cout << "Enter your age: ";
+            cin >> age;
+            cout << "Hello, " << name << "! You are " << age << " years old." << endl;
+            return 0;
+        }
+        """
+        test_cases = [
+            {
+                'input': 'Alice Smith\n',
+                'expected': 'Enter your age'
+            },
+            {
+                'input': '25\n',
+                'expected': 'Hello, Alice Smith! You are 25 years old.'
+            }
+        ]
+        self.verify_interactive_session(code, 'cpp', test_cases)
+
     def test_csharp_basic_io(self):
         """Test C# basic input/output interactions"""
         code = """
@@ -143,6 +173,36 @@ class TestWebConsoleIO(unittest.TestCase):
             {
                 'input': 'Jane Smith\n',
                 'expected': 'Hello, Jane Smith!'
+            }
+        ]
+        self.verify_interactive_session(code, 'csharp', test_cases)
+
+    def test_csharp_multiple_inputs(self):
+        """Test C# multiple input interactions"""
+        code = """
+        using System;
+
+        class Program {
+            static void Main() {
+                Console.Write("Enter your name: ");
+                string name = Console.ReadLine();
+                Console.Write("Enter your age: ");
+                if (int.TryParse(Console.ReadLine(), out int age)) {
+                    Console.WriteLine($"Hello, {name}! You are {age} years old.");
+                } else {
+                    Console.WriteLine("Invalid age entered.");
+                }
+            }
+        }
+        """
+        test_cases = [
+            {
+                'input': 'Bob Johnson\n',
+                'expected': 'Enter your age'
+            },
+            {
+                'input': '30\n',
+                'expected': 'Hello, Bob Johnson! You are 30 years old.'
             }
         ]
         self.verify_interactive_session(code, 'csharp', test_cases)
