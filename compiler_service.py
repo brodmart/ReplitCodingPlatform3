@@ -78,19 +78,33 @@ def create_pty() -> tuple[int, int]:
     return master_fd, slave_fd
 
 def clean_terminal_output(output: str) -> str:
-    """Clean terminal control sequences from output"""
-    # Remove common terminal control sequences
-    cleaned = re.sub(r'\x1b[^m]*m', '', output)  # ANSI color codes
-    cleaned = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', cleaned)  # ANSI control codes
-    cleaned = re.sub(r'\x1b\=[^\x1b]*\x1b', '', cleaned)  # Other escape sequences
-    cleaned = re.sub(r'\[(\?|\d+)[0-9a-zA-Z]*[=h]', '', cleaned)  # Terminal mode sequences
-    cleaned = re.sub(r'\x1b', '', cleaned)  # Remove any remaining escape characters
-    cleaned = re.sub(r'\r\n', '\n', cleaned)  # Normalize line endings
+    """Clean terminal control sequences from output with enhanced pattern matching"""
+    # Remove ANSI color codes and control sequences
+    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)  # Enhanced ANSI pattern
+    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)  # Additional controls
+    cleaned = re.sub(r'\x1b[=>]', '', cleaned)  # Terminal mode sequences
+
+    # Clean C#-specific artifacts
+    cleaned = re.sub(r'Microsoft.+?Copyright.+?\n', '', cleaned, flags=re.MULTILINE | re.DOTALL)
+    cleaned = re.sub(r'Build started.+?Build succeeded.+?\n', '', cleaned, flags=re.MULTILINE | re.DOTALL)
+    cleaned = re.sub(r'\[0K', '', cleaned)  # Remove EL (Erase in Line) sequences
+
+    # Normalize line endings and whitespace
+    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)  # Normalize line endings
     cleaned = re.sub(r'^\s*\n', '', cleaned)  # Remove empty lines at start
-    cleaned = re.sub(r'\n\s*$', '\n', cleaned)  # Clean up trailing whitespace
-    cleaned = re.sub(r'\s*=\s*$', '', cleaned)  # Remove trailing equals signs (common in C# console)
-    cleaned = re.sub(r'[\r\n]+', '\n', cleaned)  # Normalize multiple line endings
+    cleaned = re.sub(r'\n\s*$', '\n', cleaned)  # Clean trailing whitespace
+    cleaned = re.sub(r'\s*=\s*$', '', cleaned)  # Remove trailing equals signs
+    cleaned = re.sub(r'[\n\r]+', '\n', cleaned)  # Collapse multiple newlines
     cleaned = re.sub(r'(?<=:)\s+(?=\w)', ' ', cleaned)  # Normalize spacing after colons
+
+    # Handle C# specific prompt patterns
+    cleaned = re.sub(r'Press any key to continue[.]*', '', cleaned)
+    cleaned = re.sub(r'Type.+?to exit[.]*', '', cleaned)
+    cleaned = re.sub(r'Microsoft \(R\).+?Runtime.+?\n', '', cleaned, flags=re.MULTILINE)
+
+    # Clean up remaining control characters
+    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
+
     return cleaned.strip()
 
 def monitor_output(process: subprocess.Popen, session: CompilerSession, chunk_size: int = 1024) -> None:
@@ -827,48 +841,95 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
             logger.error(f"Failed to clean up temporary directory {temp_path}: {e}")
 
 def format_csharp_error(error_msg: str) -> str:
-    """Format C# specific error messages."""
-    try:
-        if not error_msg:
-            return "Unknown C# error occurred"
+    """Enhanced error message formatting for C# compiler and runtime errors"""
+    if not error_msg:
+        return "Unknown error occurred"
 
-        lines = error_msg.splitlines()
-        formatted_lines = []
+    error_lines = []
+    current_error = []
 
-        for line in lines:
-            if "error CS" in line:
-                # Extract error code and message
-                if ': ' in line:
-                    error_parts = line.split(': ', 1)
-                    if len(error_parts) > 1:
-                        formatted_lines.append(f"C# Error: {error_parts[1].strip()}")
-            elif "warning CS" in line:
-                # Include warnings but mark them as such
-                if ':: ' in line:
-                    warning_parts = line.split(': ', 1)                    if len(warning_parts) > 1:
-                        formatted_lines.append(f"Warning: {warning_parts[1].strip()}")
+    for line in error_msg.splitlines():
+        # Handle compiler errors
+        if re.search(r'error CS\d+:', line):
+            if current_error:
+                error_lines.append(' '.join(current_error))
+                current_error = []
 
-        return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
-    except Exception as e:
-        logger.error(f"Error formatting C# error message: {str(e)}")
-        return f"Compilation Error: {error_msg}"
+            # Extract error number and message
+            match = re.search(r'error CS(\d+):\s*(.+?)\s*\[.+?\]$', line)
+            if match:
+                error_num, message = match.groups()
+                error_lines.append(f"Compilation Error (CS{error_num}): {message}")
+            else:
+                error_lines.append(f"Compilation Error: {line.split(':', 1)[1].strip()}")
+
+        # Handle runtime errors
+        elif "Unhandled exception" in line:
+            if current_error:
+                error_lines.append(' '.join(current_error))
+                current_error = []
+            exception_match = re.search(r':\s*(.+?)(?:\s+at\s+|$)', line)
+            if exception_match:
+                error_lines.append(f"Runtime Error: {exception_match.group(1)}")
+
+        # Handle stack trace information
+        elif line.strip().startswith("at "):
+            current_error.append(line.strip())
+
+        # Handle other error patterns
+        elif any(pattern in line.lower() for pattern in ["error:", "exception:", "failed:", "fatal:"]):
+            error_lines.append(f"Error: {line.strip()}")
+
+    # Add any remaining error context
+    if current_error:
+        error_lines.append(' '.join(current_error))
+
+    # Combine all errors, limiting stack trace
+    formatted_error = '\n'.join(error_lines[:5])  # Limit to first 5 lines for clarity
+
+    return formatted_error if formatted_error else error_msg.strip()
 
 def format_runtime_error(error_msg: str) -> str:
-    """Format runtime error messages to be user-friendly."""
+    """Format runtime errors with improved readability"""
     if not error_msg:
         return "Unknown runtime error occurred"
 
+    # Extract the most relevant part of the error message
     lines = error_msg.splitlines()
-    formatted_lines = []
+    error_lines = []
 
     for line in lines:
-        if any(pattern in line.lower() for pattern in [
-            "exception", "error", "failed", "fault",
-            "crash", "invalid", "unable", "cannot"
+        # Look for common runtime error patterns
+        if any(pattern in line for pattern in [
+            "System.Exception",
+            "System.ArgumentException",
+            "System.NullReferenceException",
+            "System.IndexOutOfRangeException",
+            "System.InvalidOperationException"
         ]):
-            formatted_lines.append(f"Runtime Error: {line.strip()}")
+            # Extract the exception type and message
+            parts = line.split(': ', 1)
+            if len(parts) > 1:
+                exc_type = parts[0].split('.')[-1]  # Get just the exception name
+                error_lines.append(f"Runtime Error ({exc_type}): {parts[1]}")
+            else:
+                error_lines.append(f"Runtime Error: {line}")
 
-    return "\n".join(formatted_lines) if formatted_lines else error_msg.strip()
+        # Include relevant stack trace information
+        elif line.strip().startswith("at ") and len(error_lines) < 3:
+            # Clean up stack trace line
+            trace_line = re.sub(r'at\s+', '', line.strip())
+            trace_line = re.sub(r'\s+in\s+.+?:\w+\s*$', '', trace_line)
+            error_lines.append(f"Location: {trace_line}")
+
+    # If no specific error pattern was found, include the first non-empty line
+    if not error_lines:
+        for line in lines:
+            if line.strip():
+                error_lines.append(f"Runtime Error: {line.strip()}")
+                break
+
+    return '\n'.join(error_lines) if error_lines else "Unspecified runtime error occurred"
 
 def is_interactive_code(code: str, language: str) -> bool:
     """Determine if code requires interactive I/O based on language-specific patterns."""
