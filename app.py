@@ -37,7 +37,7 @@ def create_app():
         'SQLALCHEMY_DATABASE_URI': os.environ.get('DATABASE_URL'),
         'SQLALCHEMY_TRACK_MODIFICATIONS': False,
         'WTF_CSRF_ENABLED': True,
-        'JSON_SORT_KEYS': False  # Preserve output order
+        'JSON_SORT_KEYS': False
     })
 
     try:
@@ -51,12 +51,10 @@ def create_app():
         with app.app_context():
             db.create_all()
 
-        # Add context processor for language
         @app.context_processor
         def inject_language():
             return {'lang': session.get('lang', 'en')}
 
-        # Add console route
         @app.route('/')
         def console():
             """Render the interactive console page"""
@@ -106,6 +104,7 @@ def setup_websocket_handlers():
 
             logger.info("Compiling and running C# code...")
             result = compile_and_run(code, 'csharp')
+            logger.debug(f"Compilation result: {result}")
 
             if result.get('success'):
                 session_id = result.get('session_id')
@@ -120,13 +119,17 @@ def setup_websocket_handlers():
 
                     # For interactive programs, get initial output
                     if result.get('interactive'):
+                        logger.debug(f"Getting initial output for session {session_id}")
                         output = get_output(session_id)
                         if output and output.get('success'):
                             emit('output', {
                                 'output': output.get('output', ''),
                                 'waiting_for_input': output.get('waiting_for_input', False)
                             })
+                        else:
+                            logger.error(f"Failed to get initial output: {output}")
             else:
+                logger.error(f"Compilation failed: {result.get('error')}")
                 emit('compilation_result', {
                     'success': False,
                     'error': result.get('error', 'Compilation failed')
@@ -147,7 +150,9 @@ def setup_websocket_handlers():
                 emit('error', {'message': 'Invalid input data'})
                 return
 
+            logger.debug(f"Sending input '{input_text}' to session {session_id}")
             result = send_input(session_id, input_text)
+
             if result and result.get('success'):
                 output = get_output(session_id)
                 if output and output.get('success'):
@@ -155,7 +160,11 @@ def setup_websocket_handlers():
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
                     })
+                else:
+                    logger.error(f"Failed to get output after input: {output}")
+                    emit('error', {'message': 'Failed to get program output'})
             else:
+                logger.error(f"Failed to send input: {result}")
                 emit('error', {'message': 'Failed to send input'})
 
         except Exception as e:
