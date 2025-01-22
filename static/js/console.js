@@ -1,5 +1,6 @@
 /**
  * Enhanced Interactive Console class for handling real-time program I/O
+ * Improved output formatting and error handling for web-based interaction
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -21,6 +22,8 @@ class InteractiveConsole {
         this.outputBuffer = [];
         this.sessionId = null;
         this.pollInterval = null;
+        this.lastOutputTime = Date.now();
+        this.duplicateThreshold = 100; // ms to consider output as duplicate
 
         this.setupEventListeners();
         this.clear();
@@ -65,13 +68,14 @@ class InteractiveConsole {
             }
         });
 
-        // Add paste event handler for better input handling
+        // Improved paste handling for multi-line input
         this.inputElement.addEventListener('paste', (e) => {
             if (this.isWaitingForInput) {
                 e.preventDefault();
                 const text = e.clipboardData.getData('text');
                 const lines = text.split('\n');
                 if (lines.length > 0) {
+                    // Only take the first line for single-line input prompts
                     this.inputElement.value = lines[0];
                     this.handleEnterKey();
                 }
@@ -93,7 +97,7 @@ class InteractiveConsole {
                     },
                     body: JSON.stringify({
                         session_id: this.sessionId,
-                        input: input + '\n'  // Add newline for proper input handling
+                        input: input + '\n'
                     })
                 });
 
@@ -137,10 +141,9 @@ class InteractiveConsole {
                 const data = await response.json();
                 if (data.success) {
                     if (data.output) {
-                        this.appendOutput(data.output);
+                        this.processAndAppendOutput(data.output);
                     }
 
-                    // Update input state based on server response
                     if (data.waiting_for_input !== this.isWaitingForInput) {
                         this.isWaitingForInput = data.waiting_for_input;
                         if (this.isWaitingForInput) {
@@ -158,6 +161,7 @@ class InteractiveConsole {
                 }
             } catch (error) {
                 console.error('Error polling output:', error);
+                this.appendError('Connection error: Failed to get console output');
             }
 
             // Continue polling if session is active
@@ -170,12 +174,40 @@ class InteractiveConsole {
         pollOutput();
     }
 
+    processAndAppendOutput(text) {
+        // Prevent duplicate output that might come from rapid polling
+        const now = Date.now();
+        if (now - this.lastOutputTime < this.duplicateThreshold && 
+            this.outputBuffer.length > 0 && 
+            this.outputBuffer[this.outputBuffer.length - 1] === text) {
+            return;
+        }
+        this.lastOutputTime = now;
+
+        // Clean up common console artifacts
+        let cleanedText = text
+            .replace(/\r\n/g, '\n')  // Normalize line endings
+            .replace(/\r/g, '\n')    // Replace any remaining \r with \n
+            .replace(/\n+/g, '\n')   // Remove multiple consecutive newlines
+            .replace(/^\n+/, '')     // Remove leading newlines
+            .trim();                 // Remove trailing whitespace
+
+        if (cleanedText) {
+            this.appendOutput(cleanedText + '\n');
+        }
+    }
+
     appendOutput(text, className = '') {
         const processedText = this.processAnsiCodes(String(text));
-        const lines = processedText.split('\n');
+
+        // Split into lines while preserving empty lines
+        const lines = processedText.split(/(\n)/);
 
         for (const line of lines) {
-            if (line.trim()) {
+            if (line === '\n') {
+                // Add empty line
+                this.outputElement.appendChild(document.createElement('br'));
+            } else if (line.trim()) {
                 const lineElement = document.createElement('div');
                 lineElement.className = `console-line ${className}`;
                 lineElement.innerHTML = line;
@@ -183,6 +215,19 @@ class InteractiveConsole {
             }
         }
 
+        // Trim output if it exceeds maxBufferSize
+        while (this.outputElement.children.length > this.maxBufferSize) {
+            this.outputElement.removeChild(this.outputElement.firstChild);
+        }
+
+        this.outputElement.scrollTop = this.outputElement.scrollHeight;
+    }
+
+    appendError(errorMessage) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'console-error';
+        errorDiv.textContent = errorMessage;
+        this.outputElement.appendChild(errorDiv);
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
@@ -279,6 +324,7 @@ class InteractiveConsole {
         }
 
         this.inputElement.value = this.history[this.historyIndex];
+        // Move cursor to end of input
         setTimeout(() => {
             this.inputElement.selectionStart = this.inputElement.value.length;
             this.inputElement.selectionEnd = this.inputElement.value.length;
