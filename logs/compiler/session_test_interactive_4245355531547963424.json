@@ -1,0 +1,37 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-22T17:45:57.727247",
+    "data": {
+      "code_length": 318,
+      "timestamp": "2025-01-22T17:45:57.727143"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-22T17:46:00.811190",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "{\n  \"total_errors\": 3,\n  \"error_patterns\": {\n    \"CompilerError:CS1513\": 1,\n    \"CompilerError:CS1529\": 1,\n    \"CompilerError:CS1022\": 1\n  },\n  \"most_common\": [\n    \"CompilerError:CS1513\",\n    1\n  ],\n  \"frequent_patterns\": {},\n  \"recent_errors\": [\n    {\n      \"error_type\": \"CompilerError\",\n      \"message\": \"Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]\",\n      \"file\": \"1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs\",\n      \"line\": 18,\n      \"column\": 1,\n      \"code\": \"CS1022\",\n      \"timestamp\": \"2025-01-22T17:46:00.807634\"\n    },\n    {\n      \"error_type\": \"CompilerError\",\n      \"message\": \"A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]\",\n      \"file\": \"1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs\",\n      \"line\": 6,\n      \"column\": 1,\n      \"code\": \"CS1529\",\n      \"timestamp\": \"2025-01-22T17:46:00.807629\"\n    },\n    {\n      \"error_type\": \"CompilerError\",\n      \"message\": \"} expected [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]\",\n      \"file\": \"1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs\",\n      \"line\": 4,\n      \"column\": 6,\n      \"code\": \"CS1513\",\n      \"timestamp\": \"2025-01-22T17:46:00.807614\"\n    }\n  ],\n  \"error_categories\": {\n    \"CompilerError\": 3\n  },\n  \"recommendations\": {\n    \"CS1513\": [\n      \"Check for missing closing braces '}'\",\n      \"Ensure all blocks are properly closed\",\n      \"Verify code block structure\"\n    ]\n  }\n}",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "{\n  \"total_errors\": 3,\n  \"error_patterns\": {\n    \"CompilerError:CS1513\": 1,\n    \"CompilerError:CS1529\": 1,\n    \"CompilerError:CS1022\": 1\n  },\n  \"most_common\": [\n    \"CompilerError:CS1513\",\n    1\n  ],\n  \"frequent_patterns\": {},\n  \"recent_errors\": [\n    {\n      \"error_type\": \"CompilerError\",\n      \"message\": \"Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]\",\n      \"file\": \"1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs\",\n      \"line\": 18,\n      \"column\": 1,\n      \"code\": \"CS1022\",\n      \"timestamp\": \"2025-01-22T17:46:00.807634\"\n    },\n    {\n      \"error_type\": \"CompilerError\",\n      \"message\": \"A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]\",\n      \"file\": \"1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs\",\n      \"line\": 6,\n      \"column\": 1,\n      \"code\": \"CS1529\",\n      \"timestamp\": \"2025-01-22T17:46:00.807629\"\n    },\n    {\n      \"error_type\": \"CompilerError\",\n      \"message\": \"} expected [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]\",\n      \"file\": \"1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs\",\n      \"line\": 4,\n      \"column\": 6,\n      \"code\": \"CS1513\",\n      \"timestamp\": \"2025-01-22T17:46:00.807614\"\n    }\n  ],\n  \"error_categories\": {\n    \"CompilerError\": 3\n  },\n  \"recommendations\": {\n    \"CS1513\": [\n      \"Check for missing closing braces '}'\",\n      \"Ensure all blocks are properly closed\",\n      \"Verify code block structure\"\n    ]\n  }\n}",
+          "metrics": {
+            "compilation_time": 0.0,
+            "execution_time": 0.0,
+            "total_time": 3.081684112548828,
+            "peak_memory": 0.0,
+            "avg_cpu_usage": 0.0,
+            "error_count": 0,
+            "warning_count": 0,
+            "cached": false,
+            "build_success_rate": 0,
+            "stages": {}
+          }
+        }
+      },
+      "timestamp": "2025-01-22T17:46:00.811029"
+    }
+  }
+]

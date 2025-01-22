@@ -656,13 +656,13 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             }
 
     except Exception as e:
-        if session.session_id in active_sessions:
+        if session and session.session_id in active_sessions:
             cleanup_session(session.session_id)
         logger.error(f"Error in start_interactive_session: {traceback.format_exc()}")
         return {
             'success': False,
             'error': str(e),
-            'metrics': session.metrics.to_dict()
+            'metrics': session.metrics.to_dict() if session else {}
         }
 
 def send_input(session_id: str, input_data: str) -> Dict[str, Any]:
@@ -737,24 +737,27 @@ def get_output(session_id: str) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        logger.error(f"Error getting output: {e}")
+        logger.error(f"Error getting output: {str(e)}")
         return {'success': False, 'error': str(e)}
+
+# Add active_sessions at the top level after other imports
+active_sessions: Dict[str, CompilerSession] = {}
+session_lock = Lock()
 
 def cleanup_session(session_id: str) -> None:
     """Clean up resources for a session with proper PTY cleanup"""
-    if sessionid in active_sessions:
+    if session_id in active_sessions:
         session = active_sessions[session_id]
         logger.debug(f"Cleaning up session {session_id}")
         try:
             # Cleanup process
-            if session.process:
+            if session.process and session.process.poll() is None:
                 try:
-                    os.killpg(os.getpgid(session.process.pid), signal.SIGTERM)
-                    session.process.wait(timeout=5)
-                except (ProcessLookupError, psutil.NoSuchProcess):
-                    pass
+                    session.process.terminate()
+                    session.process.wait(timeout=1)
                 except subprocess.TimeoutExpired:
                     os.killpg(os.getpgid(session.process.pid), signal.SIGKILL)
+                session.process = None
 
             # Close PTY file descriptors
             if session.master_fd is not None:
@@ -762,377 +765,147 @@ def cleanup_session(session_id: str) -> None:
                     os.close(session.master_fd)
                 except OSError:
                     pass
+                session.master_fd = None
             if session.slave_fd is not None:
                 try:
                     os.close(session.slave_fd)
                 except OSError:
                     pass
+                session.slave_fd = None
+
+            # Stop output monitoring thread
+            if session.output_thread and session.output_thread.is_alive():
+                # Signal thread to stop
+                session.output_thread.join(timeout=1)
+                session.output_thread = None
 
             # Cleanup temp directory
             if session.temp_dir and os.path.exists(session.temp_dir):
                 try:
                     shutil.rmtree(session.temp_dir)
-                except Exception as e:
+                except OSError as e:
                     logger.error(f"Error cleaning up temp directory: {e}")
 
-            # Remove session from active sessions
+            # Remove from active sessions
             del active_sessions[session_id]
-            logger.info(f"Session {session_id} cleaned up successfully")
-
+            logger.debug(f"Session {session_id} cleaned up successfully")
         except Exception as e:
-            logger.error(f"Error during session cleanup: {e}")
+            logger.error(f"Error during session cleanup: {str(e)}")
+            # Ensure session is removed from active sessions even if cleanup fails
+            if session_id in active_sessions:
+                del active_sessions[session_id]
 
-# Define constants
+# Constants for timeouts and intervals
 MAX_COMPILATION_TIME = 30  # seconds
 MAX_SESSION_LIFETIME = 3600  # 1 hour
 CLEANUP_INTERVAL = 300  # 5 minutes
 
-# Dictionary to store active sessions
-active_sessions: Dict[str, CompilerSession] = {}
-
 def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     """Create an isolated environment for compilation and execution"""
-    # Create unique project name
-    project_name = f"Project_{get_code_hash(code, language)[:8]}"
+    logger.debug(f"Creating isolated environment for {language}")
 
-    # Create temp directory using mkdtemp
+    # Create temp directory with unique prefix for each compilation
     temp_dir = Path(tempfile.mkdtemp(prefix='compiler_cache/compile_'))
-    temp_dir.chmod(0o755)
-
-    if language == 'csharp':
-        # Create project file
-        project_file = temp_dir / f"{project_name}.csproj"
-        with open(project_file, 'w', encoding='utf-8') as f:
-            f.write(f"""<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-</Project>""")
-
-        # Create Program.cs
-        program_file = temp_dir / "Program.cs"
-        with open(program_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-
-    return temp_dir, project_name
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler error output into structured format"""
-    errors = []
-    error_pattern = re.compile(r'(.+?)\((\d+),(\d+)\):\s*(warning|error)\s+(\w+):\s*(.+)')
-
-    for line in error_output.splitlines():
-        match = error_pattern.match(line)
-        if match:
-            file_path, line_num, col_num, level, code, message = match.groups()
-            if level == 'error':
-                error = CompilationError(
-                    error_type='CompilationError',
-                    message=message,
-                    file=os.path.basename(file_path),
-                    line=int(line_num),
-                    column=int(col_num),
-                    code=code
-                )
-                errors.append(error)
-
-    return errors
-
-class ProcessMonitor(Thread):
-    def __init__(self, process, timeout=30, memory_limit_mb=512):
-        super().__init__()
-        self.process = process
-        self.timeout = timeout
-        self.memory_limit = memory_limit_mb * 1024 * 1024  # Convert to bytes
-        self.metrics = CompilationMetrics(time.time())
-        self.stopped = Event()
-
-    def run(self):
-        while not self.stopped.is_set():
-            try:
-                if time.time() - self.metrics.start_time > self.timeout:
-                    self.metrics.log_status("Process timed out")
-                    self._terminate_process()
-                    break
-
-                if self.process.poll() is not None:
-                    break
-
-                proc = psutil.Process(self.process.pid)
-                memory_info = proc.memory_info()
-                cpu_percent = proc.cpu_percent(interval=0.1)
-
-                self.metrics.peak_memory = max(self.metrics.peak_memory, memory_info.rss)
-
-                if memory_info.rss > self.memory_limit:
-                    self.metrics.log_status(f"Memory limit exceeded: {memory_info.rss / (1024*1024):.1f}MB")
-                    self._terminate_process()
-                    break
-
-                if cpu_percent > 90:
-                    self.metrics.log_status(f"High CPU usage: {cpu_percent}%")
-
-            except Exception as e:
-                logger.error(f"Monitor error: {str(e)}")
-                break
-            time.sleep(0.1)
-
-    def _terminate_process(self):
-        try:
-            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-        except:
-            if self.process.poll() is None:
-                self.process.terminate()
-    def stop(self):
-        self.stopped.set()
-        self._terminate_process()
-
-# Initialize session management
-active_sessions = {}
-session_lock = Lock()
-
-def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
-    """Create an isolated environment for compilation and execution"""
-    unique_id = str(uuid.uuid4())[:8]
-    temp_dir = Path(COMPILER_CACHE_DIR) / f"compile_{unique_id}"
-    temp_dir.mkdir(parents=True, exist_ok=True)
     logger.debug(f"Created temp directory: {temp_dir}")
 
     if language == 'csharp':
-        project_name = f"Project_{unique_id}"
-        source_file = temp_dir / "Program.cs"
-        project_file = temp_dir / f"{project_name}.csproj"
+        # Generate unique project name
+        project_name = f"Project_{temp_dir.name.split('_')[-1]}"
 
-        # Write source code with better namespace handling
+        # Write source code
+        source_file = temp_dir / "Program.cs"
         logger.debug(f"Writing C# source code to {source_file}")
-        try:
-            # Check if code already has a namespace
-            if "namespace" not in code:
-                wrapped_code = f"""namespace {project_name}
+        with open(source_file, 'w', encoding='utf-8') as f:
+            # Wrap code in namespace to avoid conflicts
+            wrapped_code = f"""namespace {project_name}
 {{
     public class Program
     {{
-        {code.strip()}
+        {code}
     }}
 }}"""
-            else:
-                # If code already has a namespace, use it as is
-                wrapped_code = code
+            f.write(wrapped_code)
+        logger.debug("Source code written successfully")
 
-            with open(source_file, 'w', encoding='utf-8') as f:
-                f.write(wrapped_code)
-                logger.debug(f"Source code written successfully:\n{wrapped_code}")
-        except Exception as e:
-            logger.error(f"Error writing source file: {e}")
-            raise
-
-        # Create optimized project file with explicit SDK reference
+        # Create project file
+        project_file = temp_dir / f"{project_name}.csproj"
         logger.debug(f"Creating project file: {project_file}")
-        try:
-            project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
+        project_content = """<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>{project_name}</AssemblyName>
-    <RootNamespace>{project_name}</RootNamespace>
+    <PublishReadyToRun>true</PublishReadyToRun>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="Program.cs" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-    <NoWarn>CS0105</NoWarn>
-  </PropertyGroup>
 </Project>"""
-            with open(project_file, 'w', encoding='utf-8') as f:
-                f.write(project_content)
-                logger.debug("Project file created successfully")
-        except Exception as e:
-            logger.error(f"Error creating project file: {e}")
-            raise
+        with open(project_file, 'w', encoding='utf-8') as f:
+            f.write(project_content)
+        logger.debug("Project file created successfully")
 
         return temp_dir, project_name
 
     elif language == 'cpp':
+        # Write source code
         source_file = temp_dir / "program.cpp"
         with open(source_file, 'w', encoding='utf-8') as f:
             f.write(code)
         return temp_dir, "program"
     else:
-        raise ValueError(f"Unsupported language: {language}")  # Fixed string syntax
+        raise ValueError(f"Unsupported language: {language}")
 
+def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Compile and run code with optional session tracking for interactive mode
 
-def compile_and_run(code: str, language: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced compilation with comprehensive logging and metrics"""
-    start_time = time.time()
-    metrics = CompilationMetrics(start_time=start_time)
-    error_tracker = ErrorTracker()
+    Args:
+        code: Source code to compile and run
+        language: Programming language ('cpp' or 'csharp') 
+        session_id: Optional session ID for interactive sessions
 
-    compilation_logger.info(f"=== Starting {language} Compilation ===")
-    compilation_logger.debug(f"Code length: {len(code)} characters")
+    Returns:
+        Dictionary containing compilation/execution results and session info
+    """
+    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
 
-    if not code or not language:
-        error_logger.error("Missing code or language specification")
+    if not code:
         return {
             'success': False,
-            'error': "No code or language specified",
-            'metrics': metrics.to_dict()
+            'error': "No code provided"
         }
 
     try:
-        # Record start metrics
-        process = psutil.Process()
-        initial_memory = process.memory_info().rss / (1024 * 1024)  # Convert to MB
-        initial_cpu = process.cpu_percent()
-
-        metrics.log_status("Starting compilation process")
-
-        # Check if code is interactive
-        is_interactive = "Console.ReadLine" in code or "Console.Read" in code
-        compilation_logger.info("Checking for interactive code requirements")
-        if is_interactive:
-            metrics.log_status("Interactive code detected")
+        # Create or get session
+        session = None
+        if session_id:
+            with session_lock:
+                if session_id in active_sessions:
+                    session = active_sessions[session_id]
+                else:
+                    temp_dir = tempfile.mkdtemp(prefix=f'compiler_session_{session_id}_')
+                    session = CompilerSession(session_id, temp_dir)
+                    active_sessions[session_id] = session
+        else:
+            # Generate new session ID for interactive code
             session_id = str(uuid.uuid4())
-            session = CompilerSession(session_id, "")
+            temp_dir = tempfile.mkdtemp(prefix=f'compiler_session_{session_id}_')
+            session = CompilerSession(session_id, temp_dir)
             with session_lock:
                 active_sessions[session_id] = session
-            return start_interactive_session(session, code, language)
 
-        # Create isolated environment
-        temp_dir, project_name = create_isolated_environment(code, language)
-        compilation_logger.info(f"Created isolated environment: {temp_dir}")
-        metrics.start_stage("Compilation")
-        compilation_start = time.time()
-
-        if language == 'csharp':
-            try:
-                project_file = Path(temp_dir) / f"{project_name}.csproj"
-                compilation_logger.info("Starting C# compilation process")
-
-                # Enhanced compilation command with better error handling
-                compile_cmd = [
-                    'dotnet', 'build',
-                    str(project_file),
-                    '--configuration', 'Release',
-                    '--nologo',
-                    '/p:GenerateFullPaths=true',
-                    '/consoleloggerparameters:NoSummary;ForceNoAlign;Verbosity=detailed'
-                ]
-                compilation_logger.debug(f"Compilation command: {' '.join(compile_cmd)}")
-
-                # Run compilation with timeout and monitor performance
-                metrics.log_status("Executing compilation command")
-                compile_process = subprocess.run(
-                    compile_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30,  # 30 second timeout
-                    cwd=str(temp_dir)
-                )
-
-                metrics.end_stage("Compilation")
-                # Record compilation metrics
-                metrics.compilation_time = time.time() - compilation_start
-                metrics.peak_memory = (process.memory_info().rss / (1024 * 1024)) - initial_memory
-                metrics.avg_cpu_usage = process.cpu_percent()
-
-                if compile_process.returncode != 0:
-                    errors = format_csharp_error(compile_process.stderr or compile_process.stdout)
-                    for error in errors:
-                        error_tracker.add_error(error)
-                    error_summary = error_tracker.get_summary()
-                    error_logger.error(f"Compilation failed: {error_summary}")
-                    metrics.log_status("Compilation failed")
-                    metrics.error_count = len(errors)
-                    metrics.record_build(False)
-
-                    return {
-                        'success': False,
-                        'errors': [e.to_dict() for e in errors],
-                        'error_summary': error_summary,
-                        'metrics': metrics.to_dict()
-                    }
-
-                metrics.log_status("Compilation successful")
-                metrics.record_build(True)
-                compilation_logger.info("Compilation completed successfully")
-
-                # Execute the compiled program
-                dll_path = Path(temp_dir) / "bin" / "Release" / "net7.0" / f"{project_name}.dll"
-                metrics.start_stage("Execution")
-                execution_start = time.time()
-
-                run_cmd = ['dotnet', str(dll_path)]
-                if input_data:
-                    run_process = subprocess.run(
-                        run_cmd,
-                        input=input_data,
-                        capture_output=True,
-                        text=True,
-                        timeout=10,  # 10 second execution timeout
-                        cwd=str(temp_dir)
-                    )
-                else:
-                    run_process = subprocess.run(
-                        run_cmd,
-                        capture_output=True,
-                        text=True,
-                        timeout=10,
-                        cwd=str(temp_dir)
-                    )
-                metrics.end_stage("Execution")
-                metrics.execution_time = time.time() - execution_start
-                metrics.end_time = time.time()
-
-                # Clean up
-                cleanup_compilation_files(temp_dir)
-
-                return {
-                    'success': True,
-                    'output': run_process.stdout,
-                    'metrics': metrics.to_dict()
-                }
-
-            except subprocess.TimeoutExpired:
-                error_logger.error("Compilation or execution timed out")
-                metrics.log_status("Process timed out")
-                cleanup_compilation_files(temp_dir)
-                return {
-                    'success': False,
-                    'error': "Process timed out",
-                    'metrics': metrics.to_dict()
-                }
-            except Exception as e:
-                error_logger.error(f"Unexpected error: {traceback.format_exc()}")
-                metrics.log_status(f"Error: {str(e)}")
-                cleanup_compilation_files(temp_dir)
-                return {
-                    'success': False,
-                    'error': str(e),
-                    'metrics': metrics.to_dict()
-                }
-
-        else:
-            cleanup_compilation_files(temp_dir)
-            raise ValueError(f"Unsupported language: {language}")
+        return start_interactive_session(session, code, language)
 
     except Exception as e:
-        error_logger.error(f"Error in compile_and_run: {traceback.format_exc()}")
-        metrics.end_time = time.time()
+        logger.error(f"Error in compile_and_run: {str(e)}")
+        if session and session.session_id in active_sessions:
+            cleanup_session(session.session_id)
         return {
             'success': False,
-            'error': str(e),
-            'metrics': metrics.to_dict()
+            'error': str(e)
         }
 
 def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:

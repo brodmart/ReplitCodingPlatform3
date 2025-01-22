@@ -10,3 +10,109 @@
 2025-01-22 17:29:47,583 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_3623875705741727560: compile_and_run() got an unexpected keyword argument 'session_id'
 2025-01-22 17:33:58,155 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_5538303836338769721
 2025-01-22 17:33:58,156 - utils.compiler_logger - ERROR - Runtime error in session test_interactive_5538303836338769721: compile_and_run() got an unexpected keyword argument 'session_id'
+2025-01-22 17:44:09,026 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_8057012128887955778
+2025-01-22 17:44:11,776 - utils.compiler_logger - ERROR - Compilation error in session test_interactive_8057012128887955778: {
+  "total_errors": 3,
+  "error_patterns": {
+    "CompilerError:CS1513": 1,
+    "CompilerError:CS1529": 1,
+    "CompilerError:CS1022": 1
+  },
+  "most_common": [
+    "CompilerError:CS1513",
+    1
+  ],
+  "frequent_patterns": {},
+  "recent_errors": [
+    {
+      "error_type": "CompilerError",
+      "message": "Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile_d6b7db4f/Project_d6b7db4f.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_d6b7db4f/Program.cs",
+      "line": 16,
+      "column": 1,
+      "code": "CS1022",
+      "timestamp": "2025-01-22T17:44:11.765965"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile_d6b7db4f/Project_d6b7db4f.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_d6b7db4f/Program.cs",
+      "line": 5,
+      "column": 9,
+      "code": "CS1529",
+      "timestamp": "2025-01-22T17:44:11.765958"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "} expected [/tmp/compiler_cache/compile_d6b7db4f/Project_d6b7db4f.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_d6b7db4f/Program.cs",
+      "line": 4,
+      "column": 6,
+      "code": "CS1513",
+      "timestamp": "2025-01-22T17:44:11.765899"
+    }
+  ],
+  "error_categories": {
+    "CompilerError": 3
+  },
+  "recommendations": {
+    "CS1513": [
+      "Check for missing closing braces '}'",
+      "Ensure all blocks are properly closed",
+      "Verify code block structure"
+    ]
+  }
+}
+2025-01-22 17:45:57,725 - utils.compiler_logger - INFO - Starting compilation for session test_interactive_4245355531547963424
+2025-01-22 17:46:00,810 - utils.compiler_logger - ERROR - Compilation error in session test_interactive_4245355531547963424: {
+  "total_errors": 3,
+  "error_patterns": {
+    "CompilerError:CS1513": 1,
+    "CompilerError:CS1529": 1,
+    "CompilerError:CS1022": 1
+  },
+  "most_common": [
+    "CompilerError:CS1513",
+    1
+  ],
+  "frequent_patterns": {},
+  "recent_errors": [
+    {
+      "error_type": "CompilerError",
+      "message": "Type or namespace definition, or end-of-file expected [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs",
+      "line": 18,
+      "column": 1,
+      "code": "CS1022",
+      "timestamp": "2025-01-22T17:46:00.807634"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "A using clause must precede all other elements defined in the namespace except extern alias declarations [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs",
+      "line": 6,
+      "column": 1,
+      "code": "CS1529",
+      "timestamp": "2025-01-22T17:46:00.807629"
+    },
+    {
+      "error_type": "CompilerError",
+      "message": "} expected [/tmp/compiler_cache/compile_co6q8_wy/Project_wy.csproj]",
+      "file": "1:7>/tmp/compiler_cache/compile_co6q8_wy/Program.cs",
+      "line": 4,
+      "column": 6,
+      "code": "CS1513",
+      "timestamp": "2025-01-22T17:46:00.807614"
+    }
+  ],
+  "error_categories": {
+    "CompilerError": 3
+  },
+  "recommendations": {
+    "CS1513": [
+      "Check for missing closing braces '}'",
+      "Ensure all blocks are properly closed",
+      "Verify code block structure"
+    ]
+  }
+}

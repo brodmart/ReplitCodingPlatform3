@@ -107,6 +107,10 @@ args = "Debug C# Compilation"
 task = "workflow.run"
 args = "Debug C# Console"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Interactive Console"
+
 [[workflows.workflow]]
 name = "Create Tables"
 author = "agent"
@@ -404,6 +408,20 @@ args = "python test_interactive_console.py"
 
 [[workflows.workflow]]
 name = "Debug C# Console"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test_interactive_console.py"
+
+[[workflows.workflow]]
+name = "Test Interactive Console"
 author = "agent"
 
 [workflows.workflow.metadata]
