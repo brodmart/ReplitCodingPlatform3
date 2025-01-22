@@ -9,6 +9,7 @@ class InteractiveConsole {
         this.isWaitingForInput = false;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 3;
+        this.currentLanguage = null;
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console requires valid output and input elements');
@@ -28,7 +29,6 @@ class InteractiveConsole {
     }
 
     setupEventHandlers() {
-        // Socket.IO event handlers with enhanced error handling
         this.socket.on('connect', () => {
             this.reconnectAttempts = 0;
             this.appendSystemMessage('Connected to console server');
@@ -63,27 +63,24 @@ class InteractiveConsole {
 
         this.socket.on('compilation_result', (data) => {
             if (!data.success) {
-                this.appendError(`Compilation failed: ${data.error}`);
+                this.appendError(`Compilation error: ${data.error}`);
                 return;
             }
+
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                this.appendSystemMessage('Compilation successful');
+                this.currentLanguage = data.language;
+                this.appendSystemMessage(`Running ${this.currentLanguage.toUpperCase()} program...`);
             }
-        });
-
-        this.socket.on('error', (data) => {
-            this.appendError(`Server error: ${data.message}`);
-            this.disableInput();
         });
 
         // Input handler with debouncing
         let inputTimeout;
-        this.inputElement.addEventListener('keydown', async (e) => {
+        this.inputElement.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 clearTimeout(inputTimeout);
-                inputTimeout = setTimeout(() => this.handleInput(), 100);
+                inputTimeout = setTimeout(() => this.handleInput(), 50);
             }
         });
     }
@@ -92,7 +89,7 @@ class InteractiveConsole {
         if (!this.isEnabled || !this.sessionId) return;
 
         const input = this.inputElement.value.trim();
-        if (!input) return;
+        if (!input && this.currentLanguage !== 'cpp') return; // Allow empty input for C++ programs
 
         try {
             this.inputElement.value = '';
@@ -130,6 +127,7 @@ class InteractiveConsole {
         this.outputElement.innerHTML = '';
         this.sessionId = null;
         this.isWaitingForInput = false;
+        this.currentLanguage = null;
     }
 
     scrollToBottom() {
@@ -157,6 +155,11 @@ class InteractiveConsole {
         } else {
             this.disableInput();
         }
+    }
+
+    compileAndRun(code, language) {
+        this.clear();
+        this.socket.emit('compile_and_run', { code, language });
     }
 }
 

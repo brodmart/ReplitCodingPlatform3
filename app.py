@@ -58,6 +58,7 @@ def create_app():
         # Add console route
         @app.route('/')
         def console():
+            """Render the interactive console page"""
             return render_template('console.html')
 
         # Register Socket.IO event handlers
@@ -73,21 +74,30 @@ def create_app():
 def setup_websocket_handlers():
     """Setup WebSocket event handlers for console I/O"""
     from compiler_service import compile_and_run, send_input, get_output
+    from utils.socketio_logger import log_socket_event, track_connection, track_session
 
     @socketio.on('connect')
+    @log_socket_event
     def handle_connect():
         """Handle client connection"""
         logger.info(f"Client connected: {request.sid}")
         session['sid'] = request.sid
+        track_connection(True)
+        emit('connection_established', {'status': 'connected'})
 
     @socketio.on('disconnect')
+    @log_socket_event
     def handle_disconnect():
         """Handle client disconnection"""
         logger.info(f"Client disconnected: {request.sid}")
+        if 'console_session_id' in session:
+            track_session(session['console_session_id'], False)
         session.pop('console_session_id', None)
         session.pop('sid', None)
+        track_connection(False)
 
     @socketio.on('compile_and_run')
+    @log_socket_event
     def handle_compile_and_run(data):
         """Handle code compilation and execution"""
         try:
@@ -100,10 +110,11 @@ def setup_websocket_handlers():
 
             result = compile_and_run(code, language)
 
-            if result['success']:
+            if result.get('success'):
                 session_id = result.get('session_id')
                 if session_id:
                     session['console_session_id'] = session_id
+                    track_session(session_id, True)
                     emit('compilation_result', {
                         'success': True,
                         'session_id': session_id,
@@ -129,10 +140,11 @@ def setup_websocket_handlers():
             emit('error', {'message': 'Internal server error'})
 
     @socketio.on('input')
+    @log_socket_event
     def handle_input(data):
         """Handle console input from client"""
         try:
-            session_id = data.get('session_id')
+            session_id = session.get('console_session_id')
             input_text = data.get('input')
 
             if not session_id or not input_text:
@@ -151,6 +163,9 @@ def setup_websocket_handlers():
         except Exception as e:
             logger.error(f"Error in handle_input: {str(e)}", exc_info=True)
             emit('error', {'message': 'Failed to process input'})
+
+# Setup Socket.IO handlers when app is created
+setup_websocket_handlers()
 
 # Create the application instance
 app = create_app()

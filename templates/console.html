@@ -1,62 +1,135 @@
 {% extends "base.html" %}
 
-{% block title %}{% if lang == 'fr' %}Console Interactive{% else %}Interactive Console{% endif %}{% endblock %}
+{% block title %}Interactive C# Console{% endblock %}
 
 {% block head %}
+<!-- Add CodeMirror for C# editing -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
 <style>
-    #console-output {
-        height: 400px;
-        width: 100%;
-        background: #1e1e1e;
-        color: #ffffff;
-        font-family: monospace;
-        padding: 10px;
-        overflow-y: auto;
-        margin-bottom: 10px;
+    .editor-console-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 20px;
+        height: calc(100vh - 180px);
+    }
+
+    .editor-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .console-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .CodeMirror {
+        height: 100% !important;
         border-radius: 4px;
         border: 1px solid #2d2d2d;
     }
+
+    #console-output {
+        height: calc(100% - 50px);
+        background: #1e1e1e;
+        color: #ffffff;
+        font-family: 'Consolas', 'Monaco', monospace;
+        padding: 10px;
+        overflow-y: auto;
+        border-radius: 4px;
+        border: 1px solid #2d2d2d;
+    }
+
     #console-input {
         width: 100%;
         padding: 8px;
         background: #2d2d2d;
         color: #ffffff;
-        font-family: monospace;
+        font-family: 'Consolas', 'Monaco', monospace;
         border: 1px solid #3d3d3d;
         border-radius: 4px;
+        margin-top: 10px;
     }
-    .console-disabled {
-        background: #3d3d3d !important;
-        cursor: not-allowed;
+
+    .button-row {
+        margin-bottom: 10px;
     }
-    .console-error {
-        color: #ff6b6b;
+
+    .run-button {
+        background: #569cd6;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
     }
-    .console-system {
-        color: #69db7c;
-        font-style: italic;
+
+    .run-button:hover {
+        background: #4a85c7;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4 text-light">{% if lang == 'fr' %}Console Interactive{% else %}Interactive Console{% endif %}</h2>
-            <div id="console-output" class="mb-3 shadow"></div>
-            <input type="text" id="console-input" class="form-control shadow-sm" placeholder="{% if lang == 'fr' %}Entrez votre texte...{% else %}Enter input...{% endif %}" disabled>
+<div class="editor-console-container">
+    <div class="editor-section">
+        <h4 class="text-light mb-2">C# Code Editor</h4>
+        <div class="button-row">
+            <button class="run-button" id="runButton">
+                <i class="bi bi-play-fill"></i> Run Program
+            </button>
         </div>
+        <textarea id="codeEditor">using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+}</textarea>
+    </div>
+
+    <div class="console-section">
+        <h4 class="text-light mb-2">Console Output</h4>
+        <div id="console-output"></div>
+        <input type="text" id="console-input" placeholder="Enter input..." disabled>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<script src="/static/js/console.js"></script>
+<script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        window.consoleInstance = new MyInteractiveConsole();
+        // Initialize CodeMirror
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: 'text/x-csharp',
+            theme: 'monokai',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"}
+        });
+
+        // Initialize console
+        const console = new MyInteractiveConsole();
+
+        // Run button handler
+        document.getElementById('runButton').addEventListener('click', () => {
+            const code = editor.getValue();
+            console.compileAndRun(code, 'csharp');
+        });
     });
 </script>
 {% endblock %}
