@@ -10,6 +10,7 @@ class InteractiveConsole {
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 3;
         this.currentLanguage = 'csharp';
+        this.compilationTimeout = 30000; // Increased to 30 seconds
 
         if (!this.outputElement || !this.inputElement) {
             console.error('Console initialization failed: Missing required elements');
@@ -22,7 +23,7 @@ class InteractiveConsole {
             reconnection: true,
             reconnectionAttempts: this.maxReconnectAttempts,
             reconnectionDelay: 1000,
-            timeout: 10000
+            timeout: this.compilationTimeout
         });
 
         console.debug('Initializing Interactive Console...');
@@ -81,6 +82,12 @@ class InteractiveConsole {
                 this.sessionId = data.session_id;
                 console.debug(`Session started: ${this.sessionId}`);
                 this.appendSystemMessage('Program compiled successfully, waiting for output...');
+
+                // Clear any existing compilation timeout
+                if (this.compilationTimeoutId) {
+                    clearTimeout(this.compilationTimeoutId);
+                    this.compilationTimeoutId = null;
+                }
             }
         });
 
@@ -203,18 +210,26 @@ class InteractiveConsole {
         this.sessionId = null;
         this.isWaitingForInput = false;
 
+        // Set compilation timeout handler
+        if (this.compilationTimeoutId) {
+            clearTimeout(this.compilationTimeoutId);
+        }
+
+        this.compilationTimeoutId = setTimeout(() => {
+            if (!this.sessionId) {
+                console.error('Compilation timeout - no response received');
+                this.appendError('Compilation timeout - no response received from server. This might be due to high server load or a complex compilation. Please try again.');
+                // Attempt to reconnect socket
+                if (this.socket.connected) {
+                    this.socket.disconnect().connect();
+                }
+            }
+        }, this.compilationTimeout);
+
         this.socket.emit('compile_and_run', {
             code,
             language: this.currentLanguage
         });
-
-        // Set a timeout to detect if we don't get a response
-        setTimeout(() => {
-            if (!this.sessionId) {
-                console.error('Compilation timeout - no response received');
-                this.appendError('Compilation timeout - no response received from server');
-            }
-        }, 10000);
     }
 }
 
