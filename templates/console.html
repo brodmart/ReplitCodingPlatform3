@@ -35,14 +35,31 @@
         color: #69db7c;
         font-style: italic;
     }
+    .navbar {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .footer {
+        box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+    }
+    .navbar-brand {
+        font-size: 1.25rem;
+        font-weight: 500;
+    }
+    .container {
+        max-width: 1200px;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-3">{% if lang == 'fr' %}Console Interactive{% else %}Interactive Console{% endif %}</h2>
-    <div id="console-output"></div>
-    <input type="text" id="console-input" placeholder="{% if lang == 'fr' %}Entrez votre texte...{% else %}Enter input...{% endif %}" disabled>
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4 text-light">{% if lang == 'fr' %}Console Interactive{% else %}Interactive Console{% endif %}</h2>
+            <div id="console-output" class="mb-3 shadow"></div>
+            <input type="text" id="console-input" class="form-control shadow-sm" placeholder="{% if lang == 'fr' %}Entrez votre texte...{% else %}Enter input...{% endif %}" disabled>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
