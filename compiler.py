@@ -115,10 +115,12 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                 logger.debug("Starting C# compilation process")
                 source_file = temp_path / "Program.cs"
                 logger.debug(f"Writing source to: {source_file}")
+                logger.debug(f"Code content: {code}")
+
                 with open(source_file, 'w', encoding='utf-8') as f:
                     f.write(code)
 
-                # Create optimized project file
+                # Create project file
                 project_file = temp_path / "program.csproj"
                 logger.debug(f"Creating project file: {project_file}")
                 project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -135,20 +137,26 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     f.write(project_content)
                 logger.debug("Project file created successfully")
 
-                # Compile C# code
+                # Build with detailed logging
                 logger.debug("Starting dotnet build process")
                 compile_process = subprocess.run(
-                    ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release', '-v', 'd'],
+                    [
+                        'dotnet', 'build', 
+                        str(project_file), 
+                        '--nologo', 
+                        '-c', 'Release',
+                        '-v', 'detailed'  # Enable detailed build logging
+                    ],
                     capture_output=True,
                     text=True,
-                    timeout=MAX_COMPILATION_TIME
+                    timeout=MAX_COMPILATION_TIME,
+                    cwd=str(temp_path)
                 )
 
                 logger.debug(f"Build process completed with return code: {compile_process.returncode}")
-                if compile_process.stdout:
-                    logger.debug(f"Build output: {compile_process.stdout}")
+                logger.debug(f"Build output: {compile_process.stdout}")
                 if compile_process.stderr:
-                    logger.debug(f"Build errors: {compile_process.stderr}")
+                    logger.error(f"Build errors: {compile_process.stderr}")
 
                 if compile_process.returncode != 0:
                     error_msg = format_csharp_error(compile_process.stderr)
@@ -158,6 +166,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                         'error': error_msg
                     }
 
+                # Run the compiled program
                 logger.debug("Starting program execution")
                 process = subprocess.run(
                     ['dotnet', 'run', '--project', str(project_file), '--no-build'],
@@ -167,6 +176,18 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
                     timeout=MAX_EXECUTION_TIME,
                     cwd=str(temp_path)
                 )
+
+                if process.returncode != 0:
+                    logger.error(f"Program execution failed: {process.stderr}")
+                    return {
+                        'success': False,
+                        'error': process.stderr
+                    }
+
+                return {
+                    'success': True,
+                    'output': process.stdout
+                }
 
             if process.returncode != 0:
                 return {
@@ -187,6 +208,7 @@ def compile_and_run(code: str, language: str, input_data: Optional[str] = None) 
         }
     except Exception as e:
         logger.error(f"Error in compile_and_run: {str(e)}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
         return {
             'success': False,
             'error': str(e)
