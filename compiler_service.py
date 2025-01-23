@@ -327,8 +327,8 @@ def cleanup_session(session_id: str) -> None:
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved process management and error handling"""
-    process_mgmt_logger.info(f"Starting {language} interactive session {session.session_id}")
-    console_logger.info(f"Initializing console for session {session.session_id}")
+    socketio_logger.info(f"[SOCKET] Starting interactive session {session.session_id}")
+    console_logger.info(f"[CONSOLE] Initializing console for session {session.session_id}")
 
     if language != 'csharp':
         return {'success': False, 'error': 'Only C# is supported'}
@@ -339,7 +339,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        console_logger.debug(f"Creating project files in {project_dir}")
+        console_logger.debug(f"[CONSOLE] Creating project files in {project_dir}")
+        socketio_logger.debug(f"[SOCKET] Project initialization for session {session.session_id}")
 
         # Write project file with optimized settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -347,7 +348,6 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 <OutputType>Exe</OutputType>
                 <TargetFramework>net7.0</TargetFramework>
                 <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-                <PublishReadyToRun>false</PublishReadyToRun>
                 <SelfContained>false</SelfContained>
                 <UseAppHost>false</UseAppHost>
             </PropertyGroup>
@@ -355,20 +355,23 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         with open(project_file, 'w') as f:
             f.write(project_content)
-            console_logger.debug("Project file created successfully")
+            console_logger.debug("[CONSOLE] Project file created successfully")
 
         # Write source file
         with open(source_file, 'w') as f:
             f.write(code)
-            console_logger.debug("Source file written successfully")
+            console_logger.debug("[CONSOLE] Source file written successfully")
 
         # Compile with timeout and enhanced error handling
-        process_mgmt_logger.debug(f"Starting compilation for session {session.session_id}")
-        process_mgmt_logger.debug(f"Project directory: {project_dir}")
-        process_mgmt_logger.debug(f"Project file exists: {os.path.exists(project_file)}")
+        console_logger.info("[COMPILE] Starting compilation process")
+        socketio_logger.debug(f"[SOCKET] Compilation started for session {session.session_id}")
+
+        process_mgmt_logger.debug(f"[BUILD] Project directory structure:")
+        process_mgmt_logger.debug(f"[BUILD] - Project dir: {project_dir}")
+        process_mgmt_logger.debug(f"[BUILD] - Project file exists: {os.path.exists(project_file)}")
+        process_mgmt_logger.debug(f"[BUILD] - Source file exists: {os.path.exists(source_file)}")
 
         try:
-            console_logger.info("Starting compilation process")
             compile_result = subprocess.run(
                 ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release', '-v', 'detailed'],
                 capture_output=True,
@@ -381,134 +384,130 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     'DOTNET_CLI_HOME': session.temp_dir
                 }
             )
-            process_mgmt_logger.debug(f"Compilation output: {compile_result.stdout}")
+
+            process_mgmt_logger.debug(f"[BUILD] Compilation output: {compile_result.stdout}")
             if compile_result.stderr:
-                process_mgmt_logger.error(f"Compilation stderr: {compile_result.stderr}")
-            process_mgmt_logger.debug(f"Compilation completed with return code {compile_result.returncode}")
+                process_mgmt_logger.error(f"[BUILD] Compilation stderr: {compile_result.stderr}")
+            process_mgmt_logger.debug(f"[BUILD] Compilation return code: {compile_result.returncode}")
 
             if compile_result.returncode == 0:
-                console_logger.info("Compilation successful")
+                console_logger.info("[COMPILE] Build successful")
             else:
-                console_logger.error("Compilation failed")
+                console_logger.error("[COMPILE] Build failed")
+                return {'success': False, 'error': compile_result.stderr}
 
         except subprocess.TimeoutExpired:
-            process_mgmt_logger.error("Compilation timed out")
+            process_mgmt_logger.error("[BUILD] Compilation timed out")
             return {'success': False, 'error': 'Compilation timed out'}
 
-        if compile_result.returncode != 0:
-            process_mgmt_logger.error(f"Compilation failed: {compile_result.stderr}")
-            return {'success': False, 'error': compile_result.stderr}
-
         # Verify DLL location and existence
-        dll_path = project_dir / "bin" / "Release" / "net7.0" / "program.dll"
-        console_logger.debug(f"Looking for compiled DLL at: {dll_path}")
+        dll_path = project_dir / "bin" / "Release" / "net7.0" / "linux-x64" / "program.dll"
+        console_logger.debug(f"[EXEC] Looking for compiled DLL at: {dll_path}")
+
         if not os.path.exists(dll_path):
-            console_logger.error(f"DLL not found at expected path: {dll_path}")
-            # List contents of bin directory to help debug
+            console_logger.error(f"[EXEC] DLL not found at expected path: {dll_path}")
+            # List contents of bin directory
             bin_dir = project_dir / "bin"
             if os.path.exists(bin_dir):
-                console_logger.debug(f"Contents of {bin_dir}:")
+                process_mgmt_logger.debug(f"[BUILD] Directory contents:")
                 for root, dirs, files in os.walk(bin_dir):
-                    console_logger.debug(f"Directory: {root}")
-                    console_logger.debug(f"Files: {files}")
+                    process_mgmt_logger.debug(f"[BUILD] Dir {root}: {files}")
             return {'success': False, 'error': 'Compiled DLL not found'}
 
-        # Start the compiled program using dotnet directly
-        console_logger.info("Initializing process environment")
-        console_logger.debug(f"DOTNET_ROOT: {os.environ.get('DOTNET_ROOT')}")
-        console_logger.debug(f"DOTNET_CLI_HOME: {session.temp_dir}")
-        console_logger.debug(f"Working directory: {session.temp_dir}")
-        console_logger.debug(f"DLL path exists: {os.path.exists(dll_path)}")
+        # PTY and process setup logging
+        console_logger.info("[EXEC] Initializing process environment")
+        process_mgmt_logger.debug(f"[EXEC] Environment setup:")
+        process_mgmt_logger.debug(f"[EXEC] - DOTNET_ROOT: {os.environ.get('DOTNET_ROOT')}")
+        process_mgmt_logger.debug(f"[EXEC] - Working dir: {session.temp_dir}")
+        process_mgmt_logger.debug(f"[EXEC] - Master FD: {session.master_fd}")
+        process_mgmt_logger.debug(f"[EXEC] - Slave FD: {session.slave_fd}")
 
         def monitor_output():
             """Monitor process output with improved error handling"""
             buffer = ""
-            io_logger.info("Starting output monitoring")
+            io_logger.info("[IO] Starting output monitoring")
             try:
-                while not session.stop_event.is_set() and session.process.poll() is None:
+                while not session.stop_event.is_set() and session.process and session.process.poll() is None:
                     try:
-                        # Use select with timeout for non-blocking reads
                         rlist, _, _ = select.select([session.master_fd], [], [], 0.1)
                         if not rlist:
                             continue
 
                         chunk = os.read(session.master_fd, BUFFER_SIZE).decode(errors='replace')
-                        io_logger.debug(f"Raw output received: {chunk}")
+                        io_logger.debug(f"[IO] Raw output: {chunk.strip()}")
                         buffer += chunk
 
                         while '\n' in buffer:
                             line, buffer = buffer.split('\n', 1)
                             cleaned = clean_terminal_output(line)
                             if cleaned:
-                                io_logger.debug(f"Cleaned output: {cleaned}")
+                                io_logger.debug(f"[IO] Cleaned output: {cleaned}")
                                 session.append_output(cleaned + '\n')
 
                     except (OSError, IOError) as e:
                         if e.errno != errno.EAGAIN:
-                            io_logger.error(f"Error reading output: {e}")
+                            io_logger.error(f"[IO] Read error: {e}")
                             break
                         continue
                     except Exception as e:
-                        io_logger.error(f"Unexpected error in output monitoring: {e}")
+                        io_logger.error(f"[IO] Monitor error: {e}")
                         break
 
                 if buffer:  # Process remaining buffer
                     cleaned = clean_terminal_output(buffer)
                     if cleaned:
-                        io_logger.debug(f"Final buffer output: {cleaned}")
+                        io_logger.debug(f"[IO] Final output: {cleaned}")
                         session.append_output(cleaned + '\n')
 
             except Exception as e:
-                io_logger.error(f"Fatal error in output monitoring: {traceback.format_exc()}")
+                io_logger.error(f"[IO] Fatal error: {traceback.format_exc()}")
             finally:
+                io_logger.info("[IO] Output monitoring stopped")
                 session.stop_event.set()
-                io_logger.info("Output monitoring stopped")
 
-        # Start process with enhanced monitoring
+        # Process startup with detailed logging
         try:
-            console_logger.info("Starting dotnet process")
+            console_logger.info("[EXEC] Starting dotnet process")
             process = subprocess.Popen(
                 ['dotnet', str(dll_path)],
                 stdin=session.slave_fd,
                 stdout=session.slave_fd,
                 stderr=session.slave_fd,
-                preexec_fn=os.setsid,  # Create new process group
+                preexec_fn=os.setsid,
                 cwd=session.temp_dir,
                 env={
                     **os.environ,
                     'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
                     'DOTNET_CLI_HOME': session.temp_dir,
-                    'DOTNET_NOLOGO': 'true',  # Disable logo
-                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'  # Disable telemetry
+                    'DOTNET_NOLOGO': 'true',
+                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'
                 }
             )
 
             session.process = process
-            console_logger.info(f"Process started with PID {process.pid}")
+            console_logger.info(f"[EXEC] Process started with PID {process.pid}")
+            process_mgmt_logger.debug(f"[EXEC] Process state: active={session.is_active()}")
 
         except Exception as e:
-            console_logger.error(f"Failed to start process: {str(e)}")
-            console_logger.error(f"Stack trace: {traceback.format_exc()}")
+            console_logger.error(f"[EXEC] Process start failed: {str(e)}")
+            console_logger.error(f"[EXEC] Stack trace: {traceback.format_exc()}")
             return {'success': False, 'error': f'Failed to start process: {str(e)}'}
 
         # Start output monitoring
         session.output_thread = Thread(target=monitor_output)
         session.output_thread.daemon = True
         session.output_thread.start()
-        io_logger.debug("Output monitoring thread started")
+        io_logger.info("[IO] Monitoring thread started")
 
-        # Wait briefly for process to initialize
-        time.sleep(0.5)
-
-        # Verify process is still running
+        # Process verification
         if process.poll() is not None:
-            console_logger.error("Process failed to start or terminated immediately")
+            console_logger.error("[EXEC] Process terminated immediately")
             return {'success': False, 'error': 'Process failed to start'}
 
-        # Get initial output
+        # Final setup and return
         initial_output = session.get_output()
-        console_logger.info("Interactive session successfully initialized")
-        socketio_logger.info("Ready to handle Socket.IO events")
+        console_logger.info("[EXEC] Interactive session initialized")
+        socketio_logger.info(f"[SOCKET] Session {session.session_id} ready")
 
         return {
             'success': True,
@@ -519,9 +518,9 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         }
 
     except Exception as e:
-        console_logger.error(f"Failed to start process: {e}")
+        console_logger.error(f"[EXEC] Session initialization failed: {e}")
+        socketio_logger.error(f"[SOCKET] Session {session.session_id} failed")
         return {'success': False, 'error': str(e)}
-
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with optional session tracking for interactive mode"""
@@ -1190,3 +1189,81 @@ namespace ConsoleApp {
 }"""
     }
     return templates.get(language.lower(), '')
+
+# Add new socket state tracking
+_socket_connections = {}
+_socket_lock = Lock()
+
+def track_socket_connection(sid: str, state: str):
+    """Track socket connection state with timing"""
+    with _socket_lock:
+        now = datetime.now().isoformat()
+        if sid not in _socket_connections:
+            _socket_connections[sid] = []
+        _socket_connections[sid].append({
+            'state': state,
+            'timestamp': now
+        })
+        socketio_logger.info(f"[SOCKET] {sid}: {state} at {now}")
+
+def handle_compile_request(sid: str, data: Dict[str, Any]) -> None:
+    """Handle compilation request with enhanced error handling and socket state tracking"""
+    try:
+        track_socket_connection(sid, 'compile_start')
+        socketio_logger.info(f"[SOCKET] Starting compilation for {sid}")
+
+        code = data.get('code', '')
+        if not code:
+            socketio_logger.error(f"[SOCKET] Empty code received from {sid}")
+            return {'success': False, 'error': 'No code provided'}
+
+        # Start compilation in thread to avoid blocking socket
+        thread = Thread(target=_handle_compile_thread, args=(sid, code))
+        thread.daemon = True
+        thread.start()
+
+        socketio_logger.debug(f"[SOCKET] Compilation thread started for {sid}")
+
+    except Exception as e:
+        socketio_logger.error(f"[SOCKET] Compilation request failed for {sid}: {str(e)}")
+        track_socket_connection(sid, f'compile_error: {str(e)}')
+        return {'success': False, 'error': str(e)}
+
+def _handle_compile_thread(sid: str, code: str) -> None:
+    """Handle compilation in separate thread"""
+    try:
+        # Start compilation
+        result = compile_and_run(code, 'csharp')
+
+        if result['success']:
+            socketio_logger.info(f"[SOCKET] Compilation successful for {sid}")
+            track_socket_connection(sid, 'compile_success')
+        else:
+            socketio_logger.error(f"[SOCKET] Compilation failed for {sid}: {result.get('error')}")
+            track_socket_connection(sid, f'compile_failed: {result.get("error")}')
+
+    except Exception as e:
+        socketio_logger.error(f"[SOCKET] Compilation thread error for {sid}: {str(e)}")
+        track_socket_connection(sid, f'compile_thread_error: {str(e)}')
+
+def handle_socket_disconnect(sid: str) -> None:
+    """Handle socket disconnection with cleanup"""
+    try:
+        socketio_logger.info(f"[SOCKET] Client disconnecting: {sid}")
+        track_socket_connection(sid, 'disconnected')
+
+        # Cleanup any active sessions
+        if sid in _socket_connections:
+            cleanup_session(sid)
+            with _socket_lock:
+                del _socket_connections[sid]
+
+        socketio_logger.info(f"[SOCKET] Cleanup completed for {sid}")
+
+    except Exception as e:
+        socketio_logger.error(f"[SOCKET] Disconnect handling failed for {sid}: {str(e)}")
+
+def handle_socket_error(sid: str, error: Any) -> None:
+    """Handle socket errors with logging"""
+    socketio_logger.error(f"[SOCKET] Error for {sid}: {str(error)}")
+    track_socket_connection(sid, f'socket_error: {str(error)}')
