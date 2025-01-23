@@ -1,0 +1,18 @@
+2025-01-23 18:12:17,135 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:12:17,333 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:12:17,386 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:12:17,451 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:12:17,573 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:12:17,626 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:12:20,317 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:12:20,318 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 18:12:20,324 - werkzeug:96 - INFO -  * Debugger PIN: 116-697-195 - MainProcess:MainThread
+2025-01-23 18:12:20,383 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:12:20,492 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:12:20,593 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 18:12:20,598 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 18:12:20,676 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 18:12:20,820 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 18:12:20,932 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 18:12:21,582 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 18:12:21,704 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
