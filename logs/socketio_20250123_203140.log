@@ -1,0 +1,22 @@
+2025-01-23 20:31:40,688 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 20:31:40,693 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 20:31:40,697 - werkzeug:96 - INFO -  * Debugger PIN: 301-467-838 - MainProcess:MainThread
+2025-01-23 20:31:41,472 - engineio.server:78 - INFO - rg9JYNGXManKyj_KAAAA: Sending packet OPEN data {'sid': 'rg9JYNGXManKyj_KAAAA', 'upgrades': ['websocket'], 'pingTimeout': 20000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:41,547 - engineio.server:39 - INFO - rg9JYNGXManKyj_KAAAA: Received packet MESSAGE data 0{"source":"console"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:41,548 - __main__:25 - INFO - New client connected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:41,548 - engineio.server:78 - INFO - rg9JYNGXManKyj_KAAAA: Sending packet MESSAGE data 0{"sid":"V7MnEqqE7F4_ihXzAAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:41,769 - engineio.server:90 - INFO - rg9JYNGXManKyj_KAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:42,031 - engineio.server:219 - INFO - rg9JYNGXManKyj_KAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,175 - engineio.server:78 - INFO - G-FtJ8uSLZfb1MqdAAAC: Sending packet OPEN data {'sid': 'G-FtJ8uSLZfb1MqdAAAC', 'upgrades': ['websocket'], 'pingTimeout': 20000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,247 - engineio.server:39 - INFO - G-FtJ8uSLZfb1MqdAAAC: Received packet MESSAGE data 0{"source":"console"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,248 - __main__:25 - INFO - New client connected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,249 - engineio.server:78 - INFO - G-FtJ8uSLZfb1MqdAAAC: Sending packet MESSAGE data 0{"sid":"gQ6WTbxywV9eGA8KAAAD"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,457 - engineio.server:90 - INFO - G-FtJ8uSLZfb1MqdAAAC: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,458 - engineio.server:78 - INFO - OF2h7rX6SRyhSXBCAAAE: Sending packet OPEN data {'sid': 'OF2h7rX6SRyhSXBCAAAE', 'upgrades': ['websocket'], 'pingTimeout': 20000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,507 - engineio.server:39 - INFO - OF2h7rX6SRyhSXBCAAAE: Received packet MESSAGE data 0{"source":"console"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,508 - __main__:25 - INFO - New client connected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,511 - engineio.server:78 - INFO - OF2h7rX6SRyhSXBCAAAE: Sending packet MESSAGE data 0{"sid":"mfZjR1aUVJ1Qx6WcAAAF"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,551 - engineio.server:90 - INFO - OF2h7rX6SRyhSXBCAAAE: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,563 - engineio.server:219 - INFO - OF2h7rX6SRyhSXBCAAAE: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:43,596 - engineio.server:219 - INFO - G-FtJ8uSLZfb1MqdAAAC: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:44,143 - __main__:39 - INFO - Client disconnected - MainProcess:Thread-1 (run_server)

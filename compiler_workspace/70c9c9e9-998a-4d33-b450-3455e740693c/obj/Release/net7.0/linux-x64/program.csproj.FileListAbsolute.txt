@@ -1,0 +1,12 @@
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/bin/Release/net7.0/linux-x64/program
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/bin/Release/net7.0/linux-x64/program.deps.json
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/bin/Release/net7.0/linux-x64/program.runtimeconfig.json
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/bin/Release/net7.0/linux-x64/program.dll
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/bin/Release/net7.0/linux-x64/program.pdb
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/program.GeneratedMSBuildEditorConfig.editorconfig
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/program.csproj.CoreCompileInputs.cache
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/program.dll
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/refint/program.dll
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/program.pdb
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/program.genruntimeconfig.cache
+/home/runner/workspace/compiler_workspace/70c9c9e9-998a-4d33-b450-3455e740693c/obj/Release/net7.0/linux-x64/ref/program.dll

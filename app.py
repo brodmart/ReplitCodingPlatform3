@@ -1,23 +1,50 @@
 import os
 import logging
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_socketio import SocketIO, emit
 from compiler_service import start_interactive_session, get_output, send_input, cleanup_session, get_or_create_session
+from utils.socketio_logger import log_socket_event, track_connection, track_session, log_error
 
-# Basic logging
+# Enhanced logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'dev_key')
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True)
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@socketio.on('connect')
+def handle_connect():
+    """Handle new socket connection with tracking"""
+    try:
+        track_connection(connected=True, client_info=session.get('client_info'))
+        logger.info("New client connected")
+    except Exception as e:
+        log_error("connection_error", str(e))
+        logger.error(f"Error in connect: {e}")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle socket disconnection with cleanup"""
+    try:
+        if 'session_id' in session:
+            cleanup_session(session['session_id'])
+            track_session(session['session_id'], active=False)
+            session.pop('session_id', None)
+        track_connection(connected=False)
+        logger.info("Client disconnected")
+    except Exception as e:
+        log_error("disconnect_error", str(e))
+        logger.error(f"Error in disconnect: {e}")
+
 @socketio.on('compile_and_run')
+@log_socket_event
 def handle_compile_and_run(data):
+    """Handle code compilation and execution with enhanced logging"""
     try:
         code = data.get('code', '')
         logger.info("Received code to compile:")
@@ -29,17 +56,20 @@ def handle_compile_and_run(data):
             emit('output', {'success': False, 'error': 'No code provided'})
             return
 
-        session = get_or_create_session()
-        result = start_interactive_session(session, code, 'csharp')
+        interactive_session = get_or_create_session()
+        result = start_interactive_session(interactive_session, code, 'csharp')
 
         if result['success']:
+            session['session_id'] = interactive_session.session_id
+            track_session(interactive_session.session_id, active=True)
+
             # Get initial output
-            output_result = get_output(session.session_id)
+            output_result = get_output(interactive_session.session_id)
             emit('output', {
                 'success': True,
                 'output': output_result.get('output', ''),
                 'waiting_for_input': output_result.get('waiting_for_input', False),
-                'session_id': session.session_id
+                'session_id': interactive_session.session_id
             })
         else:
             logger.error(f"Compilation failed: {result.get('error')}")
@@ -56,7 +86,9 @@ def handle_compile_and_run(data):
         })
 
 @socketio.on('send_input')
+@log_socket_event
 def handle_send_input(data):
+    """Handle user input with validation and logging"""
     try:
         session_id = data.get('session_id')
         input_text = data.get('input', '')
@@ -64,6 +96,10 @@ def handle_send_input(data):
 
         if not session_id or not input_text:
             emit('output', {'success': False, 'error': 'Invalid input data'})
+            return
+
+        if session.get('session_id') != session_id:
+            emit('output', {'success': False, 'error': 'Invalid session'})
             return
 
         result = send_input(session_id, input_text)
@@ -84,14 +120,6 @@ def handle_send_input(data):
             'success': False,
             'error': f"Server error: {e}"
         })
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    try:
-        if 'session_id' in session:
-            cleanup_session(session['session_id'])
-    except Exception as e:
-        logger.error(f"Error in disconnect: {e}")
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
