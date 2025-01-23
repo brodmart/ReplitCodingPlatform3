@@ -23,24 +23,43 @@ class InteractiveConsole {
     }
 
     async initialize(options) {
-        // First validate the elements
-        await this.validateElements(options);
+        // First validate the elements and setup core components
+        try {
+            // Validate elements first
+            await this.validateElements(options);
 
-        // Setup the console components
-        this.setupSocket();
-        this.setupEventHandlers();
-        this.clear();
+            // Setup socket connection
+            this.setupSocket();
 
-        this.initialized = true;
-        console.debug('Console initialization completed');
+            // Setup event handlers after socket is ready
+            this.setupEventHandlers();
+
+            // Clear previous state
+            this.clear();
+
+            this.initialized = true;
+            console.debug('Console initialization completed successfully');
+
+            // Add success message to console
+            this.appendSystemMessage('Console initialized and ready');
+
+        } catch (error) {
+            console.error('Console initialization failed:', error);
+            this.appendError(`Initialization failed: ${error.message}`);
+            throw error;
+        }
     }
 
     async validateElements(options) {
+        if (!options || typeof options !== 'object') {
+            throw new Error('Invalid console options');
+        }
+
+        // Get elements with retries
         const maxRetries = 5;
-        const retryDelay = 100;
+        const retryDelay = 200; // Increased from 100ms to 200ms
 
         for (let i = 0; i < maxRetries; i++) {
-            // Try to get elements
             const outputElement = options.outputElement || document.getElementById('consoleOutput');
             const inputElement = options.inputElement || document.getElementById('consoleInput');
 
@@ -51,12 +70,13 @@ class InteractiveConsole {
                 return;
             }
 
+            // Wait before retry with exponential backoff
             if (i < maxRetries - 1) {
                 await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, i)));
             }
         }
 
-        throw new Error('Required console elements not found');
+        throw new Error('Required console elements not found after retries');
     }
 
     setupSocket() {
