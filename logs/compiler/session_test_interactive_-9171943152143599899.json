@@ -1,15 +1,15 @@
 [
   {
     "event_type": "compilation_start",
-    "timestamp": "2025-01-23T01:28:38.943945",
+    "timestamp": "2025-01-23T01:36:00.968137",
     "data": {
       "code_length": 269,
-      "timestamp": "2025-01-23T01:28:38.943869"
+      "timestamp": "2025-01-23T01:36:00.968065"
     }
   },
   {
     "event_type": "runtime_error",
-    "timestamp": "2025-01-23T01:28:54.898219",
+    "timestamp": "2025-01-23T01:36:17.251513",
     "data": {
       "error_message": "Failed to send input",
       "context": {
@@ -19,12 +19,12 @@
           "error": "Timeout waiting for input prompt"
         }
       },
-      "timestamp": "2025-01-23T01:28:54.898043"
+      "timestamp": "2025-01-23T01:36:17.251361"
     }
   },
   {
     "event_type": "runtime_error",
-    "timestamp": "2025-01-23T01:28:54.898743",
+    "timestamp": "2025-01-23T01:36:17.252247",
     "data": {
       "error_message": "Failed to send input",
       "context": {
@@ -33,7 +33,7 @@
           "error": "Failed to send input"
         }
       },
-      "timestamp": "2025-01-23T01:28:54.898649"
+      "timestamp": "2025-01-23T01:36:17.252160"
     }
   }
 ]
