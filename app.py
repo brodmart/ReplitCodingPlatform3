@@ -5,6 +5,7 @@ from flask_socketio import SocketIO, emit
 from flask_session import Session
 from flask_cors import CORS
 from compiler_service import compile_and_run, send_input, get_output, cleanup_session
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -79,6 +80,7 @@ def handle_compile_and_run(data):
                         'output': output.get('output', ''),
                         'waiting_for_input': output.get('waiting_for_input', False)
                     })
+                    logger.debug("Emitted initial output to client")
             else:
                 emit('error', {'message': 'Failed to create interactive session'})
         else:
@@ -111,11 +113,23 @@ def handle_input(data):
             output = get_output(session_id)
             logger.debug(f"Program output after input: {output}")
 
+            # Keep checking for output until we get a response or timeout
+            retry_count = 0
+            max_retries = 5
+            while (not output.get('output') and retry_count < max_retries):
+                time.sleep(0.1)  # Add a small delay between retries
+                output = get_output(session_id)
+                logger.debug(f"Retry {retry_count + 1}, output: {output}")
+                if output.get('output'):
+                    break
+                retry_count += 1
+
             if output and output.get('success'):
                 emit('output', {
                     'output': output.get('output', ''),
                     'waiting_for_input': output.get('waiting_for_input', False)
                 })
+                logger.debug(f"Emitted output to client after input: {output.get('output')}")
             else:
                 emit('error', {'message': 'Failed to get program output'})
         else:
