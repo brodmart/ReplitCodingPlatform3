@@ -8,5 +8,37 @@
       "process_id": 7862,
       "thread_id": 19
     }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T18:02:36.464715",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Process timed out",
+      "stack_trace": null,
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Process timed out"
+        }
+      },
+      "process_id": 7862,
+      "timestamp": "2025-01-23T18:02:36.464562"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T18:02:36.465620",
+    "data": {
+      "error_message": "Failed to start interactive session: Process timed out",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Process timed out"
+        }
+      },
+      "process_id": 7862,
+      "timestamp": "2025-01-23T18:02:36.465535"
+    }
   }
 ]
