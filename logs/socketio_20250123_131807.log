@@ -1,0 +1,3 @@
+2025-01-23 13:18:07,663 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 13:18:07,664 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-23 13:18:07,664 - werkzeug:96 - INFO -  * Restarting with stat - MainProcess:MainThread

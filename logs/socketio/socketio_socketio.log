@@ -1037,3 +1037,33 @@
 2025-01-23 13:15:55,614 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-2
 2025-01-23 13:15:56,696 - socketio:108 - INFO - New connection established. Total connections: 2 - MainProcess:GreenThread-2
 2025-01-23 13:15:57,354 - socketio:113 - INFO - Connection closed. Remaining connections: 1 - MainProcess:GreenThread-4
+2025-01-23 13:17:00,133 - socketio.server:576 - INFO - received event "compile_and_run" from M8wpmn17jeFo-_wMAAAB [/] - MainProcess:GreenThread-3
+2025-01-23 13:17:00,134 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 13:17:00.134393 - MainProcess:GreenThread-7
+2025-01-23 13:17:00,134 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'// Your C# code here\\nusing System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-7
+2025-01-23 13:17:04,267 - socketio:119 - INFO - Session e3532d1e-f8c6-4d12-9660-bae71315b036 activated. Total active sessions: 1 - MainProcess:GreenThread-7
+2025-01-23 13:17:04,267 - socketio.server:164 - INFO - emitting event "compilation_success" to all [/] - MainProcess:GreenThread-7
+2025-01-23 13:17:04,268 - socketio.server:164 - INFO - emitting event "output" to all [/] - MainProcess:GreenThread-7
+2025-01-23 13:17:04,270 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 4.135s, Context: {'args': '({\'code\': \'// Your C# code here\\nusing System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-7
+2025-01-23 13:17:04,270 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 4.135s - MainProcess:GreenThread-7
+2025-01-23 13:17:04,270 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-7
+2025-01-23 13:17:06,331 - socketio.server:576 - INFO - received event "input" from M8wpmn17jeFo-_wMAAAB [/] - MainProcess:GreenThread-3
+2025-01-23 13:17:06,331 - socketio:84 - DEBUG - Socket.IO event handle_input started at 2025-01-23 13:17:06.331799 - MainProcess:GreenThread-8
+2025-01-23 13:17:06,331 - socketio:85 - DEBUG - Event context: {'args': "({'session_id': 'e3532d1e-f8c6-4d12-9660-bae71315b036', 'input': 'moi'},)", 'kwargs': '{}'} - MainProcess:GreenThread-8
+2025-01-23 13:17:06,332 - socketio.server:164 - INFO - emitting event "output" to all [/] - MainProcess:GreenThread-8
+2025-01-23 13:17:06,334 - socketio:31 - DEBUG - Event tracked: handle_input, Duration: 0.002s, Context: {'args': "({'session_id': 'e3532d1e-f8c6-4d12-9660-bae71315b036', 'input': 'moi'},)", 'kwargs': '{}'} - MainProcess:GreenThread-8
+2025-01-23 13:17:06,334 - socketio:92 - DEBUG - Socket.IO event handle_input completed in 0.002s - MainProcess:GreenThread-8
+2025-01-23 13:17:06,334 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-8
+2025-01-23 13:17:49,557 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:GreenThread-3
+2025-01-23 13:17:50,680 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-11
+2025-01-23 13:17:52,572 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:GreenThread-12
+2025-01-23 13:17:54,441 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-11
+2025-01-23 13:18:01,301 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:01,712 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:01,920 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:02,150 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:02,385 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:02,653 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:07,658 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:09,090 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 13:18:10,872 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-1
+2025-01-23 13:18:11,502 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:GreenThread-2
