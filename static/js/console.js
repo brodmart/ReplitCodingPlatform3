@@ -1,5 +1,6 @@
 /**
- * Simplified Interactive Console Implementation
+ * Optimized Interactive Console Implementation for Replit
+ * Includes enhanced security, resource management and error handling
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -8,7 +9,16 @@ class InteractiveConsole {
             throw new Error('Terminal container element not found');
         }
 
-        // Initialize basic terminal
+        // Configuration
+        this.config = {
+            reconnectAttempts: 3,
+            reconnectDelay: 2000,
+            inputRateLimit: 500, // ms between inputs
+            maxOutputSize: 100 * 1024, // 100KB output limit
+            bufferSize: 1024 * 8 // 8KB buffer size
+        };
+
+        // Initialize terminal with optimized settings
         this.terminal = new Terminal({
             cursorBlink: true,
             fontFamily: 'Consolas, "Courier New", monospace',
@@ -17,39 +27,75 @@ class InteractiveConsole {
                 background: '#1e1e1e',
                 foreground: '#d4d4d4',
                 cursor: '#ffffff'
-            }
+            },
+            scrollback: 1000, // Limit scrollback for memory
+            cols: 80,
+            rows: 24
         });
 
-        // Initialize fit addon for proper sizing
-        this.fitAddon = new FitAddon.FitAddon();
-        this.terminal.loadAddon(this.fitAddon);
+        // Initialize addons with error handling
+        try {
+            this.fitAddon = new FitAddon.FitAddon();
+            this.terminal.loadAddon(this.fitAddon);
+        } catch (error) {
+            console.error('Failed to load terminal addons:', error);
+            throw new Error('Terminal initialization failed');
+        }
+
+        // State management
+        this.state = {
+            connected: false,
+            reconnecting: false,
+            waitingForInput: false,
+            lastInputTime: 0,
+            outputSize: 0,
+            inputBuffer: '',
+            reconnectCount: 0
+        };
 
         // Open terminal and setup events
         this.terminal.open(this.terminalContainer);
         this.fitAddon.fit();
 
-        // Initialize Socket.IO
-        this.socket = io();
-        this.setupSocketEvents();
+        // Initialize Socket.IO with security options
+        this.initializeSocket();
 
-        // Basic state tracking
-        this.waitingForInput = false;
-        this.inputBuffer = '';
-
-        // Handle window resize
-        window.addEventListener('resize', () => this.fitAddon.fit());
+        // Setup event listeners
+        this.setupEventListeners();
 
         // Write initial message
-        this.writeSystemMessage('Console ready');
+        this.writeSystemMessage('Console initializing...');
+    }
+
+    initializeSocket() {
+        this.socket = io({
+            path: '/socket.io/', // Explicit path
+            reconnection: false, // We'll handle reconnection
+            timeout: 5000,
+            auth: {
+                source: 'console' // Identify connection source
+            }
+        });
+
+        this.setupSocketEvents();
     }
 
     setupSocketEvents() {
         this.socket.on('connect', () => {
+            this.state.connected = true;
+            this.state.reconnectCount = 0;
             this.writeSystemMessage('Connected to server');
         });
 
         this.socket.on('disconnect', () => {
+            this.state.connected = false;
             this.writeSystemMessage('Disconnected from server');
+            this.handleDisconnect();
+        });
+
+        this.socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
+            this.writeError(`Connection error: ${error.message}`);
         });
 
         this.socket.on('output', (data) => {
@@ -60,27 +106,79 @@ class InteractiveConsole {
                 return;
             }
 
+            // Check output size limits
+            if (this.state.outputSize + data.output.length > this.config.maxOutputSize) {
+                this.clear(true); // Clear with preserve important
+            }
+
             if (data.output) {
                 this.write(data.output);
+                this.state.outputSize += data.output.length;
             }
 
-            this.waitingForInput = !!data.waiting_for_input;
+            this.state.waitingForInput = !!data.waiting_for_input;
         });
+    }
 
-        // Handle input
+    setupEventListeners() {
+        // Optimized resize handler
+        const debouncedResize = this.debounce(() => this.fitAddon.fit(), 100);
+        window.addEventListener('resize', debouncedResize);
+
+        // Input handling with rate limiting
         this.terminal.onData(data => {
-            if (data === '\r') { // Enter key
-                this.handleInput();
-            } else if (data === '\u007f') { // Backspace
-                if (this.inputBuffer.length > 0) {
-                    this.inputBuffer = this.inputBuffer.slice(0, -1);
-                    this.terminal.write('\b \b');
-                }
-            } else if (data >= ' ' && data <= '~') { // Printable characters
-                this.inputBuffer += data;
+            const now = Date.now();
+            if (now - this.state.lastInputTime < this.config.inputRateLimit) {
+                return; // Rate limit exceeded
+            }
+
+            this.handleInput(data);
+            this.state.lastInputTime = now;
+        });
+    }
+
+    handleInput(data) {
+        if (!this.state.waitingForInput || !this.state.connected) return;
+
+        if (data === '\r') { // Enter key
+            const input = this.state.inputBuffer;
+            this.state.inputBuffer = '';
+            this.write('\r\n');
+
+            // Sanitize input
+            const sanitizedInput = this.sanitizeInput(input);
+            if (sanitizedInput) {
+                this.socket.emit('input', { input: sanitizedInput });
+                this.state.waitingForInput = false;
+            }
+        } else if (data === '\u007f') { // Backspace
+            if (this.state.inputBuffer.length > 0) {
+                this.state.inputBuffer = this.state.inputBuffer.slice(0, -1);
+                this.terminal.write('\b \b');
+            }
+        } else if (data >= ' ' && data <= '~') { // Printable characters
+            if (this.state.inputBuffer.length < this.config.bufferSize) {
+                this.state.inputBuffer += data;
                 this.terminal.write(data);
             }
-        });
+        }
+    }
+
+    handleDisconnect() {
+        if (this.state.reconnecting) return;
+
+        if (this.state.reconnectCount < this.config.reconnectAttempts) {
+            this.state.reconnecting = true;
+            this.state.reconnectCount++;
+
+            setTimeout(() => {
+                this.writeSystemMessage(`Attempting to reconnect (${this.state.reconnectCount}/${this.config.reconnectAttempts})...`);
+                this.socket.connect();
+                this.state.reconnecting = false;
+            }, this.config.reconnectDelay);
+        } else {
+            this.writeError('Connection lost. Please refresh the page.');
+        }
     }
 
     writeSystemMessage(message) {
@@ -96,24 +194,35 @@ class InteractiveConsole {
         this.terminal.write(text.replace(/\n/g, '\r\n'));
     }
 
-    handleInput() {
-        if (!this.waitingForInput) return;
-
-        const input = this.inputBuffer;
-        this.inputBuffer = '';
-        this.write('\r\n');
-
-        this.socket.emit('input', { input });
-        this.waitingForInput = false;
+    clear(preserveImportant = false) {
+        this.terminal.clear();
+        this.state.outputSize = 0;
+        this.state.inputBuffer = '';
+        if (preserveImportant && this.state.connected) {
+            this.writeSystemMessage('Output cleared due to size limit');
+        }
     }
 
-    clear() {
-        this.terminal.clear();
-        this.inputBuffer = '';
-        this.waitingForInput = false;
+    sanitizeInput(input) {
+        // Basic input sanitization
+        return input.slice(0, this.config.bufferSize)
+                   .replace(/[^\x20-\x7E\n]/g, '');
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
 
     compileAndRun(code) {
+        if (!this.state.connected) {
+            this.writeError('Not connected to server');
+            return;
+        }
+
         this.clear();
         this.writeSystemMessage('Compiling and running code...');
         this.socket.emit('compile_and_run', { code });
