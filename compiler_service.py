@@ -364,11 +364,11 @@ def cleanup_session(session_id: str) -> None:
             del active_sessions[session_id]
             logger.debug(f"Session {session_id} cleaned up")
 
+# Add better process lifecycle logging at key points
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved process management and error handling"""
-    socketio_logger.info(f"[SOCKET] Starting interactive session {session.session_id}")
-    console_logger.info(f"[CONSOLE] Initializing console for session {session.session_id}")
-    build_logger.info(f"[BUILD] Starting build process for session {session.session_id}")
+    process_mgmt_logger.info(f"[PROCESS] Starting interactive session {session.session_id}")
+    process_mgmt_logger.info(f"[PROCESS] Language: {language}, Code length: {len(code)}")
 
     if language != 'csharp':
         return {'success': False, 'error': 'Only C# is supported'}
@@ -379,9 +379,9 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        build_logger.debug(f"[BUILD] Creating project structure in {project_dir}")
-        build_logger.debug(f"[BUILD] Source file: {source_file}")
-        build_logger.debug(f"[BUILD] Project file: {project_file}")
+        process_mgmt_logger.debug(f"[PROCESS] Project directory: {project_dir}")
+        process_mgmt_logger.debug(f"[PROCESS] Source file: {source_file}")
+        process_mgmt_logger.debug(f"[PROCESS] Project file: {project_file}")
 
         # Write project file with optimized settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -398,16 +398,15 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         with open(project_file, 'w') as f:
             f.write(project_content)
-            build_logger.debug("[BUILD] Project file created successfully")
+            process_mgmt_logger.debug("[PROCESS] Project file created successfully")
 
         # Write source file
         with open(source_file, 'w') as f:
             f.write(code)
-            build_logger.debug("[BUILD] Source file written successfully")
+            process_mgmt_logger.debug("[PROCESS] Source file written successfully")
 
         # Compile with timeout and enhanced error handling
-        build_logger.info("[BUILD] Starting compilation process")
-        runtime_logger.debug(f"[RUNTIME] Environment setup: DOTNET_ROOT={os.environ.get('DOTNET_ROOT')}")
+        process_mgmt_logger.info("[PROCESS] Starting compilation process")
 
         try:
             compile_result = subprocess.run(
@@ -423,46 +422,38 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 }
             )
 
-            build_logger.debug(f"[BUILD] Compilation output: {compile_result.stdout}")
-            if compile_result.stderr:
-                build_logger.error(f"[BUILD] Compilation stderr: {compile_result.stderr}")
-            build_logger.debug(f"[BUILD] Compilation return code: {compile_result.returncode}")
+            process_mgmt_logger.debug(f"[PROCESS] Compilation return code: {compile_result.returncode}")
+            process_mgmt_logger.debug(f"[PROCESS] Compilation output: {compile_result.stdout}")
 
-            if compile_result.returncode == 0:
-                build_logger.info("[BUILD] Build successful")
-            else:
-                build_logger.error("[BUILD] Build failed")
+            if compile_result.stderr:
+                process_mgmt_logger.error(f"[PROCESS] Compilation stderr: {compile_result.stderr}")
+
+            if compile_result.returncode != 0:
+                process_mgmt_logger.error("[PROCESS] Build failed")
                 return {'success': False, 'error': compile_result.stderr}
 
         except subprocess.TimeoutExpired:
-            build_logger.error("[BUILD] Compilation timed out")
+            process_mgmt_logger.error("[PROCESS] Compilation timed out")
             return {'success': False, 'error': 'Compilation timed out'}
 
         # Verify DLL location and existence
         dll_path = project_dir / "bin" / "Release" / "net7.0" / "linux-x64" / "program.dll"
-        dll_logger.debug(f"[DLL] Looking for compiled DLL at: {dll_path}")
+        process_mgmt_logger.debug(f"[PROCESS] Looking for compiled DLL at: {dll_path}")
 
         if not os.path.exists(dll_path):
-            dll_logger.error(f"[DLL] DLL not found at expected path: {dll_path}")
-            # List contents of bin directory
-            bin_dir = project_dir / "bin"
-            if os.path.exists(bin_dir):
-                dll_logger.debug("[DLL] Directory contents:")
-                for root, dirs, files in os.walk(bin_dir):
-                    dll_logger.debug(f"[DLL] Dir {root}: {files}")
+            process_mgmt_logger.error(f"[PROCESS] DLL not found at expected path: {dll_path}")
             return {'success': False, 'error': 'Compiled DLL not found'}
 
-        # PTY and process setup logging
-        runtime_logger.info("[RUNTIME] Initializing process environment")
-        resource_logger.debug(f"[RESOURCE] Process resources:")
-        resource_logger.debug(f"[RESOURCE] - Working directory: {session.temp_dir}")
-        resource_logger.debug(f"[RESOURCE] - Master FD: {session.master_fd}")
-        resource_logger.debug(f"[RESOURCE] - Slave FD: {session.slave_fd}")
+        # PTY and process setup
+        if session.master_fd is None or session.slave_fd is None:
+            process_mgmt_logger.error("[PROCESS] PTY file descriptors not properly initialized")
+            return {'success': False, 'error': 'PTY initialization failed'}
 
         def monitor_output():
             """Monitor process output with improved error handling"""
+            process_mgmt_logger.info("[PROCESS] Starting output monitoring")
             buffer = ""
-            io_logger.info("[IO] Starting output monitoring")
+
             try:
                 while not session.stop_event.is_set() and session.process and session.process.poll() is None:
                     try:
@@ -471,40 +462,34 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                             continue
 
                         chunk = os.read(session.master_fd, BUFFER_SIZE).decode(errors='replace')
-                        io_logger.debug(f"[IO] Raw output: {chunk.strip()}")
+                        process_mgmt_logger.debug(f"[PROCESS] Raw output received: {chunk.strip()}")
                         buffer += chunk
 
                         while '\n' in buffer:
                             line, buffer = buffer.split('\n', 1)
                             cleaned = clean_terminal_output(line)
                             if cleaned:
-                                io_logger.debug(f"[IO] Cleaned output: {cleaned}")
+                                process_mgmt_logger.debug(f"[PROCESS] Processed output: {cleaned}")
                                 session.append_output(cleaned + '\n')
 
                     except (OSError, IOError) as e:
                         if e.errno != errno.EAGAIN:
-                            io_logger.error(f"[IO] Read error: {e}")
+                            process_mgmt_logger.error(f"[PROCESS] Read error: {e}")
                             break
                         continue
                     except Exception as e:
-                        io_logger.error(f"[IO] Monitor error: {e}")
+                        process_mgmt_logger.error(f"[PROCESS] Monitor error: {e}")
                         break
 
-                if buffer:  # Process remaining buffer
-                    cleaned = clean_terminal_output(buffer)
-                    if cleaned:
-                        io_logger.debug(f"[IO] Final output: {cleaned}")
-                        session.append_output(cleaned + '\n')
-
             except Exception as e:
-                io_logger.error(f"[IO] Fatal error: {traceback.format_exc()}")
+                process_mgmt_logger.error(f"[PROCESS] Fatal monitoring error: {traceback.format_exc()}")
             finally:
-                io_logger.info("[IO] Output monitoring stopped")
+                process_mgmt_logger.info("[PROCESS] Output monitoring stopped")
                 session.stop_event.set()
 
         # Process startup with detailed logging
         try:
-            console_logger.info("[EXEC] Starting dotnet process")
+            process_mgmt_logger.info("[PROCESS] Starting dotnet process")
             process = subprocess.Popen(
                 ['dotnet', str(dll_path)],
                 stdin=session.slave_fd,
@@ -522,41 +507,35 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             )
 
             session.process = process
-            console_logger.info(f"[EXEC] Process started with PID {process.pid}")
-            process_mgmt_logger.debug(f"[EXEC] Process state: active={session.is_active()}")
+            process_mgmt_logger.info(f"[PROCESS] Process started with PID {process.pid}")
+
+            # Start output monitoring
+            session.output_thread = Thread(target=monitor_output)
+            session.output_thread.daemon = True
+            session.output_thread.start()
+            process_mgmt_logger.info("[PROCESS] Monitoring thread started")
+
+            # Process verification
+            time.sleep(0.1)  # Brief wait to check if process starts successfully
+            if process.poll() is not None:
+                process_mgmt_logger.error("[PROCESS] Process terminated immediately")
+                return {'success': False, 'error': 'Process failed to start'}
+
+            return {
+                'success': True,
+                'session_id': session.session_id,
+                'interactive': True,
+                'waiting_for_input': False
+            }
 
         except Exception as e:
-            console_logger.error(f"[EXEC] Process start failed: {str(e)}")
-            console_logger.error(f"[EXEC] Stack trace: {traceback.format_exc()}")
+            process_mgmt_logger.error(f"[PROCESS] Process start failed: {str(e)}")
+            process_mgmt_logger.error(f"[PROCESS] Stack trace: {traceback.format_exc()}")
             return {'success': False, 'error': f'Failed to start process: {str(e)}'}
 
-        # Start output monitoring
-        session.output_thread = Thread(target=monitor_output)
-        session.output_thread.daemon = True
-        session.output_thread.start()
-        io_logger.info("[IO] Monitoring thread started")
-
-        # Process verification
-        if process.poll() is not None:
-            console_logger.error("[EXEC] Process terminated immediately")
-            return {'success': False, 'error': 'Process failed to start'}
-
-        # Final setup and return
-        initial_output = session.get_output()
-        console_logger.info("[EXEC] Interactive session initialized")
-        socketio_logger.info(f"[SOCKET] Session {session.session_id} ready")
-
-        return {
-            'success': True,
-            'session_id': session.session_id,
-            'interactive': True,
-            'output': '\n'.join(initial_output),
-            'waiting_for_input': session.waiting_for_input
-        }
-
     except Exception as e:
-        console_logger.error(f"[EXEC] Session initialization failed: {e}")
-        socketio_logger.error(f"[SOCKET] Session {session.session_id} failed")
+        process_mgmt_logger.error(f"[PROCESS] Session initialization failed: {e}")
+        process_mgmt_logger.error(f"[PROCESS] Stack trace: {traceback.format_exc()}")
         return {'success': False, 'error': str(e)}
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None, input_data:Optional[str] = None) -> Dict[str, Any]:

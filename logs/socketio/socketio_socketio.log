@@ -3619,3 +3619,43 @@ TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments 
 2025-01-23 18:02:37,043 - socketio.server:576 - INFO - received event "compile_and_run" from t-e2A5H4IufliNGlAAAD [/] - MainProcess:Thread-1 (run_server)
 2025-01-23 18:02:37,044 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 18:02:37.044411 - MainProcess:Thread-1 (run_server)
 2025-01-23 18:02:37,044 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:41,777 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:41,941 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:42,508 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:43,316 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:43,881 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:44,064 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:44,172 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:49,229 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:49,718 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:53,283 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:08:56,536 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 18:08:56.534952 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,538 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,539 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,544 - socketio:110 - DEBUG - Client info: {'sid': '7V0c5C54Qptk4k6rAAAB', 'transport': 'websocket', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', 'remote_addr': '172.31.196.39'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,548 - socketio.server:164 - INFO - emitting event "connected" to 7V0c5C54Qptk4k6rAAAB [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,556 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.022s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,557 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.022s - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:56,557 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,212 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 18:08:57.212471 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,212 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,213 - socketio:108 - INFO - New connection established. Total connections: 2 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,225 - socketio:110 - DEBUG - Client info: {'sid': 'yCeLvamjNu6fHYK7AAAD', 'transport': 'websocket', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', 'remote_addr': '172.31.196.39'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,226 - socketio.server:164 - INFO - emitting event "connected" to yCeLvamjNu6fHYK7AAAD [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,239 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.027s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,240 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.027s - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:57,240 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,047 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 18:08:59.047706 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,047 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,053 - socketio:108 - INFO - New connection established. Total connections: 3 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,053 - socketio:110 - DEBUG - Client info: {'sid': 'hQXw22eeVsJJxKV1AAAF', 'transport': 'websocket', 'user_agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36', 'remote_addr': '172.31.196.39'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,054 - socketio.server:164 - INFO - emitting event "connected" to hQXw22eeVsJJxKV1AAAF [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,059 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.012s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,059 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.012s - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,059 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,363 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-23 18:08:59.363246 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,363 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,363 - socketio:113 - INFO - Connection closed. Remaining connections: 2 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,364 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.001s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,364 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.001s - MainProcess:Thread-1 (run_server)
+2025-01-23 18:08:59,364 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)

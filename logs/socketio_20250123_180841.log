@@ -1,0 +1,12 @@
+2025-01-23 18:08:41,778 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:08:41,914 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:08:41,941 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:08:41,970 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:08:43,522 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:08:43,523 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 18:08:43,525 - werkzeug:96 - INFO -  * Debugger PIN: 573-092-052 - MainProcess:MainThread
+2025-01-23 18:08:43,931 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:08:43,984 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 18:08:44,298 - __main__:30 - INFO - Existing tables: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 18:08:45,433 - __main__:37 - INFO - Tables after creation: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 18:08:45,433 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread
