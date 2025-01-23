@@ -3,29 +3,47 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        // Validate input parameters first
-        if (!options.outputElement || !options.inputElement) {
-            console.error('Missing required elements:', {
-                outputElement: options.outputElement,
-                inputElement: options.inputElement
-            });
-            throw new Error('Console requires valid output and input elements');
+        // Validate and store input parameters first
+        if (!options || typeof options !== 'object') {
+            throw new Error('Console options must be an object');
         }
 
-        // Store references after validation
-        this.outputElement = options.outputElement;
-        this.inputElement = options.inputElement;
-        this.language = options.language || 'csharp';
+        // Get elements with retry
+        this.findElements(options).then(() => {
+            this.initializeConsole(options);
+        }).catch(error => {
+            console.error('Failed to initialize console:', error);
+            if (this.outputElement) {
+                this.appendError(`Initialization failed: ${error.message}`);
+            }
+        });
+    }
 
-        // Additional validation for DOM elements
-        if (!(this.outputElement instanceof Element) || !(this.inputElement instanceof Element)) {
-            console.error('Invalid element types:', {
-                outputElement: this.outputElement,
-                inputElement: this.inputElement
-            });
-            throw new Error('Console elements must be valid DOM elements');
+    async findElements(options) {
+        const maxRetries = 5;
+        const retryDelay = 100;
+
+        for (let i = 0; i < maxRetries; i++) {
+            // Try to get elements
+            const outputElement = options.outputElement || document.getElementById('consoleOutput');
+            const inputElement = options.inputElement || document.getElementById('consoleInput');
+
+            if (outputElement instanceof Element && inputElement instanceof Element) {
+                this.outputElement = outputElement;
+                this.inputElement = inputElement;
+                this.language = options.language || 'csharp';
+                return;
+            }
+
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, i)));
         }
 
+        // If we get here, elements weren't found
+        throw new Error('Required console elements not found after retries');
+    }
+
+    initializeConsole(options) {
         console.debug('Initializing console with:', {
             outputElement: this.outputElement.id,
             inputElement: this.inputElement.id,
@@ -302,9 +320,6 @@ function initializeConsole() {
     const consoleOutput = document.getElementById('consoleOutput');
     const consoleInput = document.getElementById('consoleInput');
 
-    if (!window.consoleInitAttempts) {
-        window.consoleInitAttempts = 0;
-    }
 
     if (consoleOutput && consoleInput) {
         try {
@@ -314,27 +329,14 @@ function initializeConsole() {
                 inputElement: consoleInput,
                 language: language
             });
-            window.consoleInitAttempts = 0; // Reset counter on success
+            
         } catch (error) {
             console.error('Failed to initialize console:', error);
-            if (window.consoleInitAttempts < 10) {
-                console.debug('Retrying initialization...');
-                window.consoleInitAttempts++;
-                // Exponential backoff for retries
-                setTimeout(initializeConsole, Math.min(100 * Math.pow(2, window.consoleInitAttempts), 2000));
-            } else {
-                console.error('Max retries reached, console initialization failed');
-            }
+            
         }
     } else {
         console.error('Required console elements not found. Retrying...');
-        if (window.consoleInitAttempts < 10) {
-            window.consoleInitAttempts++;
-            // Exponential backoff for retries
-            setTimeout(initializeConsole, Math.min(100 * Math.pow(2, window.consoleInitAttempts), 2000));
-        } else {
-            console.error('Max retries reached, console initialization failed');
-        }
+        
     }
 }
 

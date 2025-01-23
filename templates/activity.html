@@ -372,50 +372,62 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    function initConsole() {
+    let initAttempts = 0;
+    const maxAttempts = 5;
+
+    function initializeConsole() {
+        console.debug('Attempting console initialization');
+
         const outputElement = document.getElementById('consoleOutput');
         const inputElement = document.getElementById('consoleInput');
-
-        if (!outputElement || !inputElement) {
-            console.error('Required console elements not found:', {
-                output: !!outputElement,
-                input: !!inputElement
-            });
-            return;
-        }
+        const language = document.getElementById('languageSelect')?.value || 'csharp';
 
         try {
-            const consoleScript = document.createElement('script');
-            consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
-            consoleScript.onload = function() {
-                window.consoleInstance = new InteractiveConsole({
-                    outputElement: outputElement,
-                    inputElement: inputElement,
-                    language: document.getElementById('languageSelect')?.value || 'csharp'
+            if (!window.InteractiveConsole) {
+                throw new Error('Console class not loaded');
+            }
+
+            window.consoleInstance = new InteractiveConsole({
+                outputElement: outputElement,
+                inputElement: inputElement,
+                language: language
+            });
+
+            // Setup clear console button
+            const clearButton = document.getElementById('clearConsole');
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    window.consoleInstance?.clear();
                 });
+            }
 
-                const clearButton = document.getElementById('clearConsole');
-                if (clearButton) {
-                    clearButton.addEventListener('click', () => {
-                        window.consoleInstance?.clear();
-                    });
-                }
-
-                const editorScript = document.createElement('script');
-                editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
-                document.body.appendChild(editorScript);
-            };
-
-            document.body.appendChild(consoleScript);
         } catch (error) {
             console.error('Console initialization failed:', error);
             if (outputElement) {
-                outputElement.innerHTML = `<div class="console-error">Console initialization failed: ${error.message}</div>`;
+                outputElement.innerHTML = `<div class="console-error">Initialization error: ${error.message}</div>`;
+            }
+
+            // Retry initialization if needed
+            if (initAttempts < maxAttempts) {
+                initAttempts++;
+                setTimeout(initializeConsole, 500 * Math.pow(2, initAttempts));
             }
         }
     }
 
-    initConsole();
+    // Load console.js first, then initialize
+    const consoleScript = document.createElement('script');
+    consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
+    consoleScript.onload = function() {
+        initializeConsole();
+
+        // Load editor.js after console initialization
+        const editorScript = document.createElement('script');
+        editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+        document.body.appendChild(editorScript);
+    };
+    document.body.appendChild(consoleScript);
 });
 </script>
+
 {% endblock %}
