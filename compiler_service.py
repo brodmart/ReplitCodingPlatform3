@@ -366,11 +366,31 @@ def cleanup_session(session_id: str) -> None:
             logger.debug(f"Session {session_id} cleaned up")
 
 # Add better process lifecycle logging at key points
+# Update project file template to disable analyzers and optimize build
+PROJECT_TEMPLATE = """<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <RunAnalyzers>false</RunAnalyzers>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Deterministic>false</Deterministic>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+</Project>"""
+
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved process management and error handling"""
     process_mgmt_logger.info(f"[PROCESS] Starting interactive session {session.session_id}")
-    process_mgmt_logger.info(f"[PROCESS] Language: {language}, Code length: {len(code)}")
-    process_mgmt_logger.debug(f"[PROCESS] Code content:\n{code}")
 
     if language != 'csharp':
         process_mgmt_logger.error(f"[PROCESS] Unsupported language: {language}")
@@ -382,164 +402,103 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        process_mgmt_logger.debug(f"[PROCESS] Project directory: {project_dir}")
-        process_mgmt_logger.debug(f"[PROCESS] Source file: {source_file}")
-        process_mgmt_logger.debug(f"[PROCESS] Project file: {project_file}")
-
-        # Write project file with simplified settings
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-                <OutputType>Exe</OutputType>
-                <TargetFramework>net7.0</TargetFramework>
-                <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-                <PublishSingleFile>true</PublishSingleFile>
-                <SelfContained>false</SelfContained>
-                <ImplicitUsings>enable</ImplicitUsings>
-                <Nullable>enable</Nullable>
-            </PropertyGroup>
-        </Project>"""
-
         try:
             with open(project_file, 'w') as f:
-                f.write(project_content)
-                process_mgmt_logger.debug("[PROCESS] Project file created successfully")
-        except Exception as e:
-            process_mgmt_logger.error(f"[PROCESS] Failed to create project file: {e}")
-            return {'success': False, 'error': f'Failed to create project file: {str(e)}'}
-
-        try:
+                f.write(PROJECT_TEMPLATE)
             with open(source_file, 'w') as f:
                 f.write(code)
-                process_mgmt_logger.debug("[PROCESS] Source code written successfully")
         except Exception as e:
-            process_mgmt_logger.error(f"[PROCESS] Failed to write source code: {e}")
-            return {'success': False, 'error': f'Failed to write source code: {str(e)}'}
+            process_mgmt_logger.error(f"[PROCESS] Failed to write project files: {e}")
+            return {'success': False, 'error': str(e)}
 
-        # Compile with strict timeout
+        # Compile with optimized settings and strict timeout
         compile_cmd = [
             'dotnet', 'build', str(project_file),
             '--nologo', '-c', 'Release',
+            '--no-restore', '--no-dependencies',
             '/p:GenerateFullPaths=true',
-            '/consoleloggerparameters:NoSummary'
+            '/consoleloggerparameters:NoSummary',
+            '/verbosity:quiet'
         ]
 
-        process_mgmt_logger.debug(f"[PROCESS] Compilation command: {' '.join(compile_cmd)}")
-
         try:
-            process_mgmt_logger.info("[PROCESS] Starting compilation process")
             compile_result = subprocess.run(
                 compile_cmd,
                 capture_output=True,
                 text=True,
-                timeout=30,
+                timeout=15,
                 cwd=session.temp_dir,
                 env={
                     **os.environ,
                     'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
                     'DOTNET_CLI_HOME': session.temp_dir,
                     'DOTNET_NOLOGO': 'true',
-                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'
+                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true',
+                    'COMPlus_EnableDiagnostics': '0'
                 }
             )
 
-            process_mgmt_logger.debug(f"[PROCESS] Compilation return code: {compile_result.returncode}")
-            process_mgmt_logger.debug(f"[PROCESS] Compilation stdout: {compile_result.stdout}")
-
-            if compile_result.stderr:
-                process_mgmt_logger.error(f"[PROCESS] Compilation stderr: {compile_result.stderr}")
-
             if compile_result.returncode != 0:
-                process_mgmt_logger.error(f"[PROCESS] Build failed with return code {compile_result.returncode}")
+                process_mgmt_logger.error(f"[PROCESS] Build failed: {compile_result.stderr}")
                 return {'success': False, 'error': f"Compilation failed: {compile_result.stderr}"}
 
         except subprocess.TimeoutExpired:
-            process_mgmt_logger.error("[PROCESS] Build timed out after 30 seconds")
+            process_mgmt_logger.error("[PROCESS] Build timed out")
             return {'success': False, 'error': 'Build process timed out'}
-        except Exception as e:
-            process_mgmt_logger.error(f"[PROCESS] Unexpected compilation error: {e}")
-            return {'success': False, 'error': f'Compilation error: {str(e)}'}
 
-        # Verify executable
+        # Verify and execute
         exe_path = project_dir / "bin" / "Release" / "net7.0" / "linux-x64" / "program"
-        process_mgmt_logger.debug(f"[PROCESS] Looking for executable at: {exe_path}")
-
         if not os.path.exists(exe_path):
             process_mgmt_logger.error(f"[PROCESS] Executable not found at: {exe_path}")
             return {'success': False, 'error': 'Compilation output not found'}
 
-        process_mgmt_logger.info(f"[PROCESS] Executable found at: {exe_path}")
-
-        # Initialize PTY with timeout
-        start_time = time.time()
-        while time.time() - start_time < 5:  # 5 second timeout for PTY setup
-            try:
-                import pty
-                session.master_fd, session.slave_fd = pty.openpty()
-                flags = fcntl.fcntl(session.master_fd, fcntl.F_GETFL)
-                fcntl.fcntl(session.master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-                process_mgmt_logger.info("[PROCESS] PTY setup successful")
-                break
-            except (OSError, IOError) as e:
-                if time.time() - start_time >= 5:
-                    process_mgmt_logger.error(f"[PROCESS] PTY setup failed: {e}")
-                    return {'success': False, 'error': 'Failed to initialize terminal'}
-                time.sleep(0.1)
-
-        def monitor_output():
-            buffer = ""
-            try:
-                while not session.stop_event.is_set():
-                    try:
-                        chunk = os.read(session.master_fd, BUFFER_SIZE).decode(errors='replace')
-                        process_mgmt_logger.debug(f"[PROCESS] Raw output: {chunk}")
-                        buffer += chunk
-
-                        while '\n' in buffer:
-                            line, buffer = buffer.split('\n', 1)
-                            if line.strip():
-                                session.append_output(line + '\n')
-                                process_mgmt_logger.debug(f"[PROCESS] Processed output line: {line}")
-
-                    except (OSError, IOError) as e:
-                        if e.errno != errno.EAGAIN:
-                            process_mgmt_logger.error(f"[PROCESS] Monitor error: {e}")
-                            break
-                        time.sleep(0.1)
-
-            except Exception as e:
-                process_mgmt_logger.error(f"[PROCESS] Monitor error: {e}")
-            finally:
-                process_mgmt_logger.info("[PROCESS] Monitor thread stopping")
-                session.stop_event.set()
-
-        # Start process with timeout
+        # Start process with improved PTY handling
         try:
-            process_mgmt_logger.info(f"[PROCESS] Starting process: {exe_path}")
+            import pty
+            session.master_fd, session.slave_fd = pty.openpty()
+            flags = fcntl.fcntl(session.master_fd, fcntl.F_GETFL)
+            fcntl.fcntl(session.master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
             process = subprocess.Popen(
                 [str(exe_path)],
                 stdin=session.slave_fd,
                 stdout=session.slave_fd,
                 stderr=session.slave_fd,
                 cwd=session.temp_dir,
-                preexec_fn=os.setsid
+                preexec_fn=os.setsid,
+                env={'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410'}
             )
 
             session.process = process
             process_mgmt_logger.info(f"[PROCESS] Started process PID: {process.pid}")
 
-            # Start monitoring in separate thread
+            def monitor_output():
+                buffer = ""
+                while not session.stop_event.is_set():
+                    try:
+                        chunk = os.read(session.master_fd, BUFFER_SIZE).decode(errors='replace')
+                        buffer += chunk
+
+                        while '\n' in buffer:
+                            line, buffer = buffer.split('\n', 1)
+                            if line.strip():
+                                session.append_output(line + '\n')
+                                process_mgmt_logger.debug(f"[PROCESS] Output: {line}")
+                    except OSError as e:
+                        if e.errno != errno.EAGAIN:
+                            process_mgmt_logger.error(f"[PROCESS] Monitor error: {e}")
+                            break
+                        time.sleep(0.1)
+
             session.output_thread = Thread(target=monitor_output)
             session.output_thread.daemon = True
             session.output_thread.start()
-            process_mgmt_logger.info("[PROCESS] Started output monitor thread")
 
             # Quick health check
             time.sleep(0.5)
             if process.poll() is not None:
-                process_mgmt_logger.error("[PROCESS] Process terminated immediately")
                 return {'success': False, 'error': 'Process failed to start'}
 
-            process_mgmt_logger.info("[PROCESS] Process health check passed")
             return {
                 'success': True,
                 'session_id': session.session_id,
@@ -810,7 +769,7 @@ class CompilationMetrics:
     stage_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
 
     def start_stage(self, stage_name: str) -> None:
-        """Track metrics for a specific compilation stage"""
+        """Track metricsfor a specific compilation stage"""
         self.stage_metrics[stage_name] = {
             'start_time': time.time(),
             'peak_memory': 0.0,
