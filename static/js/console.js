@@ -149,14 +149,20 @@ class InteractiveConsole {
                 this.currentSessionId = data.session_id;
             }
 
+            // Process output first
             if (data.output) {
                 await this.queueOutput(data.output);
             }
 
-            // Update input state after processing output
+            // Wait for output processing before updating input state
+            await this.waitForOutputProcessing();
+
+            // Update input state after ensuring output is processed
             this.waitingForInput = !!data.waiting_for_input;
             if (this.waitingForInput && !this.pendingInput) {
                 this.terminal.focus();
+                this.inputBuffer = '';
+                this.inputPosition = 0;
             }
         });
 
@@ -166,8 +172,8 @@ class InteractiveConsole {
             const errorType = data.type || 'general_error';
             await this.writeError(`${errorType}: ${errorMessage}`);
             this.waitingForInput = false;
+            this.pendingInput = false;
         });
-
         // Console operations with improved synchronization
         this.socket.on('console_operation', async (data) => {
             if (!data || !data.operation) return;
@@ -254,6 +260,10 @@ class InteractiveConsole {
                         this.inputPosition--;
                         this.terminal.write('\b \b');
                     }
+                } else if (data === '\u001b[A') { // Up arrow
+                    this.navigateHistory('up');
+                } else if (data === '\u001b[B') { // Down arrow
+                    this.navigateHistory('down');
                 } else if (data >= ' ' && data <= '~') { // Printable characters
                     this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition) +
                                     data +
@@ -300,9 +310,13 @@ class InteractiveConsole {
                 input: input
             });
 
-            // Wait briefly for backend processing
+            // Reset state after sending input
+            this.waitingForInput = false;
             await new Promise(resolve => setTimeout(resolve, 50));
 
+        } catch (error) {
+            console.error('Error handling input:', error);
+            await this.writeError('Failed to send input');
         } finally {
             this.pendingInput = false;
         }

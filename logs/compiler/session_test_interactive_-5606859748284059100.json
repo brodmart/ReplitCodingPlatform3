@@ -1,0 +1,10 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T15:45:12.411139",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T15:45:12.411087"
+    }
+  }
+]

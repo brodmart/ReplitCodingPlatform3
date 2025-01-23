@@ -210,24 +210,27 @@ def create_app():
             # Import necessary C# compilation module
             from compiler_service import compile_and_run_csharp
 
+            # Start C# compilation and execution
+            compilation_result = compile_and_run_csharp(code, session_id)
+
             # Set compilation complete before processing result
             with console_session.lock:
                 console_session.set_compilation_complete()
 
-            # Start C# compilation and execution
-            compilation_result = compile_and_run_csharp(code, session_id)
-
-            with console_session.lock:
                 if compilation_result.get('success'):
                     waiting_for_input = compilation_result.get('waiting_for_input', False)
                     console_session.waiting_for_input = waiting_for_input
                     logger.info(f"Session {session_id} waiting for input: {waiting_for_input}")
-                    emit('output', {
-                        'success': True,
-                        'session_id': session_id,
-                        'output': compilation_result.get('output', '') + '\n',
-                        'waiting_for_input': waiting_for_input
-                    })
+
+                    # Enhanced output handling
+                    output = compilation_result.get('output', '')
+                    if output or waiting_for_input:
+                        emit('output', {
+                            'success': True,
+                            'session_id': session_id,
+                            'output': output + ('\n' if output else ''),
+                            'waiting_for_input': waiting_for_input
+                        })
                 else:
                     logger.error(f"Compilation error in session {session_id}: {compilation_result.get('error')}")
                     emit('output', {
@@ -268,7 +271,7 @@ def create_app():
                 raise ValueError("Invalid session ID or session expired")
 
             if not console_session.is_active_and_ready():
-                logger.error(f"Session {session_id} not active or not ready - active: {console_session.active}, compilation_complete: {console_session.compilation_complete}")
+                logger.error(f"Session {session_id} not active or not ready")
                 raise ValueError("Session not active or compilation not complete")
 
             with console_session.lock:
@@ -286,16 +289,20 @@ def create_app():
                 if result.get('success'):
                     console_session.waiting_for_input = result.get('waiting_for_input', False)
                     logger.info(f"Session {session_id} waiting for input updated to: {console_session.waiting_for_input}")
+
+                    # Enhanced output handling
+                    output = result.get('output', '')
                     emit('output', {
                         'success': True,
                         'session_id': session_id,
-                        'output': result.get('output', '') + '\n',
+                        'output': output + ('\n' if output else ''),
                         'waiting_for_input': console_session.waiting_for_input
                     })
                 else:
-                    logger.error(f"Input processing error in session {session_id}: {result.get('error')}")
+                    error_msg = result.get('error', 'Failed to process input')
+                    logger.error(f"Input processing error in session {session_id}: {error_msg}")
                     emit('error', {
-                        'message': result.get('error', 'Failed to process input'),
+                        'message': error_msg,
                         'type': 'input_error',
                         'session_id': session_id
                     })
