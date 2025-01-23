@@ -206,6 +206,39 @@ Key Points:
    - Verify the entire chain
    - Document the solution pattern
 
+6. **Process Spawn and Event Handling Monitoring**:
+   Critical Points to Monitor:
+   - Pre-process spawn environment state
+   - Process creation attempt timing
+   - Post-spawn process state
+   - Parent-child process communication
+   - Resource allocation and cleanup
+   - Event queue state and processing
+   - Thread synchronization points
+   - System resource utilization
+   - Inter-process message passing
+   - Deadlock detection points
+
+   Logging Requirements:
+   - Timestamp all process lifecycle events
+   - Track process hierarchy relationships
+   - Monitor system resource thresholds
+   - Log all inter-process communications
+   - Record event handler entry/exit
+   - Track thread pool utilization
+   - Monitor file descriptor usage
+   - Log memory allocation patterns
+
+   Early Warning Signs:
+   - Missing process spawn logs
+   - Delayed event processing
+   - Resource exhaustion patterns
+   - Communication timeouts
+   - Thread pool saturation
+   - File descriptor leaks
+   - Memory growth patterns
+   - Event queue backlog
+
 ## Database Information
 - Database Name: ICS3U Curriculum Database
 - Connection: Managed through DATABASE_URL environment variable

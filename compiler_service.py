@@ -21,6 +21,9 @@ import json
 import shutil
 from dataclasses import dataclass, field, asdict
 import hashlib
+import resource
+from queue import Queue, Empty
+from contextlib import contextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG,
@@ -29,6 +32,9 @@ logger = logging.getLogger(__name__)
 performance_logger = logging.getLogger('performance')
 error_logger = logging.getLogger('error')
 compiler_logger = logging.getLogger('compiler')
+process_logger = logging.getLogger('process')
+event_logger = logging.getLogger('event')
+resource_logger = logging.getLogger('resource')
 
 
 # Constants
@@ -904,103 +910,269 @@ from datetime import datetime
 logger = logging.getLogger('compiler_service')
 logger.setLevel(logging.DEBUG)
 
-def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
-    """Compile and run C# code with enhanced logging and monitoring"""
-    logger.info(f"[CSHARP] Starting compilation process for session {session_id}")
-    compiler_logger.log_compilation_start(session_id, code)
-    metrics = CompilationMetrics(start_time=time.time())
+@contextmanager
+def process_monitoring():
+    """Context manager for monitoring process creation and resources"""
+    start_time = time.time()
+    start_resources = resource.getrusage(resource.RUSAGE_SELF)
+    process_logger.info(f"Starting process monitoring at {datetime.now().isoformat()}")
+    process_logger.debug(f"Initial resource state: {psutil.Process().memory_info()}")
 
     try:
-        # Create isolated environment
-        metrics.start_stage('environment_setup')
-        temp_dir, project_name = create_isolated_environment(code, 'csharp')
-        metrics.end_stage('environment_setup')
-        logger.debug(f"[CSHARP] Created isolated environment in {temp_dir}")
+        yield
+    finally:
+        end_time = time.time()
+        end_resources = resource.getrusage(resource.RUSAGE_SELF)
+        duration = end_time - start_time
 
-        # Start compilation
-        metrics.start_stage('compilation')
-        project_file = Path(temp_dir) / f"{project_name}.csproj"
-        logger.debug(f"[CSHARP] Starting dotnet build for {project_file}")
+        process_logger.info(f"Process monitoring completed. Duration: {duration:.2f}s")
+        resource_logger.info(f"Resource delta: "
+                           f"CPU: {end_resources.ru_utime - start_resources.ru_utime:.2f}s, "
+                           f"Memory: {psutil.Process().memory_info().rss / 1024 / 1024:.1f}MB")
 
-        compile_result = subprocess.run(
-            ['dotnet', 'build', str(project_file), '--nologo'],
-            capture_output=True,
-            text=True,
-            cwd=temp_dir
+def log_process_state(process: subprocess.Popen, context: str):
+    """Log detailed process state"""
+    if process is None:
+        process_logger.error(f"[{context}] Process is None")
+        return
+
+    try:
+        psutil_proc = psutil.Process(process.pid)
+        process_logger.info(
+            f"[{context}] Process State: "
+            f"PID={process.pid}, "
+            f"Status={psutil_proc.status()}, "
+            f"CPU={psutil_proc.cpu_percent()}%, "
+            f"Memory={psutil_proc.memory_info().rss / 1024 / 1024:.1f}MB, "
+            f"Threads={psutil_proc.num_threads()}"
         )
-        metrics.end_stage('compilation')
+    except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+        process_logger.error(f"[{context}] Failed to get process state: {str(e)}")
 
-        if compile_result.returncode != 0:
-            error = format_csharp_error(compile_result.stderr)
-            logger.error(f"[CSHARP] Compilation failed: {error}")
-            compiler_logger.log_compilation_error(session_id, Exception(error), {
-                'stage': 'compilation',
-                'return_code': compile_result.returncode,
-                'temp_dir': str(temp_dir)
-            })
+def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
+    """Compile and run C# code with enhanced process and event monitoring"""
+    process_logger.info(f"[{session_id}] Starting C# compilation process")
+    event_logger.info(f"[{session_id}] Compilation event started")
+
+    metrics = CompilationMetrics(start_time=time.time())
+    process = None
+
+    try:
+        with process_monitoring():
+            # Create project structure
+            process_logger.debug(f"[{session_id}] Creating project environment")
+            temp_dir = Path(tempfile.mkdtemp(prefix=f'compiler_{session_id}_'))
+            process_logger.info(f"[{session_id}] Created temp directory: {temp_dir}")
+
+            # Write project files
+            source_file = temp_dir / "Program.cs"
+            project_file = temp_dir / "program.csproj"
+
+            process_logger.debug(f"[{session_id}] Writing project files")
+            project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <OutputType>Exe</OutputType>
+                    <TargetFramework>net7.0</TargetFramework>
+                    <ImplicitUsings>enable</ImplicitUsings>
+                    <Nullable>enable</Nullable>
+                </PropertyGroup>
+            </Project>"""
+
+            with open(project_file, 'w') as f:
+                f.write(project_content)
+            with open(source_file, 'w') as f:
+                f.write(code)
+
+            process_logger.info(f"[{session_id}] Project files written successfully")
+
+            # Compile
+            event_logger.info(f"[{session_id}] Starting compilation")
+            compile_result = subprocess.run(
+                ['dotnet', 'build', str(project_file), '--nologo'],
+                capture_output=True,
+                text=True,
+                cwd=str(temp_dir)
+            )
+
+            process_logger.info(f"[{session_id}] Compilation completed with return code: {compile_result.returncode}")
+
+            if compile_result.returncode != 0:
+                error_msg = compile_result.stderr
+                process_logger.error(f"[{session_id}] Compilation failed: {error_msg}")
+                return {'success': False, 'error': error_msg}
+
+            # Start the compiled program
+            executable = temp_dir / "bin" / "Debug" / "net7.0" / "program.dll"
+
+            if not executable.exists():
+                error_msg = f"Executable not found at {executable}"
+                process_logger.error(f"[{session_id}] {error_msg}")
+                return {'success': False, 'error': error_msg}
+
+            event_logger.info(f"[{session_id}] Starting program execution")
+            process = subprocess.Popen(
+                ['dotnet', str(executable)],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                cwd=str(temp_dir)
+            )
+
+            process_logger.info(f"[{session_id}] Process started with PID: {process.pid}")
+            log_process_state(process, f"{session_id} - Initial State")
+
+            # Monitor initial output
+            try:
+                readable, _, _ = select.select([process.stdout], [], [], 5.0)
+
+                if not readable:
+                    process_logger.warning(f"[{session_id}] No initial output received in 5s")
+                    initial_output = ""
+                else:
+                    initial_output = process.stdout.readline().strip()
+                    process_logger.info(f"[{session_id}] Initial output received: {initial_output}")
+
+                # Verify process is still running
+                log_process_state(process, f"{session_id} - Post Initial Output")
+
+                if process.poll() is not None:
+                    exit_code = process.poll()
+                    error_output = process.stderr.read()
+                    process_logger.error(
+                        f"[{session_id}] Process ended prematurely. "
+                        f"Exit code: {exit_code}, Error: {error_output}"
+                    )
+                    return {
+                        'success': False,
+                        'error': f"Process ended with code {exit_code}: {error_output}"
+                    }
+
+            except Exception as e:
+                process_logger.error(f"[{session_id}] Error reading initial output: {str(e)}")
+                if process and process.poll() is None:
+                    log_process_state(process, f"{session_id} - Error State")
+                return {'success': False, 'error': str(e)}
+
+            process_logger.info(f"[{session_id}] Successfully started interactive session")
+            event_logger.info(f"[{session_id}] Compilation and execution successful")
+
             return {
-                'success': False,
-                'error': f"Compilation Error:\n{error}",
-                'session_id': session_id
+                'success': True,
+                'session_id': session_id,
+                'interactive': True,
+                'output': initial_output,
+                'waiting_for_input': bool(initial_output)
             }
 
-        # Start execution
-        metrics.start_stage('execution')
-        executable = Path(temp_dir) / "bin" / "Debug" / "net7.0" / f"{project_name}.dll"
-        logger.info(f"[CSHARP] Starting execution of {executable}")
+    except Exception as e:
+        process_logger.error(f"[{session_id}] Critical error: {str(e)}", exc_info=True)
+        if process and process.poll() is None:
+            log_process_state(process, f"{session_id} - Error State")
+        return {'success': False, 'error': str(e)}
 
-        process = subprocess.Popen(
-            ['dotnet', str(executable)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-            cwd=temp_dir
+    finally:
+        event_logger.info(f"[{session_id}] Compilation process complete")
+        metrics.end_time = time.time()
+        resource_logger.info(
+            f"[{session_id}] Final metrics: "
+            f"Duration={metrics.end_time - metrics.start_time:.2f}s, "
+            f"Peak Memory={metrics.peak_memory:.1f}MB, "
+            f"Avg CPU={metrics.avg_cpu_usage:.1f}%"
         )
 
-        # Set up monitoring
-        session = CompilerSession(session_id, str(temp_dir), process)
-        with session_lock:
-            active_sessions[session_id] = session
+def is_interactive_code(code: str, language: str) -> bool:
+    """Determine if code requires interactive I/O based on language-specific patterns"""
+    code = code.lower()
+    if language == 'cpp':
+        return any(pattern in code for pattern in [
+            'cin', 'getline', 'std::cin', 'std::getline',
+            'scanf', 'gets', 'fgets'
+        ])
+    elif language == 'csharp':
+        return any(pattern in code for pattern in [
+            'console.read', 'console.readline',
+            'console.in', 'console.keyavailable',
+            'console.readkey'
+        ])
+    return False
 
-        logger.debug(f"[CSHARP] Process started with PID {process.pid}")
-        metrics.end_stage('execution')
+def clean_terminal_output(output: str) -> str:
+    """Clean terminal control sequences from output"""
+    # Remove ANSI codes
+    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
+    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
+    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
 
-        # Monitor process state
-        def monitor_process():
-            try:
-                while session.is_active():
-                    if process.poll() is not None:
-                        logger.info(f"[CSHARP] Process {process.pid} completed with code {process.returncode}")
-                        break
-                    time.sleep(0.1)
-            except Exception as e:
-                logger.error(f"[CSHARP] Error monitoring process: {e}")
+    # Clean up other control characters while preserving prompts
+    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
 
-        monitor_thread = Thread(target=monitor_process)
-        monitor_thread.daemon = True
-        monitor_thread.start()
+    # Normalize line endings
+    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
+    cleaned = re.sub(r'^\s*\n', '', cleaned)
+    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
 
-        return {
-            'success': True,
-            'session_id': session_id,
-            'interactive': True,
-            'pid': process.pid
-        }
+    return cleaned.strip()
+
+def parse_csharp_errors(error_output: str) -> List[CompilationError]:
+    """Parse C# compiler errors into structured format"""
+    errors = []
+    try:
+        error_lines = error_output.split('\n')
+        for line in error_lines:
+            if not line.strip() or 'warning' in line.lower():
+                continue
+
+            match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
+            if match:
+                errors.append(CompilationError(
+                    error_type='CompilerError',
+                    message=match.group(5),
+                    file=match.group(1),
+                    line=int(match.group(2)),
+                    column=int(match.group(3)),
+                    code=match.group(4)
+                ))
+                logger.debug(f"Found error: {errors[-1]}")
 
     except Exception as e:
-        logger.error(f"[CSHARP] Error in compile_and_run: {str(e)}", exc_info=True)
-        metrics.error_count += 1
-        compiler_logger.log_runtime_error(session_id, str(e), {
-            'stage': metrics.stage_metrics.keys()[-1] if metrics.stage_metrics else 'unknown',
-            'metrics': metrics.to_dict()
-        })
-        return {
-            'success': False,
-            'error': f"Runtime Error: {str(e)}",
-            'session_id': session_id
+        logger.error(f"Error parsing compiler errors: {e}")
+
+    return errors
+
+def get_code_hash(code: str, language: str) -> str:
+    """Generate a unique hash for the code and language"""
+    hasher = hashlib.sha256()
+    hasher.update(f"{code}{language}".encode())
+    return hasher.hexdigest()
+
+def get_template(language: str) -> str:
+    """Get the template code for a given programming language"""
+    templates = {
+        'cpp': """#include <iostream>
+#include <string>
+using namespace std;
+
+int main() {
+    // Your code here
+    cout << "Hello World!" << endl;
+    return 0;
+}""",
+        'csharp': """using System;
+
+namespace ConsoleApp {
+    class Program {
+        static void Main() {
+            try {
+                // Your code here
+                Console.WriteLine("Hello World!");
+            }
+            catch (Exception e) {
+                Console.WriteLine($"Error: {e.Message}");
+            }
         }
-    finally:
-        metrics.end_time = time.time()
-        logger.info(f"[CSHARP] Compilation metrics for {session_id}: {metrics.to_dict()}")
+    }
+}"""
+    }
+    return templates.get(language.lower(), '')
