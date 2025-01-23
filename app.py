@@ -188,11 +188,12 @@ def create_app():
             compilation_result = compile_and_run_csharp(code, session_id)
 
             if compilation_result.get('success'):
+                # Send initial output immediately
                 emit('output', {
                     'success': True,
                     'session_id': session_id,
                     'output': compilation_result.get('output', '') + '\n',
-                    'waiting_for_input': True
+                    'waiting_for_input': compilation_result.get('waiting_for_input', False)
                 })
             else:
                 emit('output', {

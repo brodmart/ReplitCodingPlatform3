@@ -1,0 +1,14 @@
+2025-01-23 15:25:46,025 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:25:46,051 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:25:47,643 - __main__:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:25:47,644 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:25:47,646 - werkzeug:96 - INFO -  * Debugger PIN: 100-122-964 - MainProcess:MainThread
+2025-01-23 15:25:50,171 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,021 - engineio.server:78 - INFO - tX4SBL_B8aTHV0qvAAAA: Sending packet OPEN data {'sid': 'tX4SBL_B8aTHV0qvAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,021 - engineio.server:90 - INFO - tX4SBL_B8aTHV0qvAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,021 - engineio.server:219 - INFO - tX4SBL_B8aTHV0qvAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,091 - engineio.server:39 - INFO - tX4SBL_B8aTHV0qvAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,095 - __main__:114 - INFO - Client connected: {"sid": "W-XkL-lmSV3c5LgdAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,096 - engineio.server:78 - INFO - tX4SBL_B8aTHV0qvAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"W-XkL-lmSV3c5LgdAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:25:51,096 - engineio.server:78 - INFO - tX4SBL_B8aTHV0qvAAAA: Sending packet MESSAGE data 0{"sid":"W-XkL-lmSV3c5LgdAAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:26:06,339 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading - MainProcess:MainThread

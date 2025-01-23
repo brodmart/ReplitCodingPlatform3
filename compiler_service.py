@@ -240,6 +240,12 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                         if cleaned:
                             logger.debug(f"Output received: {cleaned}")
                             session.append_output(cleaned)
+                            # Check for common input prompts
+                            lowercase_text = cleaned.lower()
+                            if (any(prompt in lowercase_text for prompt in
+                                ['input', 'enter', '?', ':', 'type', 'name']) or
+                                cleaned.strip().endswith(':')):
+                                session.set_waiting_for_input(True)
                     else:
                         time.sleep(0.1)
 
@@ -253,11 +259,14 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         # Wait briefly for initial output
         time.sleep(0.5)
+        initial_output = get_output(session.session_id)
 
         return {
             'success': True,
             'session_id': session.session_id,
-            'interactive': True
+            'interactive': True,
+            'output': initial_output.get('output', ''),
+            'waiting_for_input': initial_output.get('waiting_for_input', False)
         }
 
     except Exception as e:
@@ -789,7 +798,7 @@ def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
         logger.error(f"Error during cleanup of {temp_dir}: {e}")
 
 def format_csharp_error(error_output: str) -> Dict[str, Any]:
-    """Format C# compiler error output into structured data"""
+    """Format C# compiler error output intostructured data"""
     logger.debug(f"Raw error output:\n{error_output}")
 
     error_info = {

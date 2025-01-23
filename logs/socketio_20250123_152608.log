@@ -1,0 +1,7 @@
+2025-01-23 15:26:08,593 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:26:08,636 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:26:09,580 - app:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:26:09,622 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 15:26:09,939 - __main__:30 - INFO - Existing tables: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 15:26:11,072 - __main__:37 - INFO - Tables after creation: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 15:26:11,072 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread
