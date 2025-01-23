@@ -8,14 +8,14 @@ class InteractiveConsole {
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.compilationTimeout = 60000; // 60s timeout
-        this.retryAttempts = 3;
-        this.retryDelay = 2000;
+        this.retryAttempts = 5;  // Increased from 3 to 5
+        this.retryDelay = 3000;  // Increased from 2000 to 3000ms
         this.socket = null;
         this.language = options.language || 'csharp';
         this.pendingOperations = new Map();
         this.initializationAttempts = 0;
-        this.maxInitializationAttempts = 3;
-        this.elementWaitTimeout = 20000;
+        this.maxInitializationAttempts = 5;  // Increased from 3 to 5
+        this.elementWaitTimeout = 30000;  // Increased from 20000 to 30000ms
 
         // Start initialization
         this.initWithRetry(options);
@@ -24,47 +24,58 @@ class InteractiveConsole {
     initWithRetry(options) {
         console.debug('Starting console initialization');
 
-        const initConsole = () => {
-            // Check if elements exist first
-            const outputElement = document.getElementById('consoleOutput');
-            const inputElement = document.getElementById('consoleInput');
+        const waitForElements = async () => {
+            const startTime = Date.now();
 
-            if (!outputElement || !inputElement) {
+            while (Date.now() - startTime < this.elementWaitTimeout) {
+                const outputElement = document.getElementById('consoleOutput');
+                const inputElement = document.getElementById('consoleInput');
+
+                if (outputElement && inputElement) {
+                    return { outputElement, inputElement };
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            throw new Error('Timeout waiting for console elements');
+        };
+
+        const initConsole = async () => {
+            try {
+                // Wait for elements with timeout
+                const { outputElement, inputElement } = await waitForElements();
+
+                // Store elements
+                this.outputElement = outputElement;
+                this.inputElement = inputElement;
+
+                // Initialize socket and setup handlers
+                await this.initializeSocketAndHandlers();
+
+                this.initialized = true;
+                this.appendSystemMessage('Console initialized successfully');
+                console.debug('Console initialization completed');
+
+            } catch (error) {
                 this.initializationAttempts++;
-                console.debug(`Elements not found, attempt ${this.initializationAttempts}`);
+                console.warn(`Console initialization attempt ${this.initializationAttempts} failed:`, error);
+
+                const outputElement = document.getElementById('consoleOutput');
+                if (outputElement) {
+                    outputElement.innerHTML = `<div class="console-error">Initialization attempt ${this.initializationAttempts} failed: ${error.message}</div>`;
+                }
 
                 if (this.initializationAttempts < this.maxInitializationAttempts) {
+                    console.debug(`Retrying initialization in ${this.retryDelay}ms`);
                     setTimeout(() => initConsole(), this.retryDelay);
                 } else {
                     console.error('Max initialization attempts reached');
                     if (outputElement) {
-                        outputElement.innerHTML = '<div class="console-error">Failed to initialize console after multiple attempts</div>';
+                        outputElement.innerHTML = '<div class="console-error">Failed to initialize console after multiple attempts. Please refresh the page.</div>';
                     }
                 }
-                return;
             }
-
-            // Store elements
-            this.outputElement = outputElement;
-            this.inputElement = inputElement;
-
-            // Initialize socket and setup handlers
-            this.initializeSocketAndHandlers()
-                .then(() => {
-                    this.initialized = true;
-                    this.appendSystemMessage('Console initialized successfully');
-                    console.debug('Console initialization completed');
-                })
-                .catch(error => {
-                    console.error('Socket initialization failed:', error);
-                    this.appendError(`Initialization failed: ${error.message}`);
-
-                    // Retry socket initialization
-                    if (this.initializationAttempts < this.maxInitializationAttempts) {
-                        this.initializationAttempts++;
-                        setTimeout(() => this.initializeSocketAndHandlers(), this.retryDelay);
-                    }
-                });
         };
 
         // Start initialization process
