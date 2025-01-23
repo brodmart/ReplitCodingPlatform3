@@ -391,118 +391,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
     outputElement.innerHTML = '<div class="console-loading">Initializing console...</div>';
 
-    // Utility function to wait for DOM element
-    function waitForElement(elementId, timeout = 5000) {
-        return new Promise((resolve, reject) => {
-            const element = document.getElementById(elementId);
-            if (element) {
-                resolve(element);
-                return;
-            }
-
-            const observer = new MutationObserver(() => {
-                const element = document.getElementById(elementId);
-                if (element) {
-                    resolve(element);
-                    observer.disconnect();
-                }
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-
-            setTimeout(() => {
-                observer.disconnect();
-                reject(new Error(`Timeout waiting for element: ${elementId}`));
-            }, timeout);
-        });
-    }
-
-    // Load console.js with proper error handling
-    async function loadConsoleScript() {
+    // Load and initialize the console
+    (async function initializeConsole() {
         try {
-            const script = document.createElement('script');
-            script.src = "{{ url_for('static', filename='js/console.js') }}";
-
-            const loadPromise = new Promise((resolve, reject) => {
+            // Load console.js
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = "{{ url_for('static', filename='js/console.js') }}";
                 script.onload = resolve;
                 script.onerror = () => reject(new Error('Failed to load console script'));
+                document.body.appendChild(script);
             });
 
-            document.body.appendChild(script);
-            await loadPromise;
             console.debug('Console script loaded successfully');
 
-        } catch (error) {
-            console.error('Failed to load console script:', error);
-            throw error;
-        }
-    }
+            // The console initialization will happen automatically through the
+            // DOMContentLoaded event listener in console.js
 
-    // Initialize console with proper validation
-    async function initializeConsole() {
-        try {
-            // Ensure required elements exist
-            const [outputElement, inputElement] = await Promise.all([
-                waitForElement('consoleOutput'),
-                waitForElement('consoleInput')
-            ]);
-
-            const language = document.getElementById('languageSelect')?.value || 'csharp';
-
-            if (!window.InteractiveConsole) {
-                throw new Error('Console class not loaded');
-            }
-
-            window.consoleInstance = new InteractiveConsole({
-                outputElement,
-                inputElement,
-                language
-            });
-
-            // Setup clear console button
-            const clearButton = document.getElementById('clearConsole');
-            if (clearButton) {
-                clearButton.addEventListener('click', () => {
-                    window.consoleInstance?.clear();
-                });
-            }
+            // Load editor.js after console is ready
+            const editorScript = document.createElement('script');
+            editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+            document.body.appendChild(editorScript);
 
         } catch (error) {
             console.error('Console initialization failed:', error);
             if (outputElement) {
                 outputElement.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
             }
-            throw error;
         }
-    }
-
-    // Main initialization sequence
-    async function initialize() {
-        try {
-            await loadConsoleScript();
-            await initializeConsole();
-            console.debug('Console initialization completed');
-
-            // Load editor.js after console is ready
-            const script = document.createElement('script');
-            script.src = "{{ url_for('static', filename='js/editor.js') }}";
-            document.body.appendChild(script);
-
-        } catch (error) {
-            console.error('Fatal initialization error:', error);
-            const outputElement = document.getElementById('consoleOutput');
-            if (outputElement) {
-                outputElement.innerHTML = `<div class="console-error">Fatal error: ${error.message}</div>`;
-            }
+    })().catch(error => {
+        console.error('Fatal initialization error:', error);
+        if (outputElement) {
+            outputElement.innerHTML = `<div class="console-error">Fatal error: ${error.message}</div>`;
         }
-    }
-
-    // Start initialization
-    initialize().catch(error => {
-        console.error('Unhandled initialization error:', error);
     });
 });
 </script>
