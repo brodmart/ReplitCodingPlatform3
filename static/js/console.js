@@ -17,6 +17,39 @@ class InteractiveConsole {
         this.maxInitializationAttempts = 5;  // Increased from 3 to 5
         this.elementWaitTimeout = 30000;  // Increased from 20000 to 30000ms
 
+        // Add compilation methods
+        this.compileAndRun = async (code) => {
+            if (!this.socket || !this.socket.connected) {
+                throw new Error('Socket not connected');
+            }
+
+            // Clear previous output
+            this.clear();
+            this.appendSystemMessage('Compiling and running code...');
+
+            return new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Compilation timeout'));
+                }, this.compilationTimeout);
+
+                this.socket.emit('compile_and_run', {
+                    code: code,
+                    language: this.language
+                }, (response) => {
+                    clearTimeout(timeoutId);
+                    if (response && response.error) {
+                        this.appendError(`Compilation failed: ${response.error}`);
+                        reject(new Error(response.error));
+                    } else {
+                        this.sessionId = response.session_id;
+                        this.isWaitingForInput = response.interactive || false;
+                        this.updateInputState();
+                        resolve(response);
+                    }
+                });
+            });
+        };
+
         // Start initialization
         this.initWithRetry(options);
     }

@@ -1,0 +1,39 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T02:47:22.597655",
+    "data": {
+      "code_length": 298,
+      "timestamp": "2025-01-23T02:47:22.597592"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T02:47:22.617260",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Only C# is supported",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Only C# is supported"
+        }
+      },
+      "timestamp": "2025-01-23T02:47:22.617131"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T02:47:22.617661",
+    "data": {
+      "error_message": "Failed to start interactive session: Only C# is supported",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Only C# is supported"
+        }
+      },
+      "timestamp": "2025-01-23T02:47:22.617569"
+    }
+  }
+]
