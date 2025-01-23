@@ -1,0 +1,11 @@
+2025-01-23 20:36:42,734 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 20:36:42,736 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 20:36:42,739 - werkzeug:96 - INFO -  * Debugger PIN: 117-951-058 - MainProcess:MainThread
+2025-01-23 20:36:44,186 - engineio.server:78 - INFO - 6FH3uO1HSl9VriHlAAAA: Sending packet OPEN data {'sid': '6FH3uO1HSl9VriHlAAAA', 'upgrades': ['websocket'], 'pingTimeout': 5000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,208 - engineio.server:39 - INFO - 6FH3uO1HSl9VriHlAAAA: Received packet MESSAGE data 0{"source":"console"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,209 - __main__:26 - INFO - New client connected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,209 - engineio.server:78 - INFO - 6FH3uO1HSl9VriHlAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"ready"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,209 - engineio.server:78 - INFO - 6FH3uO1HSl9VriHlAAAA: Sending packet MESSAGE data 0{"sid":"T6vpB-i11WgPY3sNAAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,292 - engineio.server:90 - INFO - 6FH3uO1HSl9VriHlAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,300 - engineio.server:219 - INFO - 6FH3uO1HSl9VriHlAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,896 - __main__:41 - INFO - Client disconnected - MainProcess:Thread-1 (run_server)

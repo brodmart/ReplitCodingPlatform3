@@ -15,6 +15,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=
 
 @app.route('/')
 def index():
+    """Render the main page with C# editor and console"""
     return render_template('index.html')
 
 @socketio.on('connect')
@@ -23,6 +24,7 @@ def handle_connect():
     try:
         track_connection(connected=True, client_info=session.get('client_info'))
         logger.info("New client connected")
+        emit('connection_established', {'status': 'ready'})
     except Exception as e:
         log_error("connection_error", str(e))
         logger.error(f"Error in connect: {e}")
@@ -54,7 +56,8 @@ def handle_compile_and_run(data):
             emit('output', {'success': False, 'error': 'No code provided'})
             return
 
-        logger.info(f"Creating new session for compilation")
+        # Create new interactive session
+        logger.info("Creating new session for compilation")
         interactive_session = get_or_create_session()
 
         logger.info(f"Starting interactive session with id: {interactive_session.session_id}")
@@ -92,40 +95,41 @@ def handle_compile_and_run(data):
             'error': f"Server error: {str(e)}"
         })
 
-@socketio.on('send_input')
+@socketio.on('input')
 @log_socket_event
-def handle_send_input(data):
+def handle_input(data):
     """Handle user input with validation and logging"""
     try:
-        session_id = data.get('session_id')
+        session_id = session.get('session_id')
         input_text = data.get('input', '')
-        logger.info(f"Received input for session {session_id}: {input_text!r}")
 
-        if not session_id or not input_text:
-            emit('output', {'success': False, 'error': 'Invalid input data'})
+        if not session_id:
+            emit('output', {'success': False, 'error': 'No active session'})
             return
 
-        if session.get('session_id') != session_id:
-            emit('output', {'success': False, 'error': 'Invalid session'})
+        if not input_text:
+            emit('output', {'success': False, 'error': 'No input provided'})
             return
 
+        logger.info(f"Sending input to session {session_id}")
         result = send_input(session_id, input_text)
+
         if result['success']:
             output_result = get_output(session_id)
-            logger.info(f"Got output after input: {output_result.get('output', '')!r}")
+            logger.info(f"Got output after input: {output_result}")
             emit('output', {
                 'success': True,
                 'output': output_result.get('output', ''),
                 'waiting_for_input': output_result.get('waiting_for_input', False)
             })
         else:
-            emit('output', {'success': False, 'error': result['error']})
+            emit('output', {'success': False, 'error': result.get('error', 'Failed to send input')})
 
     except Exception as e:
-        logger.error(f"Error in send_input: {e}", exc_info=True)
+        logger.error(f"Error in handle_input: {e}", exc_info=True)
         emit('output', {
             'success': False,
-            'error': f"Server error: {e}"
+            'error': f"Server error: {str(e)}"
         })
 
 if __name__ == '__main__':

@@ -3958,3 +3958,47 @@ TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments 
 2025-01-23 20:33:12,064 - socketio:108 - INFO - New connection established. Total connections: 2 - MainProcess:Thread-1 (run_server)
 2025-01-23 20:33:12,090 - socketio:108 - INFO - New connection established. Total connections: 3 - MainProcess:Thread-1 (run_server)
 2025-01-23 20:33:12,659 - socketio:113 - INFO - Connection closed. Remaining connections: 2 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:44,145 - socketio.server:576 - INFO - received event "compile_and_run" from ufYSDejHHNQJ814qAAAF [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:44,146 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 20:33:44.146088 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:44,146 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,452 - socketio:119 - INFO - Session 48a73eed-757a-4f01-934f-cdb7e8d9a2a7 activated. Total active sessions: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,553 - socketio.server:164 - INFO - emitting event "output" to ufYSDejHHNQJ814qAAAF [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,554 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 3.408s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,554 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 3.408s - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,554 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,564 - socketio:124 - INFO - Session 48a73eed-757a-4f01-934f-cdb7e8d9a2a7 deactivated. Remaining active sessions: 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:47,564 - socketio:113 - INFO - Connection closed. Remaining connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:48,160 - socketio:108 - INFO - New connection established. Total connections: 2 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:50,368 - socketio.server:576 - INFO - received event "compile_and_run" from mcsl1gwSs2pkrwyDAAAH [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:50,369 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 20:33:50.369428 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:50,369 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:52,207 - socketio:119 - INFO - Session 5ca24641-c0ab-4b25-854d-3436676e4d8e activated. Total active sessions: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:52,309 - socketio.server:164 - INFO - emitting event "output" to mcsl1gwSs2pkrwyDAAAH [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:52,309 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 1.940s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:52,309 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 1.940s - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:52,310 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:36,201 - socketio.server:576 - INFO - received event "compile_and_run" from mcsl1gwSs2pkrwyDAAAH [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:36,202 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 20:34:36.202147 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:36,202 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,203 - socketio:119 - INFO - Session 369e7332-2c37-413c-99e8-d76451c3dac1 activated. Total active sessions: 2 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,305 - socketio.server:164 - INFO - emitting event "output" to mcsl1gwSs2pkrwyDAAAH [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,305 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 2.104s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,305 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 2.104s - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,306 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,311 - socketio:124 - INFO - Session 369e7332-2c37-413c-99e8-d76451c3dac1 deactivated. Remaining active sessions: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,312 - socketio:113 - INFO - Connection closed. Remaining connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:34:38,315 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:35:41,573 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:36,907 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:37,334 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:37,493 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:37,702 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:37,957 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:38,212 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:38,380 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:41,793 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:41,939 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:42,612 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 20:36:44,209 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,209 - socketio.server:164 - INFO - emitting event "connection_established" to T6vpB-i11WgPY3sNAAAB [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:36:44,896 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:Thread-1 (run_server)

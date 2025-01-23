@@ -243,15 +243,24 @@ def start_interactive_session(session: InteractiveSession, code: str, language: 
             logger.error(f"[Session {session.session_id}] Executable not found at {exe_path}")
             return {'success': False, 'error': 'Compiled executable not found'}
 
+        # Add more detailed logging for process execution
         try:
+            logger.info(f"[Session {session.session_id}] Attempting to start process: {exe_path}")
             session.process = subprocess.Popen(
                 [str(exe_path)],
                 stdin=session.slave_fd,
                 stdout=session.slave_fd,
                 stderr=session.slave_fd,
-                close_fds=True
+                close_fds=True,
+                env={
+                    **os.environ,
+                    'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
+                    'DOTNET_CLI_HOME': session.temp_dir,
+                    'DOTNET_NOLOGO': 'true',
+                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'
+                }
             )
-            logger.info(f"[Session {session.session_id}] Process started with PID: {session.process.pid}")
+            logger.info(f"[Session {session.session_id}] Process started successfully with PID: {session.process.pid}")
             return {'success': True, 'session_id': session.session_id}
         except Exception as e:
             logger.error(f"[Session {session.session_id}] Failed to start process: {e}")
