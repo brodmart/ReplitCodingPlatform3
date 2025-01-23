@@ -147,6 +147,25 @@
     background-color: #2d2d2d;
 }
 
+/* Add new visibility control */
+#editor {
+    visibility: hidden;
+}
+
+.CodeMirror-initialized {
+    visibility: visible;
+}
+
+/* Console Loading State */
+.console-loading {
+    color: #569cd6;
+    font-style: italic;
+}
+
+.console-initialized {
+    color: #6a9955;
+}
+
 /* Output Line Styling */
 .output-line {
     padding: 2px 0;
@@ -555,10 +574,3 @@ html, body {
 }
 
 /* Container width control */
-#editor {
-    visibility: hidden;
-}
-
-.CodeMirror-initialized {
-    visibility: visible;
-}

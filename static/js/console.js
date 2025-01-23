@@ -9,152 +9,85 @@ class InteractiveConsole {
         this.isWaitingForInput = false;
         this.compilationTimeout = 60000; // 60s timeout
         this.retryAttempts = 3;
-        this.retryDelay = 2000; // Increased from 1000ms to 2000ms
+        this.retryDelay = 2000;
         this.socket = null;
         this.language = options.language || 'csharp';
         this.pendingOperations = new Map();
         this.initializationAttempts = 0;
         this.maxInitializationAttempts = 3;
-        this.elementWaitTimeout = 20000; // Increased from 10000ms to 20000ms
+        this.elementWaitTimeout = 20000;
 
-        // Initialize with retry mechanism
+        // Start initialization
         this.initWithRetry(options);
     }
 
     initWithRetry(options) {
-        const attemptInit = async () => {
-            try {
-                if (!this.initialized) {
-                    console.debug('Starting console initialization attempt', this.initializationAttempts + 1);
-                    await this.initializeAsync(options);
-                }
-            } catch (error) {
-                console.error('Initialization attempt failed:', error);
-                this.initializationAttempts++;
+        console.debug('Starting console initialization');
 
-                if (this.initializationAttempts < this.maxInitializationAttempts) {
-                    console.debug(`Retrying initialization (attempt ${this.initializationAttempts + 1}/${this.maxInitializationAttempts})`);
-                    setTimeout(() => attemptInit(), this.retryDelay);
-                } else {
-                    console.error('Max initialization attempts reached');
-                    this.appendError('Failed to initialize console after multiple attempts');
-                }
-            }
-        };
-
-        // Ensure DOM is ready before starting and add mutation observer
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.waitForDOMAndInit(options, attemptInit));
-        } else {
-            this.waitForDOMAndInit(options, attemptInit);
-        }
-    }
-
-    waitForDOMAndInit(options, attemptInit) {
-        // Create mutation observer to detect when elements are added
-        const observer = new MutationObserver((mutations, obs) => {
+        const initConsole = () => {
+            // Check if elements exist first
             const outputElement = document.getElementById('consoleOutput');
             const inputElement = document.getElementById('consoleInput');
 
-            if (outputElement && inputElement) {
-                obs.disconnect(); // Stop observing
-                attemptInit();
-            }
-        });
+            if (!outputElement || !inputElement) {
+                this.initializationAttempts++;
+                console.debug(`Elements not found, attempt ${this.initializationAttempts}`);
 
-        // Start observing
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        // Also try immediate initialization in case elements are already present
-        attemptInit();
-    }
-
-    async initializeAsync(options) {
-        try {
-            if (!options || typeof options !== 'object') {
-                throw new Error('Invalid console options');
+                if (this.initializationAttempts < this.maxInitializationAttempts) {
+                    setTimeout(() => initConsole(), this.retryDelay);
+                } else {
+                    console.error('Max initialization attempts reached');
+                    if (outputElement) {
+                        outputElement.innerHTML = '<div class="console-error">Failed to initialize console after multiple attempts</div>';
+                    }
+                }
+                return;
             }
 
-            // Wait for elements with increased timeout
-            const elements = await this.waitForElements(options, this.elementWaitTimeout);
-            if (!elements || !elements.outputElement || !elements.inputElement) {
-                throw new Error('Required console elements not found');
-            }
+            // Store elements
+            this.outputElement = outputElement;
+            this.inputElement = inputElement;
 
-            this.outputElement = elements.outputElement;
-            this.inputElement = elements.inputElement;
+            // Initialize socket and setup handlers
+            this.initializeSocketAndHandlers()
+                .then(() => {
+                    this.initialized = true;
+                    this.appendSystemMessage('Console initialized successfully');
+                    console.debug('Console initialization completed');
+                })
+                .catch(error => {
+                    console.error('Socket initialization failed:', error);
+                    this.appendError(`Initialization failed: ${error.message}`);
 
-            // Clear and show initializing message
-            this.clear();
-            this.appendSystemMessage('Initializing console...');
+                    // Retry socket initialization
+                    if (this.initializationAttempts < this.maxInitializationAttempts) {
+                        this.initializationAttempts++;
+                        setTimeout(() => this.initializeSocketAndHandlers(), this.retryDelay);
+                    }
+                });
+        };
 
-            // Initialize socket connection first
-            await this.initializeSocket();
-
-            // Setup event handlers after socket is ready
-            this.setupEventHandlers();
-
-            // Mark as initialized
-            this.initialized = true;
-            this.appendSystemMessage(`Console initialized for ${this.language}`);
-            console.debug('Console initialization completed successfully');
-
-        } catch (error) {
-            console.error('Failed to initialize console:', error);
-            this.appendError(`Initialization failed: ${error.message}`);
-            throw error;
-        }
+        // Start initialization process
+        initConsole();
     }
 
-    async waitForElements(options, timeout = 20000) {
-        return new Promise((resolve, reject) => {
-            const startTime = Date.now();
-
-            const checkElements = () => {
-                const outputElement = options.outputElement || document.getElementById('consoleOutput');
-                const inputElement = options.inputElement || document.getElementById('consoleInput');
-
-                if (outputElement instanceof Element && inputElement instanceof Element) {
-                    console.debug('Console elements found:', { 
-                        outputElement: outputElement.id, 
-                        inputElement: inputElement.id 
-                    });
-                    return { outputElement, inputElement };
-                }
-                return null;
-            };
-
-            const tryGetElements = () => {
-                const elements = checkElements();
-                if (elements) {
-                    resolve(elements);
-                    return;
-                }
-
-                if (Date.now() - startTime > timeout) {
-                    const error = new Error(`Required console elements not found within ${timeout}ms timeout`);
-                    console.error(error);
-                    this.appendError(error.message);
-                    reject(error);
-                    return;
-                }
-
-                // Use smaller interval for more frequent checks
-                setTimeout(tryGetElements, 100);
-            };
-
-            tryGetElements();
-        });
-    }
-
-    async initializeSocket() {
+    async initializeSocketAndHandlers() {
         if (!this.outputElement) {
             throw new Error('Console not properly initialized');
         }
 
+        // Clear and show initializing message
+        this.clear();
+        this.appendSystemMessage('Initializing console...');
+
+        // Initialize socket connection
+        await this.initializeSocket();
+
+        // Setup event handlers
+        this.setupEventHandlers();
+    }
+
+    async initializeSocket() {
         return new Promise((resolve, reject) => {
             try {
                 if (this.socket && this.socket.connected) {
@@ -169,28 +102,24 @@ class InteractiveConsole {
                     timeout: this.compilationTimeout
                 });
 
+                const connectionTimeout = setTimeout(() => {
+                    if (!this.socket.connected) {
+                        reject(new Error('Socket connection timeout'));
+                    }
+                }, 5000);
+
                 this.socket.on('connect', () => {
+                    clearTimeout(connectionTimeout);
                     console.debug('Socket connected successfully');
                     this.appendSystemMessage('Connected to server');
                     resolve();
                 });
 
                 this.socket.on('connect_error', (error) => {
+                    clearTimeout(connectionTimeout);
                     console.error('Socket connection error:', error);
                     this.appendError(`Connection error: ${error.message}`);
                     reject(error);
-                });
-
-                const connectionTimeout = setTimeout(() => {
-                    if (!this.socket.connected) {
-                        const error = new Error('Socket connection timeout');
-                        this.appendError(error.message);
-                        reject(error);
-                    }
-                }, 5000);
-
-                this.socket.once('connect', () => {
-                    clearTimeout(connectionTimeout);
                 });
 
             } catch (error) {
