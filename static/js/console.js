@@ -10,17 +10,21 @@ class InteractiveConsole {
         this.compilationTimeout = 60000; // 60s timeout
         this.retryAttempts = 5;  // Increased from 3 to 5
         this.retryDelay = 3000;  // Increased from 2000 to 3000ms
+        this.socketConnectionTimeout = 10000; // 10s socket connection timeout
         this.socket = null;
         this.language = options.language || 'csharp';
         this.pendingOperations = new Map();
         this.initializationAttempts = 0;
-        this.maxInitializationAttempts = 5;  // Increased from 3 to 5
-        this.elementWaitTimeout = 30000;  // Increased from 20000 to 30000ms
+        this.maxInitializationAttempts = 5;  // Maximum number of retries
+        this.elementWaitTimeout = 30000;  // 30s timeout for element detection
 
         // Add compilation methods
         this.compileAndRun = async (code) => {
-            if (!this.socket || !this.socket.connected) {
-                throw new Error('Socket not connected');
+            if (!this.initialized) {
+                throw new Error('Console not fully initialized');
+            }
+            if (!this.socket?.connected) {
+                await this.reconnectSocket();
             }
 
             // Clear previous output
@@ -37,7 +41,7 @@ class InteractiveConsole {
                     language: this.language
                 }, (response) => {
                     clearTimeout(timeoutId);
-                    if (response && response.error) {
+                    if (response?.error) {
                         this.appendError(`Compilation failed: ${response.error}`);
                         reject(new Error(response.error));
                     } else {
@@ -54,7 +58,27 @@ class InteractiveConsole {
         this.initWithRetry(options);
     }
 
-    initWithRetry(options) {
+    async reconnectSocket() {
+        if (this.socket?.connected) return;
+
+        let attempts = 0;
+        const maxAttempts = 3;
+
+        while (attempts < maxAttempts) {
+            try {
+                await this.initializeSocket();
+                return;
+            } catch (error) {
+                attempts++;
+                if (attempts === maxAttempts) {
+                    throw new Error('Failed to reconnect socket after multiple attempts');
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    }
+
+    async initWithRetry(options) {
         console.debug('Starting console initialization');
 
         const waitForElements = async () => {
@@ -94,25 +118,31 @@ class InteractiveConsole {
                 this.initializationAttempts++;
                 console.warn(`Console initialization attempt ${this.initializationAttempts} failed:`, error);
 
-                const outputElement = document.getElementById('consoleOutput');
-                if (outputElement) {
-                    outputElement.innerHTML = `<div class="console-error">Initialization attempt ${this.initializationAttempts} failed: ${error.message}</div>`;
+                if (this.outputElement) {
+                    this.outputElement.innerHTML = `<div class="console-error">Initialization attempt ${this.initializationAttempts} failed: ${error.message}</div>`;
                 }
 
                 if (this.initializationAttempts < this.maxInitializationAttempts) {
                     console.debug(`Retrying initialization in ${this.retryDelay}ms`);
-                    setTimeout(() => initConsole(), this.retryDelay);
+                    await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+                    await initConsole();
                 } else {
                     console.error('Max initialization attempts reached');
-                    if (outputElement) {
-                        outputElement.innerHTML = '<div class="console-error">Failed to initialize console after multiple attempts. Please refresh the page.</div>';
+                    if (this.outputElement) {
+                        this.outputElement.innerHTML = '<div class="console-error">Failed to initialize console after multiple attempts. Please refresh the page.</div>';
                     }
+                    throw new Error('Failed to initialize console after multiple attempts');
                 }
             }
         };
 
         // Start initialization process
-        initConsole();
+        try {
+            await initConsole();
+        } catch (error) {
+            console.error('Console initialization failed:', error);
+            this.appendError(`Initialization failed: ${error.message}`);
+        }
     }
 
     async initializeSocketAndHandlers() {
@@ -134,7 +164,7 @@ class InteractiveConsole {
     async initializeSocket() {
         return new Promise((resolve, reject) => {
             try {
-                if (this.socket && this.socket.connected) {
+                if (this.socket?.connected) {
                     this.socket.disconnect();
                 }
 
@@ -143,14 +173,14 @@ class InteractiveConsole {
                     reconnection: true,
                     reconnectionAttempts: this.retryAttempts,
                     reconnectionDelay: this.retryDelay,
-                    timeout: this.compilationTimeout
+                    timeout: this.socketConnectionTimeout
                 });
 
                 const connectionTimeout = setTimeout(() => {
-                    if (!this.socket.connected) {
+                    if (!this.socket?.connected) {
                         reject(new Error('Socket connection timeout'));
                     }
-                }, 5000);
+                }, this.socketConnectionTimeout);
 
                 this.socket.on('connect', () => {
                     clearTimeout(connectionTimeout);
@@ -167,7 +197,6 @@ class InteractiveConsole {
                 });
 
             } catch (error) {
-                this.appendError(`Socket initialization failed: ${error.message}`);
                 reject(error);
             }
         });
@@ -210,7 +239,7 @@ class InteractiveConsole {
 
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                this.appendSystemMessage(`${this.language} program started successfully`);
+                this.appendSystemMessage(`Program started successfully`);
 
                 if (data.interactive) {
                     this.isWaitingForInput = true;
@@ -223,10 +252,12 @@ class InteractiveConsole {
             this.inputElement.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    await this.handleInput().catch(error => {
+                    try {
+                        await this.handleInput();
+                    } catch (error) {
                         console.error('Input handling error:', error);
                         this.appendError(`Input error: ${error.message}`);
-                    });
+                    }
                 }
             });
         }
@@ -343,7 +374,7 @@ if (typeof window !== 'undefined') {
 
 // Ensure proper cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (window.consoleInstance && window.consoleInstance.socket) {
+    if (window.consoleInstance?.socket) {
         window.consoleInstance.socket.disconnect();
     }
 });
