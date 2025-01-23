@@ -117,10 +117,20 @@ def create_app():
 
     @app.route('/')
     def index():
-        logger.debug("Rendering index page")
-        return render_template('index.html',
-                                 title='Ontario Secondary Computer Science Curriculum',
-                                 lang='en')
+        """Handle index page with enhanced logging"""
+        try:
+            logger.info("Starting index page render")
+            logger.debug("Rendering index page with template parameters: " + 
+                        "title='Ontario Secondary Computer Science Curriculum', lang='en'")
+
+            rendered = render_template('index.html',
+                                      title='Ontario Secondary Computer Science Curriculum',
+                                      lang='en')
+            logger.info("Successfully rendered index page")
+            return rendered
+        except Exception as e:
+            logger.error(f"Error rendering index page: {str(e)}", exc_info=True)
+            return "Error loading page", 500
 
     @socketio.on('connect')
     @log_socket_event
