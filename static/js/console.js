@@ -21,6 +21,30 @@ class InteractiveConsole {
         this.outputDelay = 50; // ms between outputs
         this.pendingInput = false;
 
+        // Initialize console colors and state
+        this.consoleColors = {
+            Black: '\x1b[30m',
+            DarkRed: '\x1b[31m',
+            DarkGreen: '\x1b[32m',
+            DarkYellow: '\x1b[33m',
+            DarkBlue: '\x1b[34m',
+            DarkMagenta: '\x1b[35m',
+            DarkCyan: '\x1b[36m',
+            Gray: '\x1b[37m',
+            DarkGray: '\x1b[90m',
+            Red: '\x1b[91m',
+            Green: '\x1b[92m',
+            Yellow: '\x1b[93m',
+            Blue: '\x1b[94m',
+            Magenta: '\x1b[95m',
+            Cyan: '\x1b[96m',
+            White: '\x1b[97m'
+        };
+
+        this.currentForegroundColor = this.consoleColors.Gray;
+        this.currentBackgroundColor = '\x1b[40m';
+        this.cursorPosition = { x: 0, y: 0 };
+
         // Initialize components and socket connection
         this.initializeTerminal().then(() => {
             this.initializeSocketIO();

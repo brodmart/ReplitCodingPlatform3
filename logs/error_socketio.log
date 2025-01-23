@@ -335,3 +335,5 @@ Traceback (most recent call last):
 TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
 2025-01-23 15:48:28,577 - __main__:96 - ERROR - 
 C2.1 expectation not found in database - MainProcess:MainThread
+2025-01-23 15:53:21,137 - __main__:96 - ERROR - 
+C2.1 expectation not found in database - MainProcess:MainThread
