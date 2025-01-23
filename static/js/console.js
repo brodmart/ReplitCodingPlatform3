@@ -3,23 +3,39 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        // Validate and store input parameters first
         if (!options || typeof options !== 'object') {
             throw new Error('Console options must be an object');
         }
 
-        // Get elements with retry
-        this.findElements(options).then(() => {
-            this.initializeConsole(options);
-        }).catch(error => {
-            console.error('Failed to initialize console:', error);
-            if (this.outputElement) {
-                this.appendError(`Initialization failed: ${error.message}`);
-            }
+        // Initialize state
+        this.initialized = false;
+        this.sessionId = null;
+        this.isWaitingForInput = false;
+        this.compilationTimeout = 60000; // 60s timeout
+        this.retryAttempts = 3;
+        this.retryDelay = 1000;
+
+        // Immediately try to initialize
+        this.initialize(options).catch(error => {
+            console.error('Console initialization failed:', error);
+            this.appendError(`Initialization failed: ${error.message}`);
         });
     }
 
-    async findElements(options) {
+    async initialize(options) {
+        // First validate the elements
+        await this.validateElements(options);
+
+        // Setup the console components
+        this.setupSocket();
+        this.setupEventHandlers();
+        this.clear();
+
+        this.initialized = true;
+        console.debug('Console initialization completed');
+    }
+
+    async validateElements(options) {
         const maxRetries = 5;
         const retryDelay = 100;
 
@@ -35,43 +51,19 @@ class InteractiveConsole {
                 return;
             }
 
-            // Wait before retry
-            await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, i)));
+            if (i < maxRetries - 1) {
+                await new Promise(resolve => setTimeout(resolve, retryDelay * Math.pow(2, i)));
+            }
         }
 
-        // If we get here, elements weren't found
-        throw new Error('Required console elements not found after retries');
-    }
-
-    initializeConsole(options) {
-        console.debug('Initializing console with:', {
-            outputElement: this.outputElement.id,
-            inputElement: this.inputElement.id,
-            language: this.language
-        });
-
-        // Initialize state
-        this.sessionId = null;
-        this.isWaitingForInput = false;
-        this.currentLanguage = this.language;
-        this.compilationTimeout = 60000; // 60s timeout
-        this.retryAttempts = 3;
-        this.retryDelay = 1000;
-        this.initialized = false;
-
-        try {
-            this.setupSocket();
-            this.setupEventHandlers();
-            this.clear();
-            this.initialized = true;
-            console.debug('Console initialization completed successfully');
-        } catch (error) {
-            console.error('Failed to complete console initialization:', error);
-            throw error;
-        }
+        throw new Error('Required console elements not found');
     }
 
     setupSocket() {
+        if (!this.initialized && !this.outputElement) {
+            throw new Error('Console not properly initialized');
+        }
+
         this.socket = io({
             transports: ['websocket'],
             reconnection: true,
@@ -106,6 +98,10 @@ class InteractiveConsole {
     }
 
     setupEventHandlers() {
+        if (!this.initialized || !this.socket) {
+            throw new Error('Socket not initialized');
+        }
+
         // Console output handler
         this.socket.on('console_output', (data) => {
             console.debug('Received console output:', data);
@@ -143,29 +139,6 @@ class InteractiveConsole {
             }
         });
 
-        // Console input ready handler
-        this.socket.on('console_input_ready', (data) => {
-            console.debug('Input ready:', data);
-            if (data.session_id === this.sessionId) {
-                this.isWaitingForInput = true;
-                this.updateInputState();
-                if (data.prompt) {
-                    this.appendOutput(data.prompt);
-                }
-            }
-        });
-
-        // Session end handler
-        this.socket.on('console_session_ended', (data) => {
-            console.debug('Session ended:', data);
-            if (data.session_id === this.sessionId) {
-                this.sessionId = null;
-                this.isWaitingForInput = false;
-                this.appendSystemMessage('Program execution completed');
-                this.updateInputState();
-            }
-        });
-
         // Enhanced input handler with error handling
         this.inputElement.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -189,7 +162,6 @@ class InteractiveConsole {
         this.appendOutput(`> ${input}\n`, 'console-input');
 
         try {
-            // Send input with acknowledgment
             await new Promise((resolve, reject) => {
                 this.socket.emit('input', {
                     session_id: this.sessionId,
@@ -205,7 +177,6 @@ class InteractiveConsole {
                 setTimeout(() => reject(new Error('Input timeout')), 5000);
             });
 
-            // Don't disable input immediately, wait for server confirmation
             console.debug('Input sent successfully');
 
         } catch (error) {
@@ -218,6 +189,8 @@ class InteractiveConsole {
     }
 
     appendOutput(text, className = '') {
+        if (!this.outputElement) return;
+
         console.debug('Appending output:', { text, className });
         const line = document.createElement('div');
         line.className = `output-line ${className}`;
@@ -246,7 +219,9 @@ class InteractiveConsole {
     }
 
     scrollToBottom() {
-        this.outputElement.scrollTop = this.outputElement.scrollHeight;
+        if (this.outputElement) {
+            this.outputElement.scrollTop = this.outputElement.scrollHeight;
+        }
     }
 
     enableInput() {
@@ -278,9 +253,13 @@ class InteractiveConsole {
     }
 
     async compileAndRun(code) {
+        if (!this.initialized) {
+            throw new Error('Console not initialized');
+        }
+
         console.debug('Compiling code:', {
             codeLength: code.length,
-            language: this.currentLanguage
+            language: this.language
         });
 
         this.clear();
@@ -290,7 +269,7 @@ class InteractiveConsole {
             await new Promise((resolve, reject) => {
                 this.socket.emit('compile_and_run', {
                     code,
-                    language: this.currentLanguage
+                    language: this.language
                 }, (response) => {
                     if (response && response.error) {
                         reject(new Error(response.error));
@@ -312,6 +291,11 @@ class InteractiveConsole {
     }
 }
 
+// Export for global access
+if (typeof window !== 'undefined') {
+    window.InteractiveConsole = InteractiveConsole;
+}
+
 // Global initialization function with retry mechanism
 function initializeConsole() {
     const language = document.getElementById('languageSelect')?.value || 'csharp';
@@ -329,18 +313,13 @@ function initializeConsole() {
                 inputElement: consoleInput,
                 language: language
             });
-            
+
         } catch (error) {
             console.error('Failed to initialize console:', error);
-            
+
         }
     } else {
         console.error('Required console elements not found. Retrying...');
-        
-    }
-}
 
-// Export for global access
-if (typeof window !== 'undefined') {
-    window.InteractiveConsole = InteractiveConsole;
+    }
 }

@@ -91,6 +91,7 @@
 
     .console-error {
         color: #f44747;
+        font-weight: bold;
     }
 
     .console-warning {
@@ -247,6 +248,15 @@
     .accordion-button::after {
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23d4d4d4'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e") !important;
     }
+
+    .console-loading {
+        color: #569cd6;
+        font-style: italic;
+    }
+
+    .console-initialized {
+        color: #6a9955;
+    }
 </style>
 {% endblock %}
 
@@ -365,6 +375,7 @@
     </div>
 </div>
 
+<!-- Load required libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -372,61 +383,92 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    let initAttempts = 0;
-    const maxAttempts = 5;
+    const outputElement = document.getElementById('consoleOutput');
+    if (outputElement) {
+        outputElement.innerHTML = '<div class="console-loading">Initializing console...</div>';
+    }
 
+    // Load console.js with proper error handling
+    function loadConsoleScript() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = "{{ url_for('static', filename='js/console.js') }}";
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Failed to load console script'));
+            document.body.appendChild(script);
+        });
+    }
+
+    // Load editor.js with proper error handling
+    function loadEditorScript() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = "{{ url_for('static', filename='js/editor.js') }}";
+            script.onload = resolve;
+            script.onerror = () => reject(new Error('Failed to load editor script'));
+            document.body.appendChild(script);
+        });
+    }
+
+    // Initialize console with proper validation
     function initializeConsole() {
-        console.debug('Attempting console initialization');
-
         const outputElement = document.getElementById('consoleOutput');
         const inputElement = document.getElementById('consoleInput');
         const language = document.getElementById('languageSelect')?.value || 'csharp';
 
-        try {
-            if (!window.InteractiveConsole) {
-                throw new Error('Console class not loaded');
-            }
+        if (!outputElement || !inputElement) {
+            throw new Error('Required console elements not found');
+        }
 
-            window.consoleInstance = new InteractiveConsole({
-                outputElement: outputElement,
-                inputElement: inputElement,
-                language: language
+        if (!window.InteractiveConsole) {
+            throw new Error('Console class not loaded');
+        }
+
+        window.consoleInstance = new InteractiveConsole({
+            outputElement,
+            inputElement,
+            language
+        });
+
+        // Setup clear console button
+        const clearButton = document.getElementById('clearConsole');
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                window.consoleInstance?.clear();
             });
+        }
 
-            // Setup clear console button
-            const clearButton = document.getElementById('clearConsole');
-            if (clearButton) {
-                clearButton.addEventListener('click', () => {
-                    window.consoleInstance?.clear();
-                });
-            }
+        outputElement.innerHTML = '<div class="console-initialized">Console initialized successfully</div>';
+    }
+
+    // Main initialization sequence
+    async function initialize() {
+        try {
+            // Load console.js first
+            await loadConsoleScript();
+            console.debug('Console script loaded successfully');
+
+            // Initialize console
+            initializeConsole();
+            console.debug('Console initialized successfully');
+
+            // Load editor.js after console is ready
+            await loadEditorScript();
+            console.debug('Editor script loaded successfully');
 
         } catch (error) {
-            console.error('Console initialization failed:', error);
+            console.error('Initialization failed:', error);
+            const outputElement = document.getElementById('consoleOutput');
             if (outputElement) {
-                outputElement.innerHTML = `<div class="console-error">Initialization error: ${error.message}</div>`;
-            }
-
-            // Retry initialization if needed
-            if (initAttempts < maxAttempts) {
-                initAttempts++;
-                setTimeout(initializeConsole, 500 * Math.pow(2, initAttempts));
+                outputElement.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
             }
         }
     }
 
-    // Load console.js first, then initialize
-    const consoleScript = document.createElement('script');
-    consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
-    consoleScript.onload = function() {
-        initializeConsole();
-
-        // Load editor.js after console initialization
-        const editorScript = document.createElement('script');
-        editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
-        document.body.appendChild(editorScript);
-    };
-    document.body.appendChild(consoleScript);
+    // Start initialization
+    initialize().catch(error => {
+        console.error('Fatal initialization error:', error);
+    });
 });
 </script>
 
