@@ -2476,3 +2476,6 @@ TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments 
 2025-01-23 16:07:58,950 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.001s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
 2025-01-23 16:07:58,950 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.001s - MainProcess:Thread-1 (run_server)
 2025-01-23 16:07:58,950 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 16:08:29,852 - socketio.server:576 - INFO - received event "compile_and_run" from 1T_iUqBv9cPyDqyaAAAF [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 16:08:29,853 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 16:08:29.853384 - MainProcess:Thread-1 (run_server)
+2025-01-23 16:08:29,853 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
