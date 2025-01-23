@@ -8,87 +8,23 @@
 <!-- Add CSRF token meta tag -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="interface-lang" content="{{ lang }}">
-<style>
-    .editor-container, .console-container {
-        height: 750px !important;
-    }
-    #terminal-container {
-        height: 100%;
-        background-color: #1e1e1e;
-        padding: 8px;
-        overflow: hidden;
-    }
-    .xterm {
-        padding: 8px;
-        height: 100%;
-    }
-    .CodeMirror {
-        height: 100% !important;
-    }
-    .console-input {
-        color: #4CAF50;
-    }
-    .console-error {
-        color: #f44336;
-    }
-    .console-line {
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-    .console-input-line {
-        display: flex;
-        align-items: center;
-    }
-    .console-prompt {
-        margin-right: 8px;
-    }
-    .console-input-field {
-        flex-grow: 1;
-    }
-
-</style>
 {% endblock %}
 
 {% block content %}
-<div class="editor-console-row">
-    <div class="editor-column">
-        <div class="card h-100">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <select id="languageSelect" class="form-select w-auto">
-                        <option value="cpp" {% if not language or language == 'cpp' %}selected{% endif %}>C++</option>
-                        <option value="csharp" {% if language == 'csharp' %}selected{% endif %}>C#</option>
-                    </select>
-                    <button id="runButton" class="btn btn-primary">
-                        {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-                    </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="editor-container">
-                    <textarea id="editor"></textarea>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="console-column">
-        <div class="card h-100">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span>{% if lang == 'fr' %}Console{% else %}Console{% endif %}</span>
-                    <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="card-body p-0">
-                <div class="console-container">
-                    <div id="consoleOutput"></div>
-                    <div class="console-input-line">
-                        <span class="console-prompt">&gt;</span>
-                        <input type="text" id="consoleInput" class="console-input-field" 
-                               placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
-                               autocomplete="off" disabled>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">{{ title }}</h1>
+            <div class="card bg-dark text-light">
+                <div class="card-body">
+                    <h5 class="card-title">Welcome to the Interactive Learning Platform</h5>
+                    <p class="card-text">
+                        This platform is designed to help you learn computer science through interactive coding exercises
+                        and real-time feedback. Get started by selecting an activity or tutorial from the navigation menu.
+                    </p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="/activities" class="btn btn-primary me-md-2">Start Coding</a>
+                        <a href="/tutorial" class="btn btn-outline-light">View Tutorial</a>
                     </div>
                 </div>
             </div>

@@ -64,6 +64,23 @@ Critical: All code compilation and I/O interactions MUST happen within the web i
 - All student interactions must occur through the web interface
 - Compiler service must integrate directly with the web console
 
+## Development Guidelines
+1. CRITICAL: Keep all implementations simple and barebones
+   - Avoid unnecessary complexity
+   - Implement only what's needed
+   - Keep code straightforward and easily maintainable
+   - Minimize dependencies and external libraries
+   - Keep code straightforward and easily maintainable
+2. Focus on performance optimization and minimal resource usage
+3. Maintain nimbleness and efficiency as top priorities
+4. Avoid heavy frameworks unless absolutely necessary
+5. Prefer lightweight, modular solutions
+6. Regular testing and performance monitoring
+7. PROACTIVE ERROR HANDLING: When encountering obvious errors or issues that can be fixed independently, proceed with the fix without waiting for user confirmation
+   - This includes syntax errors, basic configuration issues, and standard implementation problems
+   - Document the changes made in the response
+   - Continue with the implementation flow
+
 ## CRITICAL WARNING - Console Implementation
 PERSISTENT ISSUE DOCUMENTED: There has been a recurring tendency to implement and test console functionality through command-line interfaces instead of the required web console interface. This is STRICTLY PROHIBITED.
 
@@ -109,25 +126,12 @@ Key Points:
    - Identical runtime behavior to desktop IDEs
    - Support for all valid C# console features
 
-
-## Development Guidelines
-1. CRITICAL: Keep all implementations simple and barebones
-   - Avoid unnecessary complexity
-   - Implement only what's needed
-   - Prefer simple, direct solutions over complex optimizations
-   - Minimize dependencies and external libraries
-   - Keep code straightforward and easily maintainable
-2. Focus on performance optimization and minimal resource usage
-3. Maintain nimbleness and efficiency as top priorities
-4. Avoid heavy frameworks unless absolutely necessary
-5. Prefer lightweight, modular solutions
-6. Regular testing and performance monitoring
-
 ## Systematic Debugging Approach
 1. **Frontend-Backend Analysis Pattern**:
    - Always analyze both frontend and backend components
    - Identify where the communication chain breaks
    - Verify each step of the data flow
+
 2. **Structured Bottleneck Analysis**:
    Frontend Verification:
    - Socket.IO connection status
@@ -163,7 +167,6 @@ Key Points:
    - Verify the entire chain
    - Document the solution pattern
 
-
 ## Database Information
 - Database Name: ICS3U Curriculum Database
 - Connection: Managed through DATABASE_URL environment variable
@@ -173,13 +176,6 @@ Key Points:
   * strands: Stores curriculum strands
   * overall_expectations: Stores overall expectations
   * specific_expectations: Stores specific expectations
-
-## Current Objective
-Optimize C# compiler service for faster compilation and execution:
-1. Implement caching to reduce redundant compilations
-2. Optimize project file generation and build process
-3. Implement incremental compilation
-4. Optimize memory usage during compilation
 
 ## Key Performance Optimizations
 ### Compiler Service Improvements (January 22, 2025)

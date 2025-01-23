@@ -3,6 +3,7 @@ import logging
 from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy.orm import DeclarativeBase
 
 # Configure logging
@@ -15,6 +16,7 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 migrate = Migrate()
+csrf = CSRFProtect()
 
 def create_app():
     """Application factory function"""
@@ -29,12 +31,14 @@ def create_app():
             'pool_size': 5,
             'pool_recycle': 1800,
             'pool_pre_ping': True
-        }
+        },
+        'WTF_CSRF_ENABLED': True
     })
 
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
+    csrf.init_app(app)
 
     # Import models here to ensure they're registered with SQLAlchemy
     with app.app_context():
@@ -51,11 +55,9 @@ def create_app():
     # Basic route for testing
     @app.route('/')
     def index():
-        return jsonify({
-            'status': 'success',
-            'message': 'Ontario Secondary Computer Science Curriculum Educational Platform',
-            'version': '1.0'
-        })
+        return render_template('index.html', 
+                             title='Ontario Secondary Computer Science Curriculum',
+                             lang='en')  # Default to English
 
     return app
 

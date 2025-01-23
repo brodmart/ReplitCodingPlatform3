@@ -1,0 +1,71 @@
+## Current Focus
+Optimizing C# compilation performance by implementing caching and reducing build overhead
+- Issue: Slow compilation time in C# main editor console
+- Priority: Improve compiler performance and debugging C# compilation issues
+- Target: Faster compilation and execution times
+## CRITICAL: Web Console Implementation
+As of January 23, 2025, the web console implementation has been identified as the MAKE-OR-BREAK feature for this project:
+1. **Core Functionality Requirements**:
+   - Must handle basic I/O operations flawlessly
+   - Real-time interaction between student code and web interface
+   - Proper initialization and error handling
+   - Reliable Socket.IO connection management
+2. **Development Priority**:
+   - Web console functionality is the highest priority feature
+   - Must be thoroughly tested with simple I/O code first
+   - Essential for maintaining project viability
+   - Critical for student interaction and learning experience
+3. **Implementation Challenges**:
+   - Console initialization issues need immediate resolution
+   - Socket.IO connection stability must be improved
+   - Element initialization timing needs optimization
+   - Real-time I/O handling requires refinement
+4. **Success Metrics**:
+   - Successful execution of basic I/O operations
+   - Reliable console initialization
+   - Consistent user interaction experience
+   - Zero console element initialization errors
+5. **Development Timeline Impact**:
+   - Estimated 100+ chat sessions for full implementation
+   - 3+ days of dedicated development time
+   - Multiple iterations for testing and refinement
+   - Critical path for project continuation
+Critical: All code compilation and I/O interactions MUST happen within the web interface:
+- CodeMirror editor integration is mandatory for code input
+- Console I/O must be handled through the web console implementation
+- No command-line or external IDE compilation is allowed
+- All student interactions must occur through the web interface
+- Compiler service must integrate directly with the web console
+## CRITICAL WARNING - Console Implementation
+PERSISTENT ISSUE DOCUMENTED: There has been a recurring tendency to implement and test console functionality through command-line interfaces instead of the required web console interface. This is STRICTLY PROHIBITED.
+Key Points:
+1. ALL console interactions MUST be implemented through the web interface using:
+   - CodeMirror for code editing
+   - Xterm.js for console output
+   - WebSocket/HTTP for real-time I/O
+2. Command-line testing (e.g., using unittest) for console functionality is NOT ACCEPTABLE
+3. Console implementation must focus on web-based integration
+4. Any command-line console testing should be immediately redirected to web console implementation
+5. Test cases should be written for web console interaction, not command-line programs
+## Console Application Compatibility Requirements
+1. **Code Preservation Policy**:
+   - Student code must NEVER be modified to fit the environment
+   - Console applications must run as-is, exactly as they would in standard IDEs
+   - Environment must adapt to support all valid code submissions
+   - No suggestions to modify working code that runs in standard IDEs
+2. **Console I/O Support**:
+   - Full support for all C# console operations:
+     * Console.Write and Console.WriteLine
+     * Console.Read and Console.ReadLine
+     * Console.Clear
+     * Console.SetCursorPosition
+     * Console.ForegroundColor and Console.BackgroundColor
+     * All standard console color and formatting options
+   - Interactive input handling must match standard IDE behavior
+   - Support for complex console-based user interfaces
+   - Proper handling of special characters and encoding
+3. **Large Application Support**:
+   - Support for reasonable-sized console applications (up to 10MB source code)
+   - Support for extensive console-based applications within standard IDE limits
+   - Ful...
+[truncated]
