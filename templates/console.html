@@ -5,6 +5,7 @@
 {% block head %}
 <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css" rel="stylesheet">
 <style>
     .container {
         padding: 20px;
@@ -35,32 +36,17 @@
         border: 1px solid #2d2d2d;
     }
 
-    #console-output {
+    #terminal-container {
         flex: 1;
         padding: 10px;
-        margin: 0;
-        overflow-y: auto;
-        color: #ffffff;
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 14px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-
-    #console-input {
-        width: 100%;
-        padding: 8px;
-        background: #2d2d2d;
-        color: #ffffff;
-        font-family: 'Consolas', 'Monaco', monospace;
-        font-size: 14px;
-        border: none;
-        border-top: 1px solid #3d3d3d;
-        outline: none;
+        background: #1e1e1e;
+        border-radius: 4px;
     }
 
     .button-row {
         margin-bottom: 10px;
+        display: flex;
+        gap: 10px;
     }
 
     #runButton {
@@ -70,24 +56,29 @@
         padding: 8px 16px;
         border-radius: 4px;
         cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     #runButton:hover {
         background: #4a85c7;
     }
 
-    .console-input-line {
+    #clearButton {
+        background: #4d4d4d;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
         display: flex;
         align-items: center;
-        padding: 8px;
-        background: #2d2d2d;
-        border-top: 1px solid #3d3d3d;
+        gap: 5px;
     }
 
-    .console-prompt {
-        color: #569cd6;
-        margin-right: 8px;
-        user-select: none;
+    #clearButton:hover {
+        background: #3d3d3d;
     }
 </style>
 {% endblock %}
@@ -98,6 +89,9 @@
         <div class="button-row">
             <button id="runButton">
                 <i class="bi bi-play-fill"></i> Run Program
+            </button>
+            <button id="clearButton">
+                <i class="bi bi-trash"></i> Clear Console
             </button>
         </div>
         <textarea id="codeEditor">using System;
@@ -112,11 +106,7 @@ class Program {
     </div>
 
     <div class="console-section">
-        <div id="console-output"></div>
-        <div class="console-input-line">
-            <span class="console-prompt">&gt;</span>
-            <input type="text" id="console-input" placeholder="Enter input here..." disabled>
-        </div>
+        <div id="terminal-container"></div>
     </div>
 </div>
 {% endblock %}
@@ -128,6 +118,10 @@ class Program {
 <!-- CodeMirror dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+
+<!-- Xterm.js -->
+<script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
 
 <!-- Load our console implementation -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
@@ -143,16 +137,32 @@ document.addEventListener('DOMContentLoaded', () => {
         autoCloseBrackets: true,
         indentUnit: 4,
         tabSize: 4,
-        indentWithTabs: true
+        indentWithTabs: true,
+        extraKeys: {
+            "Tab": function(cm) {
+                if (cm.somethingSelected()) {
+                    cm.indentSelection("add");
+                } else {
+                    cm.replaceSelection("    ", "end");
+                }
+            }
+        }
     });
 
     // Initialize console
-    const consoleInstance = new InteractiveConsole();
+    const consoleInstance = new InteractiveConsole({
+        terminalContainer: 'terminal-container'
+    });
 
     // Run button handler
     document.getElementById('runButton').addEventListener('click', () => {
         const code = editor.getValue();
         consoleInstance.compileAndRun(code);
+    });
+
+    // Clear button handler
+    document.getElementById('clearButton').addEventListener('click', () => {
+        consoleInstance.clear();
     });
 });
 </script>

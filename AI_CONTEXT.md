@@ -1,6 +1,9 @@
 # AI Session Context Guide
 Last Updated: January 23, 2025
 
+## CRITICAL WARNING - CONTENT PRESERVATION
+IMPORTANT: No information in this file should be removed or significantly altered WITHOUT EXPLICIT USER CONFIRMATION. This file serves as the primary context for the project and all information is considered critical for maintaining project continuity and understanding.
+
 ## Project Overview
 Ontario Secondary Computer Science Curriculum Educational Platform
 - Curriculum-aligned coding exercises with intelligent compiler services
@@ -27,42 +30,42 @@ Optimizing C# compilation performance by implementing caching and reducing build
 ## CRITICAL: Web Console Implementation
 As of January 23, 2025, the web console implementation has been identified as the MAKE-OR-BREAK feature for this project:
 
-1. **Core Functionality Requirements**:
+1. **Core Implementation Requirements**:
+   - A fully web-based interactive console that supports all required C# console operations
+   - Implementation using CodeMirror editor and Xterm.js terminal for I/O operations
+   - Proper Socket.IO integration for real-time I/O handling
+   - This is a core feature that cannot be compromised or removed
    - Must handle basic I/O operations flawlessly
    - Real-time interaction between student code and web interface
+
+2. **Technical Integration Requirements**:
    - Proper initialization and error handling
    - Reliable Socket.IO connection management
-
-2. **Development Priority**:
-   - Web console functionality is the highest priority feature
-   - Must be thoroughly tested with simple I/O code first
-   - Essential for maintaining project viability
-   - Critical for student interaction and learning experience
-
-3. **Implementation Challenges**:
    - Console initialization issues need immediate resolution
    - Socket.IO connection stability must be improved
    - Element initialization timing needs optimization
    - Real-time I/O handling requires refinement
 
-4. **Success Metrics**:
+3. **Success Metrics**:
    - Successful execution of basic I/O operations
    - Reliable console initialization
    - Consistent user interaction experience
    - Zero console element initialization errors
 
-5. **Development Timeline Impact**:
+4. **Development Timeline Impact**:
    - Estimated 100+ chat sessions for full implementation
    - 3+ days of dedicated development time
    - Multiple iterations for testing and refinement
    - Critical path for project continuation
 
-Critical: All code compilation and I/O interactions MUST happen within the web interface:
-- CodeMirror editor integration is mandatory for code input
-- Console I/O must be handled through the web console implementation
-- No command-line or external IDE compilation is allowed
-- All student interactions must occur through the web interface
-- Compiler service must integrate directly with the web console
+5. **Implementation Constraints**:
+   - All code compilation and I/O interactions MUST happen within the web interface
+   - CodeMirror editor integration is mandatory for code input
+   - Console I/O must be handled through the web console implementation
+   - No command-line or external IDE compilation is allowed
+   - All student interactions must occur through the web interface
+   - Compiler service must integrate directly with the web console
+
 
 ## Development Guidelines
 1. CRITICAL: Keep all implementations simple and barebones
