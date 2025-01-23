@@ -35,3 +35,7 @@
 2025-01-23 17:16:06,715 - engineio.server:78 - INFO - Lu6tlgIfeRpBb0SZAAAE: Sending packet MESSAGE data 0{"sid":"3OibmT07VUj9QLUlAAAF"} - MainProcess:Thread-1 (run_server)
 2025-01-23 17:16:07,175 - __main__:166 - INFO - Client disconnecting: 3OibmT07VUj9QLUlAAAF - MainProcess:Thread-1 (run_server)
 2025-01-23 17:16:07,182 - __main__:177 - INFO - Client disconnected: 3OibmT07VUj9QLUlAAAF - MainProcess:Thread-1 (run_server)
+2025-01-23 17:16:22,779 - engineio.server:39 - INFO - rEa3PN-qK1NxBltXAAAC: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:16:22,780 - __main__:194 - INFO - [COMPILE] Starting compilation for session session_1737652582 client o7LZRewdBgUoMDjcAAAD - MainProcess:Thread-1 (run_server)
+2025-01-23 17:16:22,781 - __main__:195 - DEBUG - [COMPILE] Code length: 227, First line: using - MainProcess:Thread-1 (run_server)
+2025-01-23 17:16:22,781 - __main__:62 - INFO - Created new console session: session_1737652582 (active: True) - MainProcess:Thread-1 (run_server)
