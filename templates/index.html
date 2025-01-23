@@ -90,7 +90,7 @@ class Program
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <span>Console</span>
                             <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                                <i class="bi bi-trash"></i>
+                                <i class="bi bi-trash"></i> Clear
                             </button>
                         </div>
                         <div class="card-body p-0">
@@ -114,9 +114,11 @@ class Program
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
 
-<!-- Load Xterm.js -->
+<!-- Load Xterm.js and its addons -->
 <script src="https://cdn.jsdelivr.net/npm/xterm@5.1.0/lib/xterm.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.8.0/lib/xterm-addon-web-links.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-search@0.11.0/lib/xterm-addon-search.js"></script>
 
 <!-- Load our scripts -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
@@ -154,6 +156,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     } catch (error) {
         console.error('Failed to initialize components:', error);
+        const terminalContainer = document.getElementById('terminal-container');
+        if (terminalContainer) {
+            terminalContainer.innerHTML = `<div class="alert alert-danger">Failed to initialize console: ${error.message}</div>`;
+        }
     }
 });
 </script>

@@ -1068,3 +1068,98 @@
 2025-01-23 13:18:10,872 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-1
 2025-01-23 13:18:11,502 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:GreenThread-2
 2025-01-23 13:59:58,992 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:34,543 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:37,792 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:40,171 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 14:50:40.171754 - MainProcess:GreenThread-1
+2025-01-23 14:50:40,172 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 14:50:40,172 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 14:50:40,185 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 14:50:40,186 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 14:50:40.186285 - MainProcess:GreenThread-1
+2025-01-23 14:50:40,186 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 14:50:40,186 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-1
+2025-01-23 14:50:40,187 - socketio:110 - DEBUG - Client info: {'transport': 'polling', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'} - MainProcess:GreenThread-1
+2025-01-23 14:50:40,188 - socketio.server:164 - INFO - emitting event "connected" to uUJeZiCF1UsyAHiQAAAB [/] - MainProcess:GreenThread-1
+2025-01-23 14:50:40,189 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.004s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 14:50:40,191 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.004s - MainProcess:GreenThread-1
+2025-01-23 14:50:40,192 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-1
+2025-01-23 14:50:45,023 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:45,312 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:46,200 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:47,516 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:47,631 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:48,811 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:50:57,735 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:51:04,232 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:51:14,163 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:37,477 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:41,136 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:41,719 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:43,367 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:48,355 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:50,300 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:52:51,712 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:00,037 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:08,989 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:20,146 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:22,453 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:23,135 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:23,694 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:25,060 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:26,759 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:32,494 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:38,479 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:44,789 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:53:49,976 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:05,712 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:08,062 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:09,975 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 14:54:09.975296 - MainProcess:GreenThread-1
+2025-01-23 14:54:09,977 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 14:54:09,977 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 14:54:09,986 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.002s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 14:54:09,994 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 14:54:09.994277 - MainProcess:GreenThread-1
+2025-01-23 14:54:09,994 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 14:54:09,995 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-1
+2025-01-23 14:54:09,995 - socketio:110 - DEBUG - Client info: {'transport': 'polling', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'} - MainProcess:GreenThread-1
+2025-01-23 14:54:09,995 - socketio.server:164 - INFO - emitting event "connected" to uuDVXkPLbpvnVMz6AAAB [/] - MainProcess:GreenThread-1
+2025-01-23 14:54:09,996 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.002s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 14:54:09,996 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.002s - MainProcess:GreenThread-1
+2025-01-23 14:54:09,996 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-1
+2025-01-23 14:54:11,609 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:14,418 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:17,375 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:17,625 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:17,894 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:19,683 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:26,428 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:37,903 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:47,057 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:56,106 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:57,912 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:58,686 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:58,977 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:59,337 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:54:59,415 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:55:06,065 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:55:14,658 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:55:19,989 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:55:23,862 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread

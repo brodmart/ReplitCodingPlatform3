@@ -1,6 +1,6 @@
 /**
  * Interactive Console Implementation with Xterm.js integration
- * Simplified version with core functionality
+ * Enhanced version with improved error handling and terminal management
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -9,59 +9,128 @@ class InteractiveConsole {
             throw new Error('Terminal container element not found');
         }
 
-        // Initialize Xterm.js
-        this.terminal = new Terminal({
-            cursorBlink: true,
-            fontFamily: 'Consolas, "Courier New", monospace',
-            fontSize: 14,
-            theme: {
-                background: '#1e1e1e',
-                foreground: '#d4d4d4'
+        // Initialize terminal state
+        this.initialized = false;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 3;
+
+        // Ensure all required Xterm.js components are available
+        if (!window.Terminal) {
+            throw new Error('Xterm.js is not loaded');
+        }
+        if (!window.FitAddon) {
+            throw new Error('Xterm.js FitAddon is not loaded');
+        }
+
+        this.initializeTerminal();
+        this.initializeSocketIO();
+
+        // Handle window resize
+        this.resizeHandler = () => this.handleResize();
+        window.addEventListener('resize', this.resizeHandler);
+    }
+
+    initializeTerminal() {
+        try {
+            // Initialize Xterm.js with enhanced configuration
+            this.terminal = new Terminal({
+                cursorBlink: true,
+                fontFamily: 'Consolas, "Courier New", monospace',
+                fontSize: 14,
+                theme: {
+                    background: '#1e1e1e',
+                    foreground: '#d4d4d4',
+                    cursor: '#ffffff'
+                },
+                allowTransparency: true,
+                scrollback: 1000,
+                convertEol: true,
+                disableStdin: false
+            });
+
+            // Initialize addons before opening terminal
+            this.fitAddon = new FitAddon.FitAddon();
+            this.terminal.loadAddon(this.fitAddon);
+
+            // Load additional addons if available
+            if (window.WebLinksAddon) {
+                this.terminal.loadAddon(new WebLinksAddon.WebLinksAddon());
             }
-        });
+            if (window.SearchAddon) {
+                this.terminal.loadAddon(new SearchAddon.SearchAddon());
+            }
 
-        // Initialize the FitAddon for terminal resizing
-        this.fitAddon = new FitAddon.FitAddon();
-        this.terminal.loadAddon(this.fitAddon);
+            // Open terminal in container
+            this.terminal.open(this.terminalContainer);
+            this.fitAddon.fit();
 
-        // Open terminal in container
-        this.terminal.open(this.terminalContainer);
-        this.fitAddon.fit();
+            // Basic state management
+            this.currentSessionId = null;
+            this.connected = false;
+            this.waitingForInput = false;
+            this.inputBuffer = '';
+            this.inputPosition = 0;
 
-        // Basic state management
-        this.currentSessionId = null;
-        this.connected = false;
-        this.waitingForInput = false;
-        this.inputBuffer = '';
+            this.initialized = true;
+            console.log('Terminal initialized successfully');
 
-        // Initialize Socket.IO with basic configuration
+            // Set initial terminal options
+            if (typeof this.terminal.options.setOption === 'function') {
+                this.terminal.options.setOption('cursorBlink', true);
+                this.terminal.options.setOption('cursorStyle', 'block');
+            }
+        } catch (error) {
+            console.error('Failed to initialize terminal:', error);
+            this.terminalContainer.innerHTML = `<div class="alert alert-danger">Failed to initialize terminal: ${error.message}</div>`;
+            throw error;
+        }
+    }
+
+    initializeSocketIO() {
+        // Initialize Socket.IO with enhanced configuration
         this.socket = io({
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionAttempts: 3
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: this.maxReconnectAttempts,
+            timeout: 20000
         });
 
         this.setupSocketEvents();
         this.setupTerminalEvents();
-
-        // Handle window resize
-        window.addEventListener('resize', () => this.fitAddon.fit());
     }
 
     setupSocketEvents() {
-        // Connection events
+        // Connection events with enhanced error handling
         this.socket.on('connect', () => {
             this.connected = true;
-            this.writeLine('Console connected');
+            this.reconnectAttempts = 0;
+            this.writeLine('[System] Console connected');
+            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
+                this.terminal.options.setOption('cursorBlink', true);
+            }
         });
 
         this.socket.on('disconnect', () => {
             this.connected = false;
-            this.writeLine('Console disconnected');
             this.waitingForInput = false;
+            this.writeLine('[System] Console disconnected');
+            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
+                this.terminal.options.setOption('cursorBlink', false);
+            }
         });
 
-        // Simplified output handling
+        this.socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            this.writeError(`Connection error: ${error.message}`);
+            this.reconnectAttempts++;
+
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                this.writeError('Maximum reconnection attempts reached. Please refresh the page.');
+            }
+        });
+
+        // Enhanced output handling
         this.socket.on('output', (data) => {
             if (!data) return;
 
@@ -73,29 +142,55 @@ class InteractiveConsole {
                 this.write(data.output);
             }
 
-            // Update input state
+            // Update input state with visual feedback
             this.waitingForInput = data.waiting_for_input;
+            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
+                this.terminal.options.setOption('cursorStyle', this.waitingForInput ? 'block' : 'bar');
+            }
         });
 
-        // Error handling
+        // Enhanced error handling
         this.socket.on('error', (data) => {
-            this.writeError(data.message || 'An error occurred');
+            const errorMessage = data.message || 'An unknown error occurred';
+            const errorType = data.type || 'general_error';
+            this.writeError(`${errorType}: ${errorMessage}`);
             this.waitingForInput = false;
+            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
+                this.terminal.options.setOption('cursorStyle', 'bar');
+            }
         });
     }
 
     setupTerminalEvents() {
+        if (!this.terminal || !this.initialized) return;
+
         this.terminal.onData(data => {
             if (this.waitingForInput) {
                 if (data === '\r') { // Enter key
                     this.handleInput();
                 } else if (data === '\u007f') { // Backspace
-                    if (this.inputBuffer.length > 0) {
-                        this.inputBuffer = this.inputBuffer.slice(0, -1);
+                    if (this.inputBuffer.length > 0 && this.inputPosition > 0) {
+                        this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition - 1) + 
+                                         this.inputBuffer.slice(this.inputPosition);
+                        this.inputPosition--;
+                        // Move cursor back and rewrite the line
                         this.terminal.write('\b \b');
                     }
+                } else if (data === '\u001b[D') { // Left arrow
+                    if (this.inputPosition > 0) {
+                        this.inputPosition--;
+                        this.terminal.write(data);
+                    }
+                } else if (data === '\u001b[C') { // Right arrow
+                    if (this.inputPosition < this.inputBuffer.length) {
+                        this.inputPosition++;
+                        this.terminal.write(data);
+                    }
                 } else if (data >= ' ' && data <= '~') { // Printable characters
-                    this.inputBuffer += data;
+                    this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition) +
+                                     data +
+                                     this.inputBuffer.slice(this.inputPosition);
+                    this.inputPosition++;
                     this.terminal.write(data);
                 }
             }
@@ -103,10 +198,11 @@ class InteractiveConsole {
     }
 
     handleInput() {
-        if (!this.waitingForInput || !this.currentSessionId) return;
+        if (!this.waitingForInput || !this.currentSessionId || !this.initialized) return;
 
         const input = this.inputBuffer;
         this.inputBuffer = '';
+        this.inputPosition = 0;
         this.waitingForInput = false;
         this.terminal.write('\r\n');
 
@@ -117,8 +213,12 @@ class InteractiveConsole {
     }
 
     write(text) {
-        if (!text) return;
-        this.terminal.write(text.replace(/\n/g, '\r\n'));
+        if (!text || !this.initialized) return;
+        try {
+            this.terminal.write(text.replace(/\n/g, '\r\n'));
+        } catch (error) {
+            console.error('Error writing to terminal:', error);
+        }
     }
 
     writeLine(text) {
@@ -126,16 +226,38 @@ class InteractiveConsole {
     }
 
     writeError(message) {
-        this.terminal.write('\x1b[31m'); // Red text
-        this.writeLine(`Error: ${message}`);
-        this.terminal.write('\x1b[0m'); // Reset color
+        if (!this.initialized) return;
+        try {
+            this.terminal.write('\x1b[31m'); // Red text
+            this.writeLine(`Error: ${message}`);
+            this.terminal.write('\x1b[0m'); // Reset color
+        } catch (error) {
+            console.error('Error writing error message:', error);
+            this.terminalContainer.innerHTML += `<div class="alert alert-danger">${message}</div>`;
+        }
     }
 
     clear() {
-        this.terminal.clear();
-        this.currentSessionId = null;
-        this.waitingForInput = false;
-        this.inputBuffer = '';
+        if (!this.initialized) return;
+        try {
+            this.terminal.clear();
+            this.currentSessionId = null;
+            this.waitingForInput = false;
+            this.inputBuffer = '';
+            this.inputPosition = 0;
+        } catch (error) {
+            console.error('Error clearing terminal:', error);
+        }
+    }
+
+    handleResize() {
+        if (this.initialized && this.fitAddon) {
+            try {
+                this.fitAddon.fit();
+            } catch (error) {
+                console.error('Error resizing terminal:', error);
+            }
+        }
     }
 
     compileAndRun(code) {
@@ -147,6 +269,20 @@ class InteractiveConsole {
         this.clear();
         this.writeLine('Compiling and running code...');
         this.socket.emit('compile_and_run', { code });
+    }
+
+    destroy() {
+        window.removeEventListener('resize', this.resizeHandler);
+        if (this.socket) {
+            this.socket.disconnect();
+        }
+        if (this.terminal && this.initialized) {
+            try {
+                this.terminal.dispose();
+            } catch (error) {
+                console.error('Error disposing terminal:', error);
+            }
+        }
     }
 }
 
