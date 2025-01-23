@@ -29,7 +29,7 @@ class InteractiveConsole {
         // Connection events
         this.socket.on('connect', () => {
             this.log('Connected to server');
-            this.inputElement.disabled = true;
+            this.inputElement.disabled = false;
         });
 
         this.socket.on('disconnect', () => {
@@ -44,6 +44,7 @@ class InteractiveConsole {
 
         this.socket.on('compilation_error', (data) => {
             this.error(data.error || 'Compilation failed');
+            this.inputElement.disabled = true;
         });
 
         // Output events
@@ -51,6 +52,7 @@ class InteractiveConsole {
             if (data.output) {
                 this.log(data.output, false);
             }
+            // Update input state based on program state
             this.inputElement.disabled = !data.waiting_for_input;
             if (data.waiting_for_input) {
                 this.inputElement.focus();
@@ -60,6 +62,7 @@ class InteractiveConsole {
         // Error events
         this.socket.on('error', (data) => {
             this.error(data.message || 'An error occurred');
+            this.inputElement.disabled = true;
         });
     }
 
@@ -68,10 +71,11 @@ class InteractiveConsole {
             if (event.key === 'Enter' && !this.inputElement.disabled) {
                 const input = this.inputElement.value;
                 if (input !== null) {
+                    // Temporarily disable input while processing
+                    this.inputElement.disabled = true;
                     this.socket.emit('input', { input });
                     this.log(`> ${input}`);
                     this.inputElement.value = '';
-                    this.inputElement.disabled = true;
                 }
             }
         });

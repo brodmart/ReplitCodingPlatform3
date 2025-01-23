@@ -61,6 +61,7 @@ def handle_compile_and_run(data):
 
     try:
         result = compile_and_run(data['code'], 'csharp')
+        logger.debug(f"Compilation result: {result}")
 
         if result.get('success'):
             session_id = result.get('session_id')
@@ -72,6 +73,7 @@ def handle_compile_and_run(data):
 
                 # Initial output check
                 output = get_output(session_id)
+                logger.debug(f"Initial output: {output}")
                 if output and output.get('success'):
                     emit('output', {
                         'output': output.get('output', ''),
@@ -99,12 +101,16 @@ def handle_input(data):
         return
 
     try:
+        logger.debug(f"Sending input: {input_text} to session {session_id}")
         # Send input with newline
         result = send_input(session_id, input_text + '\n')
+        logger.debug(f"Send input result: {result}")
 
         if result and result.get('success'):
-            # Get program output
+            # Get program output after input
             output = get_output(session_id)
+            logger.debug(f"Program output after input: {output}")
+
             if output and output.get('success'):
                 emit('output', {
                     'output': output.get('output', ''),
