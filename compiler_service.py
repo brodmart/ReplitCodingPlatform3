@@ -370,8 +370,10 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
     """Start an interactive session with improved process management and error handling"""
     process_mgmt_logger.info(f"[PROCESS] Starting interactive session {session.session_id}")
     process_mgmt_logger.info(f"[PROCESS] Language: {language}, Code length: {len(code)}")
+    process_mgmt_logger.debug(f"[PROCESS] Code content:\n{code}")
 
     if language != 'csharp':
+        process_mgmt_logger.error(f"[PROCESS] Unsupported language: {language}")
         return {'success': False, 'error': 'Only C# is supported'}
 
     try:
@@ -381,6 +383,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         project_file = project_dir / "program.csproj"
 
         process_mgmt_logger.debug(f"[PROCESS] Project directory: {project_dir}")
+        process_mgmt_logger.debug(f"[PROCESS] Source file: {source_file}")
+        process_mgmt_logger.debug(f"[PROCESS] Project file: {project_file}")
 
         # Write project file with simplified settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -390,16 +394,26 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
                 <PublishSingleFile>true</PublishSingleFile>
                 <SelfContained>false</SelfContained>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
             </PropertyGroup>
         </Project>"""
 
-        with open(project_file, 'w') as f:
-            f.write(project_content)
-            process_mgmt_logger.debug("[PROCESS] Project file created")
+        try:
+            with open(project_file, 'w') as f:
+                f.write(project_content)
+                process_mgmt_logger.debug("[PROCESS] Project file created successfully")
+        except Exception as e:
+            process_mgmt_logger.error(f"[PROCESS] Failed to create project file: {e}")
+            return {'success': False, 'error': f'Failed to create project file: {str(e)}'}
 
-        with open(source_file, 'w') as f:
-            f.write(code)
-            process_mgmt_logger.debug("[PROCESS] Source code written")
+        try:
+            with open(source_file, 'w') as f:
+                f.write(code)
+                process_mgmt_logger.debug("[PROCESS] Source code written successfully")
+        except Exception as e:
+            process_mgmt_logger.error(f"[PROCESS] Failed to write source code: {e}")
+            return {'success': False, 'error': f'Failed to write source code: {str(e)}'}
 
         # Compile with strict timeout
         compile_cmd = [
@@ -409,28 +423,51 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             '/consoleloggerparameters:NoSummary'
         ]
 
+        process_mgmt_logger.debug(f"[PROCESS] Compilation command: {' '.join(compile_cmd)}")
+
         try:
+            process_mgmt_logger.info("[PROCESS] Starting compilation process")
             compile_result = subprocess.run(
                 compile_cmd,
                 capture_output=True,
                 text=True,
                 timeout=30,
-                cwd=session.temp_dir
+                cwd=session.temp_dir,
+                env={
+                    **os.environ,
+                    'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
+                    'DOTNET_CLI_HOME': session.temp_dir,
+                    'DOTNET_NOLOGO': 'true',
+                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'
+                }
             )
 
+            process_mgmt_logger.debug(f"[PROCESS] Compilation return code: {compile_result.returncode}")
+            process_mgmt_logger.debug(f"[PROCESS] Compilation stdout: {compile_result.stdout}")
+
+            if compile_result.stderr:
+                process_mgmt_logger.error(f"[PROCESS] Compilation stderr: {compile_result.stderr}")
+
             if compile_result.returncode != 0:
-                process_mgmt_logger.error(f"[PROCESS] Build failed: {compile_result.stderr}")
+                process_mgmt_logger.error(f"[PROCESS] Build failed with return code {compile_result.returncode}")
                 return {'success': False, 'error': f"Compilation failed: {compile_result.stderr}"}
 
         except subprocess.TimeoutExpired:
-            process_mgmt_logger.error("[PROCESS] Build timed out")
+            process_mgmt_logger.error("[PROCESS] Build timed out after 30 seconds")
             return {'success': False, 'error': 'Build process timed out'}
+        except Exception as e:
+            process_mgmt_logger.error(f"[PROCESS] Unexpected compilation error: {e}")
+            return {'success': False, 'error': f'Compilation error: {str(e)}'}
 
         # Verify executable
         exe_path = project_dir / "bin" / "Release" / "net7.0" / "linux-x64" / "program"
+        process_mgmt_logger.debug(f"[PROCESS] Looking for executable at: {exe_path}")
+
         if not os.path.exists(exe_path):
             process_mgmt_logger.error(f"[PROCESS] Executable not found at: {exe_path}")
             return {'success': False, 'error': 'Compilation output not found'}
+
+        process_mgmt_logger.info(f"[PROCESS] Executable found at: {exe_path}")
 
         # Initialize PTY with timeout
         start_time = time.time()
@@ -440,6 +477,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 session.master_fd, session.slave_fd = pty.openpty()
                 flags = fcntl.fcntl(session.master_fd, fcntl.F_GETFL)
                 fcntl.fcntl(session.master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+                process_mgmt_logger.info("[PROCESS] PTY setup successful")
                 break
             except (OSError, IOError) as e:
                 if time.time() - start_time >= 5:
@@ -460,19 +498,23 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                             line, buffer = buffer.split('\n', 1)
                             if line.strip():
                                 session.append_output(line + '\n')
+                                process_mgmt_logger.debug(f"[PROCESS] Processed output line: {line}")
 
                     except (OSError, IOError) as e:
                         if e.errno != errno.EAGAIN:
+                            process_mgmt_logger.error(f"[PROCESS] Monitor error: {e}")
                             break
                         time.sleep(0.1)
 
             except Exception as e:
                 process_mgmt_logger.error(f"[PROCESS] Monitor error: {e}")
             finally:
+                process_mgmt_logger.info("[PROCESS] Monitor thread stopping")
                 session.stop_event.set()
 
         # Start process with timeout
         try:
+            process_mgmt_logger.info(f"[PROCESS] Starting process: {exe_path}")
             process = subprocess.Popen(
                 [str(exe_path)],
                 stdin=session.slave_fd,
@@ -489,6 +531,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             session.output_thread = Thread(target=monitor_output)
             session.output_thread.daemon = True
             session.output_thread.start()
+            process_mgmt_logger.info("[PROCESS] Started output monitor thread")
 
             # Quick health check
             time.sleep(0.5)
@@ -496,6 +539,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 process_mgmt_logger.error("[PROCESS] Process terminated immediately")
                 return {'success': False, 'error': 'Process failed to start'}
 
+            process_mgmt_logger.info("[PROCESS] Process health check passed")
             return {
                 'success': True,
                 'session_id': session.session_id,
