@@ -433,59 +433,23 @@ def view_activity(activity_id):
         activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
         logger.debug(f"Found activity: {activity.title}")
         logger.debug(f"Activity language: {activity.language}")
-        logger.debug(f"Activity starter code type: {type(activity.starter_code)}")
-        logger.debug(f"Raw starter code from database: {repr(activity.starter_code)}")
 
         if activity.starter_code is None:
-            logger.error(f"Activity {activity_id} has no starter code")
-            activity.starter_code = ''  # Provide empty default
+            logger.debug(f"Activity {activity_id} has no starter code, setting empty default")
+            activity.starter_code = ''
         elif not isinstance(activity.starter_code, str):
-            logger.error(f"Activity {activity_id} has invalid starter code type: {type(activity.starter_code)}")
-            activity.starter_code = str(activity.starter_code)  # Convert to string
+            logger.debug(f"Converting starter code to string for activity {activity_id}")
+            activity.starter_code = str(activity.starter_code)
 
+        # Always use activity.html template for consistent console initialization
         return render_template(
-            'activities/view.html',
+            'activity.html',
             activity=activity,
-            lang=get_user_language()  # Use the centralized function
+            lang=get_user_language()
         )
 
     except Exception as e:
         logger.error(f"Error viewing activity {activity_id}: {str(e)}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': "An unexpected error occurred while loading the activity"
-        }), 500
-
-
-@activities.route('/activity/enhanced/<int:activity_id>')
-@login_required
-@limiter.limit("30 per minute")
-def view_enhanced_activity(activity_id):
-    """View an activity with enhanced learning features"""
-    try:
-        logger.debug(f"Viewing enhanced activity with ID: {activity_id}")
-        logger.debug(f"Current language: {get_user_language()}")
-
-        activity = CodingActivity.query.filter_by(id=activity_id).first_or_404()
-
-        if activity.starter_code is None:
-            activity.starter_code = ''
-        elif not isinstance(activity.starter_code, str):
-            activity.starter_code = str(activity.starter_code)
-
-        # Ensure session has language set
-        if 'lang' not in session:
-            session['lang'] = current_app.config['DEFAULT_LANGUAGE']
-            session.modified = True
-
-        return render_template(
-            'activity.html',
-            activity=activity,
-            lang=get_user_language(),  # Use the centralized function
-            enhanced=True
-        )
-    except Exception as e:
-        logger.error(f"Error viewing enhanced activity {activity_id}: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
             'error': "An unexpected error occurred while loading the activity"

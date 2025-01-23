@@ -65,69 +65,50 @@
         opacity: 0.5;
         cursor: not-allowed;
     }
-
-    /* Card Styles */
-    .card {
-        background-color: #2d2d2d;
-        border: 1px solid #3d3d3d;
-        margin-bottom: 20px;
-    }
-
-    .card-header {
-        background-color: #343a40;
-        border-bottom: 1px solid #3d3d3d;
-        padding: 10px 15px;
-    }
-
-    .card-body {
-        padding: 0;
-    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <!-- Editor Section -->
-                <div class="editor-column">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Code Editor</h5>
-                                <button id="runButton" class="btn btn-primary">
-                                    <i class="bi bi-play-fill"></i> Run
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <textarea id="editor">{{ activity.starter_code or '// Your code here' }}</textarea>
-                        </div>
+        <!-- Editor Column -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Code Editor</h5>
+                        <button id="runButton" class="btn btn-primary">
+                            <i class="bi bi-play-fill"></i> Run
+                        </button>
                     </div>
                 </div>
+                <div class="card-body p-0">
+                    <div class="editor-container">
+                        <textarea id="editor">{{ activity.starter_code or '// Your code here' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                <!-- Console Section -->
-                <div class="console-column">
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Console</h5>
-                                <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="console-container">
-                                <div id="consoleOutput" class="console-output"></div>
-                                <div class="console-input-wrapper">
-                                    <input type="text" id="consoleInput" 
-                                           class="console-input"
-                                           placeholder="Press Enter to send"
-                                           disabled>
-                                </div>
-                            </div>
+        <!-- Console Column -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Console</h5>
+                        <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="console-container">
+                        <div id="consoleOutput" class="console-output"></div>
+                        <div class="console-input-wrapper">
+                            <input type="text" id="consoleInput" 
+                                   class="console-input"
+                                   placeholder="Press Enter to send"
+                                   disabled>
                         </div>
                     </div>
                 </div>
@@ -138,15 +119,22 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Load Socket.IO first -->
+<!-- Load dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-
-<!-- Then load our console implementation -->
-<script src="{{ url_for('static', filename='js/console.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 
 <!-- Initialize console -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Verify elements exist before initialization
+    const consoleOutput = document.getElementById('consoleOutput');
+    const consoleInput = document.getElementById('consoleInput');
+
+    if (!consoleOutput || !consoleInput) {
+        console.error('Console elements not found on page load');
+        return;
+    }
+
     try {
         // Create console instance
         window.consoleInstance = new InteractiveConsole();
@@ -169,11 +157,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } catch (error) {
         console.error('Failed to initialize console:', error);
-        const output = document.getElementById('consoleOutput');
-        if (output) {
-            output.innerHTML = `<div style="color: #ff5555;">Initialization failed: ${error.message}</div>`;
+        if (consoleOutput) {
+            consoleOutput.innerHTML = `<div style="color: #ff5555;">Console initialization failed: ${error.message}</div>`;
         }
     }
 });
 </script>
+
+<!-- Load our console implementation -->
+<script src="{{ url_for('static', filename='js/console.js') }}"></script>
 {% endblock %}
