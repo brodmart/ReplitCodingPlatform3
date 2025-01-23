@@ -11,6 +11,8 @@ class InteractiveConsole {
         this.retryAttempts = 3;
         this.retryDelay = 1000;
         this.socket = null;
+        this.language = options.language || 'csharp';
+        this.pendingOperations = new Map();
 
         // Defer initialization to ensure DOM is ready
         if (document.readyState === 'loading') {
@@ -30,7 +32,6 @@ class InteractiveConsole {
             const elements = await this.waitForElements(options);
             this.outputElement = elements.outputElement;
             this.inputElement = elements.inputElement;
-            this.language = options.language || 'csharp';
 
             // Clear and show initializing message
             this.clear();
@@ -44,12 +45,13 @@ class InteractiveConsole {
 
             // Mark as initialized
             this.initialized = true;
-            this.appendSystemMessage('Console initialized and ready');
+            this.appendSystemMessage(`Console initialized for ${this.language} and ready`);
             console.debug('Console initialization completed successfully');
 
         } catch (error) {
             console.error('Failed to initialize console:', error);
             this.appendError(`Initialization failed: ${error.message}`);
+            throw error; // Re-throw to allow proper error handling
         }
     }
 
@@ -75,11 +77,11 @@ class InteractiveConsole {
     async initializeSocket() {
         return new Promise((resolve, reject) => {
             try {
-                if (this.socket) {
+                if (this.socket && this.socket.connected) {
                     this.socket.disconnect();
                 }
 
-                // Create new socket instance
+                // Create new socket instance with error handling and timeouts
                 this.socket = io({
                     transports: ['websocket'],
                     reconnection: true,
@@ -91,18 +93,22 @@ class InteractiveConsole {
                 // Setup core event handlers
                 this.socket.on('connect', () => {
                     console.debug('Socket connected successfully');
+                    this.appendSystemMessage('Connected to server');
                     resolve();
                 });
 
                 this.socket.on('connect_error', (error) => {
                     console.error('Socket connection error:', error);
+                    this.appendError(`Connection error: ${error.message}`);
                     reject(error);
                 });
 
                 // Set connection timeout
                 const timeoutId = setTimeout(() => {
                     if (!this.socket.connected) {
-                        reject(new Error('Socket connection timeout'));
+                        const error = new Error('Socket connection timeout');
+                        this.appendError(error.message);
+                        reject(error);
                     }
                 }, 5000);
 
@@ -112,6 +118,7 @@ class InteractiveConsole {
                 });
 
             } catch (error) {
+                this.appendError(`Socket initialization failed: ${error.message}`);
                 reject(error);
             }
         });
@@ -141,7 +148,8 @@ class InteractiveConsole {
                 this.appendOutput(data.output);
             }
 
-            this.isWaitingForInput = data.waiting_for_input;
+            // Update input state based on server response
+            this.isWaitingForInput = !!data.waiting_for_input;
             this.updateInputState();
         });
 
@@ -156,7 +164,7 @@ class InteractiveConsole {
 
             if (data.session_id) {
                 this.sessionId = data.session_id;
-                this.appendSystemMessage('Program started successfully');
+                this.appendSystemMessage(`${this.language} program started successfully`);
 
                 if (data.interactive) {
                     this.isWaitingForInput = true;
@@ -165,12 +173,15 @@ class InteractiveConsole {
             }
         });
 
-        // Input handler
+        // Enhanced input handler with timeout and error handling
         if (this.inputElement) {
             this.inputElement.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    await this.handleInput();
+                    await this.handleInput().catch(error => {
+                        console.error('Input handling error:', error);
+                        this.appendError(`Input error: ${error.message}`);
+                    });
                 }
             });
         }
@@ -233,38 +244,49 @@ class InteractiveConsole {
     }
 
     async handleInput() {
-        if (!this.inputElement || !this.sessionId) return;
+        if (!this.inputElement || !this.sessionId) {
+            throw new Error('Console not ready for input');
+        }
 
         const input = this.inputElement.value.trim();
         if (!input) return;
 
         this.inputElement.value = '';
-        this.appendOutput(`> ${input}\n`, 'console-input');
+        this.appendOutput(`> ${input}`, 'console-input');
+        this.disableInput(); // Disable input while processing
 
         try {
             await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    reject(new Error('Input timeout'));
+                }, 5000);
+
                 if (!this.socket.connected) {
+                    clearTimeout(timeoutId);
                     reject(new Error('Socket disconnected'));
                     return;
                 }
 
                 this.socket.emit('input', {
                     session_id: this.sessionId,
-                    input: input + '\n'
+                    input: input + '\n',
+                    language: this.language
                 }, (response) => {
+                    clearTimeout(timeoutId);
                     if (response && response.error) {
                         reject(new Error(response.error));
                     } else {
                         resolve();
                     }
                 });
-
-                setTimeout(() => reject(new Error('Input timeout')), 5000);
             });
 
         } catch (error) {
             console.error('Input error:', error);
             this.appendError(`Failed to send input: ${error.message}`);
+            throw error;
+        } finally {
+            this.updateInputState();
         }
     }
 }
