@@ -16,17 +16,24 @@ class InteractiveConsole {
         this.initializationAttempts = 0;
         this.maxInitializationAttempts = 3;
 
-        // Enhanced initialization with retry logic
-        const initWithRetry = async () => {
+        // Initialize with retry mechanism
+        this.initWithRetry(options);
+    }
+
+    initWithRetry(options) {
+        const attemptInit = async () => {
             try {
-                await this.initializeAsync(options);
+                if (!this.initialized) {
+                    console.debug('Starting console initialization attempt', this.initializationAttempts + 1);
+                    await this.initializeAsync(options);
+                }
             } catch (error) {
                 console.error('Initialization attempt failed:', error);
                 this.initializationAttempts++;
 
                 if (this.initializationAttempts < this.maxInitializationAttempts) {
                     console.debug(`Retrying initialization (attempt ${this.initializationAttempts + 1}/${this.maxInitializationAttempts})`);
-                    setTimeout(initWithRetry, this.retryDelay);
+                    setTimeout(() => attemptInit(), this.retryDelay);
                 } else {
                     console.error('Max initialization attempts reached');
                     this.appendError('Failed to initialize console after multiple attempts');
@@ -34,11 +41,17 @@ class InteractiveConsole {
             }
         };
 
-        // Start initialization when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initWithRetry);
+        // Ensure DOM is ready before starting
+        if (document.readyState === 'complete') {
+            attemptInit();
         } else {
-            initWithRetry();
+            document.addEventListener('DOMContentLoaded', attemptInit);
+            // Fallback for late script loading
+            window.addEventListener('load', () => {
+                if (!this.initialized) {
+                    attemptInit();
+                }
+            });
         }
     }
 
@@ -49,13 +62,13 @@ class InteractiveConsole {
             }
 
             // Wait for elements with increased timeout
-            const elements = await this.waitForElements(options, 10000); // Increased timeout to 10s
+            const elements = await this.waitForElements(options, 10000);
+            if (!elements || !elements.outputElement || !elements.inputElement) {
+                throw new Error('Required console elements not found');
+            }
+
             this.outputElement = elements.outputElement;
             this.inputElement = elements.inputElement;
-
-            if (!this.outputElement || !this.inputElement) {
-                throw new Error('Console elements not properly initialized');
-            }
 
             // Clear and show initializing message
             this.clear();
@@ -69,30 +82,30 @@ class InteractiveConsole {
 
             // Mark as initialized
             this.initialized = true;
-            this.appendSystemMessage(`Console initialized for ${this.language} and ready`);
+            this.appendSystemMessage(`Console initialized for ${this.language}`);
             console.debug('Console initialization completed successfully');
 
         } catch (error) {
             console.error('Failed to initialize console:', error);
             this.appendError(`Initialization failed: ${error.message}`);
-            throw error; // Re-throw to allow proper error handling
+            throw error;
         }
     }
 
     async waitForElements(options, timeout = 10000) {
-        const startTime = Date.now();
-        const checkElements = () => {
-            // Check both direct options and DOM elements
-            const outputElement = options.outputElement || document.getElementById('consoleOutput');
-            const inputElement = options.inputElement || document.getElementById('consoleInput');
-
-            if (outputElement instanceof Element && inputElement instanceof Element) {
-                return { outputElement, inputElement };
-            }
-            return null;
-        };
-
         return new Promise((resolve, reject) => {
+            const startTime = Date.now();
+
+            const checkElements = () => {
+                const outputElement = options.outputElement || document.getElementById('consoleOutput');
+                const inputElement = options.inputElement || document.getElementById('consoleInput');
+
+                if (outputElement instanceof Element && inputElement instanceof Element) {
+                    return { outputElement, inputElement };
+                }
+                return null;
+            };
+
             const tryGetElements = () => {
                 const elements = checkElements();
                 if (elements) {
@@ -105,8 +118,7 @@ class InteractiveConsole {
                     return;
                 }
 
-                // Try again after a short delay
-                setTimeout(tryGetElements, 100);
+                requestAnimationFrame(tryGetElements);
             };
 
             tryGetElements();
@@ -114,13 +126,16 @@ class InteractiveConsole {
     }
 
     async initializeSocket() {
+        if (!this.outputElement) {
+            throw new Error('Console not properly initialized');
+        }
+
         return new Promise((resolve, reject) => {
             try {
                 if (this.socket && this.socket.connected) {
                     this.socket.disconnect();
                 }
 
-                // Create new socket instance with error handling and timeouts
                 this.socket = io({
                     transports: ['websocket'],
                     reconnection: true,
@@ -129,7 +144,6 @@ class InteractiveConsole {
                     timeout: this.compilationTimeout
                 });
 
-                // Setup core event handlers
                 this.socket.on('connect', () => {
                     console.debug('Socket connected successfully');
                     this.appendSystemMessage('Connected to server');
@@ -142,8 +156,7 @@ class InteractiveConsole {
                     reject(error);
                 });
 
-                // Set connection timeout
-                const timeoutId = setTimeout(() => {
+                const connectionTimeout = setTimeout(() => {
                     if (!this.socket.connected) {
                         const error = new Error('Socket connection timeout');
                         this.appendError(error.message);
@@ -151,9 +164,8 @@ class InteractiveConsole {
                     }
                 }, 5000);
 
-                // Clear timeout on successful connection
                 this.socket.once('connect', () => {
-                    clearTimeout(timeoutId);
+                    clearTimeout(connectionTimeout);
                 });
 
             } catch (error) {
@@ -176,7 +188,6 @@ class InteractiveConsole {
 
         this.socket.on('console_output', (data) => {
             if (!data) return;
-            console.debug('Received console output:', data);
 
             if (data.error) {
                 this.appendError(data.error);
@@ -187,14 +198,12 @@ class InteractiveConsole {
                 this.appendOutput(data.output);
             }
 
-            // Update input state based on server response
             this.isWaitingForInput = !!data.waiting_for_input;
             this.updateInputState();
         });
 
         this.socket.on('compilation_result', (data) => {
             if (!data) return;
-            console.debug('Compilation result:', data);
 
             if (!data.success) {
                 this.appendError(`Compilation failed: ${data.error}`);
@@ -212,7 +221,6 @@ class InteractiveConsole {
             }
         });
 
-        // Enhanced input handler with timeout and error handling
         if (this.inputElement) {
             this.inputElement.addEventListener('keydown', async (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -292,7 +300,7 @@ class InteractiveConsole {
 
         this.inputElement.value = '';
         this.appendOutput(`> ${input}`, 'console-input');
-        this.disableInput(); // Disable input while processing
+        this.disableInput();
 
         try {
             await new Promise((resolve, reject) => {
