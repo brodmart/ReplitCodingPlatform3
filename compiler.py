@@ -62,11 +62,14 @@ class InteractiveSession:
             ],
             'csharp': [
                 'Console.Read', 'Console.ReadLine',
-                'ReadKey', 'enter', 'input', '?', ':'
+                'ReadKey', 'enter', 'input', '?', ':',
+                'Enter your'  # Added common prompt pattern
             ]
         }
         self.output_buffer_size = 8192
         self.encoding = 'utf-8'
+        self.last_output = ""
+        self.input_required = False
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None, input_data: Optional[str] = None) -> Dict[str, Any]:
     """Enhanced compile and run function with interactive session support and logging"""
@@ -82,6 +85,11 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None, 
     try:
         # Check if code is interactive
         if code and is_interactive_code(code, language):
+            if language != 'csharp':
+                return {
+                    'success': False,
+                    'error': "Currently only C# is supported for interactive mode"
+                }
             logger.info("Detected interactive code, starting interactive session")
             return start_interactive_session(code, language, session_id)
 
@@ -573,6 +581,7 @@ def monitor_output(session_id: str):
                         # Process output with improved encoding handling
                         decoded = data.decode(session.encoding, errors='replace')
                         session.partial_line += decoded
+                        session.last_output += decoded
 
                         # Process complete lines
                         if '\n' in session.partial_line or '\r' in session.partial_line:
@@ -583,42 +592,42 @@ def monitor_output(session_id: str):
                             for line in complete_lines:
                                 if line.strip():  # Only process non-empty lines
                                     session.stdout_buffer.append(line + '\n')
-                                    # Emit console output event via web socket
-                                    try:
-                                        from app import socketio
-                                        socketio.emit('console_output', {
-                                            'session_id': session_id,
-                                            'output': line + '\n'
-                                        })
-                                    except Exception as e:
-                                        logger.error(f"Failed to emit console output: {e}")
+
+                            # Keep last few lines for pattern matching
+                            session.last_output = '\n'.join(session.stdout_buffer[-5:] + [session.partial_line])
+
+                            # Emit console output
+                            try:
+                                from app import socketio
+                                socketio.emit('console_output', {
+                                    'session_id': session_id,
+                                    'output': '\n'.join(complete_lines) + '\n' if complete_lines else '',
+                                    'waiting_for_input': session.waiting_for_input
+                                })
+                            except Exception as e:
+                                logger.error(f"Failed to emit console output: {e}")
 
                             # Trim buffer if it gets too large
                             if len(session.stdout_buffer) > session.output_buffer_size:
                                 session.stdout_buffer = session.stdout_buffer[-session.output_buffer_size:]
 
-                        # Check for input prompts in both partial and complete lines
-                        current_text = session.partial_line
-                        if not session.waiting_for_input:
-                            # Get language-specific patterns
-                            patterns = session.input_patterns.get(
-                                getattr(session, 'language', ''), 
-                                session.input_patterns['csharp']  # Default to C# patterns
-                            )
+                        # Check for input patterns
+                        patterns = session.input_patterns.get(session.language, [])
+                        session.waiting_for_input = any(
+                            pattern.lower() in session.last_output.lower() 
+                            for pattern in patterns
+                        )
 
-                            # Check for input patterns
-                            if any(pattern.lower() in current_text.lower() for pattern in patterns):
-                                session.waiting_for_input = True
-                                logger.debug(f"Input prompt detected: {current_text}")
-                                # Emit input prompt event
-                                try:
-                                    from app import socketio
-                                    socketio.emit('console_input_ready', {
-                                        'session_id': session_id,
-                                        'prompt': current_text
-                                    })
-                                except Exception as e:
-                                    logger.error(f"Failed to emit input prompt: {e}")
+                        # Emit input ready event if waiting for input
+                        if session.waiting_for_input:
+                            try:
+                                from app import socketio
+                                socketio.emit('console_input_ready', {
+                                    'session_id': session_id,
+                                    'prompt': session.partial_line
+                                })
+                            except Exception as e:
+                                logger.error(f"Failed to emit input prompt: {e}")
 
                     except Exception as e:
                         logger.error(f"Error processing output: {e}")
@@ -685,7 +694,7 @@ def is_interactive_code(code: str, language: str) -> bool:
         return any(pattern in code for pattern in [
             'console.read', 'console.readline',
             'console.in', 'console.keyavailable',
-            'console.readkey'
+            'console.readkey', 'console.write'  # Added console.write
         ])
     return False
 
@@ -862,7 +871,7 @@ def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List
         return []
 
     if language != 'csharp':
-        return [{'success': False, 'error': f'Language {language} not supported for parallel compilation'}] * len(codes)
+        return [{'success': False, 'error': f'Language {language} not supported for parallel compilation'} * len(codes)]
 
     logger.info(f"Starting parallel compilation for {len(codes)} files")
     start_time = time.time()
@@ -870,7 +879,7 @@ def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List
     try:
         manager = ParallelCompilationManager()
 
-        # Submit all compilation tasks
+        # Submit        # Submit all compilation tasks
         for idx, code in enumerate(codes):
             manager.submit_compilation(idx, code, language)
 

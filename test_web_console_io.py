@@ -39,7 +39,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 time.sleep(1)
                 output = get_output(session_id)
                 if not output['success']:
-                    compiler_logger.log_runtime_error(session_id, "Failed to get initial output", output)
+                    compiler_logger.log_runtime_error(
+                        session_id, 
+                        "Failed to get initial output",
+                        {"stage": "output", "context": output}
+                    )
                     self.fail("Failed to get initial output")
                 print(f"\nInitial prompt: {output.get('output', '')}")
 
@@ -48,7 +52,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 print(f"\nSending input: '{test_input}'")
                 send_result = send_input(session_id, test_input)
                 if not send_result['success']:
-                    compiler_logger.log_runtime_error(session_id, "Failed to send input", send_result)
+                    compiler_logger.log_runtime_error(
+                        session_id, 
+                        "Failed to send input",
+                        {"stage": "input", "context": send_result}
+                    )
                     self.fail("Failed to send input")
 
                 # Wait for processing
@@ -57,13 +65,17 @@ class TestWebConsoleIO(unittest.TestCase):
                 # Get final output
                 final_output = get_output(session_id)
                 if not final_output['success']:
-                    compiler_logger.log_runtime_error(session_id, "Failed to get final output", final_output)
+                    compiler_logger.log_runtime_error(
+                        session_id, 
+                        "Failed to get final output",
+                        {"stage": "final_output", "context": final_output}
+                    )
                     self.fail("Failed to get final output")
                 print(f"\nFinal output: {final_output.get('output', '')}")
 
                 # Verify expected output
                 expected = "Hello, John Doe!"
-                self.assertIn(expected, final_output['output'], 
+                self.assertIn(expected, final_output['output'],
                             f"Expected output '{expected}' not found in actual output")
 
                 compiler_logger.log_execution_state(session_id, 'test_completed', {
@@ -79,7 +91,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 self.fail(f"Failed to start interactive session: {result.get('error', 'Unknown error')}")
 
         except Exception as e:
-            compiler_logger.log_runtime_error(session_id, str(e))
+            compiler_logger.log_runtime_error(
+                session_id, 
+                str(e),
+                {"stage": "unknown", "context": {"error": str(e)}}
+            )
             logger.error(f"Test failed with error: {str(e)}")
             raise
 
@@ -109,7 +125,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 time.sleep(1)
                 output = get_output(session_id)
                 if not output['success']:
-                    compiler_logger.log_runtime_error(session_id, "Failed to get initial output", output)
+                    compiler_logger.log_runtime_error(
+                        session_id, 
+                        "Failed to get initial output",
+                        {"stage": "output", "context": output}
+                    )
                     self.fail("Failed to get initial output")
                 print(f"\nInitial prompt: {output.get('output', '')}")
 
@@ -118,7 +138,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 print(f"\nSending input: '{test_input}'")
                 send_result = send_input(session_id, test_input)
                 if not send_result['success']:
-                    compiler_logger.log_runtime_error(session_id, "Failed to send input", send_result)
+                    compiler_logger.log_runtime_error(
+                        session_id, 
+                        "Failed to send input",
+                        {"stage": "input", "context": send_result}
+                    )
                     self.fail("Failed to send input")
 
                 # Wait for processing
@@ -127,7 +151,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 # Get final output
                 final_output = get_output(session_id)
                 if not final_output['success']:
-                    compiler_logger.log_runtime_error(session_id, "Failed to get final output", final_output)
+                    compiler_logger.log_runtime_error(
+                        session_id, 
+                        "Failed to get final output",
+                        {"stage": "final_output", "context": final_output}
+                    )
                     self.fail("Failed to get final output")
                 print(f"\nFinal output: {final_output.get('output', '')}")
 
@@ -149,7 +177,11 @@ class TestWebConsoleIO(unittest.TestCase):
                 self.fail(f"Failed to start interactive session: {result.get('error', 'Unknown error')}")
 
         except Exception as e:
-            compiler_logger.log_runtime_error(session_id, str(e))
+            compiler_logger.log_runtime_error(
+                session_id, 
+                str(e),
+                {"stage": "unknown", "context": {"error": str(e)}}
+            )
             logger.error(f"Test failed with error: {str(e)}")
             raise
 

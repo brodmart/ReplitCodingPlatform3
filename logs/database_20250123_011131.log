@@ -1,0 +1,37 @@
+2025-01-23 01:11:31,168 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 01:11:31,168 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 01:11:31,421 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 01:11:31,423 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 01:11:31,435 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 01:11:31,463 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 01:11:31,465 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 01:11:31,472 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 01:11:31,474 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 01:11:31,476 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 01:11:31,541 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 01:11:31,549 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 01:11:31,549 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 01:11:31,625 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 01:11:31,626 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 01:11:31,626 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 01:11:31,625 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 01:11:31,644 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 01:11:31,846 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 01:11:31,847 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 01:11:32,021 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 01:11:32,031 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 01:11:32,032 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 01:11:32,162 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 01:11:32,165 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 01:11:32,166 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 01:11:32,200 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 01:11:35,062 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 01:11:35,063 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 01:11:35,127 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 01:11:35,177 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 01:11:35,177 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 01:11:35,250 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 01:11:35,294 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
+2025-01-23 01:11:35,345 - __main__:30 - INFO - Existing tables: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress'] - MainProcess:MainThread
+2025-01-23 01:11:35,538 - __main__:37 - INFO - Tables after creation: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress'] - MainProcess:MainThread
+2025-01-23 01:11:35,539 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread
