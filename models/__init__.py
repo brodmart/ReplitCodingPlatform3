@@ -1,14 +1,16 @@
 """
 Initialize models package and expose models
 """
-from database import db
+from app import db
 from .student import (
     Student,
     CodeSubmission,
     CodingActivity,
     StudentProgress,
     SharedCode,
-    AuditLog
+    AuditLog,
+    Achievement,
+    StudentAchievement
 )
 from .curriculum import (
     Course,
@@ -25,6 +27,8 @@ __all__ = [
     'StudentProgress',
     'SharedCode',
     'AuditLog',
+    'Achievement',
+    'StudentAchievement',
     'Course',
     'Strand', 
     'OverallExpectation',
