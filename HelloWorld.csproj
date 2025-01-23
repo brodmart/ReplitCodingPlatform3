@@ -8,7 +8,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <StartupObject>Program</StartupObject>
+    <StartupObject>HelloWorld.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>

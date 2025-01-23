@@ -1,0 +1,44 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T18:52:05.135569",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T18:52:05.135482",
+      "process_id": 27315,
+      "thread_id": 19
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T18:52:26.290704",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Process timed out",
+      "stack_trace": null,
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Process timed out"
+        }
+      },
+      "process_id": 27315,
+      "timestamp": "2025-01-23T18:52:26.290558"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T18:52:26.291687",
+    "data": {
+      "error_message": "Failed to start interactive session: Process timed out",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Process timed out"
+        }
+      },
+      "process_id": 27315,
+      "timestamp": "2025-01-23T18:52:26.291387"
+    }
+  }
+]
