@@ -1,0 +1,12 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T18:02:17.176526",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T18:02:17.176470",
+      "process_id": 7862,
+      "thread_id": 19
+    }
+  }
+]

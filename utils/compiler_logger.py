@@ -50,38 +50,80 @@ class CompilerLogger:
         self.logger.critical(message, *args, **kwargs)
 
     def log_compilation_start(self, session_id: str, code: str) -> None:
-        """Log compilation start event"""
-        self.info(f"Starting compilation for session {session_id}")
+        """Log compilation start event with enhanced context"""
+        self.info(f"[COMPILE] Starting compilation for session {session_id}")
         self._log_event(session_id, 'compilation_start', {
             'code_length': len(code),
-            'timestamp': datetime.utcnow().isoformat()
+            'timestamp': datetime.utcnow().isoformat(),
+            'process_id': os.getpid(),
+            'thread_id': os.getppid()
         })
 
     def log_compilation_error(self, session_id: str, error: Exception, context: Dict[str, Any]) -> None:
-        """Log compilation error with context"""
-        self.error(f"Compilation error in session {session_id}: {str(error)}")
+        """Log compilation error with enhanced context"""
+        self.error(f"[ERROR] Compilation error in session {session_id}: {str(error)}")
         self._log_event(session_id, 'compilation_error', {
             'error_type': error.__class__.__name__,
             'error_message': str(error),
+            'stack_trace': getattr(error, '__traceback__', None),
             'context': context,
+            'process_id': os.getpid(),
             'timestamp': datetime.utcnow().isoformat()
         })
 
     def log_runtime_error(self, session_id: str, error: str, context: Dict[str, Any]) -> None:
         """Log runtime errors during program execution"""
-        self.error(f"Runtime error in session {session_id}: {error}")
+        self.error(f"[RUNTIME] Runtime error in session {session_id}: {error}")
         self._log_event(session_id, 'runtime_error', {
             'error_message': error,
             'context': context,
+            'process_id': os.getpid(),
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+    def log_process_spawn(self, session_id: str, pid: int, command: str) -> None:
+        """Log process spawn events"""
+        self.info(f"[PROCESS] Spawned process {pid} for session {session_id}")
+        self._log_event(session_id, 'process_spawn', {
+            'pid': pid,
+            'command': command,
+            'parent_pid': os.getpid(),
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+    def log_process_exit(self, session_id: str, pid: int, exit_code: Optional[int]) -> None:
+        """Log process exit events"""
+        self.info(f"[PROCESS] Process {pid} exited with code {exit_code} for session {session_id}")
+        self._log_event(session_id, 'process_exit', {
+            'pid': pid,
+            'exit_code': exit_code,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+    def log_resource_usage(self, session_id: str, memory_mb: float, cpu_percent: float) -> None:
+        """Log resource usage metrics"""
+        self.debug(f"[RESOURCE] Session {session_id} - Memory: {memory_mb:.1f}MB, CPU: {cpu_percent:.1f}%")
+        self._log_event(session_id, 'resource_usage', {
+            'memory_mb': memory_mb,
+            'cpu_percent': cpu_percent,
             'timestamp': datetime.utcnow().isoformat()
         })
 
     def log_execution_state(self, session_id: str, state: str, details: Optional[Dict[str, Any]] = None) -> None:
         """Log program execution state changes"""
-        self.info(f"Session {session_id} state changed to: {state}")
+        self.info(f"[STATE] Session {session_id} state changed to: {state}")
         self._log_event(session_id, 'execution_state', {
             'state': state,
             'details': details or {},
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+    def log_socket_event(self, session_id: str, event_type: str, data: Any) -> None:
+        """Log Socket.IO events"""
+        self.debug(f"[SOCKET] Session {session_id} - Event: {event_type}")
+        self._log_event(session_id, 'socket_event', {
+            'event_type': event_type,
+            'data': data,
             'timestamp': datetime.utcnow().isoformat()
         })
 
@@ -110,7 +152,7 @@ class CompilerLogger:
                 json.dump(existing_logs, f, indent=2)
 
         except Exception as e:
-            self.error(f"Error writing to log file: {str(e)}")
+            self.error(f"[ERROR] Error writing to log file: {str(e)}")
 
 # Global compiler logger instance
 compiler_logger = CompilerLogger()
