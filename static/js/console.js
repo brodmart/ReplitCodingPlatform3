@@ -21,47 +21,17 @@ class InteractiveConsole {
         this.outputDelay = 50; // ms between outputs
         this.pendingInput = false;
 
-        // Ensure all required Xterm.js components are available
-        if (!window.Terminal) {
-            throw new Error('Xterm.js is not loaded');
-        }
-        if (!window.FitAddon) {
-            throw new Error('Xterm.js FitAddon is not loaded');
-        }
-
-        // C# Console state
-        this.consoleColors = {
-            Black: '\x1b[30m',
-            DarkRed: '\x1b[31m',
-            DarkGreen: '\x1b[32m',
-            DarkYellow: '\x1b[33m',
-            DarkBlue: '\x1b[34m',
-            DarkMagenta: '\x1b[35m',
-            DarkCyan: '\x1b[36m',
-            Gray: '\x1b[37m',
-            DarkGray: '\x1b[90m',
-            Red: '\x1b[91m',
-            Green: '\x1b[92m',
-            Yellow: '\x1b[93m',
-            Blue: '\x1b[94m',
-            Magenta: '\x1b[95m',
-            Cyan: '\x1b[96m',
-            White: '\x1b[97m'
-        };
-        this.currentForegroundColor = this.consoleColors.Gray;
-        this.currentBackgroundColor = '\x1b[40m';
-        this.cursorPosition = { x: 0, y: 0 };
-
-        // Initialize components
-        this.initializeTerminal();
-        this.initializeSocketIO();
-
-        // Handle window resize
-        this.resizeHandler = () => this.handleResize();
-        window.addEventListener('resize', this.resizeHandler);
+        // Initialize components and socket connection
+        this.initializeTerminal().then(() => {
+            this.initializeSocketIO();
+            console.log('Terminal and Socket.IO initialized');
+        }).catch(error => {
+            console.error('Failed to initialize console:', error);
+            this.writeSystemError('Console initialization failed: ' + error.message);
+        });
     }
 
-    initializeTerminal() {
+    async initializeTerminal() {
         try {
             // Initialize Xterm.js with enhanced configuration
             this.terminal = new Terminal({
@@ -93,6 +63,7 @@ class InteractiveConsole {
 
             // Open terminal in container
             this.terminal.open(this.terminalContainer);
+            await new Promise(resolve => setTimeout(resolve, 100)); // Wait for DOM
             this.fitAddon.fit();
 
             // Enhanced state management
@@ -106,6 +77,12 @@ class InteractiveConsole {
 
             this.initialized = true;
             console.log('Terminal initialized successfully');
+
+            // Set up resize handler
+            this.resizeHandler = () => this.handleResize();
+            window.addEventListener('resize', this.resizeHandler);
+
+            return true;
         } catch (error) {
             console.error('Failed to initialize terminal:', error);
             throw error;
@@ -113,6 +90,11 @@ class InteractiveConsole {
     }
 
     initializeSocketIO() {
+        if (!this.initialized) {
+            console.error('Cannot initialize Socket.IO before terminal initialization');
+            return;
+        }
+
         this.socket = io({
             reconnection: true,
             reconnectionDelay: 1000,
@@ -124,45 +106,51 @@ class InteractiveConsole {
 
         this.setupSocketEvents();
         this.setupTerminalEvents();
+
+        // Write initial message
+        this.writeSystemMessage('Console ready');
     }
 
     setupSocketEvents() {
-        // Enhanced connection handling
         this.socket.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
-            this.writeSystemMessage('Console connected');
+            this.writeSystemMessage('Connected to server');
             this.terminal.focus();
         });
 
         this.socket.on('disconnect', () => {
             this.connected = false;
             this.waitingForInput = false;
-            this.writeSystemMessage('Console disconnected');
+            this.writeSystemMessage('Disconnected from server');
         });
 
-        // Enhanced output handling with queuing
         this.socket.on('output', async (data) => {
             if (!data) return;
 
-            if (data.session_id) {
-                this.currentSessionId = data.session_id;
-            }
+            try {
+                if (data.session_id) {
+                    this.currentSessionId = data.session_id;
+                }
 
-            // Process output first
-            if (data.output) {
-                await this.queueOutput(data.output);
-            }
+                // Process output first
+                if (data.output) {
+                    await this.queueOutput(data.output);
+                }
 
-            // Wait for output processing before updating input state
-            await this.waitForOutputProcessing();
+                // Wait for output processing before updating input state
+                await this.waitForOutputProcessing();
 
-            // Update input state after ensuring output is processed
-            this.waitingForInput = !!data.waiting_for_input;
-            if (this.waitingForInput && !this.pendingInput) {
-                this.terminal.focus();
-                this.inputBuffer = '';
-                this.inputPosition = 0;
+                // Update input state after ensuring output is processed
+                this.waitingForInput = !!data.waiting_for_input;
+                if (this.waitingForInput && !this.pendingInput) {
+                    this.terminal.focus();
+                    this.inputBuffer = '';
+                    this.inputPosition = 0;
+                }
+            } catch (error) {
+                console.error('Error processing output:', error);
+                await this.writeError('Failed to process output: ' + error.message);
             }
         });
 
@@ -174,36 +162,42 @@ class InteractiveConsole {
             this.waitingForInput = false;
             this.pendingInput = false;
         });
+
         // Console operations with improved synchronization
         this.socket.on('console_operation', async (data) => {
             if (!data || !data.operation) return;
 
-            // Wait for any pending output before processing operation
-            await this.waitForOutputProcessing();
+            try {
+                // Wait for any pending output before processing operation
+                await this.waitForOutputProcessing();
 
-            switch (data.operation) {
-                case 'Write':
-                case 'WriteLine':
-                    await this.handleWrite(data);
-                    break;
-                case 'Clear':
-                    this.clear();
-                    break;
-                case 'SetCursorPosition':
-                    this.setCursorPosition(data.x, data.y);
-                    break;
-                case 'SetForegroundColor':
-                    this.setForegroundColor(data.color);
-                    break;
-                case 'SetBackgroundColor':
-                    this.setBackgroundColor(data.color);
-                    break;
-                case 'ResetColor':
-                    this.resetColors();
-                    break;
+                switch (data.operation) {
+                    case 'Write':
+                    case 'WriteLine':
+                        await this.handleWrite(data);
+                        break;
+                    case 'Clear':
+                        this.clear();
+                        break;
+                    case 'SetCursorPosition':
+                        this.setCursorPosition(data.x, data.y);
+                        break;
+                    case 'SetForegroundColor':
+                        this.setForegroundColor(data.color);
+                        break;
+                    case 'SetBackgroundColor':
+                        this.setBackgroundColor(data.color);
+                        break;
+                    case 'ResetColor':
+                        this.resetColors();
+                        break;
+                }
+            } catch (error) {
+                console.error('Error processing console operation:', error);
+                await this.writeError('Failed to process console operation: ' + error.message);
             }
         });
-        // Handle compilation success
+        // Console operations with improved synchronization
         this.socket.on('compilation_success', (data) => {
             if (data && data.session_id) {
                 this.currentSessionId = data.session_id;
@@ -330,7 +324,13 @@ class InteractiveConsole {
     }
 
     async writeSystemMessage(message) {
+        if (!this.initialized) return;
         await this.write('\x1b[90m[System] ' + message + '\x1b[0m\r\n');
+    }
+
+    async writeSystemError(message) {
+        if (!this.initialized) return;
+        await this.write('\x1b[31m[System Error] ' + message + '\x1b[0m\r\n');
     }
 
     async write(text) {
@@ -449,6 +449,11 @@ class InteractiveConsole {
     compileAndRun(code) {
         if (!this.connected) {
             this.writeError('Not connected to server');
+            return;
+        }
+
+        if (!this.initialized) {
+            this.writeError('Console not initialized');
             return;
         }
 
