@@ -6,5 +6,34 @@
       "code_length": 269,
       "timestamp": "2025-01-23T17:53:29.505663"
     }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T17:53:49.492464",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Process timed out",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Process timed out"
+        }
+      },
+      "timestamp": "2025-01-23T17:53:49.492326"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T17:53:49.493900",
+    "data": {
+      "error_message": "Failed to start interactive session: Process timed out",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Process timed out"
+        }
+      },
+      "timestamp": "2025-01-23T17:53:49.493795"
+    }
   }
 ]
