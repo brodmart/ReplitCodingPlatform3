@@ -213,7 +213,7 @@ def create_app():
 
             # Import necessary C# compilation module with validation
             try:
-                from compiler_service import compile_and_run_csharp
+                from compiler_service import compile_and_run
                 logger.info(f"[COMPILE] Successfully imported compiler_service for session {session_id}")
             except ImportError as e:
                 logger.error(f"[COMPILE] Failed to import compiler_service: {str(e)}")
@@ -252,7 +252,10 @@ def create_app():
             try:
                 # Set a timeout for compilation
                 with eventlet.Timeout(30, exception=eventlet.Timeout):  # 30 second timeout
-                    compilation_result = compile_and_run_csharp(code, session_id)
+                    logger.debug(f"[COMPILE] Initiating compilation for session {session_id}")
+                    compilation_result = compile_and_run(code, 'csharp', session_id)
+                    logger.debug(f"[COMPILE] Raw compilation result: {compilation_result}")
+
                 compilation_duration = time.time() - compilation_start_time
                 logger.info(f"[COMPILE] Compilation completed in {compilation_duration:.2f}s for session {session_id}")
                 logger.debug(f"[COMPILE] Compilation result: {compilation_result}")

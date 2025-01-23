@@ -35,3 +35,12 @@
 2025-01-23 17:42:49,746 - engineio.server:78 - INFO - 6oXMAZHEJviGnXgBAAAE: Sending packet MESSAGE data 0{"sid":"ime59PBQsdjVmVJhAAAF"} - MainProcess:Thread-1 (run_server)
 2025-01-23 17:42:50,175 - __main__:166 - INFO - Client disconnecting: ime59PBQsdjVmVJhAAAF - MainProcess:Thread-1 (run_server)
 2025-01-23 17:42:50,175 - __main__:177 - INFO - Client disconnected: ime59PBQsdjVmVJhAAAF - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:14,299 - engineio.server:78 - INFO - xtBVlvO2aDJ9t6e2AAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:14,366 - engineio.server:39 - INFO - xtBVlvO2aDJ9t6e2AAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:14,630 - engineio.server:78 - INFO - oDyR4UOJqdoAOwBAAAAC: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:14,697 - engineio.server:39 - INFO - oDyR4UOJqdoAOwBAAAAC: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:26,642 - engineio.server:39 - INFO - oDyR4UOJqdoAOwBAAAAC: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:26,644 - __main__:194 - INFO - [COMPILE] Starting compilation for session session_1737654206 client IP61zKx9pom7ymMdAAAD - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:26,644 - __main__:195 - DEBUG - [COMPILE] Code length: 227, First line: using - MainProcess:Thread-1 (run_server)
+2025-01-23 17:43:26,644 - __main__:62 - INFO - Created new console session: session_1737654206 (active: True) - MainProcess:Thread-1 (run_server)
+2025-01-23 17:45:19,578 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading - MainProcess:MainThread
