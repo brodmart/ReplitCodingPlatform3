@@ -174,107 +174,134 @@ def cleanup_session(session_id: str) -> None:
             logger.debug(f"Session {session_id} cleaned up")
 
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
-    """Start an interactive session"""
+    """Start an interactive session with improved process management and error handling"""
     logger.info(f"Starting {language} interactive session {session.session_id}")
+    event_logger.info(f"Starting interactive compilation for session {session.session_id}")
 
     if language != 'csharp':
         return {'success': False, 'error': 'Only C# is supported'}
 
     try:
-        # Create project structure
+        # Create project structure with error handling
         project_dir = Path(session.temp_dir)
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        # Write project file
+        # Write project file with optimized settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
                 <OutputType>Exe</OutputType>
                 <TargetFramework>net7.0</TargetFramework>
                 <ImplicitUsings>enable</ImplicitUsings>
                 <Nullable>enable</Nullable>
+                <PublishReadyToRun>true</PublishReadyToRun>
+                <InvariantGlobalization>true</InvariantGlobalization>
             </PropertyGroup>
         </Project>"""
 
+        logger.debug(f"Writing project file to {project_file}")
         with open(project_file, 'w') as f:
             f.write(project_content)
 
-        # Write source file
+        # Write source file with error handling
+        logger.debug(f"Writing source file to {source_file}")
         with open(source_file, 'w') as f:
             f.write(code)
 
-        # Compile
-        logger.debug("Compiling C# program")
+        # Compile with timeout and error capture
+        logger.debug("Starting C# compilation")
         compile_result = subprocess.run(
-            ['dotnet', 'build', str(project_file), '--nologo'],
+            ['dotnet', 'build', str(project_file), '--nologo', '--configuration', 'Release'],
             capture_output=True,
             text=True,
+            timeout=30,  # 30 second timeout for compilation
             cwd=session.temp_dir
         )
 
         if compile_result.returncode != 0:
-            logger.error(f"Compilation failed: {compile_result.stderr}")
-            return {'success': False, 'error': compile_result.stderr}
+            error_msg = compile_result.stderr
+            logger.error(f"Compilation failed: {error_msg}")
+            return {'success': False, 'error': error_msg}
 
-        # Start the compiled program
-        executable = project_dir / "bin" / "Debug" / "net7.0" / "program.dll"
+        # Start the compiled program with proper stdio handling
+        executable = project_dir / "bin" / "Release" / "net7.0" / "program.dll"
+
+        # Use pseudo-terminal for better IO handling
+        import pty
+        master_fd, slave_fd = pty.openpty()
+
+        # Set non-blocking mode on the master file descriptor
+        flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
+        fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+        logger.debug(f"Starting process: dotnet {executable}")
         process = subprocess.Popen(
             ['dotnet', str(executable)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,  # Line buffered
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            bufsize=1,
+            close_fds=True,
+            preexec_fn=os.setsid,  # Create new process group
             cwd=session.temp_dir
         )
+
+        os.close(slave_fd)  # Close slave fd after process starts
 
         session.process = process
 
         def monitor_output():
-            """Monitor process output with improved buffering and synchronization"""
+            """Monitor process output with improved buffering and error handling"""
             try:
+                buffer = ""
                 while not session.stop_event.is_set() and process.poll() is None:
-                    if process.stdout is None:
-                        time.sleep(0.1)
-                        continue
+                    try:
+                        # Use select for non-blocking reads
+                        rlist, _, _ = select.select([master_fd], [], [], 0.1)
+                        if not rlist:
+                            continue
 
-                    # Use select to check for available data
-                    rlist, _, _ = select.select([process.stdout], [], [], 0.1)
-                    if not rlist:
-                        continue
+                        chunk = os.read(master_fd, 1024).decode(errors='replace')
+                        buffer += chunk
 
-                    line = process.stdout.readline()
-                    if line:
-                        cleaned = line.strip()
-                        if cleaned:
-                            logger.debug(f"Output received: {cleaned}")
-                            session.append_output(cleaned)
-                            # Check for common input prompts
-                            lowercase_text = cleaned.lower()
-                            if (any(prompt in lowercase_text for prompt in
-                                ['input', 'enter', '?', ':', 'type', 'name']) or
-                                cleaned.strip().endswith(':')):
-                                session.waiting_for_input = True
-                                logger.debug(f"Input prompt detected: {cleaned}")
-                    else:
-                        # Check if process has completed
-                        if process.poll() is not None:
+                        # Process complete lines
+                        while '\n' in buffer:
+                            line, buffer = buffer.split('\n', 1)
+                            cleaned = clean_terminal_output(line)
+                            if cleaned:
+                                logger.debug(f"Output received: {cleaned}")
+                                session.append_output(cleaned)
+
+                                # Check for input prompts
+                                lowercase_text = cleaned.lower()
+                                if (any(prompt in lowercase_text for prompt in
+                                    ['input', 'enter', '?', ':', 'type', 'name']) or
+                                    cleaned.strip().endswith(':')):
+                                    session.set_waiting_for_input(True)
+                                    logger.debug(f"Input prompt detected: {cleaned}")
+
+                    except (OSError, IOError) as e:
+                        if e.errno != errno.EAGAIN:
+                            logger.error(f"Error reading output: {e}")
                             break
-                        time.sleep(0.1)
+                        continue
+                    except Exception as e:
+                        logger.error(f"Unexpected error in output monitoring: {e}")
+                        break
 
-                # Capture any remaining output
-                if process.stdout is not None:
-                    remaining = process.stdout.read()
-                    if remaining:
-                        cleaned = remaining.strip()
-                        if cleaned:
-                            logger.debug(f"Final output received: {cleaned}")
-                            session.append_output(cleaned)
+                # Process remaining buffer content
+                if buffer:
+                    cleaned = clean_terminal_output(buffer)
+                    if cleaned:
+                        session.append_output(cleaned)
 
             except Exception as e:
-                logger.error(f"Error in output monitoring: {e}")
-                session.append_output(f"Error in output monitoring: {str(e)}")
-
+                error_logger.error(f"Fatal error in output monitoring: {traceback.format_exc()}")
+            finally:
+                try:
+                    os.close(master_fd)
+                except:
+                    pass
 
         # Start output monitoring
         session.output_thread = Thread(target=monitor_output)
@@ -293,8 +320,11 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             'waiting_for_input': session.waiting_for_input
         }
 
+    except subprocess.TimeoutExpired:
+        logger.error(f"Compilation timed out for session {session.session_id}")
+        return {'success': False, 'error': 'Compilation timed out'}
     except Exception as e:
-        logger.error(f"Session start error: {traceback.format_exc()}")
+        error_logger.error(f"Session start error: {traceback.format_exc()}")
         return {'success': False, 'error': str(e)}
 
 def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
@@ -774,7 +804,7 @@ namespace ConsoleApp {
             }
             catch (Exception e) {
                 Console.WriteLine($"Error: {e.Message}");
-            }
+                        }
         }
     }
 }"""
