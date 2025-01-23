@@ -186,6 +186,7 @@ def create_app():
         try:
             code = data.get('code', '')
             if not code:
+                logger.error("[COMPILE] No code provided in compile_and_run request")
                 raise ValueError("No code provided")
 
             sid = request.sid
@@ -196,16 +197,22 @@ def create_app():
             # Create new console session with proper activation
             console_session = ConsoleSession(session_id)
             with console_session.lock:
+                if sid in console_sessions:
+                    old_session = console_sessions[sid]
+                    logger.warning(f"[COMPILE] Cleaning up existing session for client {sid}")
+                    old_session.deactivate()
                 console_sessions[sid] = console_session
                 console_session.activate()
                 logger.info(f"[COMPILE] Created and activated console session {session_id}")
 
             track_session(session_id, active=True, context={
                 'code_length': len(code),
-                'client_sid': sid
+                'client_sid': sid,
+                'timestamp': time.time()
             })
 
             # Immediate acknowledgment of compilation start
+            logger.debug(f"[COMPILE] Sending initial acknowledgment for session {session_id}")
             emit('output', {
                 'success': True,
                 'session_id': session_id,
@@ -214,6 +221,7 @@ def create_app():
             })
 
             # Reset console state
+            logger.debug(f"[COMPILE] Resetting console state for session {session_id}")
             emit('console_operation', {
                 'operation': 'Clear',
                 'session_id': session_id
@@ -226,18 +234,22 @@ def create_app():
             # Import necessary C# compilation module
             try:
                 from compiler_service import compile_and_run_csharp
+                logger.info(f"[COMPILE] Successfully imported compiler_service for session {session_id}")
             except ImportError as e:
                 logger.error(f"[COMPILE] Failed to import compiler_service: {str(e)}")
                 raise RuntimeError("Compiler service unavailable")
 
             # Start C# compilation and execution with detailed logging
             logger.info(f"[COMPILE] Starting C# compilation process for session {session_id}")
+            compilation_start_time = time.time()
 
             try:
                 compilation_result = compile_and_run_csharp(code, session_id)
-                logger.info(f"[COMPILE] Got compilation result for {session_id}: {compilation_result}")
+                compilation_duration = time.time() - compilation_start_time
+                logger.info(f"[COMPILE] Compilation completed in {compilation_duration:.2f}s for session {session_id}")
+                logger.debug(f"[COMPILE] Compilation result: {compilation_result}")
             except Exception as e:
-                logger.error(f"[COMPILE] Compilation failed for session {session_id}: {str(e)}")
+                logger.error(f"[COMPILE] Compilation failed for session {session_id}: {str(e)}", exc_info=True)
                 emit('output', {
                     'success': False,
                     'session_id': session_id,
@@ -284,7 +296,7 @@ def create_app():
                 'session_id': session_id if 'session_id' in locals() else None
             })
             if 'session_id' in locals():
-                track_session(session_id, active=False)
+                track_session(session_id, active=False, error=str(e))
 
     @socketio.on('input')
     @log_socket_event
