@@ -116,7 +116,7 @@ def handle_input(data):
             # Keep checking for output until we get a response or timeout
             retry_count = 0
             max_retries = 5
-            while (not output.get('output') and retry_count < max_retries):
+            while (not output.get('output') and not output.get('error', '').startswith('Session not active') and retry_count < max_retries):
                 time.sleep(0.1)  # Add a small delay between retries
                 output = get_output(session_id)
                 logger.debug(f"Retry {retry_count + 1}, output: {output}")
