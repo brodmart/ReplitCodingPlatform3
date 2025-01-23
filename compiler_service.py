@@ -183,32 +183,47 @@ class CompilerSession:
     def __post_init__(self):
         """Initialize the PTY after instance creation"""
         try:
+            logger.debug(f"[SESSION] Initializing PTY for session {self.session_id}")
             import pty
             self.master_fd, self.slave_fd = pty.openpty()
+            logger.debug(f"[SESSION] PTY created - master_fd: {self.master_fd}, slave_fd: {self.slave_fd}")
+
             # Set non-blocking mode on master
             flags = fcntl.fcntl(self.master_fd, fcntl.F_GETFL)
             fcntl.fcntl(self.master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-            logger.debug(f"PTY initialized for session {self.session_id}")
+            logger.debug(f"[SESSION] Set non-blocking mode on master_fd: {self.master_fd}")
+
         except Exception as e:
-            logger.error(f"Failed to initialize PTY: {e}")
+            error_msg = str(e)
+            stack_trace = traceback.format_exc()
+            logger.error(f"[SESSION] Failed to initialize PTY: {error_msg}\n{stack_trace}")
             self.cleanup()
             raise
 
     def is_active(self) -> bool:
-        """Check if the session is still active"""
+        """Check if the session is still active with enhanced logging"""
         with self._access_lock:
             if self.process is None:
+                logger.debug(f"[SESSION] Session {self.session_id} has no process")
                 return False
+
             try:
                 # Check if process is still running
                 if self.process.poll() is None:
                     # Check if process is zombie
-                    if psutil.Process(self.process.pid).status() == psutil.STATUS_ZOMBIE:
-                        logger.warning(f"Zombie process detected for session {self.session_id}")
+                    proc = psutil.Process(self.process.pid)
+                    if proc.status() == psutil.STATUS_ZOMBIE:
+                        logger.warning(f"[SESSION] Zombie process detected for session {self.session_id}")
                         return False
+
+                    logger.debug(f"[SESSION] Session {self.session_id} is active with PID {self.process.pid}")
                     return not self.stop_event.is_set()
+
+                logger.debug(f"[SESSION] Process for session {self.session_id} has terminated")
                 return False
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
+
+            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                logger.error(f"[SESSION] Process error for session {self.session_id}: {str(e)}")
                 return False
 
     def append_output(self, text: str) -> None:
@@ -306,20 +321,39 @@ active_sessions: Dict[str, CompilerSession] = {}
 session_lock = Lock()
 
 def get_or_create_session(session_id: Optional[str] = None) -> CompilerSession:
-    """Get existing session or create new one"""
+    """Get existing session or create new one with enhanced logging"""
     with session_lock:
+        logger.debug(f"[SESSION] Attempting to get/create session: {session_id}")
+
         if session_id and session_id in active_sessions:
             session = active_sessions[session_id]
+            logger.debug(f"[SESSION] Found existing session: {session_id}")
+
             if session.is_active():
+                logger.debug(f"[SESSION] Existing session {session_id} is active")
                 return session
             else:
+                logger.debug(f"[SESSION] Existing session {session_id} is inactive, cleaning up")
                 cleanup_session(session_id)
 
         new_session_id = session_id or str(uuid.uuid4())
         temp_dir = tempfile.mkdtemp(prefix=f'compiler_test_{new_session_id}_')
-        session = CompilerSession(new_session_id, temp_dir)
-        active_sessions[new_session_id] = session
-        return session
+        logger.debug(f"[SESSION] Created temp directory: {temp_dir}")
+
+        try:
+            session = CompilerSession(new_session_id, temp_dir)
+            logger.debug(f"[SESSION] Initialized new session: {new_session_id}")
+            active_sessions[new_session_id] = session
+            return session
+        except Exception as e:
+            logger.error(f"[SESSION] Failed to create session: {str(e)}")
+            if os.path.exists(temp_dir):
+                try:
+                    shutil.rmtree(temp_dir)
+                    logger.debug(f"[SESSION] Cleaned up temp directory after failure: {temp_dir}")
+                except Exception as cleanup_error:
+                    logger.error(f"[SESSION] Failed to cleanup temp directory: {str(cleanup_error)}")
+            raise
 
 def cleanup_session(session_id: str) -> None:
     """Clean up session resources"""
@@ -527,25 +561,44 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with optional session tracking for interactive mode"""
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
+    logger.debug(f"[COMPILE] Starting compilation for code length: {len(code)}, language: {language}")
+
+    performance_logger.debug("[PERF] Starting compilation process timing")
+    start_time = time.time()
 
     if not code:
+        logger.error("[COMPILE] No code provided")
         return {
             'success': False,
             'error': "No code provided"
         }
 
     try:
+        logger.debug(f"[COMPILE] Getting/creating session for {session_id}")
         session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
+        logger.debug(f"[COMPILE] Session created/retrieved: {session.session_id}")
+
+        performance_logger.debug(f"[PERF] Session setup time: {time.time() - start_time:.3f}s")
+
+        result = start_interactive_session(session, code, language)
+        logger.debug(f"[COMPILE] Interactive session result: {result}")
+
+        performance_logger.debug(f"[PERF] Total compilation time: {time.time() - start_time:.3f}s")
+        return result
 
     except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
+        error_msg = str(e)
+        stack_trace = traceback.format_exc()
+        logger.error(f"[COMPILE] Error in compile_and_run: {error_msg}\n{stack_trace}")
+        error_logger.error(f"[ERROR] Compilation failed:\nError: {error_msg}\nStack: {stack_trace}")
+
         if 'session' in locals() and session.session_id in active_sessions:
+            logger.debug(f"[COMPILE] Cleaning up failed session: {session.session_id}")
             cleanup_session(session.session_id)
+
         return {
             'success': False,
-            'error': str(e)
+            'error': error_msg
         }
 
 def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
@@ -697,7 +750,7 @@ class CompilationMetrics:
             'status': status,
             'memory_mb': psutil.Process().memory_info().rss / (1024 * 1024),
             'cpu_percent': psutil.Process().cpu_percent(interval=0.1)
-        }
+        }}
         self.status_updates.append(status_entry)
         performance_logger.debug(f"[{elapsed:.2f}s] {status}")
 
@@ -729,7 +782,6 @@ class CompilationMetrics:
                 for name, metrics in self.stage_metrics.items()
             }
         }
-
 
 class ErrorTracker:
     """Track and analyze compilation errors with trend analysis"""
