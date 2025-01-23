@@ -111,11 +111,17 @@ Key Points:
 
 
 ## Development Guidelines
-1. Focus on performance optimization and minimal resource usage
-2. Maintain nimbleness and efficiency as top priorities
-3. Avoid heavy frameworks unless absolutely necessary
-4. Prefer lightweight, modular solutions
-5. Regular testing and performance monitoring
+1. CRITICAL: Keep all implementations simple and barebones
+   - Avoid unnecessary complexity
+   - Implement only what's needed
+   - Prefer simple, direct solutions over complex optimizations
+   - Minimize dependencies and external libraries
+   - Keep code straightforward and easily maintainable
+2. Focus on performance optimization and minimal resource usage
+3. Maintain nimbleness and efficiency as top priorities
+4. Avoid heavy frameworks unless absolutely necessary
+5. Prefer lightweight, modular solutions
+6. Regular testing and performance monitoring
 
 ## Systematic Debugging Approach
 1. **Frontend-Backend Analysis Pattern**:

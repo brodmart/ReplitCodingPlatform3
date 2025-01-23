@@ -4,7 +4,6 @@
  */
 class InteractiveConsole {
     constructor() {
-        // Initialize DOM elements
         this.outputElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
 
@@ -13,20 +12,12 @@ class InteractiveConsole {
         }
 
         // Initialize Socket.IO connection
-        this.socket = io({
-            transports: ['websocket'],
-            reconnection: true,
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-
+        this.socket = io();
         this.setupSocketEvents();
         this.setupInputHandler();
-        this.log('Console initialized');
     }
 
     setupSocketEvents() {
-        // Connection events
         this.socket.on('connect', () => {
             this.log('Connected to server');
             this.inputElement.disabled = false;
@@ -37,8 +28,7 @@ class InteractiveConsole {
             this.inputElement.disabled = true;
         });
 
-        // Compilation events
-        this.socket.on('compilation_success', (data) => {
+        this.socket.on('compilation_success', () => {
             this.log('Program compiled successfully');
         });
 
@@ -47,19 +37,16 @@ class InteractiveConsole {
             this.inputElement.disabled = true;
         });
 
-        // Output events
         this.socket.on('output', (data) => {
             if (data.output) {
                 this.log(data.output, false);
             }
-            // Update input state based on program state
             this.inputElement.disabled = !data.waiting_for_input;
             if (data.waiting_for_input) {
                 this.inputElement.focus();
             }
         });
 
-        // Error events
         this.socket.on('error', (data) => {
             this.error(data.message || 'An error occurred');
             this.inputElement.disabled = true;
@@ -71,8 +58,6 @@ class InteractiveConsole {
             if (event.key === 'Enter' && !this.inputElement.disabled) {
                 const input = this.inputElement.value;
                 if (input !== null) {
-                    // Temporarily disable input while processing
-                    this.inputElement.disabled = true;
                     this.socket.emit('input', { input });
                     this.log(`> ${input}`);
                     this.inputElement.value = '';
@@ -82,8 +67,6 @@ class InteractiveConsole {
     }
 
     log(message, addNewLine = true) {
-        if (!message) return;
-
         const line = document.createElement('div');
         line.textContent = message + (addNewLine ? '\n' : '');
         this.outputElement.appendChild(line);
@@ -93,7 +76,6 @@ class InteractiveConsole {
     error(message) {
         const line = document.createElement('div');
         line.className = 'error-message';
-        line.style.color = '#ff5555';
         line.textContent = message;
         this.outputElement.appendChild(line);
         this.scrollToBottom();
@@ -105,7 +87,6 @@ class InteractiveConsole {
 
     clear() {
         this.outputElement.innerHTML = '';
-        this.inputElement.disabled = true;
     }
 
     compileAndRun(code) {
