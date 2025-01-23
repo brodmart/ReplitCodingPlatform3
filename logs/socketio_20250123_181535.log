@@ -1,0 +1,6 @@
+2025-01-23 18:15:35,847 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:15:35,881 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:15:36,835 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:15:36,924 - __main__:24 - INFO - Starting database initialization... - MainProcess:MainThread
+2025-01-23 18:15:37,877 - __main__:30 - INFO - Created database tables successfully - MainProcess:MainThread
+2025-01-23 18:15:38,447 - __main__:66 - INFO - Database initialization completed successfully - MainProcess:MainThread

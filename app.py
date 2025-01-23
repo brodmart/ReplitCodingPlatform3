@@ -183,6 +183,9 @@ def create_app():
     @log_socket_event
     def handle_compile_and_run(data):
         """Handle code compilation and execution with proper session tracking"""
+        request_start = time.time()
+        logger.info(f"[REQUEST] Starting compile_and_run request at {request_start}")
+
         try:
             code = data.get('code', '')
             if not code:
@@ -195,15 +198,16 @@ def create_app():
             logger.debug(f"[COMPILE] Code length: {len(code)}, First line: {code.split()[0]}")
 
             # Create new console session with proper activation
+            logger.info(f"[SESSION] Creating new console session {session_id}")
             console_session = ConsoleSession(session_id)
             with console_session.lock:
                 if sid in console_sessions:
                     old_session = console_sessions[sid]
-                    logger.warning(f"[COMPILE] Cleaning up existing session for client {sid}")
+                    logger.warning(f"[SESSION] Cleaning up existing session for client {sid}")
                     old_session.deactivate()
                 console_sessions[sid] = console_session
                 console_session.activate()
-                logger.info(f"[COMPILE] Created and activated console session {session_id}")
+                logger.info(f"[SESSION] Created and activated console session {session_id}")
 
             track_session(session_id, active=True, context={
                 'code_length': len(code),
@@ -240,10 +244,6 @@ def create_app():
                 'operation': 'Clear',
                 'session_id': session_id
             })
-            emit('console_operation', {
-                'operation': 'ResetColor',
-                'session_id': session_id
-            })
 
             # Start C# compilation and execution with detailed logging and timeouts
             logger.info(f"[COMPILE] Starting C# compilation process for session {session_id}")
@@ -258,7 +258,6 @@ def create_app():
 
                 compilation_duration = time.time() - compilation_start_time
                 logger.info(f"[COMPILE] Compilation completed in {compilation_duration:.2f}s for session {session_id}")
-                logger.debug(f"[COMPILE] Compilation result: {compilation_result}")
 
                 # Set compilation complete and process result with proper synchronization
                 with console_session.lock:
@@ -270,9 +269,8 @@ def create_app():
                         console_session.waiting_for_input = waiting_for_input
                         logger.info(f"[COMPILE] Session {session_id} waiting for input: {waiting_for_input}")
 
-                        # Enhanced output handling with proper validation
                         output = compilation_result.get('output', '')
-                        if output:  # Only emit if there's actual output
+                        if output:
                             logger.info(f"[COMPILE] Emitting output for {session_id}: {repr(output)}")
                             emit('output', {
                                 'success': True,
@@ -299,6 +297,7 @@ def create_app():
                     'waiting_for_input': False
                 })
                 return
+
             except Exception as e:
                 logger.error(f"[COMPILE] Compilation failed for session {session_id}: {str(e)}", exc_info=True)
                 emit('output', {
@@ -308,6 +307,10 @@ def create_app():
                     'waiting_for_input': False
                 })
                 return
+
+            finally:
+                request_duration = time.time() - request_start
+                logger.info(f"[REQUEST] compile_and_run request completed in {request_duration:.2f}s")
 
         except Exception as e:
             logger.error(f"[COMPILE] Critical error in compile_and_run: {str(e)}", exc_info=True)
