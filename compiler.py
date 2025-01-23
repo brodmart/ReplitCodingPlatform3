@@ -1,46 +1,16 @@
 import os
 import subprocess
-import tempfile
 import logging
-import traceback
-from typing import Dict, Optional, Any, List, Tuple
-from pathlib import Path
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed, Future
-import hashlib
-import shutil
-from threading import Lock
-import psutil
-import re
 import pty
-import uuid
-import signal
-import fcntl
-import termios
-import struct
 import select
-import threading
-from utils.compiler_logger import compiler_logger
+import uuid
+from threading import Lock
 
-# Configure logging
+# Basic logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Constants section update
-MAX_COMPILATION_TIME = 30  # Increased from 20
-MAX_EXECUTION_TIME = 10   # Increased from 5
-MEMORY_LIMIT = 512
-MAX_PARALLEL_COMPILATIONS = min(os.cpu_count() or 4, 8)
-CACHE_DIR = "/tmp/compiler_cache"
-CACHE_SIZE_LIMIT = 1024 * 1024 * 1024
-CONNECTION_TIMEOUT = 45  # New timeout for socket connections
-RETRY_ATTEMPTS = 3      # Number of retry attempts
-
-# Initialize cache
-os.makedirs(CACHE_DIR, exist_ok=True)
-cache_lock = Lock()
-
-# Active interactive sessions
+# Simple session management
 active_sessions = {}
 session_lock = Lock()
 
@@ -49,655 +19,133 @@ class InteractiveSession:
         self.process = process
         self.master_fd = master_fd
         self.slave_fd = slave_fd
-        self.stdout_buffer = []
-        self.stderr_buffer = []
+        self.output_buffer = []
         self.waiting_for_input = False
-        self.last_activity = time.time()
-        self.partial_line = ""
-        self.language = 'csharp'  # Default language
-        self.input_patterns = {
-            'cpp': [
-                'cin', 'std::cin', 'getline', 'scanf',
-                'enter', 'input', '?', ':'
-            ],
-            'csharp': [
-                'Console.Read', 'Console.ReadLine',
-                'ReadKey', 'enter', 'input', '?', ':',
-                'Enter your'  # Added common prompt pattern
-            ]
-        }
-        self.output_buffer_size = 8192
-        self.encoding = 'utf-8'
-        self.last_output = ""
-        self.input_required = False
+        self.input_patterns = ['Console.Read', 'Console.ReadLine', 'Enter']
 
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced compile and run function with interactive session support and logging"""
-    logger.info(f"Starting compile_and_run for {language}")
-    compiler_logger.log_compilation_start(session_id or str(uuid.uuid4()), code)
+def compile_and_run(code: str, language: str = 'csharp', session_id: str = None) -> dict:
+    """Simplified compilation and execution function"""
+    if not code:
+        return {'success': False, 'error': "No code provided"}
 
-    if not code and not session_id:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
+    if language != 'csharp':
+        return {'success': False, 'error': "Only C# is supported"}
 
     try:
-        # Check if code is interactive
-        if code and is_interactive_code(code, language):
-            if language != 'csharp':
-                return {
-                    'success': False,
-                    'error': "Currently only C# is supported for interactive mode"
-                }
-            logger.info("Detected interactive code, starting interactive session")
-            return start_interactive_session(code, language, session_id)
-
-        # Non-interactive compilation and execution
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            logger.info(f"Created temporary directory: {temp_dir}")
-
-            if language == 'cpp':
-                # CPP compilation and execution
-                logger.info("Starting C++ compilation process")
-                source_file = temp_path / "program.cpp"
-                with open(source_file, 'w', encoding='utf-8') as f:
-                    f.write(code)
-
-                logger.info("Compiling C++ code")
-                compile_process = subprocess.run(
-                    ['g++', '-std=c++17', '-Wall', '-O2', str(source_file), '-o', str(temp_path / "program")],
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_COMPILATION_TIME
-                )
-
-                if compile_process.returncode != 0:
-                    error_msg = format_cpp_error(compile_process.stderr)
-                    logger.error(f"C++ compilation failed: {error_msg}")
-                    if session_id:
-                        compiler_logger.log_compilation_error(
-                            session_id,
-                            Exception(error_msg),
-                            {"stage": "compilation", "language": "cpp"}
-                        )
-                    return {
-                        'success': False,
-                        'error': error_msg
-                    }
-
-                logger.info("Running compiled C++ program")
-                process = subprocess.run(
-                    [str(temp_path / "program")],
-                    input=input_data.encode() if input_data else None,
-                    capture_output=True,
-                    text=True,
-                    timeout=MAX_EXECUTION_TIME
-                )
-
-            elif language == 'csharp':
-                logger.info("Starting C# compilation process")
-                source_file = temp_path / "Program.cs"
-
-                if code:  # Only write file if code is provided
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write(code)
-                    logger.info(f"Wrote C# source to {source_file}")
-
-                    # Create project file with optimized settings
-                    project_file = temp_path / "program.csproj"
-                    project_content = """<Project Sdk="Microsoft.NET.Sdk">
-                      <PropertyGroup>
-                        <OutputType>Exe</OutputType>
-                        <TargetFramework>net7.0</TargetFramework>
-                        <ImplicitUsings>enable</ImplicitUsings>
-                        <Nullable>enable</Nullable>
-                        <PublishReadyToRun>true</PublishReadyToRun>
-                        <ServerGarbageCollection>true</ServerGarbageCollection>
-                        <InvariantGlobalization>true</InvariantGlobalization>
-                      </PropertyGroup>
-                    </Project>"""
-
-                    with open(project_file, 'w', encoding='utf-8') as f:
-                        f.write(project_content)
-                    logger.info(f"Created project file: {project_file}")
-
-                    # Build with detailed logging and retry logic
-                    retry_count = 0
-                    while retry_count < RETRY_ATTEMPTS:
-                        try:
-                            logger.info(f"Attempting C# compilation (attempt {retry_count + 1}/{RETRY_ATTEMPTS})")
-                            compile_process = subprocess.run(
-                                ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
-                                capture_output=True,
-                                text=True,
-                                timeout=MAX_COMPILATION_TIME,
-                                cwd=str(temp_path)
-                            )
-                            logger.info(f"Compilation process completed with return code: {compile_process.returncode}")
-                            logger.debug(f"Compilation stdout: {compile_process.stdout}")
-                            logger.debug(f"Compilation stderr: {compile_process.stderr}")
-
-                            if compile_process.returncode != 0:
-                                error_msg = format_csharp_error(compile_process.stderr)
-                                logger.error(f"C# compilation failed: {error_msg}")
-                                if session_id:
-                                    compiler_logger.log_compilation_error(
-                                        session_id,
-                                        Exception(error_msg),
-                                        {"stage": "compilation", "language": "csharp", "attempt": retry_count + 1}
-                                    )
-                                if retry_count == RETRY_ATTEMPTS - 1:
-                                    return {
-                                        'success': False,
-                                        'error': error_msg
-                                    }
-                            else:
-                                logger.info("C# compilation successful")
-                                break  # Successful compilation, exit retry loop
-
-                        except subprocess.TimeoutExpired as e:
-                            logger.error(f"Compilation timeout on attempt {retry_count + 1}: {str(e)}")
-                            if retry_count == RETRY_ATTEMPTS - 1:
-                                raise
-                            logger.warning(f"Compilation timeout, attempt {retry_count + 1}")
-
-                        retry_count += 1
-                        time.sleep(1)  # Short delay between retries
-
-                    # Run the compiled program with improved error handling
-                    try:
-                        logger.info("Starting C# program execution")
-                        process = subprocess.run(
-                            ['dotnet', 'run', '--project', str(project_file), '--no-build'],
-                            input=input_data.encode() if input_data else None,
-                            capture_output=True,
-                            text=True,
-                            timeout=MAX_EXECUTION_TIME,
-                            cwd=str(temp_path)
-                        )
-                        logger.info(f"Program execution completed with return code: {process.returncode}")
-                        logger.debug(f"Program stdout: {process.stdout}")
-                        logger.debug(f"Program stderr: {process.stderr}")
-
-                        # Handle execution results
-                        if process.returncode != 0:
-                            error_msg = process.stderr
-                            logger.error(f"Program execution failed: {error_msg}")
-                            if session_id:
-                                compiler_logger.log_runtime_error(
-                                    session_id,
-                                    error_msg,
-                                    {"stage": "execution", "language": "csharp"}
-                                )
-                            return {
-                                'success': False,
-                                'error': error_msg
-                            }
-
-                        # Log successful execution
-                        if session_id:
-                            compiler_logger.log_execution_state(
-                                session_id,
-                                'completed',
-                                {"language": "csharp", "interactive": False}
-                            )
-                        logger.info("Program executed successfully")
-
-                        return {
-                            'success': True,
-                            'output': process.stdout,
-                            'metrics': {
-                                'execution_time': time.time(),
-                                'peak_memory': 0.0,
-                                'error_count': 0
-                            }
-                        }
-
-                    except subprocess.TimeoutExpired as e:
-                        error_msg = f"Program execution timed out after {MAX_EXECUTION_TIME} seconds"
-                        logger.error(f"Execution timeout: {error_msg}")
-                        if session_id:
-                            compiler_logger.log_runtime_error(
-                                session_id,
-                                error_msg,
-                                {"stage": "execution", "timeout": True}
-                            )
-                        return {
-                            'success': False,
-                            'error': error_msg
-                        }
-
-            else:
-                error_msg = f"Unsupported language: {language}"
-                logger.error(error_msg)
-                if session_id:
-                    compiler_logger.log_runtime_error(
-                        session_id,
-                        error_msg,
-                        {"stage": "validation", "language": language}
-                    )
-                return {
-                    'success': False,
-                    'error': error_msg
-                }
-
-    except Exception as e:
-        error_msg = f"Unexpected error: {str(e)}"
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        logger.error(f"Full traceback: {traceback.format_exc()}")
-        if session_id:
-            compiler_logger.log_runtime_error(
-                session_id,
-                error_msg,
-                {"stage": "unknown", "language": language}
-            )
-        return {
-            'success': False,
-            'error': error_msg
-        }
-
-def start_interactive_session(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """Enhanced interactive session startup with improved logging"""
-    logger.info(f"Starting interactive session for {language}")
-
-    try:
-        # Use provided session_id or generate a new one
-        if not session_id:
-            session_id = str(uuid.uuid4())
-        logger.debug(f"Session ID: {session_id}")
-
-        # Create PTY with proper terminal settings
+        session_id = session_id or str(uuid.uuid4())
         master_fd, slave_fd = pty.openpty()
-        logger.debug(f"PTY created for {language}: master_fd={master_fd}, slave_fd={slave_fd}")
 
-        # Set terminal size and attributes
-        term_size = struct.pack('HHHH', 24, 80, 0, 0)
-        fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, term_size)
+        # Create C# project and compile
+        with open('Program.cs', 'w') as f:
+            f.write(code)
 
-        # Set raw mode for better input handling
-        attr = termios.tcgetattr(slave_fd)
-        attr[0] = attr[0] & ~termios.ICRNL
-        attr[1] = attr[1] & ~termios.ONLCR
-        attr[3] = attr[3] & ~(termios.ICANON | termios.ECHO)
-        termios.tcsetattr(slave_fd, termios.TCSANOW, attr)
+        # Simple project file
+        with open('program.csproj', 'w') as f:
+            f.write("""<Project Sdk="Microsoft.NET.Sdk">
+              <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net7.0</TargetFramework>
+              </PropertyGroup>
+            </Project>""")
 
-        # Create a unique temporary directory for this session
-        unique_dir = os.path.join(CACHE_DIR, f"session_{session_id}")
-        os.makedirs(unique_dir, exist_ok=True)
+        # Compile
+        compile_result = subprocess.run(
+            ['dotnet', 'build', 'program.csproj', '--nologo'],
+            capture_output=True,
+            text=True
+        )
 
-        with tempfile.TemporaryDirectory(dir=unique_dir) as temp_dir:
-            temp_path = Path(temp_dir)
-            unique_id = hashlib.md5(code.encode()).hexdigest()[:8]
+        if compile_result.returncode != 0:
+            return {'success': False, 'error': compile_result.stderr}
 
-            try:
-                process = None
-                if language == 'cpp':
-                    # CPP compilation and execution setup
-                    source_file = temp_path / f"program_{unique_id}.cpp"
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write(code)
+        # Run the compiled program
+        process = subprocess.Popen(
+            ['dotnet', 'run', '--no-build'],
+            stdin=slave_fd,
+            stdout=slave_fd,
+            stderr=slave_fd,
+            close_fds=True
+        )
 
-                    compile_process = subprocess.run(
-                        ['g++', '-std=c++17', '-Wall', '-O2', str(source_file), '-o', str(temp_path / f"program_{unique_id}")],
-                        capture_output=True,
-                        text=True,
-                        timeout=MAX_COMPILATION_TIME
-                    )
+        # Create and store session
+        session = InteractiveSession(process, master_fd, slave_fd)
+        with session_lock:
+            active_sessions[session_id] = session
 
-                    if compile_process.returncode != 0:
-                        error_msg = format_cpp_error(compile_process.stderr)
-                        compiler_logger.log_compilation_error(
-                            session_id,
-                            Exception(error_msg),
-                            {"stage": "compilation", "language": "cpp"}
-                        )
-                        return {
-                            'success': False,
-                            'error': error_msg
-                        }
-
-                    process = subprocess.Popen(
-                        [str(temp_path / f"program_{unique_id}")],
-                        stdin=slave_fd,
-                        stdout=slave_fd,
-                        stderr=slave_fd,
-                        close_fds=True
-                    )
-
-                elif language == 'csharp':
-                    # C# compilation and execution setup
-                    namespace_name = f"InteractiveSession_{unique_id}"
-                    modified_code = []
-                    namespace_added = False
-
-                    for line in code.split('\n'):
-                        if 'class Program' in line and not namespace_added:
-                            modified_code.extend([
-                                f"namespace {namespace_name} {{",
-                                line
-                            ])
-                            namespace_added = True
-                        else:
-                            modified_code.append(line)
-
-                    if namespace_added:
-                        modified_code.append("}")
-
-                    source_file = temp_path / "Program.cs"
-                    with open(source_file, 'w', encoding='utf-8') as f:
-                        f.write('\n'.join(modified_code))
-
-                    project_file = temp_path / "program.csproj"
-                    project_content = f"""<Project Sdk="Microsoft.NET.Sdk">
-                      <PropertyGroup>
-                        <OutputType>Exe</OutputType>
-                        <TargetFramework>net7.0</TargetFramework>
-                        <ImplicitUsings>enable</ImplicitUsings>
-                        <Nullable>enable</Nullable>
-                        <PublishReadyToRun>true</PublishReadyToRun>
-                        <RootNamespace>{namespace_name}</RootNamespace>
-                        <AssemblyName>{namespace_name}</AssemblyName>
-                      </PropertyGroup>
-                    </Project>"""
-
-                    with open(project_file, 'w', encoding='utf-8') as f:
-                        f.write(project_content)
-
-                    compile_process = subprocess.run(
-                        ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
-                        capture_output=True,
-                        text=True,
-                        timeout=MAX_COMPILATION_TIME,
-                        cwd=str(temp_path)
-                    )
-
-                    if compile_process.returncode != 0:
-                        error_msg = format_csharp_error(compile_process.stderr)
-                        compiler_logger.log_compilation_error(
-                            session_id,
-                            Exception(error_msg),
-                            {"stage": "compilation", "language": "csharp"}
-                        )
-                        return {
-                            'success': False,
-                            'error': error_msg
-                        }
-
-                    process = subprocess.Popen(
-                        ['dotnet', 'run', '--project', str(project_file), '--no-build'],
-                        stdin=slave_fd,
-                        stdout=slave_fd,
-                        stderr=slave_fd,
-                        close_fds=True,
-                        cwd=str(temp_path)
-                    )
-
-                if process is None:
-                    error_msg = f"Failed to start process for {language}"
-                    compiler_logger.log_runtime_error(
-                        session_id,
-                        error_msg,
-                        {"stage": "process_start", "language": language}
-                    )
-                    return {
-                        'success': False,
-                        'error': error_msg
-                    }
-
-                # Create and store session
-                session = InteractiveSession(process, master_fd, slave_fd)
-                session.language = language  # Add language attribute for pattern matching
-                with session_lock:
-                    active_sessions[session_id] = session
-
-                # Start output monitoring
-                monitor_thread = threading.Thread(
-                    target=monitor_output,
-                    args=(session_id,),
-                    daemon=True
-                )
-                monitor_thread.start()
-
-                # Log successful session start
-                compiler_logger.log_execution_state(
-                    session_id,
-                    'started',
-                    {"language": language, "interactive": True}
-                )
-
-                return {
-                    'success': True,
-                    'interactive': True,
-                    'session_id': session_id
-                }
-
-            except Exception as e:
-                logger.error(f"Error in interactive session setup: {str(e)}\n{traceback.format_exc()}")
-                compiler_logger.log_runtime_error(
-                    session_id,
-                    str(e),
-                    {"stage": "setup", "language": language}
-                )
-                if process:
-                    process.terminate()
-                return {
-                    'success': False,
-                    'error': str(e)
-                }
-
-    except Exception as e:
-        logger.error(f"Error starting interactive session: {str(e)}\n{traceback.format_exc()}")
-        if session_id:
-            compiler_logger.log_runtime_error(
-                session_id,
-                str(e),
-                {"stage": "initialization", "language": language}
-            )
         return {
-            'success': False,
-            'error': str(e)
+            'success': True,
+            'session_id': session_id,
+            'interactive': True
         }
 
-def handle_interactive_session(session_id: str, action: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Handle interactive session actions with improved error handling and socket events"""
+    except Exception as e:
+        logger.error(f"Error in compile_and_run: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
+def get_output(session_id: str) -> dict:
+    """Get output from the session"""
     try:
         with session_lock:
             session = active_sessions.get(session_id)
             if not session:
-                return {
-                    'success': False,
-                    'error': "Session not found"
-                }
+                return {'success': False, 'error': "Session not found"}
 
-        if action == 'get_output':
-            output = ''.join(session.stdout_buffer)
-            session.stdout_buffer.clear()
-            return {
-                'success': True,
-                'output': output,
-                'waiting_for_input': session.waiting_for_input
-            }
+        # Read output with timeout
+        ready, _, _ = select.select([session.master_fd], [], [], 0.1)
+        output = ''
 
-        elif action == 'send_input':
-            if not input_data:
-                return {
-                    'success': False,
-                    'error': "No input data provided"
-                }
-
+        if ready:
             try:
-                # Ensure input ends with newline
-                if not input_data.endswith('\n'):
-                    input_data += '\n'
-
-                # Write input to process
-                os.write(session.master_fd, input_data.encode())
-                session.waiting_for_input = False
-
-                # Wait briefly for output processing
-                time.sleep(0.1)
-
-                # Get any immediate output
-                output = ''.join(session.stdout_buffer)
-                session.stdout_buffer.clear()
-
-                return {
-                    'success': True,
-                    'output': output,
-                    'waiting_for_input': session.waiting_for_input
-                }
-            except OSError as e:
-                logger.error(f"Error sending input: {e}")
-                cleanup_session(session_id)
-                return {
-                    'success': False,
-                    'error': "Failed to send input - session terminated"
-                }
-
-        elif action == 'terminate':
-            cleanup_session(session_id)
-            return {'success': True}
-
-        return {
-            'success': False,
-            'error': f"Unknown action: {action}"
-        }
-
-    except Exception as e:
-        logger.error(f"Error handling interactive session: {e}")
-        cleanup_session(session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def monitor_output(session_id: str):
-    """Enhanced output monitoring for interactive sessions with improved web console support"""
-    chunk_size = 1024
-    try:
-        with session_lock:
-            session = active_sessions.get(session_id)
-            if not session:
-                return
-
-        while True:
-            try:
-                # Check if process is still running
-                if session.process.poll() is not None:
-                    cleanup_session(session_id)
-                    break
-
-                # Read output from master PTY with timeout
-                ready, _, _ = select.select([session.master_fd], [], [], 0.1)
-                if not ready:
-                    continue
-
-                data = os.read(session.master_fd, chunk_size)
+                data = os.read(session.master_fd, 1024)
                 if data:
-                    try:
-                        # Process output with improved encoding handling
-                        decoded = data.decode(session.encoding, errors='replace')
-                        session.partial_line += decoded
-                        session.last_output += decoded
+                    output = data.decode()
+                    session.waiting_for_input = any(pattern in output for pattern in session.input_patterns)
+            except OSError:
+                pass
 
-                        # Process complete lines
-                        if '\n' in session.partial_line or '\r' in session.partial_line:
-                            lines = session.partial_line.replace('\r\n', '\n').replace('\r', '\n').split('\n')
-                            session.partial_line = lines[-1]  # Keep incomplete line
-                            complete_lines = lines[:-1]  # Process complete lines
-
-                            for line in complete_lines:
-                                if line.strip():  # Only process non-empty lines
-                                    session.stdout_buffer.append(line + '\n')
-
-                            # Keep last few lines for pattern matching
-                            session.last_output = '\n'.join(session.stdout_buffer[-5:] + [session.partial_line])
-
-                            # Emit console output
-                            try:
-                                from app import socketio
-                                socketio.emit('console_output', {
-                                    'session_id': session_id,
-                                    'output': '\n'.join(complete_lines) + '\n' if complete_lines else '',
-                                    'waiting_for_input': session.waiting_for_input
-                                })
-                            except Exception as e:
-                                logger.error(f"Failed to emit console output: {e}")
-
-                            # Trim buffer if it gets too large
-                            if len(session.stdout_buffer) > session.output_buffer_size:
-                                session.stdout_buffer = session.stdout_buffer[-session.output_buffer_size:]
-
-                        # Check for input patterns
-                        patterns = session.input_patterns.get(session.language, [])
-                        session.waiting_for_input = any(
-                            pattern.lower() in session.last_output.lower()
-                            for pattern in patterns
-                        )
-
-                        # Emit input ready event if waiting for input
-                        if session.waiting_for_input:
-                            try:
-                                from app import socketio
-                                socketio.emit('console_input_ready', {
-                                    'session_id': session_id,
-                                    'prompt': session.partial_line
-                                })
-                            except Exception as e:
-                                logger.error(f"Failed to emit input prompt: {e}")
-
-                    except Exception as e:
-                        logger.error(f"Error processing output: {e}")
-                        continue
-
-            except (OSError, IOError) as e:
-                if e.errno == 5:  # Input/output error, usually due to closed PTY
-                    cleanup_session(session_id)
-                    break
-                logger.error(f"Error reading from PTY: {e}")
-                continue
+        return {
+            'success': True,
+            'output': output,
+            'waiting_for_input': session.waiting_for_input
+        }
 
     except Exception as e:
-        logger.error(f"Error in monitor_output: {e}")
-        cleanup_session(session_id)
+        logger.error(f"Error getting output: {str(e)}")
+        return {'success': False, 'error': str(e)}
+
+def send_input(session_id: str, input_data: str) -> dict:
+    """Send input to the session"""
+    try:
+        with session_lock:
+            session = active_sessions.get(session_id)
+            if not session:
+                return {'success': False, 'error': "Session not found"}
+
+        if not input_data.endswith('\n'):
+            input_data += '\n'
+
+        os.write(session.master_fd, input_data.encode())
+        return {'success': True}
+
+    except Exception as e:
+        logger.error(f"Error sending input: {str(e)}")
+        return {'success': False, 'error': str(e)}
 
 def cleanup_session(session_id: str):
-    """Clean up an interactive session with improved error handling"""
+    """Clean up a session"""
     try:
         with session_lock:
             session = active_sessions.pop(session_id, None)
             if session:
-                try:
-                    session.process.terminate()
-                    session.process.wait(timeout=1)
-                except:
-                    try:
-                        session.process.kill()
-                    except:
-                        pass
-
+                session.process.terminate()
                 try:
                     os.close(session.master_fd)
-                except:
-                    pass
-                try:
                     os.close(session.slave_fd)
                 except:
                     pass
-
-                # Notify web clients about session termination
-                try:
-                    from app import socketio
-                    socketio.emit('console_session_ended', {
-                        'session_id': session_id
-                    })
-                except Exception as e:
-                    logger.error(f"Failed to emit session end: {e}")
-
     except Exception as e:
-        logger.error(f"Error cleaning up session {session_id}: {e}")
+        logger.error(f"Error cleaning up session: {str(e)}")
+
 
 def is_interactive_code(code: str, language: str) -> bool:
     """Check if code contains interactive I/O operations"""
@@ -879,7 +327,7 @@ class ParallelCompilationManager:
         return [self.results.get(i, {
             'success': False,
             'error': 'Compilation task not completed',
-            ''metrics': {}
+            'metrics': {}
         }) for i in range(len(self.futures))]
 
 def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List[Dict[str, Any]]:
@@ -898,7 +346,7 @@ def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List
     try:
         manager = ParallelCompilationManager()
 
-        # Submit        # Submit all compilation tasks
+        # Submit all compilation tasks
         for idx, code in enumerate(codes):
             manager.submit_compilation(idx, code, language)
 
@@ -945,3 +393,26 @@ class Program {
 }"""
     }
     return templates.get(language.lower(), '')
+
+from concurrent.futures import ThreadPoolExecutor, as_completed, Future
+from pathlib import Path
+import hashlib
+import shutil
+from utils.compiler_logger import compiler_logger
+import re
+import time
+import psutil
+
+# Constants section update
+MAX_COMPILATION_TIME = 30  # Increased from 20
+MAX_EXECUTION_TIME = 10   # Increased from 5
+MEMORY_LIMIT = 512
+MAX_PARALLEL_COMPILATIONS = min(os.cpu_count() or 4, 8)
+CACHE_DIR = "/tmp/compiler_cache"
+CACHE_SIZE_LIMIT = 1024 * 1024 * 1024
+CONNECTION_TIMEOUT = 45  # New timeout for socket connections
+RETRY_ATTEMPTS = 3      # Number of retry attempts
+
+# Initialize cache
+os.makedirs(CACHE_DIR, exist_ok=True)
+cache_lock = Lock()
