@@ -6,15 +6,20 @@ import select
 import uuid
 from threading import Lock
 from pathlib import Path
+import shutil
 
 # Enhanced logging setup
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Use project directory instead of /tmp
+COMPILER_DIR = os.path.join(os.getcwd(), 'compiler_workspace')
+os.makedirs(COMPILER_DIR, exist_ok=True)
+
 class InteractiveSession:
-    def __init__(self, session_id: str, temp_dir: str):
+    def __init__(self, session_id: str):
         self.session_id = session_id
-        self.temp_dir = temp_dir
+        self.temp_dir = os.path.join(COMPILER_DIR, session_id)
         self.master_fd = None
         self.slave_fd = None
         self.process = None
@@ -28,13 +33,37 @@ class InteractiveSession:
         except Exception as e:
             logger.error(f"[Session {session_id}] Failed to initialize PTY: {e}")
 
+def cleanup_old_sessions():
+    """Clean up old compilation directories"""
+    try:
+        if os.path.exists(COMPILER_DIR):
+            for item in os.listdir(COMPILER_DIR):
+                item_path = os.path.join(COMPILER_DIR, item)
+                try:
+                    if os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
+                except Exception as e:
+                    logger.error(f"Error cleaning up {item_path}: {e}")
+    except Exception as e:
+        logger.error(f"Error in cleanup_old_sessions: {e}")
+
 def get_or_create_session(session_id=None):
     """Get existing session or create new one"""
+    cleanup_old_sessions()  # Clean up before creating new session
+
     session_id = session_id or str(uuid.uuid4())
-    temp_dir = f'/tmp/compiler_{session_id}'
-    os.makedirs(temp_dir, exist_ok=True)
-    logger.info(f"[Session {session_id}] Created/retrieved session with temp_dir: {temp_dir}")
-    return InteractiveSession(session_id, temp_dir)
+    session_dir = os.path.join(COMPILER_DIR, session_id)
+
+    # Remove existing session directory if it exists
+    if os.path.exists(session_dir):
+        try:
+            shutil.rmtree(session_dir)
+        except Exception as e:
+            logger.error(f"Error cleaning up existing session directory: {e}")
+
+    os.makedirs(session_dir, exist_ok=True)
+    logger.info(f"[Session {session_id}] Created/retrieved session in {session_dir}")
+    return InteractiveSession(session_id)
 
 def start_interactive_session(session, code: str, language: str):
     """Start an interactive C# session"""
@@ -51,32 +80,33 @@ def start_interactive_session(session, code: str, language: str):
             f.write(code)
         logger.debug(f"[Session {session.session_id}] Wrote code to {source_file}")
 
-        # Verify written code
-        with open(source_file, 'r') as f:
-            written_code = f.read()
-        logger.info(f"[Session {session.session_id}] Verified written code:")
-        logger.info("-" * 40)
-        logger.info(written_code)
-        logger.info("-" * 40)
-
-        # Create project file
+        # Create minimal project file
         project_file = Path(session.temp_dir) / "program.csproj"
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
           <PropertyGroup>
             <OutputType>Exe</OutputType>
             <TargetFramework>net7.0</TargetFramework>
             <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+            <PublishSingleFile>true</PublishSingleFile>
+            <SelfContained>false</SelfContained>
+            <EnableDefaultItems>false</EnableDefaultItems>
+            <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
           </PropertyGroup>
+          <ItemGroup>
+            <Compile Include="Program.cs" />
+          </ItemGroup>
         </Project>"""
 
         with open(project_file, 'w') as f:
             f.write(project_content)
         logger.debug(f"[Session {session.session_id}] Created project file at {project_file}")
 
-        # Compile
+        # Compile with optimized settings
         logger.info(f"[Session {session.session_id}] Starting compilation")
         compile_result = subprocess.run(
-            ['dotnet', 'build', str(project_file), '--nologo'],
+            ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release',
+             '/p:GenerateFullPaths=true',
+             '/consoleloggerparameters:NoSummary'],
             capture_output=True,
             text=True,
             cwd=session.temp_dir
@@ -91,7 +121,7 @@ def start_interactive_session(session, code: str, language: str):
         logger.info(f"[Session {session.session_id}] Compilation successful")
 
         # Run the compiled program
-        exe_path = Path(session.temp_dir) / "bin" / "Debug" / "net7.0" / "linux-x64" / "program"
+        exe_path = Path(session.temp_dir) / "bin" / "Release" / "net7.0" / "linux-x64" / "program"
         logger.info(f"[Session {session.session_id}] Starting process: {exe_path}")
 
         # Verify executable exists
@@ -192,7 +222,7 @@ def cleanup_session(session_id: str):
             os.close(session.slave_fd)
         if os.path.exists(session.temp_dir):
             logger.info(f"[Session {session_id}] Removing temp directory")
-            os.rmdir(session.temp_dir)
+            shutil.rmtree(session.temp_dir)
         logger.info(f"[Session {session_id}] Cleanup completed")
     except Exception as e:
         logger.error(f"[Session {session_id}] Error in cleanup: {e}", exc_info=True)
