@@ -330,7 +330,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        # Write project file with optimized settings
+        # Write project file with optimized settings and runtime configuration
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
                 <OutputType>Exe</OutputType>
@@ -339,6 +339,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 <PublishReadyToRun>true</PublishReadyToRun>
                 <SelfContained>false</SelfContained>
                 <InvariantGlobalization>true</InvariantGlobalization>
+                <UseAppHost>false</UseAppHost>
             </PropertyGroup>
         </Project>"""
 
@@ -357,7 +358,12 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 capture_output=True,
                 text=True,
                 timeout=COMPILATION_TIMEOUT,
-                cwd=session.temp_dir
+                cwd=session.temp_dir,
+                env={
+                    **os.environ,
+                    'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
+                    'DOTNET_CLI_HOME': session.temp_dir
+                }
             )
         except subprocess.TimeoutExpired:
             logger.error("Compilation timed out")
@@ -367,8 +373,8 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             logger.error(f"Compilation failed: {compile_result.stderr}")
             return {'success': False, 'error': compile_result.stderr}
 
-        # Start the compiled program
-        executable = project_dir / "bin" / "Release" / "net7.0" / "linux-x64" / "program"
+        # Start the compiled program using dotnet directly
+        dll_path = project_dir / "bin" / "Release" / "net7.0" / "program.dll"
 
         def monitor_output():
             """Monitor process output with improved error handling"""
@@ -412,14 +418,19 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         # Start process with timeout
         try:
-            logger.debug(f"Starting process: {executable}")
+            logger.debug(f"Starting process with DLL: {dll_path}")
             process = subprocess.Popen(
-                [str(executable)],
+                ['dotnet', str(dll_path)],
                 stdin=session.slave_fd,
                 stdout=session.slave_fd,
                 stderr=session.slave_fd,
                 preexec_fn=os.setsid,  # Create new process group
-                cwd=session.temp_dir
+                cwd=session.temp_dir,
+                env={
+                    **os.environ,
+                    'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
+                    'DOTNET_CLI_HOME': session.temp_dir
+                }
             )
 
             session.process = process

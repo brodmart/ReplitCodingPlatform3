@@ -1,0 +1,39 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T17:05:44.631278",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T17:05:44.622504"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T17:06:15.046836",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Compilation timed out",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Compilation timed out"
+        }
+      },
+      "timestamp": "2025-01-23T17:06:15.044341"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T17:06:15.059794",
+    "data": {
+      "error_message": "Failed to start interactive session: Compilation timed out",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Compilation timed out"
+        }
+      },
+      "timestamp": "2025-01-23T17:06:15.059183"
+    }
+  }
+]

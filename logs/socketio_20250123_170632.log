@@ -1,0 +1,15 @@
+2025-01-23 17:06:32,658 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:06:32,797 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:06:33,666 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:06:33,668 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 17:06:33,690 - werkzeug:96 - INFO -  * Debugger PIN: 981-903-801 - MainProcess:MainThread
+2025-01-23 17:06:34,180 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:34,181 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:34,270 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,244 - engineio.server:78 - INFO - EYbxFheZC5-UYrBcAAAA: Sending packet OPEN data {'sid': 'EYbxFheZC5-UYrBcAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,245 - engineio.server:90 - INFO - EYbxFheZC5-UYrBcAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,246 - engineio.server:219 - INFO - EYbxFheZC5-UYrBcAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,319 - engineio.server:39 - INFO - EYbxFheZC5-UYrBcAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,330 - __main__:147 - INFO - Client connected: {"sid": "3_WeFBYUkES7DjJ9AAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,330 - engineio.server:78 - INFO - EYbxFheZC5-UYrBcAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"3_WeFBYUkES7DjJ9AAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:06:35,332 - engineio.server:78 - INFO - EYbxFheZC5-UYrBcAAAA: Sending packet MESSAGE data 0{"sid":"3_WeFBYUkES7DjJ9AAAB"} - MainProcess:Thread-1 (run_server)

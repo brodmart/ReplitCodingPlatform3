@@ -1,0 +1,17 @@
+2025-01-23 17:06:21,338 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:06:21,348 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:06:21,517 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:06:21,549 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:06:21,697 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:06:21,863 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:06:22,421 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:06:22,543 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:06:22,567 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 17:06:22,631 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 17:06:22,807 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:06:22,859 - __main__:30 - INFO - Existing tables: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 17:06:22,917 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 17:06:23,003 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 17:06:23,307 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 17:06:24,013 - __main__:37 - INFO - Tables after creation: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 17:06:24,013 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread
