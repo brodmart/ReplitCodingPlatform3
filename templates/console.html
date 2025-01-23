@@ -3,16 +3,15 @@
 {% block title %}Interactive C# Console{% endblock %}
 
 {% block head %}
-<!-- Add CodeMirror for C# editing -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css" rel="stylesheet">
 <style>
-    .editor-console-container {
+    .container {
+        padding: 20px;
+        height: calc(100vh - 180px);
         display: flex;
         flex-direction: column;
         gap: 20px;
-        padding: 20px;
-        height: calc(100vh - 180px);
     }
 
     .editor-section {
@@ -25,6 +24,9 @@
         flex: 1;
         display: flex;
         flex-direction: column;
+        background: #1e1e1e;
+        border-radius: 4px;
+        border: 1px solid #2d2d2d;
     }
 
     .CodeMirror {
@@ -34,14 +36,13 @@
     }
 
     #console-output {
-        height: calc(100% - 50px);
-        background: #1e1e1e;
+        flex: 1;
+        padding: 10px;
+        margin: 0;
+        overflow-y: auto;
         color: #ffffff;
         font-family: 'Consolas', 'Monaco', monospace;
-        padding: 10px;
-        overflow-y: auto;
-        border-radius: 4px;
-        border: 1px solid #2d2d2d;
+        font-size: 14px;
         white-space: pre-wrap;
         word-wrap: break-word;
     }
@@ -52,16 +53,17 @@
         background: #2d2d2d;
         color: #ffffff;
         font-family: 'Consolas', 'Monaco', monospace;
-        border: 1px solid #3d3d3d;
-        border-radius: 4px;
-        margin-top: 10px;
+        font-size: 14px;
+        border: none;
+        border-top: 1px solid #3d3d3d;
+        outline: none;
     }
 
     .button-row {
         margin-bottom: 10px;
     }
 
-    .run-button {
+    #runButton {
         background: #569cd6;
         color: white;
         border: none;
@@ -70,18 +72,31 @@
         cursor: pointer;
     }
 
-    .run-button:hover {
+    #runButton:hover {
         background: #4a85c7;
+    }
+
+    .console-input-line {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        background: #2d2d2d;
+        border-top: 1px solid #3d3d3d;
+    }
+
+    .console-prompt {
+        color: #569cd6;
+        margin-right: 8px;
+        user-select: none;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="editor-console-container">
+<div class="container">
     <div class="editor-section">
-        <h4 class="text-light mb-2">C# Code Editor</h4>
         <div class="button-row">
-            <button class="run-button" id="runButton">
+            <button id="runButton">
                 <i class="bi bi-play-fill"></i> Run Program
             </button>
         </div>
@@ -89,17 +104,19 @@
 
 class Program {
     static void Main() {
-        Console.WriteLine("Enter your name:");
+        Console.WriteLine("Hello! Please enter your name:");
         string name = Console.ReadLine();
-        Console.WriteLine($"Hello, {name}!");
+        Console.WriteLine($"Nice to meet you, {name}!");
     }
 }</textarea>
     </div>
 
     <div class="console-section">
-        <h4 class="text-light mb-2">Console Output</h4>
         <div id="console-output"></div>
-        <input type="text" id="console-input" placeholder="Enter input..." disabled>
+        <div class="console-input-line">
+            <span class="console-prompt">&gt;</span>
+            <input type="text" id="console-input" placeholder="Enter input here..." disabled>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -108,7 +125,7 @@ class Program {
 <!-- Socket.IO must be loaded first -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
-<!-- CodeMirror and its dependencies -->
+<!-- CodeMirror dependencies -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
 
@@ -126,17 +143,16 @@ document.addEventListener('DOMContentLoaded', () => {
         autoCloseBrackets: true,
         indentUnit: 4,
         tabSize: 4,
-        indentWithTabs: true,
-        extraKeys: {"Ctrl-Space": "autocomplete"}
+        indentWithTabs: true
     });
 
     // Initialize console
-    const console = new InteractiveConsole();
+    const consoleInstance = new InteractiveConsole();
 
     // Run button handler
     document.getElementById('runButton').addEventListener('click', () => {
         const code = editor.getValue();
-        console.compileAndRun(code);
+        consoleInstance.compileAndRun(code);
     });
 });
 </script>
