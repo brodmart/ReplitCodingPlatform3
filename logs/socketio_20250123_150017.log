@@ -1,0 +1,12 @@
+2025-01-23 15:00:17,898 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:00:18,777 - __main__:88 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:00:18,778 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:00:18,780 - werkzeug:96 - INFO -  * Debugger PIN: 308-352-705 - MainProcess:MainThread
+2025-01-23 15:00:22,932 - __main__:95 - DEBUG - Rendering index page - MainProcess:GreenThread-1
+2025-01-23 15:00:24,150 - engineio.server:78 - INFO - MNoDQ40UbbeP2mgvAAAA: Sending packet OPEN data {'sid': 'MNoDQ40UbbeP2mgvAAAA', 'upgrades': ['websocket'], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,225 - engineio.server:39 - INFO - MNoDQ40UbbeP2mgvAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-1
+2025-01-23 15:00:24,242 - __main__:112 - INFO - Client connected: {"sid": "KIr7opzyr-zHrP1NAAAB", "transport": "polling", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.130"} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,244 - engineio.server:78 - INFO - MNoDQ40UbbeP2mgvAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"KIr7opzyr-zHrP1NAAAB"}] - MainProcess:GreenThread-1
+2025-01-23 15:00:24,246 - engineio.server:78 - INFO - MNoDQ40UbbeP2mgvAAAA: Sending packet MESSAGE data 0{"sid":"KIr7opzyr-zHrP1NAAAB"} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,478 - engineio.server:90 - INFO - MNoDQ40UbbeP2mgvAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-23 15:00:24,635 - engineio.server:219 - INFO - MNoDQ40UbbeP2mgvAAAA: Upgrade to websocket successful - MainProcess:GreenThread-2

@@ -1163,3 +1163,55 @@ TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but
 2025-01-23 14:55:14,658 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
 2025-01-23 14:55:19,989 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
 2025-01-23 14:55:23,862 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:57:56,389 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:57:58,970 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:00,160 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:01,092 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:03,932 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:08,340 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:11,014 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:22,958 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:36,294 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:52,025 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:52,224 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:53,898 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:54,135 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:54,292 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:58:55,402 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:59:08,239 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 14:59:16,577 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:15,434 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:17,853 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:21,633 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:22,546 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:22,577 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:24,232 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 15:00:24.232002 - MainProcess:GreenThread-1
+2025-01-23 15:00:24,236 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,236 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:00:24,237 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.005s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:00:24,241 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 15:00:24.241786 - MainProcess:GreenThread-1
+2025-01-23 15:00:24,241 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,242 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-1
+2025-01-23 15:00:24,242 - socketio:110 - DEBUG - Client info: {'sid': 'KIr7opzyr-zHrP1NAAAB', 'transport': 'polling', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', 'remote_addr': '172.31.196.130'} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,243 - socketio.server:164 - INFO - emitting event "connected" to KIr7opzyr-zHrP1NAAAB [/] - MainProcess:GreenThread-1
+2025-01-23 15:00:24,245 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.003s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:GreenThread-1
+2025-01-23 15:00:24,245 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.003s - MainProcess:GreenThread-1
+2025-01-23 15:00:24,245 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-1
+2025-01-23 15:00:24,839 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:26,255 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:27,346 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:32,422 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:38,072 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:44,957 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:49,471 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:00:53,969 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread

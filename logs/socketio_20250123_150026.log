@@ -1,0 +1,15 @@
+2025-01-23 15:00:26,548 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:00:27,531 - app:88 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:00:28,175 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+ - MainProcess:MainThread
+2025-01-23 15:00:28,506 - __main__:96 - ERROR - 
+C2.1 expectation not found in database - MainProcess:MainThread
+2025-01-23 15:00:28,575 - __main__:101 - INFO - 
+Available codes: - MainProcess:MainThread
+2025-01-23 15:00:28,578 - __main__:103 - INFO - - A1.1 - MainProcess:MainThread
+2025-01-23 15:00:28,578 - __main__:103 - INFO - - A1.2 - MainProcess:MainThread
+2025-01-23 15:00:28,581 - __main__:103 - INFO - - A1.3 - MainProcess:MainThread
+2025-01-23 15:00:28,581 - __main__:103 - INFO - - A2.1 - MainProcess:MainThread
+2025-01-23 15:00:28,585 - __main__:103 - INFO - - A2.2 - MainProcess:MainThread
+2025-01-23 15:00:28,587 - __main__:103 - INFO - - A3.1 - MainProcess:MainThread
+2025-01-23 15:00:28,587 - __main__:103 - INFO - - A3.2 - MainProcess:MainThread

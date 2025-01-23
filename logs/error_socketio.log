@@ -22,3 +22,21 @@ Traceback (most recent call last):
     result = func(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^^^
 TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 14:58:05,590 - __main__:96 - ERROR - 
+C2.1 expectation not found in database - MainProcess:MainThread
+2025-01-23 14:58:56,022 - __main__:96 - ERROR - 
+C2.1 expectation not found in database - MainProcess:MainThread
+2025-01-23 15:00:24,236 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:00:24,237 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.005s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:GreenThread-1
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:00:28,506 - __main__:96 - ERROR - 
+C2.1 expectation not found in database - MainProcess:MainThread

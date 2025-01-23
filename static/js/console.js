@@ -1,6 +1,6 @@
 /**
  * Interactive Console Implementation with Xterm.js integration
- * Enhanced version with improved error handling and terminal management
+ * Enhanced version with improved error handling and C# console operations support
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -21,6 +21,29 @@ class InteractiveConsole {
         if (!window.FitAddon) {
             throw new Error('Xterm.js FitAddon is not loaded');
         }
+
+        // C# Console state
+        this.consoleColors = {
+            Black: '\x1b[30m',
+            DarkRed: '\x1b[31m',
+            DarkGreen: '\x1b[32m',
+            DarkYellow: '\x1b[33m',
+            DarkBlue: '\x1b[34m',
+            DarkMagenta: '\x1b[35m',
+            DarkCyan: '\x1b[36m',
+            Gray: '\x1b[37m',
+            DarkGray: '\x1b[90m',
+            Red: '\x1b[91m',
+            Green: '\x1b[92m',
+            Yellow: '\x1b[93m',
+            Blue: '\x1b[94m',
+            Magenta: '\x1b[95m',
+            Cyan: '\x1b[96m',
+            White: '\x1b[97m'
+        };
+        this.currentForegroundColor = this.consoleColors.Gray;
+        this.currentBackgroundColor = '\x1b[40m';
+        this.cursorPosition = { x: 0, y: 0 };
 
         this.initializeTerminal();
         this.initializeSocketIO();
@@ -70,6 +93,8 @@ class InteractiveConsole {
             this.waitingForInput = false;
             this.inputBuffer = '';
             this.inputPosition = 0;
+            this.inputHistory = [];
+            this.historyPosition = -1;
 
             this.initialized = true;
             console.log('Terminal initialized successfully');
@@ -130,6 +155,33 @@ class InteractiveConsole {
             }
         });
 
+        // Enhanced C# console operations handling
+        this.socket.on('console_operation', (data) => {
+            if (!data || !data.operation) return;
+
+            switch (data.operation) {
+                case 'Write':
+                case 'WriteLine':
+                    this.handleWrite(data);
+                    break;
+                case 'Clear':
+                    this.clear();
+                    break;
+                case 'SetCursorPosition':
+                    this.setCursorPosition(data.x, data.y);
+                    break;
+                case 'SetForegroundColor':
+                    this.setForegroundColor(data.color);
+                    break;
+                case 'SetBackgroundColor':
+                    this.setBackgroundColor(data.color);
+                    break;
+                case 'ResetColor':
+                    this.resetColors();
+                    break;
+            }
+        });
+
         // Enhanced output handling
         this.socket.on('output', (data) => {
             if (!data) return;
@@ -176,6 +228,10 @@ class InteractiveConsole {
                         // Move cursor back and rewrite the line
                         this.terminal.write('\b \b');
                     }
+                } else if (data === '\u001b[A') { // Up arrow - history
+                    this.navigateHistory('up');
+                } else if (data === '\u001b[B') { // Down arrow - history
+                    this.navigateHistory('down');
                 } else if (data === '\u001b[D') { // Left arrow
                     if (this.inputPosition > 0) {
                         this.inputPosition--;
@@ -197,12 +253,94 @@ class InteractiveConsole {
         });
     }
 
+    handleWrite(data) {
+        const text = data.text || '';
+        const isLine = data.operation === 'WriteLine';
+
+        // Apply current colors
+        this.write(this.currentForegroundColor + this.currentBackgroundColor);
+        this.write(text + (isLine ? '\r\n' : ''));
+
+        // Reset colors after write if needed
+        if (data.resetColors) {
+            this.resetColors();
+        }
+    }
+
+    setForegroundColor(color) {
+        if (this.consoleColors[color]) {
+            this.currentForegroundColor = this.consoleColors[color];
+            this.write(this.currentForegroundColor);
+        }
+    }
+
+    setBackgroundColor(color) {
+        const bgColor = color.replace('Dark', '') + 'm';
+        this.currentBackgroundColor = '\x1b[4' + (color.startsWith('Dark') ? '0' : '1') + bgColor;
+        this.write(this.currentBackgroundColor);
+    }
+
+    resetColors() {
+        this.currentForegroundColor = this.consoleColors.Gray;
+        this.currentBackgroundColor = '\x1b[40m';
+        this.write('\x1b[0m'); // Reset all attributes
+    }
+
+    setCursorPosition(x, y) {
+        if (!this.initialized) return;
+        try {
+            // Save current position
+            this.cursorPosition.x = x;
+            this.cursorPosition.y = y;
+
+            // ANSI escape sequence for cursor position
+            this.terminal.write(`\x1b[${y + 1};${x + 1}H`);
+        } catch (error) {
+            console.error('Error setting cursor position:', error);
+        }
+    }
+
+    navigateHistory(direction) {
+        if (direction === 'up' && this.historyPosition < this.inputHistory.length - 1) {
+            this.historyPosition++;
+        } else if (direction === 'down' && this.historyPosition >= 0) {
+            this.historyPosition--;
+        } else {
+            return;
+        }
+
+        // Clear current input
+        while (this.inputPosition > 0) {
+            this.terminal.write('\b \b');
+            this.inputPosition--;
+        }
+
+        if (this.historyPosition >= 0 && this.historyPosition < this.inputHistory.length) {
+            this.inputBuffer = this.inputHistory[this.historyPosition];
+        } else {
+            this.inputBuffer = '';
+        }
+
+        this.inputPosition = this.inputBuffer.length;
+        this.terminal.write(this.inputBuffer);
+    }
+
     handleInput() {
         if (!this.waitingForInput || !this.currentSessionId || !this.initialized) return;
 
         const input = this.inputBuffer;
+
+        // Add to history if not empty and different from last entry
+        if (input && (this.inputHistory.length === 0 || this.inputHistory[0] !== input)) {
+            this.inputHistory.unshift(input);
+            if (this.inputHistory.length > 50) { // Limit history size
+                this.inputHistory.pop();
+            }
+        }
+
         this.inputBuffer = '';
         this.inputPosition = 0;
+        this.historyPosition = -1;
         this.waitingForInput = false;
         this.terminal.write('\r\n');
 
@@ -245,6 +383,9 @@ class InteractiveConsole {
             this.waitingForInput = false;
             this.inputBuffer = '';
             this.inputPosition = 0;
+            this.cursorPosition = { x: 0, y: 0 };
+            // Reset colors
+            this.resetColors();
         } catch (error) {
             console.error('Error clearing terminal:', error);
         }
