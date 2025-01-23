@@ -1067,3 +1067,4 @@
 2025-01-23 13:18:09,090 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
 2025-01-23 13:18:10,872 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:GreenThread-1
 2025-01-23 13:18:11,502 - socketio:113 - INFO - Connection closed. Remaining connections: 0 - MainProcess:GreenThread-2
+2025-01-23 13:59:58,992 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
