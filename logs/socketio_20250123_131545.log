@@ -1,0 +1,11 @@
+2025-01-23 13:15:45,340 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 13:15:45,928 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 13:15:45,929 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-23 13:15:45,929 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 13:15:45,931 - werkzeug:96 - INFO -  * Debugger PIN: 310-660-403 - MainProcess:MainThread
+2025-01-23 13:15:46,708 - engineio.server:78 - INFO - za1OOMD5ARjJVFYpAAAA: Sending packet OPEN data {'sid': 'za1OOMD5ARjJVFYpAAAA', 'upgrades': ['websocket'], 'pingTimeout': 20000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:GreenThread-1
+2025-01-23 13:15:46,804 - engineio.server:39 - INFO - za1OOMD5ARjJVFYpAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-23 13:15:46,807 - app:26 - INFO - Client connected - MainProcess:GreenThread-2
+2025-01-23 13:15:46,807 - engineio.server:78 - INFO - za1OOMD5ARjJVFYpAAAA: Sending packet MESSAGE data 0{"sid":"rvFQpfQPMXJiJ8GtAAAB"} - MainProcess:GreenThread-2
+2025-01-23 13:15:47,061 - engineio.server:90 - INFO - za1OOMD5ARjJVFYpAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-3
+2025-01-23 13:15:47,233 - engineio.server:219 - INFO - za1OOMD5ARjJVFYpAAAA: Upgrade to websocket successful - MainProcess:GreenThread-3

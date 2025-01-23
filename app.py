@@ -36,34 +36,42 @@ def handle_disconnect():
 def handle_compile_and_run(data):
     """Handle code compilation and execution"""
     if not data or 'code' not in data:
+        logger.error("No code provided in compile_and_run request")
         socketio.emit('error', {'message': 'No code provided'})
         return
 
     try:
+        logger.debug(f"Starting compilation for code: {data['code'][:100]}...")
         result = compile_and_run(data['code'], 'csharp')
+
         if not result.get('success'):
-            socketio.emit('compilation_error', {
-                'error': result.get('error', 'Compilation failed')
-            })
+            error_msg = result.get('error', 'Compilation failed')
+            logger.error(f"Compilation error: {error_msg}")
+            socketio.emit('compilation_error', {'error': error_msg})
             return
 
         session_id = result.get('session_id')
         if not session_id:
+            logger.error("No session ID returned from compilation")
             socketio.emit('error', {'message': 'Failed to create session'})
             return
 
         track_session(session_id, active=True)
+        logger.info(f"Compilation successful, session ID: {session_id}")
         socketio.emit('compilation_success', {'session_id': session_id})
 
         # Get initial output
         output = get_output(session_id)
         if output and output.get('success'):
+            waiting_for_input = output.get('waiting_for_input', False)
+            logger.info(f"Initial output received, waiting_for_input: {waiting_for_input}")
             socketio.emit('output', {
                 'session_id': session_id,
                 'output': output.get('output', ''),
-                'waiting_for_input': output.get('waiting_for_input', False)
+                'waiting_for_input': waiting_for_input
             })
         else:
+            logger.error("Failed to get initial program output")
             socketio.emit('error', {'message': 'Failed to get program output'})
 
     except Exception as e:
@@ -77,26 +85,34 @@ def handle_input(data):
     session_id = data.get('session_id')
     input_text = data.get('input')
 
-    if not session_id or not input_text:
+    if not session_id or input_text is None:
+        logger.error(f"Invalid input request: session_id={session_id}, input={input_text}")
         socketio.emit('error', {'message': 'Invalid session or input'})
         return
 
     try:
-        # Send input to the program
+        logger.debug(f"Sending input '{input_text}' to session {session_id}")
         result = send_input(session_id, input_text + '\n')
+
         if not result or not result.get('success'):
+            logger.error(f"Failed to send input to session {session_id}")
             socketio.emit('error', {'message': 'Failed to send input'})
             return
+
+        logger.debug(f"Input sent successfully to session {session_id}")
 
         # Get program output after input
         output = get_output(session_id)
         if output and output.get('success'):
+            waiting_for_input = output.get('waiting_for_input', False)
+            logger.info(f"Output received after input, waiting_for_input: {waiting_for_input}")
             socketio.emit('output', {
                 'session_id': session_id,
                 'output': output.get('output', ''),
-                'waiting_for_input': output.get('waiting_for_input', False)
+                'waiting_for_input': waiting_for_input
             })
         else:
+            logger.error(f"Failed to get output after input for session {session_id}")
             socketio.emit('error', {'message': 'Failed to get output'})
 
     except Exception as e:

@@ -21,3 +21,36 @@
 2025-01-23 13:13:19,230 - engineio.server:90 - INFO - HCJ-eTh5ejc33xmcAAAE: Received request to upgrade to websocket - MainProcess:GreenThread-5
 2025-01-23 13:13:19,264 - engineio.server:219 - INFO - HCJ-eTh5ejc33xmcAAAE: Upgrade to websocket successful - MainProcess:GreenThread-5
 2025-01-23 13:13:19,829 - app:32 - INFO - Client disconnected - MainProcess:GreenThread-5
+2025-01-23 13:13:26,473 - engineio.server:39 - INFO - UEYU9T1NB_42QCVfAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"// Your C# code here\nusing System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}"}] - MainProcess:GreenThread-2
+2025-01-23 13:13:26,475 - compiler_service:326 - DEBUG - Starting compilation for code length: 223, language: csharp - MainProcess:GreenThread-6
+2025-01-23 13:13:26,475 - compiler_service:169 - INFO - Starting csharp interactive session 6be0966a-b270-406f-9ce9-02c3c7d56c03 - MainProcess:GreenThread-6
+2025-01-23 13:13:26,475 - compiler_service:198 - DEBUG - Compiling C# program - MainProcess:GreenThread-6
+2025-01-23 13:13:29,929 - compiler_service:241 - DEBUG - Output received: Enter your name: - MainProcess:Thread-2 (monitor_output)
+2025-01-23 13:13:29,929 - compiler_service:89 - DEBUG - Input prompt detected: Enter your name: - MainProcess:Thread-2 (monitor_output)
+2025-01-23 13:13:30,388 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet MESSAGE data 2["compilation_success",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03"}] - MainProcess:GreenThread-6
+2025-01-23 13:13:30,388 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet MESSAGE data 2["compilation_success",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03"}] - MainProcess:GreenThread-6
+2025-01-23 13:13:30,388 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet MESSAGE data 2["output",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03","output":"Enter your name:","waiting_for_input":true}] - MainProcess:GreenThread-6
+2025-01-23 13:13:30,388 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet MESSAGE data 2["output",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03","output":"Enter your name:","waiting_for_input":true}] - MainProcess:GreenThread-6
+2025-01-23 13:13:32,478 - engineio.server:39 - INFO - UEYU9T1NB_42QCVfAAAA: Received packet MESSAGE data 2["input",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03","input":"moi"}] - MainProcess:GreenThread-2
+2025-01-23 13:13:32,480 - compiler_service:108 - DEBUG - Session 6be0966a-b270-406f-9ce9-02c3c7d56c03 is no longer waiting for input - MainProcess:GreenThread-7
+2025-01-23 13:13:32,480 - compiler_service:291 - DEBUG - Input sent: moi - MainProcess:GreenThread-7
+2025-01-23 13:13:32,481 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet MESSAGE data 2["output",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03","output":"","waiting_for_input":false}] - MainProcess:GreenThread-7
+2025-01-23 13:13:32,481 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet MESSAGE data 2["output",{"session_id":"6be0966a-b270-406f-9ce9-02c3c7d56c03","output":"","waiting_for_input":false}] - MainProcess:GreenThread-7
+2025-01-23 13:13:32,482 - compiler_service:241 - DEBUG - Output received: Hello, moi! - MainProcess:Thread-2 (monitor_output)
+2025-01-23 13:13:42,997 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet PING data None - MainProcess:GreenThread-8
+2025-01-23 13:13:43,076 - engineio.server:39 - INFO - UEYU9T1NB_42QCVfAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 13:13:43,559 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet PING data None - MainProcess:GreenThread-9
+2025-01-23 13:13:43,722 - engineio.server:39 - INFO - spmIzAJweyxWkkEjAAAC: Received packet PONG data  - MainProcess:GreenThread-4
+2025-01-23 13:14:08,077 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet PING data None - MainProcess:GreenThread-10
+2025-01-23 13:14:08,169 - engineio.server:39 - INFO - UEYU9T1NB_42QCVfAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 13:14:08,724 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet PING data None - MainProcess:GreenThread-11
+2025-01-23 13:14:08,811 - engineio.server:39 - INFO - spmIzAJweyxWkkEjAAAC: Received packet PONG data  - MainProcess:GreenThread-4
+2025-01-23 13:14:33,170 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet PING data None - MainProcess:GreenThread-12
+2025-01-23 13:14:33,249 - engineio.server:39 - INFO - UEYU9T1NB_42QCVfAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 13:14:33,813 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet PING data None - MainProcess:GreenThread-13
+2025-01-23 13:14:33,898 - engineio.server:39 - INFO - spmIzAJweyxWkkEjAAAC: Received packet PONG data  - MainProcess:GreenThread-4
+2025-01-23 13:14:58,259 - engineio.server:78 - INFO - UEYU9T1NB_42QCVfAAAA: Sending packet PING data None - MainProcess:GreenThread-14
+2025-01-23 13:14:58,371 - engineio.server:39 - INFO - UEYU9T1NB_42QCVfAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 13:14:58,899 - engineio.server:78 - INFO - spmIzAJweyxWkkEjAAAC: Sending packet PING data None - MainProcess:GreenThread-15
+2025-01-23 13:14:58,984 - engineio.server:39 - INFO - spmIzAJweyxWkkEjAAAC: Received packet PONG data  - MainProcess:GreenThread-4
+2025-01-23 13:15:06,019 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/test_socket_io_flow.py', reloading - MainProcess:MainThread

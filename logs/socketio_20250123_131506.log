@@ -1,0 +1,13 @@
+2025-01-23 13:15:06,694 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 13:15:06,695 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-23 13:15:06,696 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 13:15:06,697 - werkzeug:96 - INFO -  * Debugger PIN: 123-254-822 - MainProcess:MainThread
+2025-01-23 13:15:07,558 - engineio.server:78 - INFO - oTL5uJUlLv4H768tAAAA: Sending packet OPEN data {'sid': 'oTL5uJUlLv4H768tAAAA', 'upgrades': ['websocket'], 'pingTimeout': 20000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:GreenThread-1
+2025-01-23 13:15:07,661 - engineio.server:39 - INFO - oTL5uJUlLv4H768tAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-23 13:15:07,664 - app:26 - INFO - Client connected - MainProcess:GreenThread-2
+2025-01-23 13:15:07,664 - engineio.server:78 - INFO - oTL5uJUlLv4H768tAAAA: Sending packet MESSAGE data 0{"sid":"4lrFdPA2x8sB83O-AAAB"} - MainProcess:GreenThread-2
+2025-01-23 13:15:08,014 - engineio.server:90 - INFO - oTL5uJUlLv4H768tAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-3
+2025-01-23 13:15:08,179 - engineio.server:219 - INFO - oTL5uJUlLv4H768tAAAA: Upgrade to websocket successful - MainProcess:GreenThread-3
+2025-01-23 13:15:32,560 - engineio.server:78 - INFO - oTL5uJUlLv4H768tAAAA: Sending packet PING data None - MainProcess:GreenThread-4
+2025-01-23 13:15:32,635 - engineio.server:39 - INFO - oTL5uJUlLv4H768tAAAA: Received packet PONG data  - MainProcess:GreenThread-3
+2025-01-23 13:15:44,994 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading - MainProcess:MainThread
