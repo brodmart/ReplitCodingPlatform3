@@ -20,6 +20,11 @@ def index():
 def handle_compile_and_run(data):
     try:
         code = data.get('code', '')
+        logger.info("Received code to compile:")
+        logger.info("-" * 40)
+        logger.info(code)
+        logger.info("-" * 40)
+
         if not code:
             emit('output', {'success': False, 'error': 'No code provided'})
             return
@@ -37,6 +42,7 @@ def handle_compile_and_run(data):
                 'session_id': session.session_id
             })
         else:
+            logger.error(f"Compilation failed: {result.get('error')}")
             emit('output', {
                 'success': False, 
                 'error': result.get('error', 'Compilation failed')
@@ -54,6 +60,7 @@ def handle_send_input(data):
     try:
         session_id = data.get('session_id')
         input_text = data.get('input', '')
+        logger.info(f"Received input for session {session_id}: {input_text!r}")
 
         if not session_id or not input_text:
             emit('output', {'success': False, 'error': 'Invalid input data'})
@@ -62,6 +69,7 @@ def handle_send_input(data):
         result = send_input(session_id, input_text)
         if result['success']:
             output_result = get_output(session_id)
+            logger.info(f"Got output after input: {output_result.get('output', '')!r}")
             emit('output', {
                 'success': True,
                 'output': output_result.get('output', ''),

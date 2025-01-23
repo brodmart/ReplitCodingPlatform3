@@ -40,12 +40,24 @@ def start_interactive_session(session, code: str, language: str):
     """Start an interactive C# session"""
     try:
         logger.info(f"[Session {session.session_id}] Starting interactive session")
+        logger.info(f"[Session {session.session_id}] Received code:")
+        logger.info("-" * 40)
+        logger.info(code)
+        logger.info("-" * 40)
 
         # Write source code
         source_file = Path(session.temp_dir) / "Program.cs"
         with open(source_file, 'w') as f:
             f.write(code)
-        logger.debug(f"[Session {session.session_id}] Wrote source code to {source_file}")
+        logger.debug(f"[Session {session.session_id}] Wrote code to {source_file}")
+
+        # Verify written code
+        with open(source_file, 'r') as f:
+            written_code = f.read()
+        logger.info(f"[Session {session.session_id}] Verified written code:")
+        logger.info("-" * 40)
+        logger.info(written_code)
+        logger.info("-" * 40)
 
         # Create project file
         project_file = Path(session.temp_dir) / "program.csproj"
@@ -71,8 +83,9 @@ def start_interactive_session(session, code: str, language: str):
         )
 
         if compile_result.returncode != 0:
-            logger.error(f"[Session {session.session_id}] Build failed: {compile_result.stderr}")
-            logger.error(f"[Session {session.session_id}] Build output: {compile_result.stdout}")
+            logger.error(f"[Session {session.session_id}] Build failed:")
+            logger.error(f"STDOUT:\n{compile_result.stdout}")
+            logger.error(f"STDERR:\n{compile_result.stderr}")
             return {'success': False, 'error': compile_result.stderr}
 
         logger.info(f"[Session {session.session_id}] Compilation successful")
@@ -80,6 +93,11 @@ def start_interactive_session(session, code: str, language: str):
         # Run the compiled program
         exe_path = Path(session.temp_dir) / "bin" / "Debug" / "net7.0" / "linux-x64" / "program"
         logger.info(f"[Session {session.session_id}] Starting process: {exe_path}")
+
+        # Verify executable exists
+        if not os.path.exists(exe_path):
+            logger.error(f"[Session {session.session_id}] Executable not found at {exe_path}")
+            return {'success': False, 'error': 'Compiled executable not found'}
 
         session.process = subprocess.Popen(
             [str(exe_path)],
