@@ -375,14 +375,40 @@
     </div>
 </div>
 
-<!-- Load required libraries -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+{% endblock %}
 
+{% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Wait for all core dependencies to load before initializing console
+(async function loadDependencies() {
+    const dependencies = [
+        'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js',
+        'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
+    ];
+
+    try {
+        await Promise.all(dependencies.map(src => new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Failed to load: ${src}`));
+            document.body.appendChild(script);
+        })));
+
+        console.debug('All core dependencies loaded successfully');
+        initializeConsole();
+    } catch (error) {
+        console.error('Failed to load dependencies:', error);
+        const outputElement = document.getElementById('consoleOutput');
+        if (outputElement) {
+            outputElement.innerHTML = `<div class="console-error">Failed to load required dependencies: ${error.message}</div>`;
+        }
+    }
+})();
+
+function initializeConsole() {
     const outputElement = document.getElementById('consoleOutput');
     if (!outputElement) {
         console.error('Console output element not found');
@@ -391,41 +417,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
     outputElement.innerHTML = '<div class="console-loading">Initializing console...</div>';
 
-    // Load and initialize the console
-    (async function initializeConsole() {
-        try {
-            // Load console.js
-            await new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = "{{ url_for('static', filename='js/console.js') }}";
-                script.onload = resolve;
-                script.onerror = () => reject(new Error('Failed to load console script'));
-                document.body.appendChild(script);
-            });
+    // Load console.js and initialize console
+    const consoleScript = document.createElement('script');
+    consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
 
-            console.debug('Console script loaded successfully');
+    consoleScript.onload = () => {
+        console.debug('Console script loaded, initializing...');
 
-            // The console initialization will happen automatically through the
-            // DOMContentLoaded event listener in console.js
+        // Small delay to ensure DOM is fully ready
+        setTimeout(() => {
+            const inputElement = document.getElementById('consoleInput');
+            const language = document.getElementById('languageSelect')?.value || 'csharp';
 
-            // Load editor.js after console is ready
-            const editorScript = document.createElement('script');
-            editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
-            document.body.appendChild(editorScript);
+            if (!inputElement) {
+                outputElement.innerHTML = '<div class="console-error">Console input element not found</div>';
+                return;
+            }
 
-        } catch (error) {
-            console.error('Console initialization failed:', error);
-            if (outputElement) {
+            try {
+                // Create console instance
+                window.consoleInstance = new InteractiveConsole({
+                    outputElement,
+                    inputElement,
+                    language
+                });
+
+                // Setup clear console button
+                const clearButton = document.getElementById('clearConsole');
+                if (clearButton) {
+                    clearButton.addEventListener('click', () => {
+                        window.consoleInstance?.clear();
+                    });
+                }
+
+                // Load editor.js after console is ready
+                const editorScript = document.createElement('script');
+                editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+                document.body.appendChild(editorScript);
+
+            } catch (error) {
+                console.error('Console initialization failed:', error);
                 outputElement.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
             }
-        }
-    })().catch(error => {
-        console.error('Fatal initialization error:', error);
-        if (outputElement) {
-            outputElement.innerHTML = `<div class="console-error">Fatal error: ${error.message}</div>`;
-        }
-    });
-});
-</script>
+        }, 100);
+    };
 
+    consoleScript.onerror = () => {
+        console.error('Failed to load console script');
+        outputElement.innerHTML = '<div class="console-error">Failed to load console script</div>';
+    };
+
+    document.body.appendChild(consoleScript);
+}
+</script>
 {% endblock %}
