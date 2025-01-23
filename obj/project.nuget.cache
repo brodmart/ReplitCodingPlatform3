@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "tDEFzwC0WJK844Yl4osJ5F1Co6NPcJJurcE6XbzYitW+623/mfzjLnVUNBrLINgdgrmK7KFcAKWQT9qO0KpJxQ==",
+  "dgSpecHash": "oJ39CfpSTcjEol2rc/jzidDyIFGPejr9NblfVDFxgGY7ayJhdmN2bGFnlDzMbCjOSZH+BBgf7ZB9Vl6Kl0a+ZA==",
   "success": true,
   "projectFilePath": "/home/runner/workspace/HelloWorld.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/7.0.20/microsoft.netcore.app.runtime.linux-x64.7.0.20.nupkg.sha512",
+    "/home/runner/.nuget/packages/microsoft.aspnetcore.app.runtime.linux-x64/7.0.20/microsoft.aspnetcore.app.runtime.linux-x64.7.0.20.nupkg.sha512"
+  ],
   "logs": []
 }

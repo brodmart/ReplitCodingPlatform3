@@ -1,25 +1,29 @@
 using System;
+using System.IO;
 
-class Program 
+namespace HelloWorld 
 {
-    static void Main() 
+    class Program 
     {
-        try 
+        static void Main() 
         {
-            Console.Write("Enter your name: ");
-            string? name = Console.ReadLine();
-            if (!string.IsNullOrEmpty(name))
+            try 
             {
-                Console.WriteLine($"Hello, {name}!");
+                Console.Write("Enter your name: ");
+                string? name = Console.ReadLine();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    Console.WriteLine($"Hello, {name}!");
+                }
+                else 
+                {
+                    Console.WriteLine("No name entered.");
+                }
             }
-            else 
+            catch (Exception ex)
             {
-                Console.WriteLine("No name entered.");
+                Console.WriteLine($"An error occurred: {ex.Message}");
             }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An error occurred: {ex.Message}");
         }
     }
 }
