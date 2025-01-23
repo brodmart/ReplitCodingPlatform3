@@ -379,9 +379,45 @@
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 
 <script>
-    // Initialize console after DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(initializeConsole, 500); // Small delay to ensure elements are loaded
+    // Improved initialization with readiness checks
+    function checkAndInitializeConsole() {
+        const output = document.getElementById('consoleOutput');
+        const input = document.getElementById('consoleInput');
+
+        if (!output || !input) {
+            console.debug('Console elements not found, waiting...');
+            if (!window.initAttempts) {
+                window.initAttempts = 0;
+            }
+            if (window.initAttempts < 10) {
+                window.initAttempts++;
+                setTimeout(checkAndInitializeConsole, Math.min(100 * Math.pow(2, window.initAttempts), 2000));
+            } else {
+                console.error('Failed to find console elements after maximum retries');
+            }
+            return;
+        }
+
+        try {
+            window.consoleInstance = new InteractiveConsole({
+                outputElement: output,
+                inputElement: input,
+                language: document.getElementById('languageSelect')?.value || 'csharp'
+            });
+            console.debug('Console initialized successfully');
+        } catch (error) {
+            console.error('Console initialization error:', error);
+            if (!window.initAttempts || window.initAttempts < 10) {
+                window.initAttempts = (window.initAttempts || 0) + 1;
+                setTimeout(checkAndInitializeConsole, Math.min(100 * Math.pow(2, window.initAttempts), 2000));
+            }
+        }
+    }
+
+    // Wait for all scripts and DOM content to be fully loaded
+    window.addEventListener('load', function() {
+        console.debug('Window loaded, starting console initialization');
+        setTimeout(checkAndInitializeConsole, 100);
     });
 </script>
 

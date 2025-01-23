@@ -3,23 +3,24 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        // Initialize with safer null checks and retry mechanism
+        // Initialize with safer null checks and validation
         this.outputElement = options.outputElement;
         this.inputElement = options.inputElement;
         this.language = options.language || 'csharp';
-        this.retry_count = 0;
-        this.max_retries = 10;
 
-        console.debug('Attempting console initialization with:', {
-            outputElement: !!this.outputElement,
-            inputElement: !!this.inputElement,
+        // Validate required elements immediately
+        if (!this.outputElement || !(this.outputElement instanceof Element)) {
+            throw new Error('Console requires a valid output element');
+        }
+        if (!this.inputElement || !(this.inputElement instanceof Element)) {
+            throw new Error('Console requires a valid input element');
+        }
+
+        console.debug('Initializing console with:', {
+            outputElement: this.outputElement.id,
+            inputElement: this.inputElement.id,
             language: this.language
         });
-
-        if (!this.outputElement || !this.inputElement) {
-            console.error('Console initialization failed: Missing required elements');
-            throw new Error('Console requires valid output and input elements');
-        }
 
         this.sessionId = null;
         this.isWaitingForInput = false;
@@ -27,12 +28,15 @@ class InteractiveConsole {
         this.compilationTimeout = 60000; // 60s timeout
         this.retryAttempts = 3;
         this.retryDelay = 1000;
-
-        console.debug('Interactive Console initialized with language:', this.currentLanguage);
+        this.initialized = false;
 
         this.setupSocket();
         this.setupEventHandlers();
         this.clear();
+
+        // Mark as initialized
+        this.initialized = true;
+        console.debug('Console initialization completed');
     }
 
     setupSocket() {
@@ -299,7 +303,7 @@ function initializeConsole() {
             window.consoleInitAttempts = 0; // Reset counter on success
         } catch (error) {
             console.error('Failed to initialize console:', error);
-            if (window.consoleInitAttempts < window.consoleInstance?.max_retries || 10) {
+            if (window.consoleInitAttempts < 10) {
                 console.debug('Retrying initialization...');
                 window.consoleInitAttempts++;
                 // Exponential backoff for retries
