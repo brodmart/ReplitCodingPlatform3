@@ -84,6 +84,42 @@ As of January 23, 2025, the web console implementation has been identified as th
    - Document the changes made in the response
    - Continue with the implementation flow
 
+## CRITICAL: Essential Logging Guidelines
+1. **Immediate Logging Implementation**:
+   - Add comprehensive logging AS SOON as any integration work begins
+   - Never wait for issues to add logging - implement it proactively
+   - Logging is not optional, it's a critical development requirement
+
+2. **Required Logging Points**:
+   - All service entry and exit points
+   - State changes in critical components
+   - All asynchronous operations and their completion
+   - All API/Socket events (send and receive)
+   - Error conditions with full context
+   - Performance-critical operations with timing
+
+3. **Logging Structure**:
+   - Use consistent prefixes for different components [AUTH], [SOCKET], [COMPILE]
+   - Include session/request IDs in all logs
+   - Log both success and failure paths
+   - Include relevant data context without sensitive information
+   - Use appropriate log levels (DEBUG, INFO, WARNING, ERROR)
+
+4. **Debug-First Architecture**:
+   - Implement logging before implementing features
+   - Each new feature must include its logging strategy
+   - Log state transitions and important variable values
+   - Track all async operations and their timing
+   - Monitor resource usage in performance-critical sections
+
+5. **Troubleshooting Requirements**:
+   - Every error condition must have an associated error log
+   - Include stack traces for unexpected errors
+   - Log user actions that lead to errors
+   - Track system state during failures
+   - Log recovery attempts and their outcomes
+
+
 ## CRITICAL WARNING - Console Implementation
 PERSISTENT ISSUE DOCUMENTED: There has been a recurring tendency to implement and test console functionality through command-line interfaces instead of the required web console interface. This is STRICTLY PROHIBITED.
 

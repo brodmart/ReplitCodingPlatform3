@@ -810,7 +810,7 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
 
 MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
 
-def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
+def cleanup_compilation_files(temp_dir: Union[str, Path]) ->> None:
     """Clean up temporary compilation files with enhanced logging"""
     try:
         if isinstance(temp_dir, str):
@@ -893,3 +893,120 @@ def process_csharp_input(session_id: str, input_text: str) -> Dict[str, Any]:
             'success': False,
             'error': str(e)
         }
+
+import logging
+from datetime import datetime
+
+# Configure enhanced logging
+logger = logging.getLogger('compiler_service')
+logger.setLevel(logging.DEBUG)
+
+def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
+    """Compile and run C# code with enhanced logging"""
+    logger.info(f"[COMPILE] Starting C# compilation for session {session_id}")
+    logger.debug(f"[COMPILE] Code length: {len(code)}, Session: {session_id}")
+
+    try:
+        # Create project structure
+        logger.debug(f"[COMPILE] Creating project structure for {session_id}")
+        project_dir = Path(tempfile.mkdtemp(prefix=f'compiler_{session_id}_'))
+        source_file = project_dir / "Program.cs"
+        project_file = project_dir / "program.csproj"
+
+        # Write project file
+        logger.debug(f"[COMPILE] Writing project file for {session_id}")
+        project_content = """<Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+                <OutputType>Exe</OutputType>
+                <TargetFramework>net7.0</TargetFramework>
+                <ImplicitUsings>enable</ImplicitUsings>
+                <Nullable>enable</Nullable>
+            </PropertyGroup>
+        </Project>"""
+
+        with open(project_file, 'w') as f:
+            f.write(project_content)
+
+        # Write source file
+        logger.debug(f"[COMPILE] Writing source file for {session_id}")
+        with open(source_file, 'w') as f:
+            f.write(code)
+
+        # Compile
+        logger.info(f"[COMPILE] Starting dotnet build for {session_id}")
+        compile_start = datetime.now()
+        compile_result = subprocess.run(
+            ['dotnet', 'build', str(project_file), '--nologo'],
+            capture_output=True,
+            text=True,
+            cwd=str(project_dir)
+        )
+        compile_time = (datetime.now() - compile_start).total_seconds()
+        logger.info(f"[COMPILE] Build completed in {compile_time:.2f}s for {session_id}")
+
+        if compile_result.returncode != 0:
+            error_msg = compile_result.stderr
+            logger.error(f"[COMPILE] Build failed for {session_id}: {error_msg}")
+            return {'success': False, 'error': error_msg}
+
+        # Start the compiled program
+        logger.info(f"[COMPILE] Starting program execution for {session_id}")
+        executable = project_dir / "bin" / "Debug" / "net7.0" / "program.dll"
+
+        if not executable.exists():
+            error_msg = f"Executable not found at {executable}"
+            logger.error(f"[COMPILE] {error_msg}")
+            return {'success': False, 'error': error_msg}
+
+        process = subprocess.Popen(
+            ['dotnet', str(executable)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffered
+            cwd=str(project_dir)
+        )
+
+        logger.info(f"[COMPILE] Process started for {session_id}")
+
+        # Monitor initial output
+        try:
+            # Use select to wait for initial output with timeout
+            readable, _, _ = select.select([process.stdout], [], [], 5.0)
+
+            if not readable:
+                logger.warning(f"[COMPILE] No initial output received in 5s for {session_id}")
+                initial_output = ""
+            else:
+                initial_output = process.stdout.readline().strip()
+                logger.info(f"[COMPILE] Initial output received for {session_id}: {initial_output}")
+
+        except Exception as e:
+            logger.error(f"[COMPILE] Error reading initial output for {session_id}: {str(e)}")
+            initial_output = ""
+
+        # Check if process is still running
+        if process.poll() is not None:
+            exit_code = process.poll()
+            error_output = process.stderr.read()
+            logger.error(f"[COMPILE] Process ended prematurely for {session_id}. Exit code: {exit_code}, Error: {error_output}")
+            return {'success': False, 'error': f"Process ended with code {exit_code}: {error_output}"}
+
+        logger.info(f"[COMPILE] Successfully started interactive session {session_id}")
+
+        # Return success with process info
+        return {
+            'success': True,
+            'session_id': session_id,
+            'interactive': True,
+            'output': initial_output,
+            'waiting_for_input': bool(initial_output)
+        }
+
+    except Exception as e:
+        logger.error(f"[COMPILE] Critical error in session {session_id}: {str(e)}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+    finally:
+        logger.info(f"[COMPILE] Compilation process complete for {session_id}")

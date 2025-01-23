@@ -1,0 +1,91 @@
+2025-01-23 16:02:52,179 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:02:52,225 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:02:52,280 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:02:52,322 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:02:52,440 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:02:52,460 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:02:53,839 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:02:55,127 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:02:55,174 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:02:55,182 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+ - MainProcess:MainThread
+2025-01-23 16:02:55,236 - __main__:333 - INFO - Starting ICD2O curriculum import process... - MainProcess:MainThread
+2025-01-23 16:02:55,569 - __main__:62 - INFO - Database Content: - MainProcess:MainThread
+2025-01-23 16:02:55,570 - __main__:63 - INFO - -------------------------------------------------- - MainProcess:MainThread
+2025-01-23 16:02:55,571 - __main__:64 - INFO - Strand: - MainProcess:MainThread
+2025-01-23 16:02:55,571 - __main__:65 - INFO - - Code: C - MainProcess:MainThread
+2025-01-23 16:02:55,572 - __main__:66 - INFO - - Title (FR): Programmation - MainProcess:MainThread
+2025-01-23 16:02:55,572 - __main__:67 - INFO - - Title (EN): Programming - MainProcess:MainThread
+2025-01-23 16:02:55,572 - __main__:69 - INFO - 
+Overall Expectation: - MainProcess:MainThread
+2025-01-23 16:02:55,572 - __main__:70 - INFO - - Code: C2 - MainProcess:MainThread
+2025-01-23 16:02:55,573 - __main__:71 - INFO - - Description (FR): Écriture - MainProcess:MainThread
+2025-01-23 16:02:55,573 - __main__:72 - INFO - - Description (EN): Writing - MainProcess:MainThread
+2025-01-23 16:02:55,575 - __main__:74 - INFO - 
+Specific Expectation: - MainProcess:MainThread
+2025-01-23 16:02:55,575 - __main__:75 - INFO - - Code: C2.1 - MainProcess:MainThread
+2025-01-23 16:02:55,575 - __main__:76 - INFO - - Description (FR): Écrire du code clair et maintenable en utilisant les conventions appropriées - MainProcess:MainThread
+2025-01-23 16:02:55,576 - __main__:77 - INFO - - Description (EN): Write clear and maintainable code using proper conventions - MainProcess:MainThread
+2025-01-23 16:02:55,576 - __main__:93 - INFO - 
+All required fields are present - MainProcess:MainThread
+2025-01-23 16:02:55,885 - __main__:55 - INFO - Successfully cleared existing data for course ICD2O - MainProcess:MainThread
+2025-01-23 16:02:56,295 - __main__:354 - INFO - Created course: ICD2O - MainProcess:MainThread
+2025-01-23 16:02:56,296 - __main__:86 - INFO - Creating strand A - MainProcess:MainThread
+2025-01-23 16:02:56,365 - __main__:96 - INFO - Created strand A: Computational Thinking and Making Connections - MainProcess:MainThread
+2025-01-23 16:02:56,365 - __main__:86 - INFO - Creating strand B - MainProcess:MainThread
+2025-01-23 16:02:56,422 - __main__:96 - INFO - Created strand B: Hardware, Software, and Innovations - MainProcess:MainThread
+2025-01-23 16:02:56,422 - __main__:86 - INFO - Creating strand C - MainProcess:MainThread
+2025-01-23 16:02:56,480 - __main__:96 - INFO - Created strand C: Programming - MainProcess:MainThread
+2025-01-23 16:02:56,820 - __main__:282 - INFO - Processing expectations for strand A - MainProcess:MainThread
+2025-01-23 16:02:56,820 - __main__:285 - INFO - Creating overall expectation A1 - MainProcess:MainThread
+2025-01-23 16:02:56,880 - __main__:304 - DEBUG - Creating specific expectation A1.1 - MainProcess:MainThread
+2025-01-23 16:02:56,881 - __main__:304 - DEBUG - Creating specific expectation A1.2 - MainProcess:MainThread
+2025-01-23 16:02:56,881 - __main__:304 - DEBUG - Creating specific expectation A1.3 - MainProcess:MainThread
+2025-01-23 16:02:56,941 - __main__:314 - INFO - Created overall expectation A1 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:56,942 - __main__:285 - INFO - Creating overall expectation A2 - MainProcess:MainThread
+2025-01-23 16:02:56,998 - __main__:304 - DEBUG - Creating specific expectation A2.1 - MainProcess:MainThread
+2025-01-23 16:02:56,998 - __main__:304 - DEBUG - Creating specific expectation A2.2 - MainProcess:MainThread
+2025-01-23 16:02:57,056 - __main__:314 - INFO - Created overall expectation A2 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:57,056 - __main__:285 - INFO - Creating overall expectation A3 - MainProcess:MainThread
+2025-01-23 16:02:57,113 - __main__:304 - DEBUG - Creating specific expectation A3.1 - MainProcess:MainThread
+2025-01-23 16:02:57,114 - __main__:304 - DEBUG - Creating specific expectation A3.2 - MainProcess:MainThread
+2025-01-23 16:02:57,171 - __main__:314 - INFO - Created overall expectation A3 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:57,171 - __main__:316 - INFO - Completed processing expectations for strand A - MainProcess:MainThread
+2025-01-23 16:02:57,228 - __main__:282 - INFO - Processing expectations for strand B - MainProcess:MainThread
+2025-01-23 16:02:57,229 - __main__:285 - INFO - Creating overall expectation B1 - MainProcess:MainThread
+2025-01-23 16:02:57,454 - __main__:304 - DEBUG - Creating specific expectation B1.1 - MainProcess:MainThread
+2025-01-23 16:02:57,454 - __main__:304 - DEBUG - Creating specific expectation B1.2 - MainProcess:MainThread
+2025-01-23 16:02:57,511 - __main__:314 - INFO - Created overall expectation B1 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:57,511 - __main__:285 - INFO - Creating overall expectation B2 - MainProcess:MainThread
+2025-01-23 16:02:57,568 - __main__:304 - DEBUG - Creating specific expectation B2.1 - MainProcess:MainThread
+2025-01-23 16:02:57,568 - __main__:304 - DEBUG - Creating specific expectation B2.2 - MainProcess:MainThread
+2025-01-23 16:02:57,628 - __main__:314 - INFO - Created overall expectation B2 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:57,629 - __main__:285 - INFO - Creating overall expectation B3 - MainProcess:MainThread
+2025-01-23 16:02:57,687 - __main__:304 - DEBUG - Creating specific expectation B3.1 - MainProcess:MainThread
+2025-01-23 16:02:57,688 - __main__:304 - DEBUG - Creating specific expectation B3.2 - MainProcess:MainThread
+2025-01-23 16:02:57,745 - __main__:314 - INFO - Created overall expectation B3 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:57,745 - __main__:285 - INFO - Creating overall expectation B4 - MainProcess:MainThread
+2025-01-23 16:02:57,805 - __main__:304 - DEBUG - Creating specific expectation B4.1 - MainProcess:MainThread
+2025-01-23 16:02:57,805 - __main__:304 - DEBUG - Creating specific expectation B4.2 - MainProcess:MainThread
+2025-01-23 16:02:57,863 - __main__:314 - INFO - Created overall expectation B4 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:57,863 - __main__:316 - INFO - Completed processing expectations for strand B - MainProcess:MainThread
+2025-01-23 16:02:57,921 - __main__:282 - INFO - Processing expectations for strand C - MainProcess:MainThread
+2025-01-23 16:02:57,921 - __main__:285 - INFO - Creating overall expectation C1 - MainProcess:MainThread
+2025-01-23 16:02:58,148 - __main__:304 - DEBUG - Creating specific expectation C1.1 - MainProcess:MainThread
+2025-01-23 16:02:58,148 - __main__:304 - DEBUG - Creating specific expectation C1.2 - MainProcess:MainThread
+2025-01-23 16:02:58,148 - __main__:304 - DEBUG - Creating specific expectation C1.3 - MainProcess:MainThread
+2025-01-23 16:02:58,206 - __main__:314 - INFO - Created overall expectation C1 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:58,208 - __main__:285 - INFO - Creating overall expectation C2 - MainProcess:MainThread
+2025-01-23 16:02:58,265 - __main__:304 - DEBUG - Creating specific expectation C2.1 - MainProcess:MainThread
+2025-01-23 16:02:58,265 - __main__:304 - DEBUG - Creating specific expectation C2.2 - MainProcess:MainThread
+2025-01-23 16:02:58,323 - __main__:314 - INFO - Created overall expectation C2 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:58,323 - __main__:285 - INFO - Creating overall expectation C3 - MainProcess:MainThread
+2025-01-23 16:02:58,381 - __main__:304 - DEBUG - Creating specific expectation C3.1 - MainProcess:MainThread
+2025-01-23 16:02:58,382 - __main__:304 - DEBUG - Creating specific expectation C3.2 - MainProcess:MainThread
+2025-01-23 16:02:58,441 - __main__:314 - INFO - Created overall expectation C3 with its specific expectations - MainProcess:MainThread
+2025-01-23 16:02:58,441 - __main__:316 - INFO - Completed processing expectations for strand C - MainProcess:MainThread
+2025-01-23 16:02:58,850 - __main__:377 - INFO - Final verification: - MainProcess:MainThread
+2025-01-23 16:02:58,850 - __main__:378 - INFO - - Course: ICD2O - MainProcess:MainThread
+2025-01-23 16:02:58,850 - __main__:379 - INFO - - Strands: 3 - MainProcess:MainThread
+2025-01-23 16:02:58,851 - __main__:380 - INFO - - Overall Expectations: 10 - MainProcess:MainThread
+2025-01-23 16:02:58,851 - __main__:381 - INFO - - Specific Expectations: 22 - MainProcess:MainThread
