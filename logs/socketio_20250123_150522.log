@@ -1,0 +1,4 @@
+2025-01-23 15:05:22,583 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:05:23,450 - __main__:88 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:05:23,451 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:05:23,453 - werkzeug:96 - INFO -  * Debugger PIN: 210-037-787 - MainProcess:MainThread

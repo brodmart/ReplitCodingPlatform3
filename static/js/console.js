@@ -4,7 +4,7 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        this.terminalContainer = document.getElementById(options.terminalContainer);
+        this.terminalContainer = document.getElementById(options.terminalContainer || 'consoleOutput');
         if (!this.terminalContainer) {
             throw new Error('Terminal container element not found');
         }
@@ -45,6 +45,7 @@ class InteractiveConsole {
         this.currentBackgroundColor = '\x1b[40m';
         this.cursorPosition = { x: 0, y: 0 };
 
+        // Initialize components
         this.initializeTerminal();
         this.initializeSocketIO();
 
@@ -68,7 +69,8 @@ class InteractiveConsole {
                 allowTransparency: true,
                 scrollback: 1000,
                 convertEol: true,
-                disableStdin: false
+                disableStdin: false,
+                cursorStyle: 'block'
             });
 
             // Initialize addons before opening terminal
@@ -98,12 +100,6 @@ class InteractiveConsole {
 
             this.initialized = true;
             console.log('Terminal initialized successfully');
-
-            // Set initial terminal options
-            if (typeof this.terminal.options.setOption === 'function') {
-                this.terminal.options.setOption('cursorBlink', true);
-                this.terminal.options.setOption('cursorStyle', 'block');
-            }
         } catch (error) {
             console.error('Failed to initialize terminal:', error);
             this.terminalContainer.innerHTML = `<div class="alert alert-danger">Failed to initialize terminal: ${error.message}</div>`;
@@ -118,7 +114,8 @@ class InteractiveConsole {
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
             reconnectionAttempts: this.maxReconnectAttempts,
-            timeout: 20000
+            timeout: 20000,
+            transports: ['websocket', 'polling']
         });
 
         this.setupSocketEvents();
@@ -131,18 +128,13 @@ class InteractiveConsole {
             this.connected = true;
             this.reconnectAttempts = 0;
             this.writeLine('[System] Console connected');
-            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
-                this.terminal.options.setOption('cursorBlink', true);
-            }
+            this.terminal.focus();
         });
 
         this.socket.on('disconnect', () => {
             this.connected = false;
             this.waitingForInput = false;
             this.writeLine('[System] Console disconnected');
-            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
-                this.terminal.options.setOption('cursorBlink', false);
-            }
         });
 
         this.socket.on('connect_error', (error) => {
@@ -182,7 +174,7 @@ class InteractiveConsole {
             }
         });
 
-        // Enhanced output handling
+        // Enhanced output handling with input state management
         this.socket.on('output', (data) => {
             if (!data) return;
 
@@ -194,10 +186,10 @@ class InteractiveConsole {
                 this.write(data.output);
             }
 
-            // Update input state with visual feedback
-            this.waitingForInput = data.waiting_for_input;
-            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
-                this.terminal.options.setOption('cursorStyle', this.waitingForInput ? 'block' : 'bar');
+            // Update input state
+            this.waitingForInput = !!data.waiting_for_input;
+            if (this.waitingForInput) {
+                this.terminal.focus();
             }
         });
 
@@ -207,8 +199,12 @@ class InteractiveConsole {
             const errorType = data.type || 'general_error';
             this.writeError(`${errorType}: ${errorMessage}`);
             this.waitingForInput = false;
-            if (this.terminal.options && typeof this.terminal.options.setOption === 'function') {
-                this.terminal.options.setOption('cursorStyle', 'bar');
+        });
+
+        // Handle compilation success
+        this.socket.on('compilation_success', (data) => {
+            if (data && data.session_id) {
+                this.currentSessionId = data.session_id;
             }
         });
     }
@@ -223,9 +219,8 @@ class InteractiveConsole {
                 } else if (data === '\u007f') { // Backspace
                     if (this.inputBuffer.length > 0 && this.inputPosition > 0) {
                         this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition - 1) + 
-                                         this.inputBuffer.slice(this.inputPosition);
+                                       this.inputBuffer.slice(this.inputPosition);
                         this.inputPosition--;
-                        // Move cursor back and rewrite the line
                         this.terminal.write('\b \b');
                     }
                 } else if (data === '\u001b[A') { // Up arrow - history
@@ -244,12 +239,47 @@ class InteractiveConsole {
                     }
                 } else if (data >= ' ' && data <= '~') { // Printable characters
                     this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition) +
-                                     data +
-                                     this.inputBuffer.slice(this.inputPosition);
+                                   data +
+                                   this.inputBuffer.slice(this.inputPosition);
                     this.inputPosition++;
                     this.terminal.write(data);
                 }
             }
+        });
+
+        // Ensure terminal focus on click
+        this.terminal.element.addEventListener('click', () => {
+            if (this.waitingForInput) {
+                this.terminal.focus();
+            }
+        });
+    }
+
+    handleInput() {
+        if (!this.waitingForInput || !this.currentSessionId) return;
+
+        const input = this.inputBuffer;
+
+        // Add to history if not empty and different from last entry
+        if (input && (this.inputHistory.length === 0 || this.inputHistory[0] !== input)) {
+            this.inputHistory.unshift(input);
+            if (this.inputHistory.length > 50) { // Limit history size
+                this.inputHistory.pop();
+            }
+        }
+
+        // Clear input state
+        this.inputBuffer = '';
+        this.inputPosition = 0;
+        this.historyPosition = -1;
+
+        // Write newline and emit input
+        this.terminal.write('\r\n');
+
+        // Emit input event with session ID
+        this.socket.emit('input', {
+            session_id: this.currentSessionId,
+            input: input
         });
     }
 
@@ -325,30 +355,6 @@ class InteractiveConsole {
         this.terminal.write(this.inputBuffer);
     }
 
-    handleInput() {
-        if (!this.waitingForInput || !this.currentSessionId || !this.initialized) return;
-
-        const input = this.inputBuffer;
-
-        // Add to history if not empty and different from last entry
-        if (input && (this.inputHistory.length === 0 || this.inputHistory[0] !== input)) {
-            this.inputHistory.unshift(input);
-            if (this.inputHistory.length > 50) { // Limit history size
-                this.inputHistory.pop();
-            }
-        }
-
-        this.inputBuffer = '';
-        this.inputPosition = 0;
-        this.historyPosition = -1;
-        this.waitingForInput = false;
-        this.terminal.write('\r\n');
-
-        this.socket.emit('input', {
-            session_id: this.currentSessionId,
-            input: input
-        });
-    }
 
     write(text) {
         if (!text || !this.initialized) return;
@@ -409,6 +415,12 @@ class InteractiveConsole {
 
         this.clear();
         this.writeLine('Compiling and running code...');
+
+        // Reset state before new compilation
+        this.waitingForInput = false;
+        this.inputBuffer = '';
+        this.inputPosition = 0;
+
         this.socket.emit('compile_and_run', { code });
     }
 

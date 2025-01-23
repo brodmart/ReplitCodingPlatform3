@@ -1,0 +1,4 @@
+2025-01-23 15:04:03,814 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:04:05,250 - app:88 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:04:06,529 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 15:04:07,103 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread

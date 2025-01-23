@@ -1,0 +1,14 @@
+2025-01-23 15:07:01,577 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:07:02,454 - __main__:88 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:07:02,457 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:07:02,459 - werkzeug:96 - INFO -  * Debugger PIN: 408-860-772 - MainProcess:MainThread
+2025-01-23 15:07:04,821 - __main__:95 - DEBUG - Rendering index page - MainProcess:GreenThread-1
+2025-01-23 15:07:06,110 - engineio.server:78 - INFO - TTMmtAkVn_T5U2t8AAAA: Sending packet OPEN data {'sid': 'TTMmtAkVn_T5U2t8AAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-2
+2025-01-23 15:07:06,111 - engineio.server:90 - INFO - TTMmtAkVn_T5U2t8AAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-23 15:07:06,113 - engineio.server:219 - INFO - TTMmtAkVn_T5U2t8AAAA: Upgrade to websocket successful - MainProcess:GreenThread-2
+2025-01-23 15:07:06,119 - engineio.server:39 - INFO - TTMmtAkVn_T5U2t8AAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-23 15:07:06,123 - __main__:112 - INFO - Client connected: {"sid": "kThIhgQ1LNQfKfIUAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36", "remote_addr": "172.31.196.130"} - MainProcess:GreenThread-2
+2025-01-23 15:07:06,123 - engineio.server:78 - INFO - TTMmtAkVn_T5U2t8AAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"kThIhgQ1LNQfKfIUAAAB"}] - MainProcess:GreenThread-2
+2025-01-23 15:07:06,124 - engineio.server:78 - INFO - TTMmtAkVn_T5U2t8AAAA: Sending packet MESSAGE data 0{"sid":"kThIhgQ1LNQfKfIUAAAB"} - MainProcess:GreenThread-2
+2025-01-23 15:07:06,899 - __main__:131 - INFO - Client disconnecting: kThIhgQ1LNQfKfIUAAAB - MainProcess:GreenThread-2
+2025-01-23 15:07:06,900 - __main__:141 - INFO - Client disconnected: kThIhgQ1LNQfKfIUAAAB - MainProcess:GreenThread-2
