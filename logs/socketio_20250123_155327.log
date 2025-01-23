@@ -29,3 +29,6 @@
 2025-01-23 15:53:30,334 - engineio.server:78 - INFO - q4G33LqbkoVkfsTtAAAE: Sending packet MESSAGE data 0{"sid":"gTrmfgiWV1CpWEgoAAAF"} - MainProcess:Thread-1 (run_server)
 2025-01-23 15:53:30,491 - __main__:156 - INFO - Client disconnecting: kAqm9YPEh2GMA19hAAAD - MainProcess:Thread-1 (run_server)
 2025-01-23 15:53:30,491 - __main__:167 - INFO - Client disconnected: kAqm9YPEh2GMA19hAAAD - MainProcess:Thread-1 (run_server)
+2025-01-23 15:53:51,643 - engineio.server:39 - INFO - q4G33LqbkoVkfsTtAAAE: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:53:51,644 - __main__:183 - INFO - Starting compilation session session_1737647631 for client gTrmfgiWV1CpWEgoAAAF - MainProcess:Thread-1 (run_server)
+2025-01-23 15:53:51,644 - __main__:62 - INFO - Created new console session: session_1737647631 (active: True) - MainProcess:Thread-1 (run_server)
