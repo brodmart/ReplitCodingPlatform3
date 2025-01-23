@@ -13,12 +13,32 @@ class InteractiveConsole {
         this.socket = null;
         this.language = options.language || 'csharp';
         this.pendingOperations = new Map();
+        this.initializationAttempts = 0;
+        this.maxInitializationAttempts = 3;
 
-        // Defer initialization to ensure DOM is ready
+        // Enhanced initialization with retry logic
+        const initWithRetry = async () => {
+            try {
+                await this.initializeAsync(options);
+            } catch (error) {
+                console.error('Initialization attempt failed:', error);
+                this.initializationAttempts++;
+
+                if (this.initializationAttempts < this.maxInitializationAttempts) {
+                    console.debug(`Retrying initialization (attempt ${this.initializationAttempts + 1}/${this.maxInitializationAttempts})`);
+                    setTimeout(initWithRetry, this.retryDelay);
+                } else {
+                    console.error('Max initialization attempts reached');
+                    this.appendError('Failed to initialize console after multiple attempts');
+                }
+            }
+        };
+
+        // Start initialization when DOM is ready
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.initializeAsync(options));
+            document.addEventListener('DOMContentLoaded', initWithRetry);
         } else {
-            this.initializeAsync(options);
+            initWithRetry();
         }
     }
 
@@ -28,10 +48,14 @@ class InteractiveConsole {
                 throw new Error('Invalid console options');
             }
 
-            // Wait for elements with timeout
-            const elements = await this.waitForElements(options);
+            // Wait for elements with increased timeout
+            const elements = await this.waitForElements(options, 10000); // Increased timeout to 10s
             this.outputElement = elements.outputElement;
             this.inputElement = elements.inputElement;
+
+            if (!this.outputElement || !this.inputElement) {
+                throw new Error('Console elements not properly initialized');
+            }
 
             // Clear and show initializing message
             this.clear();
@@ -55,10 +79,9 @@ class InteractiveConsole {
         }
     }
 
-    async waitForElements(options, timeout = 5000) {
+    async waitForElements(options, timeout = 10000) {
         const startTime = Date.now();
-
-        while (Date.now() - startTime < timeout) {
+        const checkElements = () => {
             // Check both direct options and DOM elements
             const outputElement = options.outputElement || document.getElementById('consoleOutput');
             const inputElement = options.inputElement || document.getElementById('consoleInput');
@@ -66,12 +89,28 @@ class InteractiveConsole {
             if (outputElement instanceof Element && inputElement instanceof Element) {
                 return { outputElement, inputElement };
             }
+            return null;
+        };
 
-            // Wait before next check
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        return new Promise((resolve, reject) => {
+            const tryGetElements = () => {
+                const elements = checkElements();
+                if (elements) {
+                    resolve(elements);
+                    return;
+                }
 
-        throw new Error('Required console elements not found within timeout');
+                if (Date.now() - startTime > timeout) {
+                    reject(new Error(`Required console elements not found within ${timeout}ms timeout`));
+                    return;
+                }
+
+                // Try again after a short delay
+                setTimeout(tryGetElements, 100);
+            };
+
+            tryGetElements();
+        });
     }
 
     async initializeSocket() {

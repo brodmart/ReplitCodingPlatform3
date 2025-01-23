@@ -1,0 +1,63 @@
+2025-01-23 02:26:22,301 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 02:26:22,302 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 02:26:22,476 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:26:22,477 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 02:26:22,480 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 02:26:22,619 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 02:26:22,622 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:26:22,622 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 02:26:22,634 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 02:26:22,831 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 02:26:22,831 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 02:26:22,979 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 02:26:22,980 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 02:26:23,033 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:26:23,034 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 02:26:23,035 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 02:26:23,143 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:26:23,144 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 02:26:23,145 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 02:26:23,157 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 02:26:23,159 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:26:23,160 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 02:26:23,173 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 02:26:23,267 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 02:26:23,267 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:26:23,267 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 02:26:23,284 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 02:26:25,655 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 02:26:25,660 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 02:26:25,700 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 02:26:25,748 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
+2025-01-23 02:26:26,154 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 02:26:26,168 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 02:26:26,252 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+ - MainProcess:MainThread
+2025-01-23 02:26:26,260 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 02:26:26,262 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 02:26:26,341 - __main__:333 - INFO - Starting ICD2O curriculum import process... - MainProcess:MainThread
+2025-01-23 02:26:26,364 - __main__:108 - ERROR - Error during verification: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
+Traceback (most recent call last):
+  File "/home/runner/workspace/scripts/verify_c21.py", line 55, in verify_c21
+    ).first()
+      ^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2728, in first
+    return self.limit(1)._iter().first()  # type: ignore
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/query.py", line 2827, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2362, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2235, in _execute_internal
+    bind = self.get_bind(**bind_arguments)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/session.py", line 53, in get_bind
+    engines = self._db.engines
+              ^^^^^^^^^^^^^^^^
+  File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/flask_sqlalchemy/extension.py", line 690, in engines
+    raise RuntimeError(
+RuntimeError: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances?
+2025-01-23 02:26:26,389 - __main__:58 - ERROR - Error clearing existing data: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
+2025-01-23 02:26:26,390 - __main__:387 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
