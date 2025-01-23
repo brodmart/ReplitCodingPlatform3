@@ -9,12 +9,13 @@ class InteractiveConsole {
         this.isWaitingForInput = false;
         this.compilationTimeout = 60000; // 60s timeout
         this.retryAttempts = 3;
-        this.retryDelay = 1000;
+        this.retryDelay = 2000; // Increased from 1000ms to 2000ms
         this.socket = null;
         this.language = options.language || 'csharp';
         this.pendingOperations = new Map();
         this.initializationAttempts = 0;
         this.maxInitializationAttempts = 3;
+        this.elementWaitTimeout = 20000; // Increased from 10000ms to 20000ms
 
         // Initialize with retry mechanism
         this.initWithRetry(options);
@@ -41,18 +42,34 @@ class InteractiveConsole {
             }
         };
 
-        // Ensure DOM is ready before starting
-        if (document.readyState === 'complete') {
-            attemptInit();
+        // Ensure DOM is ready before starting and add mutation observer
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.waitForDOMAndInit(options, attemptInit));
         } else {
-            document.addEventListener('DOMContentLoaded', attemptInit);
-            // Fallback for late script loading
-            window.addEventListener('load', () => {
-                if (!this.initialized) {
-                    attemptInit();
-                }
-            });
+            this.waitForDOMAndInit(options, attemptInit);
         }
+    }
+
+    waitForDOMAndInit(options, attemptInit) {
+        // Create mutation observer to detect when elements are added
+        const observer = new MutationObserver((mutations, obs) => {
+            const outputElement = document.getElementById('consoleOutput');
+            const inputElement = document.getElementById('consoleInput');
+
+            if (outputElement && inputElement) {
+                obs.disconnect(); // Stop observing
+                attemptInit();
+            }
+        });
+
+        // Start observing
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Also try immediate initialization in case elements are already present
+        attemptInit();
     }
 
     async initializeAsync(options) {
@@ -62,7 +79,7 @@ class InteractiveConsole {
             }
 
             // Wait for elements with increased timeout
-            const elements = await this.waitForElements(options, 10000);
+            const elements = await this.waitForElements(options, this.elementWaitTimeout);
             if (!elements || !elements.outputElement || !elements.inputElement) {
                 throw new Error('Required console elements not found');
             }
@@ -92,7 +109,7 @@ class InteractiveConsole {
         }
     }
 
-    async waitForElements(options, timeout = 10000) {
+    async waitForElements(options, timeout = 20000) {
         return new Promise((resolve, reject) => {
             const startTime = Date.now();
 
@@ -101,6 +118,10 @@ class InteractiveConsole {
                 const inputElement = options.inputElement || document.getElementById('consoleInput');
 
                 if (outputElement instanceof Element && inputElement instanceof Element) {
+                    console.debug('Console elements found:', { 
+                        outputElement: outputElement.id, 
+                        inputElement: inputElement.id 
+                    });
                     return { outputElement, inputElement };
                 }
                 return null;
@@ -114,11 +135,15 @@ class InteractiveConsole {
                 }
 
                 if (Date.now() - startTime > timeout) {
-                    reject(new Error(`Required console elements not found within ${timeout}ms timeout`));
+                    const error = new Error(`Required console elements not found within ${timeout}ms timeout`);
+                    console.error(error);
+                    this.appendError(error.message);
+                    reject(error);
                     return;
                 }
 
-                requestAnimationFrame(tryGetElements);
+                // Use smaller interval for more frequent checks
+                setTimeout(tryGetElements, 100);
             };
 
             tryGetElements();
