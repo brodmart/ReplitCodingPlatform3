@@ -6,5 +6,34 @@
       "code_length": 269,
       "timestamp": "2025-01-23T14:07:05.897219"
     }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T14:07:28.957061",
+    "data": {
+      "error_message": "Failed to send input",
+      "context": {
+        "stage": "input",
+        "context": {
+          "success": false,
+          "error": "Timeout waiting for input prompt"
+        }
+      },
+      "timestamp": "2025-01-23T14:07:28.956916"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T14:07:28.957551",
+    "data": {
+      "error_message": "Failed to send input",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to send input"
+        }
+      },
+      "timestamp": "2025-01-23T14:07:28.957464"
+    }
   }
 ]

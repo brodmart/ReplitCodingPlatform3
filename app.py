@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask
+from flask import Flask, render_template, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from sqlalchemy.orm import DeclarativeBase
@@ -47,6 +47,15 @@ def create_app():
         except Exception as e:
             logger.error(f"Error creating database tables: {str(e)}")
             raise
+
+    # Basic route for testing
+    @app.route('/')
+    def index():
+        return jsonify({
+            'status': 'success',
+            'message': 'Ontario Secondary Computer Science Curriculum Educational Platform',
+            'version': '1.0'
+        })
 
     return app
 
