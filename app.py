@@ -211,6 +211,20 @@ def create_app():
                 'timestamp': time.time()
             })
 
+            # Import necessary C# compilation module with validation
+            try:
+                from compiler_service import compile_and_run_csharp
+                logger.info(f"[COMPILE] Successfully imported compiler_service for session {session_id}")
+            except ImportError as e:
+                logger.error(f"[COMPILE] Failed to import compiler_service: {str(e)}")
+                emit('output', {
+                    'success': False,
+                    'session_id': session_id,
+                    'output': f"Compiler service unavailable: {str(e)}\n",
+                    'waiting_for_input': False
+                })
+                return
+
             # Immediate acknowledgment of compilation start
             logger.debug(f"[COMPILE] Sending initial acknowledgment for session {session_id}")
             emit('output', {
@@ -231,23 +245,57 @@ def create_app():
                 'session_id': session_id
             })
 
-            # Import necessary C# compilation module
-            try:
-                from compiler_service import compile_and_run_csharp
-                logger.info(f"[COMPILE] Successfully imported compiler_service for session {session_id}")
-            except ImportError as e:
-                logger.error(f"[COMPILE] Failed to import compiler_service: {str(e)}")
-                raise RuntimeError("Compiler service unavailable")
-
-            # Start C# compilation and execution with detailed logging
+            # Start C# compilation and execution with detailed logging and timeouts
             logger.info(f"[COMPILE] Starting C# compilation process for session {session_id}")
             compilation_start_time = time.time()
 
             try:
-                compilation_result = compile_and_run_csharp(code, session_id)
+                # Set a timeout for compilation
+                with eventlet.Timeout(30, exception=eventlet.Timeout):  # 30 second timeout
+                    compilation_result = compile_and_run_csharp(code, session_id)
                 compilation_duration = time.time() - compilation_start_time
                 logger.info(f"[COMPILE] Compilation completed in {compilation_duration:.2f}s for session {session_id}")
                 logger.debug(f"[COMPILE] Compilation result: {compilation_result}")
+
+                # Set compilation complete and process result with proper synchronization
+                with console_session.lock:
+                    console_session.set_compilation_complete()
+                    logger.debug(f"[COMPILE] Set compilation complete for {session_id}")
+
+                    if compilation_result.get('success'):
+                        waiting_for_input = compilation_result.get('waiting_for_input', False)
+                        console_session.waiting_for_input = waiting_for_input
+                        logger.info(f"[COMPILE] Session {session_id} waiting for input: {waiting_for_input}")
+
+                        # Enhanced output handling with proper validation
+                        output = compilation_result.get('output', '')
+                        if output:  # Only emit if there's actual output
+                            logger.info(f"[COMPILE] Emitting output for {session_id}: {repr(output)}")
+                            emit('output', {
+                                'success': True,
+                                'session_id': session_id,
+                                'output': output + ('\n' if not output.endswith('\n') else ''),
+                                'waiting_for_input': waiting_for_input
+                            })
+                    else:
+                        error = compilation_result.get('error', 'Unknown compilation error')
+                        logger.error(f"[COMPILE] Error in session {session_id}: {error}")
+                        emit('output', {
+                            'success': False,
+                            'session_id': session_id,
+                            'output': f"Compilation error: {error}\n",
+                            'waiting_for_input': False
+                        })
+
+            except eventlet.Timeout:
+                logger.error(f"[COMPILE] Compilation timeout after {time.time() - compilation_start_time:.2f}s for session {session_id}")
+                emit('output', {
+                    'success': False,
+                    'session_id': session_id,
+                    'output': "Compilation timed out after 30 seconds\n",
+                    'waiting_for_input': False
+                })
+                return
             except Exception as e:
                 logger.error(f"[COMPILE] Compilation failed for session {session_id}: {str(e)}", exc_info=True)
                 emit('output', {
@@ -257,36 +305,6 @@ def create_app():
                     'waiting_for_input': False
                 })
                 return
-
-            # Set compilation complete and process result with proper synchronization
-            with console_session.lock:
-                console_session.set_compilation_complete()
-                logger.debug(f"[COMPILE] Set compilation complete for {session_id}")
-
-                if compilation_result.get('success'):
-                    waiting_for_input = compilation_result.get('waiting_for_input', False)
-                    console_session.waiting_for_input = waiting_for_input
-                    logger.info(f"[COMPILE] Session {session_id} waiting for input: {waiting_for_input}")
-
-                    # Enhanced output handling with proper validation
-                    output = compilation_result.get('output', '')
-                    if output:  # Only emit if there's actual output
-                        logger.info(f"[COMPILE] Emitting output for {session_id}: {repr(output)}")
-                        emit('output', {
-                            'success': True,
-                            'session_id': session_id,
-                            'output': output + ('\n' if not output.endswith('\n') else ''),
-                            'waiting_for_input': waiting_for_input
-                        })
-                else:
-                    error = compilation_result.get('error', 'Unknown compilation error')
-                    logger.error(f"[COMPILE] Error in session {session_id}: {error}")
-                    emit('output', {
-                        'success': False,
-                        'session_id': session_id,
-                        'output': f"Compilation error: {error}\n",
-                        'waiting_for_input': False
-                    })
 
         except Exception as e:
             logger.error(f"[COMPILE] Critical error in compile_and_run: {str(e)}", exc_info=True)

@@ -35,3 +35,8 @@
 2025-01-23 16:21:12,973 - engineio.server:78 - INFO - 97J_gzTovJZyd6sEAAAE: Sending packet MESSAGE data 0{"sid":"Tvl522DAj25Qcu_qAAAF"} - MainProcess:Thread-1 (run_server)
 2025-01-23 16:21:13,167 - __main__:166 - INFO - Client disconnecting: OPpzjeqeEqcSGEdDAAAD - MainProcess:Thread-1 (run_server)
 2025-01-23 16:21:13,167 - __main__:177 - INFO - Client disconnected: OPpzjeqeEqcSGEdDAAAD - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:31,754 - engineio.server:39 - INFO - 97J_gzTovJZyd6sEAAAE: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:31,755 - __main__:194 - INFO - [COMPILE] Starting compilation for session session_1737649291 client Tvl522DAj25Qcu_qAAAF - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:31,755 - __main__:195 - DEBUG - [COMPILE] Code length: 227, First line: using - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:31,756 - __main__:62 - INFO - Created new console session: session_1737649291 (active: True) - MainProcess:Thread-1 (run_server)
+2025-01-23 16:23:43,477 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading - MainProcess:MainThread
