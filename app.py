@@ -210,14 +210,18 @@ def create_app():
             # Import necessary C# compilation module
             from compiler_service import compile_and_run_csharp
 
-            # Start C# compilation and execution with proper session handling
+            # Set compilation complete before processing result
+            with console_session.lock:
+                console_session.set_compilation_complete()
+
+            # Start C# compilation and execution
             compilation_result = compile_and_run_csharp(code, session_id)
 
             with console_session.lock:
-                console_session.set_compilation_complete()
                 if compilation_result.get('success'):
                     waiting_for_input = compilation_result.get('waiting_for_input', False)
                     console_session.waiting_for_input = waiting_for_input
+                    logger.info(f"Session {session_id} waiting for input: {waiting_for_input}")
                     emit('output', {
                         'success': True,
                         'session_id': session_id,
@@ -225,6 +229,7 @@ def create_app():
                         'waiting_for_input': waiting_for_input
                     })
                 else:
+                    logger.error(f"Compilation error in session {session_id}: {compilation_result.get('error')}")
                     emit('output', {
                         'success': False,
                         'session_id': session_id,
@@ -259,6 +264,7 @@ def create_app():
             sid = request.sid
             console_session = console_sessions.get(sid)
             if not console_session:
+                logger.error(f"Session {session_id} not found for client {sid}")
                 raise ValueError("Invalid session ID or session expired")
 
             if not console_session.is_active_and_ready():
@@ -275,9 +281,11 @@ def create_app():
 
                 # Send input to C# program with proper synchronization
                 result = process_csharp_input(session_id, user_input)
+                logger.info(f"Process input result for session {session_id}: {result}")
 
                 if result.get('success'):
-                    console_session.waiting_for_input = result.get('waiting_for_input', True)
+                    console_session.waiting_for_input = result.get('waiting_for_input', False)
+                    logger.info(f"Session {session_id} waiting for input updated to: {console_session.waiting_for_input}")
                     emit('output', {
                         'success': True,
                         'session_id': session_id,
@@ -285,6 +293,7 @@ def create_app():
                         'waiting_for_input': console_session.waiting_for_input
                     })
                 else:
+                    logger.error(f"Input processing error in session {session_id}: {result.get('error')}")
                     emit('error', {
                         'message': result.get('error', 'Failed to process input'),
                         'type': 'input_error',
