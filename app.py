@@ -205,8 +205,7 @@ def create_app():
                 'client_sid': sid
             })
 
-            # Emit compilation start
-            logger.debug(f"[COMPILE] Emitting initial compilation message for {session_id}")
+            # Immediate acknowledgment of compilation start
             emit('output', {
                 'success': True,
                 'session_id': session_id,
@@ -214,19 +213,38 @@ def create_app():
                 'waiting_for_input': False
             })
 
-            # Initialize console state
+            # Reset console state
+            emit('console_operation', {
+                'operation': 'Clear',
+                'session_id': session_id
+            })
             emit('console_operation', {
                 'operation': 'ResetColor',
                 'session_id': session_id
             })
 
             # Import necessary C# compilation module
-            from compiler_service import compile_and_run_csharp
+            try:
+                from compiler_service import compile_and_run_csharp
+            except ImportError as e:
+                logger.error(f"[COMPILE] Failed to import compiler_service: {str(e)}")
+                raise RuntimeError("Compiler service unavailable")
 
             # Start C# compilation and execution with detailed logging
             logger.info(f"[COMPILE] Starting C# compilation process for session {session_id}")
-            compilation_result = compile_and_run_csharp(code, session_id)
-            logger.info(f"[COMPILE] Got compilation result for {session_id}: {compilation_result}")
+
+            try:
+                compilation_result = compile_and_run_csharp(code, session_id)
+                logger.info(f"[COMPILE] Got compilation result for {session_id}: {compilation_result}")
+            except Exception as e:
+                logger.error(f"[COMPILE] Compilation failed for session {session_id}: {str(e)}")
+                emit('output', {
+                    'success': False,
+                    'session_id': session_id,
+                    'output': f"Compilation failed: {str(e)}\n",
+                    'waiting_for_input': False
+                })
+                return
 
             # Set compilation complete and process result with proper synchronization
             with console_session.lock:
@@ -240,15 +258,14 @@ def create_app():
 
                     # Enhanced output handling with proper validation
                     output = compilation_result.get('output', '')
-                    logger.info(f"[COMPILE] Emitting output for {session_id}: {repr(output)}")
-
-                    # Always emit output even if empty to ensure state sync
-                    emit('output', {
-                        'success': True,
-                        'session_id': session_id,
-                        'output': output + ('\n' if output and not output.endswith('\n') else ''),
-                        'waiting_for_input': waiting_for_input
-                    })
+                    if output:  # Only emit if there's actual output
+                        logger.info(f"[COMPILE] Emitting output for {session_id}: {repr(output)}")
+                        emit('output', {
+                            'success': True,
+                            'session_id': session_id,
+                            'output': output + ('\n' if not output.endswith('\n') else ''),
+                            'waiting_for_input': waiting_for_input
+                        })
                 else:
                     error = compilation_result.get('error', 'Unknown compilation error')
                     logger.error(f"[COMPILE] Error in session {session_id}: {error}")

@@ -152,6 +152,23 @@ class InteractiveConsole {
             console.log('Socket.IO disconnected');
         });
 
+        this.socket.on('connect_error', (error) => {
+            console.error('Socket.IO connection error:', error);
+            this.writeSystemError('Connection error: ' + error.message);
+        });
+
+        this.socket.on('error', async (data) => {
+            const errorMessage = data.message || 'An unknown error occurred';
+            const errorType = data.type || 'general_error';
+            console.error('Socket error:', errorType, errorMessage);
+            await this.writeError(`${errorType}: ${errorMessage}`);
+            this.waitingForInput = false;
+            this.pendingInput = false;
+
+            // Reset state on error
+            this.clearState();
+        });
+
         this.socket.on('output', async (data) => {
             if (!data) return;
 
@@ -160,6 +177,14 @@ class InteractiveConsole {
 
                 if (data.session_id) {
                     this.currentSessionId = data.session_id;
+                }
+
+                // Handle compilation failure
+                if (!data.success) {
+                    await this.writeError(data.output || 'Compilation failed');
+                    this.waitingForInput = false;
+                    this.pendingInput = false;
+                    return;
                 }
 
                 // Process output first
@@ -182,20 +207,9 @@ class InteractiveConsole {
             } catch (error) {
                 console.error('Error processing output:', error);
                 await this.writeError('Failed to process output: ' + error.message);
+                this.clearState();
             }
         });
-
-        // Enhanced error handling
-        this.socket.on('error', async (data) => {
-            const errorMessage = data.message || 'An unknown error occurred';
-            const errorType = data.type || 'general_error';
-            console.error('Socket error:', errorType, errorMessage);
-            await this.writeError(`${errorType}: ${errorMessage}`);
-            this.waitingForInput = false;
-            this.pendingInput = false;
-        });
-
-        // Console operations with improved synchronization
         this.socket.on('console_operation', async (data) => {
             if (!data || !data.operation) return;
 
@@ -539,6 +553,15 @@ class InteractiveConsole {
                 console.error('Error disposing terminal:', error);
             }
         }
+    }
+    clearState() {
+        this.currentSessionId = null;
+        this.waitingForInput = false;
+        this.pendingInput = false;
+        this.inputBuffer = '';
+        this.inputPosition = 0;
+        this.outputQueue = [];
+        this.isProcessingOutput = false;
     }
 }
 
