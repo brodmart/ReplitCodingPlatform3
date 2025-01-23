@@ -2939,3 +2939,6 @@ TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments 
 2025-01-23 16:51:10,936 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
 2025-01-23 16:51:10,936 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:Thread-1 (run_server)
 2025-01-23 16:51:10,936 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 16:51:53,495 - socketio.server:576 - INFO - received event "compile_and_run" from _g6JPmA-232g7-AnAAAB [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 16:51:53,496 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 16:51:53.496234 - MainProcess:Thread-1 (run_server)
+2025-01-23 16:51:53,496 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
