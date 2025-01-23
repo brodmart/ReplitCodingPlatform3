@@ -62,10 +62,9 @@
                                     </div>
                                 </div>
                                 <div class="card-body p-0">
-                                    <!-- Add initial placeholder to ensure elements exist -->
                                     <div class="console-container" id="consoleContainer">
                                         <div id="consoleOutput">
-                                            <div class="console-loading">Initializing console...</div>
+                                            <div class="console-loading">{% if lang == 'fr' %}Initialisation de la console...{% else %}Initializing console...{% endif %}</div>
                                         </div>
                                         <div class="console-input-line">
                                             <span class="console-prompt">&gt;</span>
@@ -136,60 +135,50 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
-// Wait for all core dependencies to load before initializing console
-document.addEventListener('DOMContentLoaded', function() {
+// Wait for DOM to be fully loaded before any initialization
+document.addEventListener('DOMContentLoaded', () => {
+    // First verify all required elements exist
     const outputElement = document.getElementById('consoleOutput');
-    if (!outputElement) {
-        console.error('Console output element not found');
+    const inputElement = document.getElementById('consoleInput');
+    const languageSelect = document.getElementById('languageSelect');
+
+    if (!outputElement || !inputElement || !languageSelect) {
+        console.error('Required console elements not found');
         return;
     }
 
-    outputElement.innerHTML = '<div class="console-loading">Initializing console...</div>';
-
-    // Load console.js and initialize console
+    // Load and initialize console
     const consoleScript = document.createElement('script');
     consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
 
     consoleScript.onload = () => {
-        console.debug('Console script loaded, initializing...');
+        try {
+            // Create console instance with required elements
+            window.consoleInstance = new InteractiveConsole({
+                outputElement,
+                inputElement,
+                language: languageSelect.value || 'csharp'
+            });
 
-        // Small delay to ensure DOM is fully ready
-        setTimeout(() => {
-            const inputElement = document.getElementById('consoleInput');
-            const language = document.getElementById('languageSelect')?.value || 'csharp';
-
-            if (!inputElement) {
-                outputElement.innerHTML = '<div class="console-error">Console input element not found</div>';
-                return;
-            }
-
-            try {
-                // Create console instance
-                window.consoleInstance = new InteractiveConsole({
-                    outputElement,
-                    inputElement,
-                    language
+            // Setup clear console button
+            const clearButton = document.getElementById('clearConsole');
+            if (clearButton) {
+                clearButton.addEventListener('click', () => {
+                    window.consoleInstance?.clear();
                 });
-
-                // Setup clear console button
-                const clearButton = document.getElementById('clearConsole');
-                if (clearButton) {
-                    clearButton.addEventListener('click', () => {
-                        window.consoleInstance?.clear();
-                    });
-                }
-
-                // Load editor.js after console is ready
-                const editorScript = document.createElement('script');
-                editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
-                document.body.appendChild(editorScript);
-
-            } catch (error) {
-                console.error('Console initialization failed:', error);
-                outputElement.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
             }
-        }, 100);
+
+            // Load editor after console is ready
+            const editorScript = document.createElement('script');
+            editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+            document.body.appendChild(editorScript);
+
+        } catch (error) {
+            console.error('Console initialization failed:', error);
+            outputElement.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
+        }
     };
 
     consoleScript.onerror = () => {

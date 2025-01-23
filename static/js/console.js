@@ -2,65 +2,76 @@
  * Interactive Console for handling program I/O
  */
 class InteractiveConsole {
-    constructor() {
-        // Wait for DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            this.init();
-        });
-    }
-
-    init() {
-        // Get DOM elements
-        this.outputElement = document.getElementById('consoleOutput');
-        this.inputElement = document.getElementById('consoleInput');
+    constructor(options = {}) {
+        // Store DOM elements from options
+        this.outputElement = options.outputElement;
+        this.inputElement = options.inputElement;
+        this.language = options.language || 'csharp';
 
         if (!this.outputElement || !this.inputElement) {
-            console.error('Waiting for DOM elements...');
-            return;
+            throw new Error('Console elements not provided');
         }
 
-        // Clear and show initial message
-        this.outputElement.innerHTML = '<div class="console-loading">Initializing console...</div>';
+        // Initialize state
+        this.initialized = false;
+        this.init();
+    }
 
-        // Initialize socket
-        this.socket = io({
-            transports: ['websocket']
-        });
+    async init() {
+        try {
+            // Clear console and show initial message
+            this.clear();
+            this.log('Initializing console...');
 
-        // Basic socket setup
-        this.socket.on('connect', () => {
-            this.log('Connected to server');
-            this.inputElement.disabled = false;
-        });
+            // Initialize socket connection
+            this.socket = io({
+                transports: ['websocket']
+            });
 
-        this.socket.on('disconnect', () => {
-            this.log('Disconnected from server');
-            this.inputElement.disabled = true;
-        });
+            // Socket event handlers
+            this.socket.on('connect', () => {
+                this.log('Connected to server');
+                this.initialized = true;
+                this.enable();
+            });
 
-        // Handle program output
-        this.socket.on('console_output', (data) => {
-            if (data.error) {
-                this.error(data.error);
-            } else if (data.output) {
-                this.log(data.output);
-            }
-            this.inputElement.disabled = !data.waiting_for_input;
-        });
+            this.socket.on('disconnect', () => {
+                this.log('Disconnected from server');
+                this.disable();
+            });
 
-        // Setup input handler
-        this.inputElement.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const input = this.inputElement.value.trim();
-                if (input) {
-                    this.sendInput(input);
+            // Handle program output
+            this.socket.on('console_output', (data) => {
+                if (data.error) {
+                    this.error(data.error);
+                } else if (data.output) {
+                    this.log(data.output);
                 }
-            }
-        });
+                this.inputElement.disabled = !data.waiting_for_input;
+            });
+
+            // Setup input handler
+            this.inputElement.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    const input = this.inputElement.value.trim();
+                    if (input) {
+                        this.sendInput(input);
+                    }
+                }
+            });
+
+            // Show ready state
+            this.log('Console ready');
+
+        } catch (error) {
+            this.error(`Initialization failed: ${error.message}`);
+            console.error('Console initialization error:', error);
+        }
     }
 
     log(message) {
+        if (!this.outputElement) return;
         const line = document.createElement('div');
         line.className = 'console-line';
         line.textContent = message;
@@ -69,6 +80,7 @@ class InteractiveConsole {
     }
 
     error(message) {
+        if (!this.outputElement) return;
         const line = document.createElement('div');
         line.className = 'console-line console-error';
         line.textContent = `Error: ${message}`;
@@ -77,7 +89,7 @@ class InteractiveConsole {
     }
 
     sendInput(input) {
-        if (!this.socket?.connected) return;
+        if (!this.initialized || !this.socket?.connected) return;
         this.inputElement.value = '';
         this.log(`> ${input}`);
         this.socket.emit('input', {
@@ -86,25 +98,38 @@ class InteractiveConsole {
     }
 
     compileAndRun(code) {
-        if (!this.socket?.connected) {
-            this.error('Not connected to server');
+        if (!this.initialized || !this.socket?.connected) {
+            this.error('Console not ready');
             return;
         }
         this.clear();
         this.log('Running code...');
-        this.socket.emit('compile_and_run', { code });
+        this.socket.emit('compile_and_run', {
+            code,
+            language: this.language
+        });
+    }
+
+    enable() {
+        if (!this.inputElement) return;
+        this.inputElement.disabled = false;
+        this.inputElement.placeholder = 'Enter input...';
+    }
+
+    disable() {
+        if (!this.inputElement) return;
+        this.inputElement.disabled = true;
+        this.inputElement.placeholder = 'Console inactive';
     }
 
     clear() {
-        if (this.outputElement) {
-            this.outputElement.innerHTML = '';
-        }
+        if (!this.outputElement) return;
+        this.outputElement.innerHTML = '';
     }
 
     scrollToBottom() {
-        if (this.outputElement) {
-            this.outputElement.scrollTop = this.outputElement.scrollHeight;
-        }
+        if (!this.outputElement) return;
+        this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 }
 
