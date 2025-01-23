@@ -1,0 +1,15 @@
+2025-01-23 17:37:32,727 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:37:32,793 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:37:34,261 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:37:34,262 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 17:37:34,264 - werkzeug:96 - INFO -  * Debugger PIN: 339-805-391 - MainProcess:MainThread
+2025-01-23 17:37:34,908 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:34,909 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:34,932 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:35,942 - engineio.server:78 - INFO - pKItcduGUzVsVR4_AAAA: Sending packet OPEN data {'sid': 'pKItcduGUzVsVR4_AAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:35,943 - engineio.server:90 - INFO - pKItcduGUzVsVR4_AAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:35,944 - engineio.server:219 - INFO - pKItcduGUzVsVR4_AAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:36,018 - engineio.server:39 - INFO - pKItcduGUzVsVR4_AAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:36,021 - __main__:147 - INFO - Client connected: {"sid": "EvzRyJTC5mgzV0lZAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:36,021 - engineio.server:78 - INFO - pKItcduGUzVsVR4_AAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"EvzRyJTC5mgzV0lZAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:37:36,022 - engineio.server:78 - INFO - pKItcduGUzVsVR4_AAAA: Sending packet MESSAGE data 0{"sid":"EvzRyJTC5mgzV0lZAAAB"} - MainProcess:Thread-1 (run_server)

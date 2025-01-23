@@ -37,6 +37,11 @@ process_mgmt_logger.setLevel(logging.DEBUG)
 socketio_logger = logging.getLogger('socketio')
 console_logger = logging.getLogger('console')
 io_logger = logging.getLogger('io')
+build_logger = logging.getLogger('build')
+runtime_logger = logging.getLogger('runtime')
+dll_logger = logging.getLogger('dll')
+resource_logger = logging.getLogger('resource')
+
 
 # Constants for timeouts and limits
 PROCESS_SPAWN_TIMEOUT = 10  # seconds
@@ -329,6 +334,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
     """Start an interactive session with improved process management and error handling"""
     socketio_logger.info(f"[SOCKET] Starting interactive session {session.session_id}")
     console_logger.info(f"[CONSOLE] Initializing console for session {session.session_id}")
+    build_logger.info(f"[BUILD] Starting build process for session {session.session_id}")
 
     if language != 'csharp':
         return {'success': False, 'error': 'Only C# is supported'}
@@ -339,8 +345,9 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        console_logger.debug(f"[CONSOLE] Creating project files in {project_dir}")
-        socketio_logger.debug(f"[SOCKET] Project initialization for session {session.session_id}")
+        build_logger.debug(f"[BUILD] Creating project structure in {project_dir}")
+        build_logger.debug(f"[BUILD] Source file: {source_file}")
+        build_logger.debug(f"[BUILD] Project file: {project_file}")
 
         # Write project file with optimized settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
@@ -350,26 +357,23 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
                 <SelfContained>false</SelfContained>
                 <UseAppHost>false</UseAppHost>
+                <DebugType>portable</DebugType>
+                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
             </PropertyGroup>
         </Project>"""
 
         with open(project_file, 'w') as f:
             f.write(project_content)
-            console_logger.debug("[CONSOLE] Project file created successfully")
+            build_logger.debug("[BUILD] Project file created successfully")
 
         # Write source file
         with open(source_file, 'w') as f:
             f.write(code)
-            console_logger.debug("[CONSOLE] Source file written successfully")
+            build_logger.debug("[BUILD] Source file written successfully")
 
         # Compile with timeout and enhanced error handling
-        console_logger.info("[COMPILE] Starting compilation process")
-        socketio_logger.debug(f"[SOCKET] Compilation started for session {session.session_id}")
-
-        process_mgmt_logger.debug(f"[BUILD] Project directory structure:")
-        process_mgmt_logger.debug(f"[BUILD] - Project dir: {project_dir}")
-        process_mgmt_logger.debug(f"[BUILD] - Project file exists: {os.path.exists(project_file)}")
-        process_mgmt_logger.debug(f"[BUILD] - Source file exists: {os.path.exists(source_file)}")
+        build_logger.info("[BUILD] Starting compilation process")
+        runtime_logger.debug(f"[RUNTIME] Environment setup: DOTNET_ROOT={os.environ.get('DOTNET_ROOT')}")
 
         try:
             compile_result = subprocess.run(
@@ -385,42 +389,41 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 }
             )
 
-            process_mgmt_logger.debug(f"[BUILD] Compilation output: {compile_result.stdout}")
+            build_logger.debug(f"[BUILD] Compilation output: {compile_result.stdout}")
             if compile_result.stderr:
-                process_mgmt_logger.error(f"[BUILD] Compilation stderr: {compile_result.stderr}")
-            process_mgmt_logger.debug(f"[BUILD] Compilation return code: {compile_result.returncode}")
+                build_logger.error(f"[BUILD] Compilation stderr: {compile_result.stderr}")
+            build_logger.debug(f"[BUILD] Compilation return code: {compile_result.returncode}")
 
             if compile_result.returncode == 0:
-                console_logger.info("[COMPILE] Build successful")
+                build_logger.info("[BUILD] Build successful")
             else:
-                console_logger.error("[COMPILE] Build failed")
+                build_logger.error("[BUILD] Build failed")
                 return {'success': False, 'error': compile_result.stderr}
 
         except subprocess.TimeoutExpired:
-            process_mgmt_logger.error("[BUILD] Compilation timed out")
+            build_logger.error("[BUILD] Compilation timed out")
             return {'success': False, 'error': 'Compilation timed out'}
 
         # Verify DLL location and existence
         dll_path = project_dir / "bin" / "Release" / "net7.0" / "linux-x64" / "program.dll"
-        console_logger.debug(f"[EXEC] Looking for compiled DLL at: {dll_path}")
+        dll_logger.debug(f"[DLL] Looking for compiled DLL at: {dll_path}")
 
         if not os.path.exists(dll_path):
-            console_logger.error(f"[EXEC] DLL not found at expected path: {dll_path}")
+            dll_logger.error(f"[DLL] DLL not found at expected path: {dll_path}")
             # List contents of bin directory
             bin_dir = project_dir / "bin"
             if os.path.exists(bin_dir):
-                process_mgmt_logger.debug(f"[BUILD] Directory contents:")
+                dll_logger.debug("[DLL] Directory contents:")
                 for root, dirs, files in os.walk(bin_dir):
-                    process_mgmt_logger.debug(f"[BUILD] Dir {root}: {files}")
+                    dll_logger.debug(f"[DLL] Dir {root}: {files}")
             return {'success': False, 'error': 'Compiled DLL not found'}
 
         # PTY and process setup logging
-        console_logger.info("[EXEC] Initializing process environment")
-        process_mgmt_logger.debug(f"[EXEC] Environment setup:")
-        process_mgmt_logger.debug(f"[EXEC] - DOTNET_ROOT: {os.environ.get('DOTNET_ROOT')}")
-        process_mgmt_logger.debug(f"[EXEC] - Working dir: {session.temp_dir}")
-        process_mgmt_logger.debug(f"[EXEC] - Master FD: {session.master_fd}")
-        process_mgmt_logger.debug(f"[EXEC] - Slave FD: {session.slave_fd}")
+        runtime_logger.info("[RUNTIME] Initializing process environment")
+        resource_logger.debug(f"[RESOURCE] Process resources:")
+        resource_logger.debug(f"[RESOURCE] - Working directory: {session.temp_dir}")
+        resource_logger.debug(f"[RESOURCE] - Master FD: {session.master_fd}")
+        resource_logger.debug(f"[RESOURCE] - Slave FD: {session.slave_fd}")
 
         def monitor_output():
             """Monitor process output with improved error handling"""
