@@ -1,0 +1,39 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T16:59:12.226845",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T16:59:12.226796"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T16:59:26.335455",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Process failed to start",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Process failed to start"
+        }
+      },
+      "timestamp": "2025-01-23T16:59:26.335128"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T16:59:26.336313",
+    "data": {
+      "error_message": "Failed to start interactive session: Process failed to start",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Process failed to start"
+        }
+      },
+      "timestamp": "2025-01-23T16:59:26.336146"
+    }
+  }
+]

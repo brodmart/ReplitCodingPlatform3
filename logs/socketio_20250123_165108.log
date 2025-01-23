@@ -19,3 +19,4 @@
 2025-01-23 16:51:53,496 - __main__:194 - INFO - [COMPILE] Starting compilation for session session_1737651113 client _g6JPmA-232g7-AnAAAB - MainProcess:Thread-1 (run_server)
 2025-01-23 16:51:53,496 - __main__:195 - DEBUG - [COMPILE] Code length: 227, First line: using - MainProcess:Thread-1 (run_server)
 2025-01-23 16:51:53,496 - __main__:62 - INFO - Created new console session: session_1737651113 (active: True) - MainProcess:Thread-1 (run_server)
+2025-01-23 16:57:01,174 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading - MainProcess:MainThread

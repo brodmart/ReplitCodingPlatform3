@@ -8,7 +8,6 @@ import time
 import fcntl
 import errno
 import select
-import importlib.util
 from typing import Dict, Any, Optional, List, Union
 from threading import Lock, Thread, Event
 from pathlib import Path
@@ -20,6 +19,7 @@ import shutil
 from dataclasses import dataclass, field, asdict
 import json
 import re
+from contextlib import contextmanager
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG,
@@ -50,6 +50,105 @@ class CompilationError:
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+@dataclass
+class CompilationMetrics:
+    """Enhanced compilation metrics tracking"""
+    start_time: float
+    end_time: float = 0.0
+    compilation_time: float = 0.0
+    execution_time: float = 0.0
+    peak_memory: float = 0.0
+    avg_cpu_usage: float = 0.0
+    error_count: int = 0
+    warning_count: int = 0
+    cached: bool = False
+    status_updates: List[Dict[str, Any]] = field(default_factory=list)
+    successful_builds: int = 0
+    total_builds: int = 0
+    stage_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
+
+    def start_stage(self, stage_name: str) -> None:
+        """Track metrics for a specific compilation stage"""
+        self.stage_metrics[stage_name] = {
+            'start_time': time.time(),
+            'peak_memory': 0.0,
+            'cpu_usage': 0.0
+        }
+        self._update_system_metrics(stage_name)
+        self.log_status(f"Starting {stage_name}")
+
+    def end_stage(self, stage_name: str) -> None:
+        """End tracking for a compilation stage"""
+        if stage_name in self.stage_metrics:
+            stage = self.stage_metrics[stage_name]
+            stage['end_time'] = time.time()
+            stage['duration'] = stage['end_time'] - stage['start_time']
+            self._update_system_metrics(stage_name)
+            self.log_status(f"Completed {stage_name} in {stage['duration']:.2f}s")
+
+    def _update_system_metrics(self, stage_name: str) -> None:
+        """Update system metrics for the current stage"""
+        try:
+            process = psutil.Process()
+            stage = self.stage_metrics[stage_name]
+            current_memory = process.memory_info().rss / (1024 * 1024)  # MB
+            current_cpu = process.cpu_percent(interval=0.1)
+
+            stage['peak_memory'] = max(stage.get('peak_memory', 0), current_memory)
+            stage['cpu_usage'] = current_cpu
+
+            # Update overall metrics
+            self.peak_memory = max(self.peak_memory, current_memory)
+            if not self.avg_cpu_usage:
+                self.avg_cpu_usage = current_cpu
+            else:
+                self.avg_cpu_usage = (self.avg_cpu_usage + current_cpu) / 2
+        except Exception as e:
+            logger.error(f"Error updating system metrics: {e}")
+
+    def log_status(self, status: str) -> None:
+        """Log a status update with timestamp and metrics"""
+        current_time = time.time()
+        elapsed = current_time - self.start_time
+        status_entry = {
+            'timestamp': current_time,
+            'elapsed': elapsed,
+            'status': status,
+            'memory_mb': psutil.Process().memory_info().rss / (1024 * 1024),
+            'cpu_percent': psutil.Process().cpu_percent(interval=0.1)
+        }
+        self.status_updates.append(status_entry)
+        performance_logger.debug(f"[{elapsed:.2f}s] {status}")
+
+    def record_build(self, success: bool) -> None:
+        """Record build attempt result"""
+        self.total_builds += 1
+        if success:
+            self.successful_builds += 1
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert metrics to dictionary with enhanced information"""
+        total_time = self.end_time - self.start_time if self.end_time else time.time() - self.start_time
+        return {
+            'compilation_time': self.compilation_time,
+            'execution_time': self.execution_time,
+            'total_time': total_time,
+            'peak_memory': self.peak_memory,
+            'avg_cpu_usage': self.avg_cpu_usage,
+            'error_count': self.error_count,
+            'warning_count': self.warning_count,
+            'cached': self.cached,
+            'build_success_rate': (self.successful_builds / self.total_builds * 100) if self.total_builds > 0 else 0,
+            'stages': {
+                name: {
+                    'duration': metrics.get('duration', 0),
+                    'peak_memory': metrics.get('peak_memory', 0),
+                    'cpu_usage': metrics.get('cpu_usage', 0)
+                }
+                for name, metrics in self.stage_metrics.items()
+            }
+        }
 
 @dataclass
 class CompilerSession:
@@ -112,7 +211,7 @@ class CompilerSession:
             # Don't treat echo of our last input as a prompt
             if (self._last_input is None or text.strip() != self._last_input.strip()) and \
                (any(prompt in lowercase_text for prompt in
-                ['input', 'enter', '?', ':', 'type', 'name']) or
+                    ['input', 'enter', '?', ':', 'type', 'name']) or
                 text.strip().endswith(':')):
                 self.waiting_for_input = True
                 self._input_ready.set()
@@ -140,7 +239,7 @@ class CompilerSession:
             self.stop_event.set()
             self._input_ready.set()
 
-            # Clean up process with proper process group handling
+            # Clean up process
             if self.process:
                 try:
                     if self.process.poll() is None:
@@ -472,11 +571,6 @@ def get_output(session_id: str) -> Dict[str, Any]:
         return {'success': False, 'error': str(e)}
 
 
-importlib.util.find_spec("hashlib")
-importlib.util.find_spec("dataclasses")
-importlib.util.find_spec("json")
-importlib.util.find_spec("re")
-
 import hashlib
 from dataclasses import dataclass, field, asdict
 import json
@@ -617,7 +711,7 @@ class ErrorTracker:
             ]
         }
 
-    def add_error(self, error: CompilationError):
+    def add_error(self, error: CompilationError) -> None:
         """Add and analyze a new compilation error with enhanced recommendations"""
         self.errors.append(error)
         error_logger.error(f"Compilation error: {error.to_dict()}")
@@ -630,24 +724,16 @@ class ErrorTracker:
             for i, rec in enumerate(recommendations, 1):
                 error_logger.info(f"  {i}. {rec}")
 
-        # Track error trends
-        pattern = f"{error.error_type}:{error.code}"
-        if pattern not in self._error_trends:
-            self._error_trends[pattern] = []
-        self._error_trends[pattern].append(datetime.fromisoformat(error.timestamp))
-        self._analyze_frequent_patterns(pattern)
-
-    def _update_patterns(self, error: CompilationError):
-        """Update error pattern statistics with enhanced tracking"""
+    def _update_patterns(self, error: CompilationError) -> None:
+        """Update error pattern statistics"""
         pattern = f"{error.error_type}:{error.code}"
         self._error_patterns[pattern] = self._error_patterns.get(pattern, 0) + 1
 
         if self._error_patterns[pattern] > 5:
             error_logger.warning(f"Frequent error pattern detected: {pattern}")
-            self._analyze_frequent_patterns(pattern)
             self._suggest_automated_fixes(error)
 
-    def _suggest_automated_fixes(self, error: CompilationError):
+    def _suggest_automated_fixes(self, error: CompilationError) -> None:
         """Suggest automated fixes based on error patterns"""
         if error.code == 'CS0103':  # Undefined variable
             error_logger.info("Automated fix suggestion: You might want to declare the variable first")
@@ -657,65 +743,11 @@ class ErrorTracker:
         elif error.code == 'CS0117':  # No member found
             error_logger.info("Automated fix suggestion: Check class member visibility (public/private)")
 
-    def _analyze_frequent_patterns(self, pattern: str):
-        """Analyze frequency of error patterns with enhanced analytics"""
-        if pattern not in self._error_trends:
-            return
-
-        timestamps = self._error_trends[pattern]
-        if len(timestamps) < 2:
-            return
-
-        # Calculate time differences between consecutive errors
-        time_diffs = [(t2 - t1).total_seconds() for t1, t2 in zip(timestamps[:-1], timestamps[1:])]
-        avg_time_between_errors = sum(time_diffs) / len(time_diffs) if time_diffs else 0
-
-        if avg_time_between_errors < 60:  # Less than 1 minute between errors
-            error_logger.critical(f"High-frequency error pattern detected: {pattern}")
-            self._recommend_fixes(pattern)
-
-            # Check for potential infinite loops or recursion
-            if len(timestamps) > 10 and avg_time_between_errors < 1:
-                error_logger.critical("Possible infinite loop or recursion detected!")
-
-    def _recommend_fixes(self, pattern: str):
-        """Provide recommendations based on error patterns with enhanced suggestions"""
-        common_fixes = {
-            'CS0103': "Check for undefined variables and ensure all variables are declared before use",
-            'CS0117': "Verify method names and ensure they exist in the referenced class",
-            'CS0234': "Check namespace references and using statements",
-            'CS0246': "Verify all required dependencies are properly referenced",
-            'CS1002': "Check for missing semicolons",
-            'CS1513': "Check for missing closing braces",
-            'CS1525': "Check for invalid syntax or missing operators",
-            'CS0116': "All methods must have a return type",
-            'CS0165': "Use of unassigned local variable",
-            'CS0428': "Cannot convert method group to non-delegate type",
-            'CS0161': "Not all code paths return a value",
-            'CS0219': "Variable is assigned but never used",
-            'CS0105': "Using directive appeared previously",
-            'CS0168': "Variable declared but never used"
-        }
-
-        error_code = pattern.split(':')[1]
-        if error_code in common_fixes:
-            error_logger.info(f"Recommended fix for {error_code}: {common_fixes[error_code]}")
-
-            # Additional context-specific recommendations
-            if error_code == 'CS0103':
-                error_logger.info("Additional context:")
-                error_logger.info("1. Check variable scope - ensure it's declared in the current context")
-                error_logger.info("2. Verify variable name casing - C# is case-sensitive")
-                error_logger.info("3. If it's a class member, ensure proper access modifiers")
-        else:
-            error_logger.info(f"No specific recommendation available for error code: {error_code}")
-
     def get_summary(self) -> Dict[str, Any]:
-        """Get comprehensive error analysis summary with enhanced details"""
-        frequent_patterns = {k: v for k, v in self._error_patterns.items() if v > 1}
+        """Get comprehensive error analysis summary"""
         recent_errors = sorted(self.errors, key=lambda x: x.timestamp, reverse=True)[:5]
-
         error_categories = {}
+
         for error in self.errors:
             category = error.error_type
             if category not in error_categories:
@@ -726,7 +758,6 @@ class ErrorTracker:
             'total_errors': len(self.errors),
             'error_patterns': self._error_patterns,
             'most_common': max(self._error_patterns.items(), key=lambda x: x[1]) if self._error_patterns else None,
-            'frequent_patterns': frequent_patterns,
             'recent_errors': [e.to_dict() for e in recent_errors],
             'error_categories': error_categories,
             'recommendations': {
@@ -736,8 +767,73 @@ class ErrorTracker:
             }
         }
 
+def get_code_hash(code: str, language: str) -> str:
+    """Generate a unique hash for the code and language"""
+    hasher = hashlib.sha256()
+    hasher.update(f"{code}{language}".encode())
+    return hasher.hexdigest()
+
+def is_interactive_code(code: str, language: str) -> bool:
+    """Determine if code requires interactive I/O"""
+    code = code.lower()
+    if language == 'cpp':
+        return any(pattern in code for pattern in [
+            'cin', 'getline', 'std::cin', 'std::getline',
+            'scanf', 'gets', 'fgets'
+        ])
+    elif language == 'csharp':
+        return any(pattern in code for pattern in [
+            'console.read', 'console.readline',
+            'console.in', 'console.keyavailable',
+            'console.readkey'
+        ])
+    return False
+
+def clean_terminal_output(output: str) -> str:
+    """Clean terminal control sequences from output"""
+    # Remove ANSI codes
+    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
+    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
+    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
+
+    # Clean up other control characters while preserving prompts
+    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
+
+    # Normalize line endings
+    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
+    cleaned = re.sub(r'^\s*\n', '', cleaned)
+    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
+
+    return cleaned.strip()
+
+def parse_csharp_errors(error_output: str) -> List[CompilationError]:
+    """Parse C# compiler errors into structured format"""
+    errors = []
+    try:
+        error_lines = error_output.split('\n')
+        for line in error_lines:
+            if not line.strip() or 'warning' in line.lower():
+                continue
+
+            match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
+            if match:
+                errors.append(CompilationError(
+                    error_type='CompilerError',
+                    message=match.group(5),
+                    file=match.group(1),
+                    line=int(match.group(2)),
+                    column=int(match.group(3)),
+                    code=match.group(4)
+                ))
+                logger.debug(f"Found error: {errors[-1]}")
+
+    except Exception as e:
+        logger.error(f"Error parsing compiler errors: {e}")
+
+    return errors
+
 def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
+    """Get the template code for a given programming language"""
     templates = {
         'cpp': """#include <iostream>
 #include <string>
@@ -765,416 +861,6 @@ namespace ConsoleApp {
 }"""
     }
     return templates.get(language.lower(), '')
-
-importlib.util.find_spec("hashlib")
-importlib.util.find_spec("dataclasses")
-importlib.util.find_spec("json")
-importlib.util.find_spec("re")
-
-import hashlib
-from dataclasses import dataclass, field, asdict
-import json
-import re
-import logging
-
-@dataclass
-class CompilationMetrics:
-    """Enhanced compilation metrics tracking"""
-    start_time: float
-    end_time: float = 0.0
-    compilation_time: float = 0.0
-    execution_time: float = 0.0
-    peak_memory: float = 0.0
-    avg_cpu_usage: float = 0.0
-    error_count: int = 0
-    warning_count: int = 0
-    cached: bool = False
-    status_updates: List[Dict[str, Any]] = field(default_factory=list)
-    successful_builds: int = 0
-    total_builds: int = 0
-    stage_metrics: Dict[str, Dict[str, float]] = field(default_factory=dict)
-
-    def start_stage(self, stage_name: str) -> None:
-        """Track metrics for a specific compilation stage"""
-        self.stage_metrics[stage_name] = {
-            'start_time': time.time(),
-            'peak_memory': 0.0,
-            'cpu_usage': 0.0
-        }
-        self._update_system_metrics(stage_name)
-        self.log_status(f"Starting {stage_name}")
-
-    def end_stage(self, stage_name: str) -> None:
-        """End tracking for a compilation stage"""
-        if stage_name in self.stage_metrics:
-            stage = self.stage_metrics[stage_name]
-            stage['end_time'] = time.time()
-            stage['duration'] = stage['end_time'] - stage['start_time']
-            self._update_system_metrics(stage_name)
-            self.log_status(f"Completed {stage_name} in {stage['duration']:.2f}s")
-
-    def _update_system_metrics(self, stage_name: str) -> None:
-        """Update system metrics for the current stage"""
-        try:
-            process = psutil.Process()
-            stage = self.stage_metrics[stage_name]
-            current_memory = process.memory_info().rss / (1024 * 1024)  # MB
-            current_cpu = process.cpu_percent(interval=0.1)
-
-            stage['peak_memory'] = max(stage.get('peak_memory', 0), current_memory)
-            stage['cpu_usage'] = current_cpu
-
-            # Update overall metrics
-            self.peak_memory = max(self.peak_memory, current_memory)
-            if not self.avg_cpu_usage:
-                self.avg_cpu_usage = current_cpu
-            else:
-                self.avg_cpu_usage = (self.avg_cpu_usage + current_cpu) / 2
-        except Exception as e:
-            logger.error(f"Error updating system metrics: {e}")
-
-    def log_status(self, status: str) -> None:
-        """Log a status update with timestamp and metrics"""
-        current_time = time.time()
-        elapsed = current_time - self.start_time
-        status_entry = {
-            'timestamp': current_time,
-            'elapsed': elapsed,
-            'status': status,
-            'memory_mb': psutil.Process().memory_info().rss / (1024 * 1024),
-            'cpu_percent': psutil.Process().cpu_percent(interval=0.1)
-        }
-        self.status_updates.append(status_entry)
-        performance_logger.debug(f"[{elapsed:.2f}s] {status}")
-
-    def record_build(self, success: bool) -> None:
-        """Record build attempt result"""
-        self.total_builds += 1
-        if success:
-            self.successful_builds += 1
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert metrics to dictionary with enhanced information"""
-        total_time = self.end_time - self.start_time if self.end_time else time.time() - self.start_time
-        return {
-            'compilation_time': self.compilation_time,
-            'execution_time': self.execution_time,
-            'total_time': total_time,
-            'peak_memory': self.peak_memory,
-            'avg_cpu_usage': self.avg_cpu_usage,
-            'error_count': self.error_count,
-            'warning_count': self.warning_count,
-            'cached': self.cached,
-            'build_success_rate': (self.successful_builds / self.total_builds * 100) if self.total_builds > 0 else 0,
-            'stages': {
-                name: {
-                    'duration': metrics.get('duration', 0),
-                    'peak_memory': metrics.get('peak_memory', 0),
-                    'cpu_usage': metrics.get('cpu_usage', 0)
-                }
-                for name, metrics in self.stage_metrics.items()
-            }
-        }
-
-
-class ErrorTracker:
-    """Track and analyze compilation errors with trend analysis"""
-    def __init__(self):
-        self.errors: List[CompilationError] = []
-        self._error_patterns: Dict[str, int] = {}
-        self._error_trends: Dict[str, List[datetime]] = {}
-        self.recommendations: Dict[str, List[str]] = {
-            'CS0103': [
-                "Ensure all variables are declared before use",
-                "Check for typos in variable names",
-                "Verify the variable is accessible in the current scope"
-            ],
-            'CS0117': [
-                "Verify the method name exists in the referenced class",
-                "Check for case sensitivity in method names",
-                "Ensure you're calling a public method"
-            ],
-            'CS0234': [
-                "Verify namespace references",
-                "Check 'using' statements",
-                "Ensure required assemblies are referenced"
-            ],
-            'CS1513': [
-                "Check for missing closing braces '}'",
-                "Ensure all blocks are properly closed",
-                "Verify code block structure"
-            ],
-            'CS1002': [
-                "Add missing semicolon at the end of the statement",
-                "Check for missing statement terminators",
-                "Review line endings"
-            ]
-        }
-
-    def add_error(self, error: CompilationError):
-        """Add and analyze a new compilation error with enhanced recommendations"""
-        self.errors.append(error)
-        error_logger.error(f"Compilation error: {error.to_dict()}")
-        self._update_patterns(error)
-
-        # Log recommendations
-        if error.code in self.recommendations:
-            recommendations = self.recommendations[error.code]
-            error_logger.info(f"Recommendations for error {error.code}:")
-            for i, rec in enumerate(recommendations, 1):
-                error_logger.info(f"  {i}. {rec}")
-
-        # Track error trends
-        pattern = f"{error.error_type}:{error.code}"
-        if pattern not in self._error_trends:
-            self._error_trends[pattern] = []
-        self._error_trends[pattern].append(datetime.fromisoformat(error.timestamp))
-        self._analyze_frequent_patterns(pattern)
-
-    def _update_patterns(self, error: CompilationError):
-        """Update error pattern statistics with enhanced tracking"""
-        pattern = f"{error.error_type}:{error.code}"
-        self._error_patterns[pattern] = self._error_patterns.get(pattern, 0) + 1
-
-        if self._error_patterns[pattern] > 5:
-            error_logger.warning(f"Frequent error pattern detected: {pattern}")
-            self._analyze_frequent_patterns(pattern)
-            self._suggest_automated_fixes(error)
-
-    def _suggest_automated_fixes(self, error: CompilationError):
-        """Suggest automated fixes based on error patterns"""
-        if error.code == 'CS0103':  # Undefined variable
-            error_logger.info("Automated fix suggestion: You might want to declare the variable first")
-            error_logger.info("Example: var undefinedVariable = \"your value\";")
-        elif error.code == 'CS1513':  # Missing closing brace
-            error_logger.info("Automated fix suggestion: Add missing closing brace '}'")
-        elif error.code == 'CS0117':  # No member found
-            error_logger.info("Automated fix suggestion: Check class member visibility (public/private)")
-
-    def _analyze_frequent_patterns(self, pattern: str):
-        """Analyze frequency of error patterns with enhanced analytics"""
-        if pattern not in self._error_trends:
-            return
-
-        timestamps = self._error_trends[pattern]
-        if len(timestamps) < 2:
-            return
-
-        # Calculate time differences between consecutive errors
-        time_diffs = [(t2 - t1).total_seconds() for t1, t2 in zip(timestamps[:-1], timestamps[1:])]
-        avg_time_between_errors = sum(time_diffs) / len(time_diffs) if time_diffs else 0
-
-        if avg_time_between_errors < 60:  # Less than 1 minute between errors
-            error_logger.critical(f"High-frequency error pattern detected: {pattern}")
-            self._recommend_fixes(pattern)
-
-            # Check for potential infinite loops or recursion
-            if len(timestamps) > 10 and avg_time_between_errors < 1:
-                error_logger.critical("Possible infinite loop or recursion detected!")
-
-    def _recommend_fixes(self, pattern: str):
-        """Provide recommendations based on error patterns with enhanced suggestions"""
-        common_fixes = {
-            'CS0103': "Check for undefined variables and ensure all variables are declared before use",
-            'CS0117': "Verify method names and ensure they exist in the referenced class",
-            'CS0234': "Check namespace references and using statements",
-            'CS0246': "Verify all required dependencies are properly referenced",
-            'CS1002': "Check for missing semicolons",
-            'CS1513': "Check for missing closing braces",
-            'CS1525': "Check for invalid syntax or missing operators",
-            'CS0116': "All methods must have a return type",
-            'CS0165': "Use of unassigned local variable",
-            'CS0428': "Cannot convert method group to non-delegate type",
-            'CS0161': "Not all code paths return a value",
-            'CS0219': "Variable is assigned but never used",
-            'CS0105': "Using directive appeared previously",
-            'CS0168': "Variable declared but never used"
-        }
-
-        error_code = pattern.split(':')[1]
-        if error_code in common_fixes:
-            error_logger.info(f"Recommended fix for {error_code}: {common_fixes[error_code]}")
-
-            # Additional context-specific recommendations
-            if error_code == 'CS0103':
-                error_logger.info("Additional context:")
-                error_logger.info("1. Check variable scope - ensure it's declared in the current context")
-                error_logger.info("2. Verify variable name casing - C# is case-sensitive")
-                error_logger.info("3. If it's a class member, ensure proper access modifiers")
-        else:
-            error_logger.info(f"No specific recommendation available for error code: {error_code}")
-
-    def get_summary(self) -> Dict[str, Any]:
-        """Get comprehensive error analysis summary with enhanced details"""
-        frequent_patterns = {k: v for k, v in self._error_patterns.items() if v > 1}
-        recent_errors = sorted(self.errors, key=lambda x: x.timestamp, reverse=True)[:5]
-
-        error_categories = {}
-        for error in self.errors:
-            category = error.error_type
-            if category not in error_categories:
-                error_categories[category] = 0
-            error_categories[category] += 1
-
-        return {
-            'total_errors': len(self.errors),
-            'error_patterns': self._error_patterns,
-            'most_common': max(self._error_patterns.items(), key=lambda x: x[1]) if self._error_patterns else None,
-            'frequent_patterns': frequent_patterns,
-            'recent_errors': [e.to_dict() for e in recent_errors],
-            'error_categories': error_categories,
-            'recommendations': {
-                code: self.recommendations[code]
-                for code in set(error.code for error in self.errors)
-                if code in self.recommendations
-            }
-        }
-
-def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
-    templates = {
-        'cpp': """#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Your code here
-    cout << "Hello World!" << endl;
-    return 0;
-}""",
-        'csharp': """using System;
-
-namespace ConsoleApp {
-    class Program {
-        static void Main() {
-            try {
-                // Your code here
-                Console.WriteLine("Hello World!");
-            }
-            catch (Exception e) {
-                Console.WriteLine($"Error: {e.Message}");
-            }
-        }
-    }
-}"""
-    }
-    return templates.get(language.lower(), '')
-
-def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
-    """Create isolated environment for compilation with improved project setup"""
-    temp_dir = Path(tempfile.mkdtemp(prefix=f'compiler_env_{language}_'))
-    project_name = "program"
-
-    if language == 'csharp':
-        # Create source file
-        source_file = temp_dir / "Program.cs"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-
-        # Create optimized project file
-        project_file = temp_dir / f"{project_name}.csproj"
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <OutputType>Exe</OutputType>
-            <TargetFramework>net7.0</TargetFramework>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-          </PropertyGroup>
-        </Project>"""
-
-        with open(project_file, 'w', encoding='utf-8') as f:
-            f.write(project_content)
-
-        logger.debug(f"Created C# project in {temp_dir}")
-
-    elif language == 'cpp':
-        source_file = temp_dir / "program.cpp"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-        logger.debug(f"Created C++ project in {temp_dir}")
-
-    return temp_dir, project_name
-
-
-MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
-
-def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
-    """Clean up temporary compilation files"""
-    try:
-        if isinstance(temp_dir, str):
-            temp_dir = Path(temp_dir)
-        if temp_dir.exists():
-            shutil.rmtree(temp_dir)
-            logger.debug(f"Cleaned up compilation files in {temp_dir}")
-    except Exception as e:
-        logger.error(f"Error cleaning up compilation files: {e}")
-
-def format_csharp_error(error_output: str) -> Dict[str, Any]:
-    """Format C# compiler error output intostructured data"""
-    logger.debug(f"Raw error output:\n{error_output}")
-
-    error_info = {
-        'error_type': 'CompilerError',
-        'message': error_output,
-        'file': '',
-        'line': 0,
-        'column': 0,
-        'code': '',
-        'timestamp': datetime.now().isoformat()
-    }
-
-    try:
-        # Look for error patterns like: (line,col): error CS#### message
-        match = re.search(r'\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', error_output)
-        if match:
-            error_info.update({
-                'line': int(match.group(1)),
-                'column': int(match.group(2)),
-                'code': match.group(3),
-                'message': match.group(4)
-            })
-            logger.debug(f"Parsed error details: {error_info}")
-    except Exception as e:
-        logger.error(f"Error parsing compiler output: {e}")
-
-    return error_info
-
-def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
-    """Compile and run C# code with interactive I/O support"""
-    logger.debug(f"Starting C# compilation for session {session_id}")
-
-    try:
-        session = get_or_create_session()
-        return compile_and_run(code, 'csharp', session_id=session_id)
-    except Exception as e:
-        logger.error(f"Error in compile_and_run_csharp: {str(e)}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def process_csharp_input(session_id: str, input_text: str) -> Dict[str, Any]:
-    """Process input for an active C# program"""
-    logger.debug(f"Processing input for session {session_id}: {input_text}")
-
-    try:
-        result = send_input(session_id, input_text)
-        if not result['success']:
-            return result
-
-        # Get any output generated after sending input
-        output_result = get_output(session_id)
-        return {
-            'success': True,
-            'output': output_result.get('output', ''),
-            'waiting_for_input': output_result.get('waiting_for_input', True)
-        }
-    except Exception as e:
-        logger.error(f"Error processing C# input: {str(e)}")
-        return {
-            'success': False,
-            'error': str(e)
-        }
 
 import logging
 from datetime import datetime
