@@ -1,131 +1,62 @@
 {% extends "base.html" %}
 
 {% block head %}
-<!-- Required CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
-
-<!-- Add custom styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-<!-- Add CSRF token meta tag -->
-<meta name="csrf-token" content="{{ csrf_token() }}">
-<meta name="interface-lang" content="{{ lang }}">
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid pb-4">
+<div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div class="card mb-4">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="mb-0">{{ activity.title }}</h3>
-                        <span class="badge bg-secondary">{{ activity.language|upper }}</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <p class="mb-3">{{ activity.description }}</p>
-
-                    <div class="editor-console-row">
-                        <div class="editor-column">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">{% if lang == 'fr' %}Éditeur de code{% else %}Code Editor{% endif %}</h5>
-                                        <div class="d-flex gap-2">
-                                            <input type="hidden" id="languageSelect" value="{{ activity.language }}">
-                                            <button id="runButton" class="btn btn-primary">
-                                                <i class="bi bi-play-fill"></i> {% if lang == 'fr' %}Exécuter{% else %}Run{% endif %}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card-body p-0">
-                                    <div class="editor-container">
-                                        <textarea id="editor">{% if activity.starter_code %}{{ activity.starter_code }}{% else %}// Your code here{% endif %}</textarea>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="console-column">
-                            <div class="card">
-                                <div class="card-header">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="mb-0">{% if lang == 'fr' %}Console interactive{% else %}Interactive Console{% endif %}</h5>
-                                        <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
-                                            <i class="bi bi-trash"></i>
+                <div class="editor-console-row">
+                    <div class="editor-column">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Code Editor</h5>
+                                    <div class="d-flex gap-2">
+                                        <button id="runButton" class="btn btn-primary">
+                                            <i class="bi bi-play-fill"></i> Run
                                         </button>
                                     </div>
                                 </div>
-                                <div class="card-body p-0">
-                                    <div class="console-container" id="consoleContainer">
-                                        <div id="consoleOutput">
-                                            <div class="console-loading">{% if lang == 'fr' %}Initialisation de la console...{% else %}Initializing console...{% endif %}</div>
-                                        </div>
-                                        <div class="console-input-line">
-                                            <span class="console-prompt">&gt;</span>
-                                            <input type="text" id="consoleInput"
-                                                   placeholder="{% if lang == 'fr' %}Appuyez sur Entrée pour envoyer{% else %}Press Enter to send{% endif %}"
-                                                   autocomplete="off"
-                                                   spellcheck="false"
-                                                   disabled>
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="editor-container">
+                                    <textarea id="editor">{{ activity.starter_code or '// Your code here' }}</textarea>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="accordion mt-4" id="activityAccordion">
-                        {% if activity.hints %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="hintsHeader">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#hintsCollapse" aria-expanded="false" aria-controls="hintsCollapse">
-                                    <i class="bi bi-lightbulb me-2"></i> {% if lang == 'fr' %}Indices{% else %}Hints{% endif %}
-                                </button>
-                            </h2>
-                            <div id="hintsCollapse" class="accordion-collapse collapse" aria-labelledby="hintsHeader" data-bs-parent="#activityAccordion">
-                                <div class="accordion-body">
-                                    <ul class="hints-list">
-                                        {% if activity.hints is string %}
-                                            <li>{{ activity.hints|safe }}</li>
-                                        {% else %}
-                                            {% for hint in activity.hints %}
-                                                <li>{{ hint|safe }}</li>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </ul>
+                    <div class="console-column">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">Interactive Console</h5>
+                                    <button id="clearConsole" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="console-container">
+                                    <div id="consoleOutput"></div>
+                                    <div class="console-input-line">
+                                        <span class="console-prompt">&gt;</span>
+                                        <input type="text" id="consoleInput" 
+                                               placeholder="Press Enter to send"
+                                               autocomplete="off"
+                                               spellcheck="false">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        {% endif %}
-
-                        {% if activity.common_errors %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="errorsHeader">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#errorsCollapse" aria-expanded="false" aria-controls="errorsCollapse">
-                                    <i class="bi bi-exclamation-triangle me-2"></i> {% if lang == 'fr' %}Erreurs courantes{% else %}Common Errors{% endif %}
-                                </button>
-                            </h2>
-                            <div id="errorsCollapse" class="accordion-collapse collapse" aria-labelledby="errorsHeader" data-bs-parent="#activityAccordion">
-                                <div class="accordion-body">
-                                    <ul class="errors-list">
-                                        {% if activity.common_errors is string %}
-                                            <li>{{ activity.common_errors|safe }}</li>
-                                        {% else %}
-                                            {% for error in activity.common_errors %}
-                                                <li>{{ error|safe }}</li>
-                                            {% endfor %}
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -135,58 +66,53 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Socket.IO must be loaded first -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<!-- Then load our console implementation -->
+<script src="{{ url_for('static', filename='js/console.js') }}"></script>
+
+<!-- Initialize console -->
 <script>
-// Wait for DOM to be fully loaded before any initialization
 document.addEventListener('DOMContentLoaded', () => {
-    // First verify all required elements exist
-    const outputElement = document.getElementById('consoleOutput');
-    const inputElement = document.getElementById('consoleInput');
-    const languageSelect = document.getElementById('languageSelect');
+    console.log('Initializing activity page...');
 
-    if (!outputElement || !inputElement || !languageSelect) {
-        console.error('Required console elements not found');
-        return;
-    }
+    try {
+        // Create console instance
+        window.consoleInstance = new InteractiveConsole();
+        console.log('Console instance created');
 
-    // Load and initialize console
-    const consoleScript = document.createElement('script');
-    consoleScript.src = "{{ url_for('static', filename='js/console.js') }}";
-
-    consoleScript.onload = () => {
-        try {
-            // Create console instance with required elements
-            window.consoleInstance = new InteractiveConsole({
-                outputElement,
-                inputElement,
-                language: languageSelect.value || 'csharp'
+        // Setup run button
+        const runButton = document.getElementById('runButton');
+        if (runButton) {
+            runButton.addEventListener('click', () => {
+                const code = document.getElementById('editor').value;
+                console.log('Run button clicked, executing code');
+                window.consoleInstance.compileAndRun(code);
             });
-
-            // Setup clear console button
-            const clearButton = document.getElementById('clearConsole');
-            if (clearButton) {
-                clearButton.addEventListener('click', () => {
-                    window.consoleInstance?.clear();
-                });
-            }
-
-            // Load editor after console is ready
-            const editorScript = document.createElement('script');
-            editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
-            document.body.appendChild(editorScript);
-
-        } catch (error) {
-            console.error('Console initialization failed:', error);
-            outputElement.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
         }
-    };
 
-    consoleScript.onerror = () => {
-        console.error('Failed to load console script');
-        outputElement.innerHTML = '<div class="console-error">Failed to load console script</div>';
-    };
+        // Setup clear button
+        const clearButton = document.getElementById('clearConsole');
+        if (clearButton) {
+            clearButton.addEventListener('click', () => {
+                console.log('Clear button clicked');
+                window.consoleInstance.clear();
+            });
+        }
 
-    document.body.appendChild(consoleScript);
+        // Load editor after console is ready
+        const editorScript = document.createElement('script');
+        editorScript.src = "{{ url_for('static', filename='js/editor.js') }}";
+        document.body.appendChild(editorScript);
+
+    } catch (error) {
+        console.error('Failed to initialize:', error);
+        const output = document.getElementById('consoleOutput');
+        if (output) {
+            output.innerHTML = `<div class="console-error">Initialization failed: ${error.message}</div>`;
+        }
+    }
 });
 </script>
 {% endblock %}
