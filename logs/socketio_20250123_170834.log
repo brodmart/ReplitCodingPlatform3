@@ -1,0 +1,26 @@
+2025-01-23 17:08:34,533 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:08:34,562 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:08:34,860 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:08:34,951 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:08:37,484 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:08:37,801 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+ - MainProcess:MainThread
+2025-01-23 17:08:37,856 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:08:38,189 - __main__:62 - INFO - Database Content: - MainProcess:MainThread
+2025-01-23 17:08:38,190 - __main__:63 - INFO - -------------------------------------------------- - MainProcess:MainThread
+2025-01-23 17:08:38,190 - __main__:64 - INFO - Strand: - MainProcess:MainThread
+2025-01-23 17:08:38,190 - __main__:65 - INFO - - Code: C - MainProcess:MainThread
+2025-01-23 17:08:38,191 - __main__:66 - INFO - - Title (FR): Programmation - MainProcess:MainThread
+2025-01-23 17:08:38,191 - __main__:67 - INFO - - Title (EN): Programming - MainProcess:MainThread
+2025-01-23 17:08:38,191 - __main__:69 - INFO - 
+Overall Expectation: - MainProcess:MainThread
+2025-01-23 17:08:38,192 - __main__:70 - INFO - - Code: C2 - MainProcess:MainThread
+2025-01-23 17:08:38,192 - __main__:71 - INFO - - Description (FR): Écriture - MainProcess:MainThread
+2025-01-23 17:08:38,192 - __main__:72 - INFO - - Description (EN): Writing - MainProcess:MainThread
+2025-01-23 17:08:38,192 - __main__:74 - INFO - 
+Specific Expectation: - MainProcess:MainThread
+2025-01-23 17:08:38,193 - __main__:75 - INFO - - Code: C2.1 - MainProcess:MainThread
+2025-01-23 17:08:38,193 - __main__:76 - INFO - - Description (FR): Écrire du code clair et maintenable en utilisant les conventions appropriées - MainProcess:MainThread
+2025-01-23 17:08:38,193 - __main__:77 - INFO - - Description (EN): Write clear and maintainable code using proper conventions - MainProcess:MainThread
+2025-01-23 17:08:38,194 - __main__:93 - INFO - 
+All required fields are present - MainProcess:MainThread

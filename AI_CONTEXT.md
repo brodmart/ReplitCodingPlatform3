@@ -346,4 +346,23 @@ Last Updated: January 23, 2025
    - Monitor connection and resource usage
    - Handle disconnections gracefully
 
+## Critical .NET Runtime Configuration (January 23, 2025)
+1. **Project Configuration Requirements**:
+   - UseAppHost must be set to false to prevent self-contained deployment
+   - Runtime identifier (RID) must match the deployment environment
+   - Project must use non-self-contained deployment model
+   - DOTNET_ROOT environment variable must be properly set
+   - DOTNET_CLI_HOME must be set to the temporary directory
+
+2. **Runtime Path Configuration**:
+   - DOTNET_ROOT must point to SDK location: '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410'
+   - Use dotnet command to execute DLLs instead of direct executable execution
+   - Ensure proper environment variable inheritance in subprocess calls
+
+3. **Build and Execution Flow**:
+   - Build using optimized Release configuration
+   - Execute using 'dotnet [dll_path]' instead of direct executable
+   - Handle process spawning with proper environment setup
+   - Ensure PTY setup for interactive console support
+
 This guide helps maintain consistent project understanding across AI sessions. Always read these files at the start of each session and update them when making significant changes.
