@@ -66,6 +66,7 @@ class CompilerSession:
     stop_event: Event = field(default_factory=Event)
     _access_lock: Lock = field(default_factory=Lock)
     _cleanup_lock: Lock = field(default_factory=Lock)
+    _input_ready: Event = field(default_factory=Event)
 
     def is_active(self) -> bool:
         """Check if the session is still active"""
@@ -78,31 +79,44 @@ class CompilerSession:
         """Thread-safe method to append output"""
         with self._access_lock:
             self.output_buffer.append(text)
-            # Check if this output looks like it's waiting for input
+            # Check if this output contains input prompts
             lowercase_text = text.lower()
-            if any(prompt in lowercase_text for prompt in ['input', 'enter', '?', ':']):
+            if (any(prompt in lowercase_text for prompt in
+                ['input', 'enter', '?', ':', 'type', 'name']) or
+                text.strip().endswith(':')):
                 self.waiting_for_input = True
-                logger.debug(f"Detected input prompt: {text}")
+                self._input_ready.set()
+                logger.debug(f"Input prompt detected: {text}")
 
     def get_output(self) -> List[str]:
         """Thread-safe method to get output"""
         with self._access_lock:
-            return self.output_buffer.copy()
+            output = self.output_buffer.copy()
+            self.output_buffer.clear()
+            return output
 
     def set_waiting_for_input(self, value: bool) -> None:
         """Thread-safe method to set waiting_for_input"""
         with self._access_lock:
+            prev_state = self.waiting_for_input
             self.waiting_for_input = value
-            if value:
+            if value and not prev_state:
+                self._input_ready.set()
                 logger.debug(f"Session {self.session_id} is now waiting for input")
-            else:
+            elif not value and prev_state:
+                self._input_ready.clear()
                 logger.debug(f"Session {self.session_id} is no longer waiting for input")
+
+    def wait_for_input_prompt(self, timeout: float = 5.0) -> bool:
+        """Wait for input prompt to appear"""
+        return self._input_ready.wait(timeout)
 
     def cleanup(self) -> None:
         """Clean up session resources"""
         with self._cleanup_lock:
             logger.debug(f"Starting cleanup for session {self.session_id}")
             self.stop_event.set()
+            self._input_ready.set()  # Unblock any waiting threads
 
             if self.process and self.process.poll() is None:
                 try:
@@ -215,7 +229,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                         time.sleep(0.1)
                         continue
 
-                    # Check if there's data available to read
+                    # Use select to check for available data
                     rlist, _, _ = select.select([process.stdout], [], [], 0.1)
                     if not rlist:
                         continue
@@ -261,6 +275,12 @@ def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
             if not session.is_active():
                 return {'success': False, 'error': 'Session not active'}
 
+            # Wait for input prompt if not already waiting
+            if not session.waiting_for_input:
+                if not session.wait_for_input_prompt(timeout=5.0):
+                    return {'success': False, 'error': 'Timeout waiting for input prompt'}
+
+            # Ensure input ends with newline
             if not input_text.endswith('\n'):
                 input_text += '\n'
 
@@ -288,16 +308,14 @@ def get_output(session_id: str) -> Dict[str, Any]:
             if not session.is_active():
                 return {'success': False, 'error': 'Session not active'}
 
-            with session._access_lock:
-                output_lines = session.output_buffer
-                output_text = '\n'.join(output_lines) if output_lines else ""
-                session.output_buffer = []  # Clear buffer after reading
+            output_lines = session.get_output()
+            output_text = '\n'.join(output_lines) if output_lines else ""
 
-                return {
-                    'success': True,
-                    'output': output_text,
-                    'waiting_for_input': session.waiting_for_input
-                }
+            return {
+                'success': True,
+                'output': output_text,
+                'waiting_for_input': session.waiting_for_input
+            }
 
     except Exception as e:
         logger.error(f"Get output error: {e}")

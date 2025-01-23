@@ -13,3 +13,48 @@
 2025-01-23 00:45:04,367 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
 2025-01-23 00:45:04,371 - werkzeug:96 - INFO -  * Debugger PIN: 100-314-490 - MainProcess:MainThread
 2025-01-23 00:45:05,152 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-23 00:45:07,626 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet OPEN data {'sid': 'w3DfsLVv8n-R3ITHAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-2
+2025-01-23 00:45:07,626 - engineio.server:90 - INFO - w3DfsLVv8n-R3ITHAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-23 00:45:07,626 - engineio.server:219 - INFO - w3DfsLVv8n-R3ITHAAAA: Upgrade to websocket successful - MainProcess:GreenThread-2
+2025-01-23 00:45:07,719 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-23 00:45:07,720 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet MESSAGE data 0{"sid":"Zod5oPNSRYT2doxmAAAB"} - MainProcess:GreenThread-2
+2025-01-23 00:45:07,721 - app:132 - INFO - Client connected: Zod5oPNSRYT2doxmAAAB - MainProcess:GreenThread-2
+2025-01-23 00:45:07,722 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"Zod5oPNSRYT2doxmAAAB"}] - MainProcess:GreenThread-2
+2025-01-23 00:45:32,628 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-3
+2025-01-23 00:45:32,705 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:45:57,706 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-4
+2025-01-23 00:45:57,798 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:46:22,800 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-5
+2025-01-23 00:46:22,880 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:46:47,882 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-6
+2025-01-23 00:46:47,975 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:47:12,976 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-7
+2025-01-23 00:47:13,062 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:47:38,063 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-8
+2025-01-23 00:47:38,151 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:48:03,152 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-9
+2025-01-23 00:48:03,230 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:48:28,231 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-10
+2025-01-23 00:48:28,309 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:48:53,310 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-11
+2025-01-23 00:48:53,414 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:49:18,416 - engineio.server:78 - INFO - w3DfsLVv8n-R3ITHAAAA: Sending packet PING data None - MainProcess:GreenThread-12
+2025-01-23 00:49:18,504 - engineio.server:39 - INFO - w3DfsLVv8n-R3ITHAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:49:19,397 - app:141 - INFO - Client disconnected: Zod5oPNSRYT2doxmAAAB - MainProcess:GreenThread-2
+2025-01-23 00:49:22,546 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-13
+2025-01-23 00:49:23,449 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet OPEN data {'sid': 'L2aOnYV62tu9YcH9AAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-14
+2025-01-23 00:49:23,450 - engineio.server:90 - INFO - L2aOnYV62tu9YcH9AAAC: Received request to upgrade to websocket - MainProcess:GreenThread-14
+2025-01-23 00:49:23,450 - engineio.server:219 - INFO - L2aOnYV62tu9YcH9AAAC: Upgrade to websocket successful - MainProcess:GreenThread-14
+2025-01-23 00:49:23,528 - engineio.server:39 - INFO - L2aOnYV62tu9YcH9AAAC: Received packet MESSAGE data 0 - MainProcess:GreenThread-14
+2025-01-23 00:49:23,529 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet MESSAGE data 0{"sid":"1xhX6EA7rH5HIHIBAAAD"} - MainProcess:GreenThread-14
+2025-01-23 00:49:23,532 - app:132 - INFO - Client connected: 1xhX6EA7rH5HIHIBAAAD - MainProcess:GreenThread-14
+2025-01-23 00:49:23,534 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"1xhX6EA7rH5HIHIBAAAD"}] - MainProcess:GreenThread-14
+2025-01-23 00:49:48,452 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet PING data None - MainProcess:GreenThread-15
+2025-01-23 00:49:48,610 - engineio.server:39 - INFO - L2aOnYV62tu9YcH9AAAC: Received packet PONG data  - MainProcess:GreenThread-14
+2025-01-23 00:50:13,611 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet PING data None - MainProcess:GreenThread-16
+2025-01-23 00:50:13,695 - engineio.server:39 - INFO - L2aOnYV62tu9YcH9AAAC: Received packet PONG data  - MainProcess:GreenThread-14
+2025-01-23 00:50:38,696 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet PING data None - MainProcess:GreenThread-17
+2025-01-23 00:50:38,787 - engineio.server:39 - INFO - L2aOnYV62tu9YcH9AAAC: Received packet PONG data  - MainProcess:GreenThread-14
+2025-01-23 00:51:03,788 - engineio.server:78 - INFO - L2aOnYV62tu9YcH9AAAC: Sending packet PING data None - MainProcess:GreenThread-18
+2025-01-23 00:51:03,880 - engineio.server:39 - INFO - L2aOnYV62tu9YcH9AAAC: Received packet PONG data  - MainProcess:GreenThread-14
+2025-01-23 00:51:18,616 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading - MainProcess:MainThread

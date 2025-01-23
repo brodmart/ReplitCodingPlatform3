@@ -1,0 +1,27 @@
+2025-01-23 00:51:19,549 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 00:51:19,550 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 00:51:19,554 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 00:51:19,561 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 00:51:19,563 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 00:51:19,592 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 00:51:19,592 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 00:51:19,592 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 00:51:19,601 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 00:51:21,094 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 00:51:21,095 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 00:51:21,095 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-23 00:51:21,096 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 00:51:21,097 - werkzeug:96 - INFO -  * Debugger PIN: 188-189-582 - MainProcess:MainThread
+2025-01-23 00:51:21,414 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-23 00:51:22,328 - engineio.server:78 - INFO - IwiN42Lnz15aZ3o7AAAA: Sending packet OPEN data {'sid': 'IwiN42Lnz15aZ3o7AAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-2
+2025-01-23 00:51:22,328 - engineio.server:90 - INFO - IwiN42Lnz15aZ3o7AAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-23 00:51:22,328 - engineio.server:219 - INFO - IwiN42Lnz15aZ3o7AAAA: Upgrade to websocket successful - MainProcess:GreenThread-2
+2025-01-23 00:51:22,429 - engineio.server:39 - INFO - IwiN42Lnz15aZ3o7AAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-23 00:51:22,431 - engineio.server:78 - INFO - IwiN42Lnz15aZ3o7AAAA: Sending packet MESSAGE data 0{"sid":"LcXJrfwcej9PIskUAAAB"} - MainProcess:GreenThread-2
+2025-01-23 00:51:22,431 - app:132 - INFO - Client connected: LcXJrfwcej9PIskUAAAB - MainProcess:GreenThread-2
+2025-01-23 00:51:22,432 - engineio.server:78 - INFO - IwiN42Lnz15aZ3o7AAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"LcXJrfwcej9PIskUAAAB"}] - MainProcess:GreenThread-2
+2025-01-23 00:51:47,330 - engineio.server:78 - INFO - IwiN42Lnz15aZ3o7AAAA: Sending packet PING data None - MainProcess:GreenThread-3
+2025-01-23 00:51:47,495 - engineio.server:39 - INFO - IwiN42Lnz15aZ3o7AAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:52:12,497 - engineio.server:78 - INFO - IwiN42Lnz15aZ3o7AAAA: Sending packet PING data None - MainProcess:GreenThread-4
+2025-01-23 00:52:12,584 - engineio.server:39 - INFO - IwiN42Lnz15aZ3o7AAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:52:14,939 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading - MainProcess:MainThread
