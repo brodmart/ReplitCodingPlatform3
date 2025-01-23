@@ -180,13 +180,15 @@ def create_app():
 
             sid = request.sid
             session_id = f"session_{int(time.time())}"
-            logger.info(f"Starting compilation session {session_id} for client {sid}")
+            logger.info(f"[COMPILE] Starting compilation for session {session_id} client {sid}")
+            logger.debug(f"[COMPILE] Code length: {len(code)}, First line: {code.split()[0]}")
 
             # Create new console session with proper activation
             console_session = ConsoleSession(session_id)
             with console_session.lock:
                 console_sessions[sid] = console_session
                 console_session.activate()
+                logger.info(f"[COMPILE] Created and activated console session {session_id}")
 
             track_session(session_id, active=True, context={
                 'code_length': len(code),
@@ -194,6 +196,7 @@ def create_app():
             })
 
             # Emit compilation start
+            logger.debug(f"[COMPILE] Emitting initial compilation message for {session_id}")
             emit('output', {
                 'success': True,
                 'session_id': session_id,
@@ -211,22 +214,23 @@ def create_app():
             from compiler_service import compile_and_run_csharp
 
             # Start C# compilation and execution with detailed logging
-            logger.info(f"Starting C# compilation for session {session_id}")
+            logger.info(f"[COMPILE] Starting C# compilation process for session {session_id}")
             compilation_result = compile_and_run_csharp(code, session_id)
-            logger.info(f"Compilation result for session {session_id}: {compilation_result}")
+            logger.info(f"[COMPILE] Got compilation result for {session_id}: {compilation_result}")
 
             # Set compilation complete and process result with proper synchronization
             with console_session.lock:
                 console_session.set_compilation_complete()
+                logger.debug(f"[COMPILE] Set compilation complete for {session_id}")
 
                 if compilation_result.get('success'):
                     waiting_for_input = compilation_result.get('waiting_for_input', False)
                     console_session.waiting_for_input = waiting_for_input
-                    logger.info(f"Session {session_id} waiting for input: {waiting_for_input}")
+                    logger.info(f"[COMPILE] Session {session_id} waiting for input: {waiting_for_input}")
 
                     # Enhanced output handling with proper validation
                     output = compilation_result.get('output', '')
-                    logger.info(f"Emitting output for session {session_id}: {output}")
+                    logger.info(f"[COMPILE] Emitting output for {session_id}: {repr(output)}")
 
                     # Always emit output even if empty to ensure state sync
                     emit('output', {
@@ -237,7 +241,7 @@ def create_app():
                     })
                 else:
                     error = compilation_result.get('error', 'Unknown compilation error')
-                    logger.error(f"Compilation error in session {session_id}: {error}")
+                    logger.error(f"[COMPILE] Error in session {session_id}: {error}")
                     emit('output', {
                         'success': False,
                         'session_id': session_id,
@@ -246,7 +250,7 @@ def create_app():
                     })
 
         except Exception as e:
-            logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
+            logger.error(f"[COMPILE] Critical error in compile_and_run: {str(e)}", exc_info=True)
             emit('error', {
                 'message': str(e),
                 'type': 'compilation_error',
