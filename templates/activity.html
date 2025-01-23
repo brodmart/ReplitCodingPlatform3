@@ -119,19 +119,25 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Load dependencies -->
+<!-- Load Socket.IO first -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 
 <!-- Initialize console -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Wait for DOM and required scripts to load
+window.addEventListener('load', function() {
     // Verify elements exist before initialization
     const consoleOutput = document.getElementById('consoleOutput');
     const consoleInput = document.getElementById('consoleInput');
+    const editor = document.getElementById('editor');
 
-    if (!consoleOutput || !consoleInput) {
-        console.error('Console elements not found on page load');
+    if (!consoleOutput || !consoleInput || !editor) {
+        console.error('Required elements not found:', {
+            consoleOutput: !!consoleOutput,
+            consoleInput: !!consoleInput,
+            editor: !!editor
+        });
         return;
     }
 
@@ -143,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const runButton = document.getElementById('runButton');
         if (runButton) {
             runButton.addEventListener('click', () => {
-                const code = document.getElementById('editor').value;
+                const code = editor.value;
                 window.consoleInstance.compileAndRun(code);
             });
         }
