@@ -1,0 +1,36 @@
+2025-01-23 17:15:40,162 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:15:40,290 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:15:40,628 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:15:40,706 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:15:40,946 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:15:40,947 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:15:40,989 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:15:41,126 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:15:41,183 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:15:41,436 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 17:15:41,594 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:15:41,703 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+ - MainProcess:MainThread
+2025-01-23 17:15:41,802 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 17:15:42,091 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:15:42,120 - __main__:62 - INFO - Database Content: - MainProcess:MainThread
+2025-01-23 17:15:42,130 - __main__:63 - INFO - -------------------------------------------------- - MainProcess:MainThread
+2025-01-23 17:15:42,133 - __main__:64 - INFO - Strand: - MainProcess:MainThread
+2025-01-23 17:15:42,136 - __main__:65 - INFO - - Code: C - MainProcess:MainThread
+2025-01-23 17:15:42,136 - __main__:66 - INFO - - Title (FR): Programmation - MainProcess:MainThread
+2025-01-23 17:15:42,148 - __main__:67 - INFO - - Title (EN): Programming - MainProcess:MainThread
+2025-01-23 17:15:42,150 - __main__:69 - INFO - 
+Overall Expectation: - MainProcess:MainThread
+2025-01-23 17:15:42,150 - __main__:70 - INFO - - Code: C2 - MainProcess:MainThread
+2025-01-23 17:15:42,150 - __main__:71 - INFO - - Description (FR): Écriture - MainProcess:MainThread
+2025-01-23 17:15:42,150 - __main__:72 - INFO - - Description (EN): Writing - MainProcess:MainThread
+2025-01-23 17:15:42,150 - __main__:74 - INFO - 
+Specific Expectation: - MainProcess:MainThread
+2025-01-23 17:15:42,151 - __main__:75 - INFO - - Code: C2.1 - MainProcess:MainThread
+2025-01-23 17:15:42,151 - __main__:76 - INFO - - Description (FR): Écrire du code clair et maintenable en utilisant les conventions appropriées - MainProcess:MainThread
+2025-01-23 17:15:42,151 - __main__:77 - INFO - - Description (EN): Write clear and maintainable code using proper conventions - MainProcess:MainThread
+2025-01-23 17:15:42,151 - __main__:93 - INFO - 
+All required fields are present - MainProcess:MainThread
+2025-01-23 17:15:42,206 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:15:42,373 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 17:15:43,106 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread

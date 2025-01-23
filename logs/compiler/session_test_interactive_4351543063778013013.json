@@ -1,0 +1,39 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T17:15:46.706638",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T17:15:46.706569"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T17:16:10.876063",
+    "data": {
+      "error_message": "Failed to get initial output",
+      "context": {
+        "stage": "output",
+        "context": {
+          "success": false,
+          "error": "Session not active"
+        }
+      },
+      "timestamp": "2025-01-23T17:16:10.875776"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T17:16:10.877478",
+    "data": {
+      "error_message": "Failed to get initial output",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to get initial output"
+        }
+      },
+      "timestamp": "2025-01-23T17:16:10.877207"
+    }
+  }
+]

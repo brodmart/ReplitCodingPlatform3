@@ -1,0 +1,2 @@
+2025-01-23 17:15:55,812 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:15:56,005 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
