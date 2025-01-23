@@ -1,0 +1,28 @@
+2025-01-23 02:52:36,013 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 02:52:36,014 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 02:52:36,581 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 02:52:36,587 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 02:52:36,881 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:52:36,897 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 02:52:36,917 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 02:52:37,081 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:52:37,093 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 02:52:37,094 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 02:52:37,316 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 02:52:37,316 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:52:37,324 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 02:52:37,380 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 02:52:37,384 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 02:52:37,384 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:52:37,385 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 02:52:37,400 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 02:52:40,916 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 02:52:41,041 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 02:52:41,301 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 02:52:41,418 - __main__:89 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
+2025-01-23 02:52:41,462 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 02:52:41,466 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 02:52:42,241 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 02:52:42,483 - __main__:30 - INFO - Existing tables: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress'] - MainProcess:MainThread
+2025-01-23 02:52:42,689 - __main__:37 - INFO - Tables after creation: ['code_submission', 'courses', 'strands', 'overall_expectations', 'specific_expectations', 'shared_code', 'audit_log', 'coding_activity', 'student', 'student_achievement', 'achievement', 'student_progress'] - MainProcess:MainThread
+2025-01-23 02:52:42,690 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread

@@ -1,0 +1,14 @@
+2025-01-23 02:56:18,505 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 02:56:18,507 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 02:56:18,675 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:56:18,678 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 02:56:18,679 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 02:56:18,924 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 02:56:18,925 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 02:56:18,925 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 02:56:18,955 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 02:56:19,981 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 02:56:19,985 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 02:56:20,058 - __main__:333 - INFO - Starting ICD2O curriculum import process... - MainProcess:MainThread
+2025-01-23 02:56:20,116 - __main__:58 - ERROR - Error clearing existing data: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
+2025-01-23 02:56:20,117 - __main__:387 - ERROR - Import failed: The current Flask app is not registered with this 'SQLAlchemy' instance. Did you forget to call 'init_app', or did you create multiple 'SQLAlchemy' instances? - MainProcess:MainThread
