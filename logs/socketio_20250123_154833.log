@@ -29,3 +29,6 @@
 2025-01-23 15:48:36,582 - engineio.server:78 - INFO - yaysUMDLRUtWGwVsAAAE: Sending packet MESSAGE data 0{"sid":"qSM8-Tf8JepUu_ELAAAF"} - MainProcess:Thread-1 (run_server)
 2025-01-23 15:48:37,052 - __main__:156 - INFO - Client disconnecting: qSM8-Tf8JepUu_ELAAAF - MainProcess:Thread-1 (run_server)
 2025-01-23 15:48:37,052 - __main__:167 - INFO - Client disconnected: qSM8-Tf8JepUu_ELAAAF - MainProcess:Thread-1 (run_server)
+2025-01-23 15:48:53,149 - engineio.server:39 - INFO - HdRbbieOXSEAxUvjAAAC: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:48:53,150 - __main__:183 - INFO - Starting compilation session session_1737647333 for client iXmJ3a7RJfHGOtVaAAAD - MainProcess:Thread-1 (run_server)
+2025-01-23 15:48:53,151 - __main__:62 - INFO - Created new console session: session_1737647333 (active: True) - MainProcess:Thread-1 (run_server)
