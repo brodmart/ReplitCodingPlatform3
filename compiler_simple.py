@@ -37,9 +37,9 @@ def compile_and_run(code: str, input_data: Optional[str] = None) -> Dict[str, An
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <PublishReadyToRun>true</PublishReadyToRun>
+    <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
 </Project>"""
 
@@ -49,11 +49,18 @@ def compile_and_run(code: str, input_data: Optional[str] = None) -> Dict[str, An
             # Build the project with optimized settings
             logger.debug("Starting build process")
             build_process = subprocess.run(
-                ['dotnet', 'build', str(project_file), '--nologo', '--configuration', 'Release'],
+                ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
                 capture_output=True,
                 text=True,
                 timeout=30,
-                cwd=str(temp_path)
+                cwd=str(temp_path),
+                env={
+                    **os.environ,
+                    'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
+                    'DOTNET_CLI_HOME': temp_dir,
+                    'DOTNET_NOLOGO': 'true',
+                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'
+                }
             )
 
             if build_process.returncode != 0:
@@ -65,8 +72,10 @@ def compile_and_run(code: str, input_data: Optional[str] = None) -> Dict[str, An
 
             # Run the compiled program
             logger.debug("Starting program execution")
+            exe_path = temp_path / "bin" / "Release" / "net7.0" / "linux-x64" / "program"
+
             run_process = subprocess.run(
-                ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                [str(exe_path)],
                 input=input_data.encode() if input_data else None,
                 capture_output=True,
                 text=True,

@@ -41,3 +41,4 @@
 2025-01-23 18:30:04,874 - __main__:198 - DEBUG - [COMPILE] Code length: 227, First line: using - MainProcess:Thread-1 (run_server)
 2025-01-23 18:30:04,874 - __main__:201 - INFO - [SESSION] Creating new console session session_1737657004 - MainProcess:Thread-1 (run_server)
 2025-01-23 18:30:04,874 - __main__:62 - INFO - Created new console session: session_1737657004 (active: True) - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:01,392 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_simple.py', reloading - MainProcess:MainThread

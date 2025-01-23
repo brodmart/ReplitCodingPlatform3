@@ -3892,3 +3892,12 @@ TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments 
 2025-01-23 18:30:04,872 - socketio.server:576 - INFO - received event "compile_and_run" from S3x093RELN7xsOEWAAAD [/] - MainProcess:Thread-1 (run_server)
 2025-01-23 18:30:04,873 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 18:30:04.873764 - MainProcess:Thread-1 (run_server)
 2025-01-23 18:30:04,873 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:02,523 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 18:37:06,133 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 18:37:06.133287 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,133 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,133 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,133 - socketio:110 - DEBUG - Client info: {'sid': 'lYW7ccGzb3VO3YUjAAAB', 'transport': 'websocket', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', 'remote_addr': '172.31.196.39'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,133 - socketio.server:164 - INFO - emitting event "connected" to lYW7ccGzb3VO3YUjAAAB [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,134 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,134 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:Thread-1 (run_server)
+2025-01-23 18:37:06,134 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
