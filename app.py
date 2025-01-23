@@ -27,9 +27,14 @@ CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True, ping_timeout=60)
 
 @app.route('/')
+def index():
+    """Render the main activity page with console"""
+    return render_template('activity.html')
+
+@app.route('/console')
 def console():
-    """Render the interactive console page"""
-    return render_template('console.html')
+    """Alternative route for console page"""
+    return render_template('activity.html')
 
 @socketio.on('connect')
 def handle_connect():
