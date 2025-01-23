@@ -6,5 +6,14 @@
       "code_length": 318,
       "timestamp": "2025-01-22T23:47:54.763917"
     }
+  },
+  {
+    "event_type": "execution_state",
+    "timestamp": "2025-01-22T23:48:11.958880",
+    "data": {
+      "state": "session_started",
+      "details": {},
+      "timestamp": "2025-01-22T23:48:11.958739"
+    }
   }
 ]
