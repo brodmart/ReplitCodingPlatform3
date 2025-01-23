@@ -101,7 +101,7 @@ def create_app():
 
     @socketio.on('connect')
     @log_socket_event
-    def handle_connect():
+    def handle_connect(auth=None):
         """Handle client connection with enhanced tracking"""
         try:
             client_info = {
@@ -126,7 +126,7 @@ def create_app():
 
     @socketio.on('disconnect')
     @log_socket_event
-    def handle_disconnect():
+    def handle_disconnect(reason=None):
         """Handle client disconnection with cleanup"""
         try:
             sid = request.sid
@@ -136,8 +136,9 @@ def create_app():
             if sid in console_sessions:
                 session = console_sessions[sid]
                 session.active = False
-                logger.info(f"Cleaning up console session: {session.session_id}")
-                del console_sessions[sid]
+                with session.lock:
+                    logger.info(f"Cleaning up console session: {session.session_id}")
+                    del console_sessions[sid]
 
             track_connection(connected=False)
             logger.info(f"Client disconnected: {sid}")
@@ -158,9 +159,10 @@ def create_app():
             session_id = f"session_{int(time.time())}"
             logger.info(f"Starting compilation session {session_id} for client {sid}")
 
-            # Create new console session
+            # Create new console session with proper locking
             console_session = ConsoleSession(session_id)
-            console_sessions[sid] = console_session
+            with console_session.lock:
+                console_sessions[sid] = console_session
 
             track_session(session_id, active=True, context={
                 'code_length': len(code),
@@ -184,17 +186,17 @@ def create_app():
             # Import necessary C# compilation module
             from compiler_service import compile_and_run_csharp
 
-            # Start C# compilation and execution
+            # Start C# compilation and execution with proper session handling
             compilation_result = compile_and_run_csharp(code, session_id)
 
             if compilation_result.get('success'):
-                # Send initial output immediately
-                emit('output', {
-                    'success': True,
-                    'session_id': session_id,
-                    'output': compilation_result.get('output', '') + '\n',
-                    'waiting_for_input': compilation_result.get('waiting_for_input', False)
-                })
+                with console_session.lock:
+                    emit('output', {
+                        'success': True,
+                        'session_id': session_id,
+                        'output': compilation_result.get('output', '') + '\n',
+                        'waiting_for_input': compilation_result.get('waiting_for_input', False)
+                    })
             else:
                 emit('output', {
                     'success': False,
@@ -216,7 +218,7 @@ def create_app():
     @socketio.on('input')
     @log_socket_event
     def handle_input(data):
-        """Handle user input with enhanced error handling"""
+        """Handle user input with enhanced error handling and session synchronization"""
         try:
             session_id = data.get('session_id')
             user_input = data.get('input', '')
@@ -226,32 +228,43 @@ def create_app():
 
             logger.info(f"Received input for session {session_id}: {user_input}")
 
-            # Get console session
+            # Get console session with proper locking
             sid = request.sid
             console_session = console_sessions.get(sid)
             if not console_session:
-                raise ValueError("Invalid session ID")
+                raise ValueError("Invalid session ID or session expired")
 
-            # Process input through C# runtime
-            from compiler_service import process_csharp_input
+            if not console_session.active:
+                raise ValueError("Session not active")
 
-            # Send input to C# program
-            result = process_csharp_input(session_id, user_input)
+            with console_session.lock:
+                # Process input through C# runtime
+                from compiler_service import process_csharp_input
 
-            if result.get('success'):
-                emit('output', {
-                    'success': True,
-                    'session_id': session_id,
-                    'output': result.get('output', '') + '\n',
-                    'waiting_for_input': result.get('waiting_for_input', True)
-                })
-            else:
-                emit('error', {
-                    'message': result.get('error', 'Failed to process input'),
-                    'type': 'input_error',
-                    'session_id': session_id
-                })
+                # Send input to C# program with proper synchronization
+                result = process_csharp_input(session_id, user_input)
 
+                if result.get('success'):
+                    emit('output', {
+                        'success': True,
+                        'session_id': session_id,
+                        'output': result.get('output', '') + '\n',
+                        'waiting_for_input': result.get('waiting_for_input', True)
+                    })
+                else:
+                    emit('error', {
+                        'message': result.get('error', 'Failed to process input'),
+                        'type': 'input_error',
+                        'session_id': session_id
+                    })
+
+        except ValueError as ve:
+            logger.error(f"Validation error in handle_input: {str(ve)}")
+            emit('error', {
+                'message': str(ve),
+                'type': 'input_error',
+                'session_id': session_id if 'session_id' in locals() else None
+            })
         except Exception as e:
             logger.error(f"Error in handle_input: {str(e)}", exc_info=True)
             emit('error', {

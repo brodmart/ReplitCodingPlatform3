@@ -1,0 +1,19 @@
+2025-01-23 15:35:39,436 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:35:39,465 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:35:39,556 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:35:39,578 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:35:43,055 - app:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:35:43,146 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 15:35:43,448 - __main__:30 - INFO - Existing tables: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 15:35:43,610 - __main__:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:35:43,618 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:35:43,619 - werkzeug:96 - INFO -  * Debugger PIN: 840-368-647 - MainProcess:MainThread
+2025-01-23 15:35:44,217 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)
+2025-01-23 15:35:44,630 - __main__:37 - INFO - Tables after creation: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 15:35:44,633 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread
+2025-01-23 15:35:45,124 - engineio.server:78 - INFO - SjFJpJh9A-ZJuTRuAAAA: Sending packet OPEN data {'sid': 'SjFJpJh9A-ZJuTRuAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:35:45,125 - engineio.server:90 - INFO - SjFJpJh9A-ZJuTRuAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 15:35:45,125 - engineio.server:219 - INFO - SjFJpJh9A-ZJuTRuAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 15:35:45,212 - engineio.server:39 - INFO - SjFJpJh9A-ZJuTRuAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:35:45,221 - __main__:114 - INFO - Client connected: {"sid": "_pFWoYtV3RU42bi3AAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:35:45,223 - engineio.server:78 - INFO - SjFJpJh9A-ZJuTRuAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"_pFWoYtV3RU42bi3AAAB"}] - MainProcess:Thread-1 (run_server)
