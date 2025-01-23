@@ -343,3 +343,9 @@ C2.1 expectation not found in database - MainProcess:MainThread
 C2.1 expectation not found in database - MainProcess:MainThread
 2025-01-23 17:53:14,413 - __main__:96 - ERROR - 
 C2.1 expectation not found in database - MainProcess:MainThread
+2025-01-23 18:20:04,476 - __main__:108 - ERROR - Error during verification: 'NoneType' object has no attribute 'strand_id' - MainProcess:MainThread
+Traceback (most recent call last):
+  File "/home/runner/workspace/scripts/verify_c21.py", line 60, in verify_c21
+    strand = Strand.query.get(overall.strand_id)
+                              ^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'strand_id'

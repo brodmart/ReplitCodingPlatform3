@@ -1,0 +1,10 @@
+2025-01-23 18:20:01,428 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:20:01,460 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:20:01,835 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 18:20:02,104 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 18:20:03,572 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:20:03,650 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 18:20:04,008 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 18:20:04,028 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 18:20:04,078 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 18:20:04,440 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
