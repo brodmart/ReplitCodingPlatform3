@@ -1,35 +1,24 @@
 /**
- * Interactive Console Implementation
- * Handles program I/O through Socket.IO
+ * Simple Interactive Console Implementation
  */
 class InteractiveConsole {
     constructor() {
         this.outputElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
+        this.currentSessionId = null;
 
         if (!this.outputElement || !this.inputElement) {
             throw new Error('Console elements not found');
         }
 
-        // Initialize Socket.IO connection
         this.socket = io();
         this.setupSocketEvents();
         this.setupInputHandler();
     }
 
     setupSocketEvents() {
-        this.socket.on('connect', () => {
-            this.log('Connected to server');
-            this.inputElement.disabled = false;
-        });
-
-        this.socket.on('disconnect', () => {
-            this.log('Disconnected from server');
-            this.inputElement.disabled = true;
-        });
-
         this.socket.on('compilation_success', () => {
-            this.log('Program compiled successfully');
+            this.log('Program started...');
         });
 
         this.socket.on('compilation_error', (data) => {
@@ -38,6 +27,9 @@ class InteractiveConsole {
         });
 
         this.socket.on('output', (data) => {
+            if (data.session_id) {
+                this.currentSessionId = data.session_id;
+            }
             if (data.output) {
                 this.log(data.output, false);
             }
@@ -58,7 +50,10 @@ class InteractiveConsole {
             if (event.key === 'Enter' && !this.inputElement.disabled) {
                 const input = this.inputElement.value;
                 if (input !== null) {
-                    this.socket.emit('input', { input });
+                    this.socket.emit('input', { 
+                        session_id: this.currentSessionId,
+                        input 
+                    });
                     this.log(`> ${input}`);
                     this.inputElement.value = '';
                 }
@@ -87,21 +82,17 @@ class InteractiveConsole {
 
     clear() {
         this.outputElement.innerHTML = '';
+        this.currentSessionId = null;
     }
 
     compileAndRun(code) {
-        if (!this.socket.connected) {
-            this.error('Not connected to server');
-            return;
-        }
-
         this.clear();
         this.log('Compiling and running code...');
         this.socket.emit('compile_and_run', { code });
     }
 }
 
-// Initialize console when available
+// Initialize console when DOM is ready
 if (typeof window !== 'undefined') {
     window.InteractiveConsole = InteractiveConsole;
 }
