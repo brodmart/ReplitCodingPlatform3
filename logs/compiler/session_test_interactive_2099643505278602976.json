@@ -1,0 +1,39 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T14:02:52.067174",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T14:02:52.067128"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T14:03:18.786243",
+    "data": {
+      "error_message": "Failed to send input",
+      "context": {
+        "stage": "input",
+        "context": {
+          "success": false,
+          "error": "Timeout waiting for input prompt"
+        }
+      },
+      "timestamp": "2025-01-23T14:03:18.786100"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T14:03:18.786937",
+    "data": {
+      "error_message": "Failed to send input",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to send input"
+        }
+      },
+      "timestamp": "2025-01-23T14:03:18.786755"
+    }
+  }
+]

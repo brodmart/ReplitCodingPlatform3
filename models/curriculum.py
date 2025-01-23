@@ -4,7 +4,7 @@ Supports bilingual content and hierarchical structure
 """
 from datetime import datetime
 from sqlalchemy import CheckConstraint, Index
-from database import db
+from app import db
 
 class Course(db.Model):
     __tablename__ = 'courses'
