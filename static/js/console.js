@@ -78,13 +78,6 @@ class InteractiveConsole {
             this.fitAddon = new FitAddon.FitAddon();
             this.terminal.loadAddon(this.fitAddon);
 
-            if (window.WebLinksAddon) {
-                this.terminal.loadAddon(new WebLinksAddon.WebLinksAddon());
-            }
-            if (window.SearchAddon) {
-                this.terminal.loadAddon(new SearchAddon.SearchAddon());
-            }
-
             // Open terminal in container
             this.terminal.open(this.terminalContainer);
             await new Promise(resolve => setTimeout(resolve, 100)); // Wait for DOM
@@ -98,6 +91,9 @@ class InteractiveConsole {
             this.inputPosition = 0;
             this.inputHistory = [];
             this.historyPosition = -1;
+
+            // Ensure proper focus handling
+            this.terminal.focus();
 
             this.initialized = true;
             console.log('Terminal initialized successfully');
@@ -136,10 +132,16 @@ class InteractiveConsole {
     }
 
     setupSocketEvents() {
+        if (!this.socket) {
+            console.error('Socket not initialized');
+            return;
+        }
+
         this.socket.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
             this.writeSystemMessage('Connected to server');
+            console.log('Socket.IO connected');
             this.terminal.focus();
         });
 
@@ -147,12 +149,15 @@ class InteractiveConsole {
             this.connected = false;
             this.waitingForInput = false;
             this.writeSystemMessage('Disconnected from server');
+            console.log('Socket.IO disconnected');
         });
 
         this.socket.on('output', async (data) => {
             if (!data) return;
 
             try {
+                console.log('Received output:', data); // Debug log
+
                 if (data.session_id) {
                     this.currentSessionId = data.session_id;
                 }
@@ -172,6 +177,8 @@ class InteractiveConsole {
                     this.inputBuffer = '';
                     this.inputPosition = 0;
                 }
+
+                console.log('Processed output, waiting for input:', this.waitingForInput); // Debug log
             } catch (error) {
                 console.error('Error processing output:', error);
                 await this.writeError('Failed to process output: ' + error.message);
@@ -182,6 +189,7 @@ class InteractiveConsole {
         this.socket.on('error', async (data) => {
             const errorMessage = data.message || 'An unknown error occurred';
             const errorType = data.type || 'general_error';
+            console.error('Socket error:', errorType, errorMessage);
             await this.writeError(`${errorType}: ${errorMessage}`);
             this.waitingForInput = false;
             this.pendingInput = false;
@@ -190,6 +198,8 @@ class InteractiveConsole {
         // Console operations with improved synchronization
         this.socket.on('console_operation', async (data) => {
             if (!data || !data.operation) return;
+
+            console.log('Received console operation:', data); // Debug log
 
             try {
                 // Wait for any pending output before processing operation
@@ -307,12 +317,21 @@ class InteractiveConsole {
     }
 
     async handleInput() {
-        if (!this.waitingForInput || !this.currentSessionId || this.pendingInput) return;
+        if (!this.waitingForInput || !this.currentSessionId || this.pendingInput) {
+            console.log('Input handling skipped:', {
+                waitingForInput: this.waitingForInput,
+                currentSessionId: this.currentSessionId,
+                pendingInput: this.pendingInput
+            });
+            return;
+        }
 
         const input = this.inputBuffer;
         this.pendingInput = true;
 
         try {
+            console.log('Sending input:', input); // Debug log
+
             // Add to history if not empty and different from last entry
             if (input && (this.inputHistory.length === 0 || this.inputHistory[0] !== input)) {
                 this.inputHistory.unshift(input);
