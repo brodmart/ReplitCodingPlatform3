@@ -20,3 +20,101 @@
 2025-01-23 20:31:43,563 - engineio.server:219 - INFO - OF2h7rX6SRyhSXBCAAAE: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
 2025-01-23 20:31:43,596 - engineio.server:219 - INFO - G-FtJ8uSLZfb1MqdAAAC: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
 2025-01-23 20:31:44,143 - __main__:39 - INFO - Client disconnected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,949 - engineio.server:39 - INFO - rg9JYNGXManKyj_KAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,951 - __main__:50 - INFO - Received code to compile: - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,951 - __main__:51 - INFO - ---------------------------------------- - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,951 - __main__:52 - INFO - using System;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello! Please enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Nice to meet you, {name}!");
+    }
+} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,951 - __main__:53 - INFO - ---------------------------------------- - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,952 - compiler_service:44 - DEBUG - Current memory usage: 64.28 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,952 - compiler_service:366 - INFO - [Session 8d30ec89-ff4d-45a5-9b72-85f72bd343a6] Created/retrieved session in /home/runner/workspace/compiler_workspace/8d30ec89-ff4d-45a5-9b72-85f72bd343a6 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,952 - compiler_service:124 - INFO - [Session 8d30ec89-ff4d-45a5-9b72-85f72bd343a6] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,952 - compiler_service:171 - INFO - [Session 8d30ec89-ff4d-45a5-9b72-85f72bd343a6] Starting interactive session - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,952 - compiler_service:44 - DEBUG - Current memory usage: 64.28 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,953 - compiler_service:44 - DEBUG - Current memory usage: 64.28 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:52,953 - compiler_service:218 - INFO - [Session 8d30ec89-ff4d-45a5-9b72-85f72bd343a6] Starting compilation - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:55,983 - compiler_service:254 - INFO - [Session 8d30ec89-ff4d-45a5-9b72-85f72bd343a6] Process started with PID: 5021 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:55,984 - compiler_service:124 - INFO - [Session 8d30ec89-ff4d-45a5-9b72-85f72bd343a6] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,085 - engineio.server:78 - INFO - rg9JYNGXManKyj_KAAAA: Sending packet MESSAGE data 2["output",{"success":true,"output":"","waiting_for_input":false,"session_id":"8d30ec89-ff4d-45a5-9b72-85f72bd343a6"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,087 - engineio.server:39 - INFO - rg9JYNGXManKyj_KAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,088 - __main__:50 - INFO - Received code to compile: - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,088 - __main__:51 - INFO - ---------------------------------------- - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,088 - __main__:52 - INFO - using System;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello! Please enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Nice to meet you, {name}!");
+    }
+} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,088 - __main__:53 - INFO - ---------------------------------------- - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,088 - compiler_service:44 - DEBUG - Current memory usage: 64.41 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,089 - compiler_service:366 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Created/retrieved session in /home/runner/workspace/compiler_workspace/25292cb1-8726-43b1-8c52-16bc81275e65 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,089 - compiler_service:124 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,089 - compiler_service:171 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Starting interactive session - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,089 - compiler_service:44 - DEBUG - Current memory usage: 64.41 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,089 - compiler_service:44 - DEBUG - Current memory usage: 64.41 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:56,089 - compiler_service:218 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Starting compilation - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,756 - compiler_service:254 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Process started with PID: 5060 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,757 - compiler_service:124 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,858 - engineio.server:78 - INFO - rg9JYNGXManKyj_KAAAA: Sending packet MESSAGE data 2["output",{"success":true,"output":"","waiting_for_input":false,"session_id":"25292cb1-8726-43b1-8c52-16bc81275e65"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,861 - compiler_service:340 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Starting cleanup - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,861 - compiler_service:124 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,861 - compiler_service:140 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Cleaning up resources - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,866 - compiler_service:162 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Removed temp directory - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,866 - compiler_service:343 - INFO - [Session 25292cb1-8726-43b1-8c52-16bc81275e65] Cleanup completed - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,866 - __main__:39 - INFO - Client disconnected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:57,946 - engineio.server:78 - INFO - XIOY5s6XPPqS8QgOAAAG: Sending packet OPEN data {'sid': 'XIOY5s6XPPqS8QgOAAAG', 'upgrades': ['websocket'], 'pingTimeout': 20000, 'pingInterval': 25000, 'maxPayload': 1000000} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:58,018 - engineio.server:39 - INFO - XIOY5s6XPPqS8QgOAAAG: Received packet MESSAGE data 0{"source":"console"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:58,019 - __main__:25 - INFO - New client connected - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:58,019 - engineio.server:78 - INFO - XIOY5s6XPPqS8QgOAAAG: Sending packet MESSAGE data 0{"sid":"m_JPun6rxHZhODbmAAAH"} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:58,226 - engineio.server:90 - INFO - XIOY5s6XPPqS8QgOAAAG: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 20:31:58,364 - engineio.server:219 - INFO - XIOY5s6XPPqS8QgOAAAG: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:08,179 - engineio.server:78 - INFO - G-FtJ8uSLZfb1MqdAAAC: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:08,246 - engineio.server:39 - INFO - G-FtJ8uSLZfb1MqdAAAC: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:22,949 - engineio.server:78 - INFO - XIOY5s6XPPqS8QgOAAAG: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,015 - engineio.server:39 - INFO - XIOY5s6XPPqS8QgOAAAG: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,602 - engineio.server:39 - INFO - XIOY5s6XPPqS8QgOAAAG: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,603 - __main__:50 - INFO - Received code to compile: - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,603 - __main__:51 - INFO - ---------------------------------------- - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,604 - __main__:52 - INFO - using System;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello! Please enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Nice to meet you, {name}!");
+    }
+} - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,604 - __main__:53 - INFO - ---------------------------------------- - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,604 - compiler_service:44 - DEBUG - Current memory usage: 64.78 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,604 - compiler_service:366 - INFO - [Session 512fdba0-fe34-4849-9a94-9076a9bfe80a] Created/retrieved session in /home/runner/workspace/compiler_workspace/512fdba0-fe34-4849-9a94-9076a9bfe80a - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,605 - compiler_service:124 - INFO - [Session 512fdba0-fe34-4849-9a94-9076a9bfe80a] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,605 - compiler_service:171 - INFO - [Session 512fdba0-fe34-4849-9a94-9076a9bfe80a] Starting interactive session - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,605 - compiler_service:44 - DEBUG - Current memory usage: 64.78 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,605 - compiler_service:44 - DEBUG - Current memory usage: 64.78 MB - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:23,605 - compiler_service:218 - INFO - [Session 512fdba0-fe34-4849-9a94-9076a9bfe80a] Starting compilation - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:25,422 - compiler_service:254 - INFO - [Session 512fdba0-fe34-4849-9a94-9076a9bfe80a] Process started with PID: 5139 - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:25,423 - compiler_service:124 - INFO - [Session 512fdba0-fe34-4849-9a94-9076a9bfe80a] PTY initialized successfully - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:25,524 - engineio.server:78 - INFO - XIOY5s6XPPqS8QgOAAAG: Sending packet MESSAGE data 2["output",{"success":true,"output":"","waiting_for_input":false,"session_id":"512fdba0-fe34-4849-9a94-9076a9bfe80a"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:33,248 - engineio.server:78 - INFO - G-FtJ8uSLZfb1MqdAAAC: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:33,319 - engineio.server:39 - INFO - G-FtJ8uSLZfb1MqdAAAC: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:48,021 - engineio.server:78 - INFO - XIOY5s6XPPqS8QgOAAAG: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:48,089 - engineio.server:39 - INFO - XIOY5s6XPPqS8QgOAAAG: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:58,325 - engineio.server:78 - INFO - G-FtJ8uSLZfb1MqdAAAC: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 20:32:58,392 - engineio.server:39 - INFO - G-FtJ8uSLZfb1MqdAAAC: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 20:33:02,231 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/app.py', reloading - MainProcess:MainThread
