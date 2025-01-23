@@ -1,9 +1,10 @@
 /**
- * Interactive Console for handling program I/O
- * Core implementation with essential functionality
+ * Interactive Console Implementation
+ * Handles program I/O through Socket.IO
  */
 class InteractiveConsole {
     constructor() {
+        // Initialize DOM elements
         this.outputElement = document.getElementById('consoleOutput');
         this.inputElement = document.getElementById('consoleInput');
 
@@ -11,7 +12,7 @@ class InteractiveConsole {
             throw new Error('Console elements not found');
         }
 
-        // Initialize socket connection with retry logic
+        // Initialize Socket.IO connection
         this.socket = io({
             transports: ['websocket'],
             reconnection: true,
@@ -19,12 +20,13 @@ class InteractiveConsole {
             reconnectionDelay: 1000
         });
 
-        this.setupEventHandlers();
-        this.log('Console initialized and ready');
+        this.setupSocketEvents();
+        this.setupInputHandler();
+        this.log('Console initialized');
     }
 
-    setupEventHandlers() {
-        // Socket event handlers
+    setupSocketEvents() {
+        // Connection events
         this.socket.on('connect', () => {
             this.log('Connected to server');
             this.inputElement.disabled = true;
@@ -35,26 +37,37 @@ class InteractiveConsole {
             this.inputElement.disabled = true;
         });
 
+        // Compilation events
+        this.socket.on('compilation_success', (data) => {
+            this.log('Program compiled successfully');
+        });
+
+        this.socket.on('compilation_error', (data) => {
+            this.error(data.error || 'Compilation failed');
+        });
+
+        // Output events
         this.socket.on('output', (data) => {
-            if (data.error) {
-                this.error(data.error);
-                return;
-            }
             if (data.output) {
-                this.log(data.output);
+                this.log(data.output, false);
             }
-            // Enable input if program is waiting for it
             this.inputElement.disabled = !data.waiting_for_input;
             if (data.waiting_for_input) {
                 this.inputElement.focus();
             }
         });
 
-        // Input handler
+        // Error events
+        this.socket.on('error', (data) => {
+            this.error(data.message || 'An error occurred');
+        });
+    }
+
+    setupInputHandler() {
         this.inputElement.addEventListener('keypress', (event) => {
             if (event.key === 'Enter' && !this.inputElement.disabled) {
-                const input = this.inputElement.value.trim();
-                if (input) {
+                const input = this.inputElement.value;
+                if (input !== null) {
                     this.socket.emit('input', { input });
                     this.log(`> ${input}`);
                     this.inputElement.value = '';
@@ -64,15 +77,18 @@ class InteractiveConsole {
         });
     }
 
-    log(message) {
+    log(message, addNewLine = true) {
+        if (!message) return;
+
         const line = document.createElement('div');
-        line.textContent = message;
+        line.textContent = message + (addNewLine ? '\n' : '');
         this.outputElement.appendChild(line);
         this.scrollToBottom();
     }
 
     error(message) {
         const line = document.createElement('div');
+        line.className = 'error-message';
         line.style.color = '#ff5555';
         line.textContent = message;
         this.outputElement.appendChild(line);
@@ -89,21 +105,18 @@ class InteractiveConsole {
     }
 
     compileAndRun(code) {
-        if (!this.socket || !this.socket.connected) {
+        if (!this.socket.connected) {
             this.error('Not connected to server');
             return;
         }
 
         this.clear();
         this.log('Compiling and running code...');
-        this.socket.emit('compile_and_run', { 
-            code,
-            language: 'csharp'  // Default to C# for now
-        });
+        this.socket.emit('compile_and_run', { code });
     }
 }
 
-// Make available globally
+// Initialize console when available
 if (typeof window !== 'undefined') {
     window.InteractiveConsole = InteractiveConsole;
 }

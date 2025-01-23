@@ -1,6 +1,5 @@
 import os
 import logging
-import uuid
 from flask import Flask, session, request, render_template
 from flask_socketio import SocketIO, emit
 from flask_session import Session
@@ -25,7 +24,7 @@ app.config.update({
 # Initialize extensions
 Session(app)
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', logger=True, ping_timeout=60)
 
 @app.route('/')
 def console():
@@ -35,81 +34,74 @@ def console():
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
-    logger.info(f"Client connected: {request.sid}")
     session['sid'] = request.sid
     emit('connection_established', {'status': 'connected', 'sid': request.sid})
+    logger.debug(f"Client connected: {request.sid}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """Handle client disconnection with cleanup"""
-    logger.info(f"Client disconnected: {request.sid}")
+    """Handle client disconnection"""
     if 'console_session_id' in session:
         cleanup_session(session['console_session_id'])
+        logger.debug(f"Cleaned up session: {session['console_session_id']}")
     session.clear()
+    logger.debug(f"Client disconnected: {request.sid}")
 
 @socketio.on('compile_and_run')
 def handle_compile_and_run(data):
     """Handle code compilation and execution"""
-    try:
-        code = data.get('code')
-        if not code:
-            emit('error', {'message': 'No code provided'})
-            return
+    if not data or 'code' not in data:
+        emit('error', {'message': 'No code provided'})
+        return
 
-        # Start compilation process
-        result = compile_and_run(code, 'csharp')
+    try:
+        result = compile_and_run(data['code'], 'csharp')
 
         if result.get('success'):
             session_id = result.get('session_id')
             if session_id:
                 session['console_session_id'] = session_id
-                emit('compilation_result', {
-                    'success': True,
-                    'session_id': session_id,
-                    'interactive': True
+                emit('compilation_success', {
+                    'session_id': session_id
                 })
 
-                # Get initial output after short delay
-                import time
-                time.sleep(0.5)
-
+                # Initial output check
                 output = get_output(session_id)
                 if output and output.get('success'):
                     emit('output', {
                         'output': output.get('output', ''),
-                        'waiting_for_input': True
+                        'waiting_for_input': output.get('waiting_for_input', False)
                     })
             else:
                 emit('error', {'message': 'Failed to create interactive session'})
         else:
-            emit('compilation_result', {
-                'success': False,
+            emit('compilation_error', {
                 'error': result.get('error', 'Compilation failed')
             })
 
     except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        emit('error', {'message': f'Failed to compile and run: {str(e)}'})
+        logger.error(f"Compilation error: {str(e)}")
+        emit('error', {'message': str(e)})
 
 @socketio.on('input')
 def handle_input(data):
     """Handle console input"""
+    session_id = session.get('console_session_id')
+    input_text = data.get('input')
+
+    if not session_id or not input_text:
+        emit('error', {'message': 'Invalid session or input'})
+        return
+
     try:
-        session_id = session.get('console_session_id')
-        input_text = data.get('input')
-
-        if not session_id or not input_text:
-            emit('error', {'message': 'Invalid input data'})
-            return
-
+        # Send input with newline
         result = send_input(session_id, input_text + '\n')
 
         if result and result.get('success'):
-            time.sleep(0.1)
+            # Get program output
             output = get_output(session_id)
-
             if output and output.get('success'):
-                emit('console_output', {
+                emit('output', {
                     'output': output.get('output', ''),
                     'waiting_for_input': output.get('waiting_for_input', False)
                 })
@@ -119,8 +111,8 @@ def handle_input(data):
             emit('error', {'message': 'Failed to send input'})
 
     except Exception as e:
-        logger.error(f"Error in handle_input: {str(e)}")
-        emit('error', {'message': f'Failed to process input: {str(e)}'})
+        logger.error(f"Input handling error: {str(e)}")
+        emit('error', {'message': str(e)})
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=True, log_output=True)
