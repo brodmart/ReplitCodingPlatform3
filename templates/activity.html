@@ -350,6 +350,32 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+    function initializeConsole() {
+        const language = document.getElementById('languageSelect')?.value || 'csharp';
+        console.debug('Initializing console with language:', language);
+
+        const consoleOutput = document.getElementById('consoleOutput');
+        const consoleInput = document.getElementById('consoleInput');
+
+        if (consoleOutput && consoleInput) {
+            console.debug('Found required console elements');
+            window.consoleInstance = new InteractiveConsole({
+                outputElement: consoleOutput,
+                inputElement: consoleInput,
+                language: language
+            });
+        } else {
+            console.error('Required console elements not found. Retrying in 100ms...');
+            setTimeout(initializeConsole, 100); // Retry after a short delay
+        }
+    }
+
+    // More robust initialization using a function and setTimeout for retries
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(initializeConsole, 500); //Small delay to allow for full page load
+    });
+</script>
 <!-- Required scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
@@ -359,13 +385,5 @@
 <!-- Load console.js before editor.js -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize console after DOM is loaded
-    window.consoleInstance = new InteractiveConsole({
-        outputElement: document.getElementById('consoleOutput'),
-        inputElement: document.getElementById('consoleInput')
-    });
-});
-</script>
+
 {% endblock %}

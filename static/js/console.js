@@ -3,39 +3,34 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        // Wait for elements to be available
-        const maxRetries = 10;
-        let retryCount = 0;
+        // Initialize with safer null checks
+        this.outputElement = options.outputElement;
+        this.inputElement = options.inputElement;
+        this.language = options.language || 'csharp';
 
-        const initializeElements = () => {
-            this.outputElement = options.outputElement || document.getElementById('consoleOutput');
-            this.inputElement = options.inputElement || document.getElementById('consoleInput');
+        console.debug('Attempting console initialization with:', {
+            outputElement: !!this.outputElement,
+            inputElement: !!this.inputElement,
+            language: this.language
+        });
 
-            if (!this.outputElement || !this.inputElement) {
-                if (retryCount < maxRetries) {
-                    retryCount++;
-                    setTimeout(initializeElements, 100);
-                    return;
-                }
-                console.error('Console initialization failed: Missing required elements');
-                throw new Error('Console requires valid output and input elements');
-            }
+        if (!this.outputElement || !this.inputElement) {
+            console.error('Console initialization failed: Missing required elements');
+            throw new Error('Console requires valid output and input elements');
+        }
 
-            this.sessionId = null;
-            this.isWaitingForInput = false;
-            this.currentLanguage = 'csharp';
-            this.compilationTimeout = 60000; // 60s timeout
-            this.retryAttempts = 3;
-            this.retryDelay = 1000;
+        this.sessionId = null;
+        this.isWaitingForInput = false;
+        this.currentLanguage = this.language;
+        this.compilationTimeout = 60000; // 60s timeout
+        this.retryAttempts = 3;
+        this.retryDelay = 1000;
 
-            console.debug('Initializing Interactive Console...');
-            this.setupSocket();
-            this.setupEventHandlers();
-            this.clear();
-        };
+        console.debug('Interactive Console initialized with language:', this.currentLanguage);
 
-        // Start initialization
-        initializeElements();
+        this.setupSocket();
+        this.setupEventHandlers();
+        this.clear();
     }
 
     setupSocket() {
@@ -207,11 +202,12 @@ class InteractiveConsole {
     }
 
     clear() {
-        console.debug('Clearing console');
-        this.outputElement.innerHTML = '';
-        this.sessionId = null;
-        this.isWaitingForInput = false;
-        this.updateInputState();
+        if (this.outputElement) {
+            this.outputElement.innerHTML = '';
+            this.sessionId = null;
+            this.isWaitingForInput = false;
+            this.updateInputState();
+        }
     }
 
     scrollToBottom() {
