@@ -53,11 +53,34 @@ class ConsoleSession:
         self.input_queue = queue.Queue()
         self.output_queue = queue.Queue()
         self.active = True
+        self.waiting_for_input = False
         self.current_foreground_color = 'Gray'
         self.current_background_color = 'Black'
         self.cursor_position = {'x': 0, 'y': 0}
         self.lock = threading.Lock()
-        logger.info(f"Created new console session: {session_id}")
+        self.compilation_complete = False
+        logger.info(f"Created new console session: {session_id} (active: {self.active})")
+
+    def activate(self):
+        with self.lock:
+            self.active = True
+            logger.info(f"Activated session: {self.session_id}")
+
+    def deactivate(self):
+        with self.lock:
+            self.active = False
+            logger.info(f"Deactivated session: {self.session_id}")
+
+    def set_compilation_complete(self):
+        with self.lock:
+            self.compilation_complete = True
+            logger.info(f"Compilation complete for session: {self.session_id}")
+
+    def is_active_and_ready(self):
+        with self.lock:
+            ready = self.active and self.compilation_complete
+            logger.debug(f"Session {self.session_id} status - active: {self.active}, ready: {ready}")
+            return ready
 
 def create_app():
     """Application factory function"""
@@ -135,7 +158,7 @@ def create_app():
             # Clean up any active sessions for this client
             if sid in console_sessions:
                 session = console_sessions[sid]
-                session.active = False
+                session.deactivate()
                 with session.lock:
                     logger.info(f"Cleaning up console session: {session.session_id}")
                     del console_sessions[sid]
@@ -159,10 +182,11 @@ def create_app():
             session_id = f"session_{int(time.time())}"
             logger.info(f"Starting compilation session {session_id} for client {sid}")
 
-            # Create new console session with proper locking
+            # Create new console session with proper activation
             console_session = ConsoleSession(session_id)
             with console_session.lock:
                 console_sessions[sid] = console_session
+                console_session.activate()
 
             track_session(session_id, active=True, context={
                 'code_length': len(code),
@@ -189,21 +213,24 @@ def create_app():
             # Start C# compilation and execution with proper session handling
             compilation_result = compile_and_run_csharp(code, session_id)
 
-            if compilation_result.get('success'):
-                with console_session.lock:
+            with console_session.lock:
+                console_session.set_compilation_complete()
+                if compilation_result.get('success'):
+                    waiting_for_input = compilation_result.get('waiting_for_input', False)
+                    console_session.waiting_for_input = waiting_for_input
                     emit('output', {
                         'success': True,
                         'session_id': session_id,
                         'output': compilation_result.get('output', '') + '\n',
-                        'waiting_for_input': compilation_result.get('waiting_for_input', False)
+                        'waiting_for_input': waiting_for_input
                     })
-            else:
-                emit('output', {
-                    'success': False,
-                    'session_id': session_id,
-                    'output': f"Compilation error: {compilation_result.get('error', 'Unknown error')}\n",
-                    'waiting_for_input': False
-                })
+                else:
+                    emit('output', {
+                        'success': False,
+                        'session_id': session_id,
+                        'output': f"Compilation error: {compilation_result.get('error', 'Unknown error')}\n",
+                        'waiting_for_input': False
+                    })
 
         except Exception as e:
             logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
@@ -234,10 +261,15 @@ def create_app():
             if not console_session:
                 raise ValueError("Invalid session ID or session expired")
 
-            if not console_session.active:
-                raise ValueError("Session not active")
+            if not console_session.is_active_and_ready():
+                logger.error(f"Session {session_id} not active or not ready - active: {console_session.active}, compilation_complete: {console_session.compilation_complete}")
+                raise ValueError("Session not active or compilation not complete")
 
             with console_session.lock:
+                if not console_session.waiting_for_input:
+                    logger.error(f"Session {session_id} not waiting for input")
+                    raise ValueError("Session not waiting for input")
+
                 # Process input through C# runtime
                 from compiler_service import process_csharp_input
 
@@ -245,11 +277,12 @@ def create_app():
                 result = process_csharp_input(session_id, user_input)
 
                 if result.get('success'):
+                    console_session.waiting_for_input = result.get('waiting_for_input', True)
                     emit('output', {
                         'success': True,
                         'session_id': session_id,
                         'output': result.get('output', '') + '\n',
-                        'waiting_for_input': result.get('waiting_for_input', True)
+                        'waiting_for_input': console_session.waiting_for_input
                     })
                 else:
                     emit('error', {
