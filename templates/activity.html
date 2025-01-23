@@ -359,4 +359,13 @@
 <!-- Load console.js before editor.js -->
 <script src="{{ url_for('static', filename='js/console.js') }}"></script>
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize console after DOM is loaded
+    window.consoleInstance = new InteractiveConsole({
+        outputElement: document.getElementById('consoleOutput'),
+        inputElement: document.getElementById('consoleInput')
+    });
+});
+</script>
 {% endblock %}

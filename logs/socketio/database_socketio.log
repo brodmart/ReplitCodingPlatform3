@@ -548,3 +548,78 @@
 2025-01-23 01:11:53,579 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-5
 2025-01-23 01:11:53,579 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:GreenThread-5
 2025-01-23 01:11:53,579 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-5
+2025-01-23 01:12:26,893 - socketio.server:576 - INFO - received event "compile_and_run" from Tqeu3qsFlzsR99hcAAAF [/] - MainProcess:GreenThread-5
+2025-01-23 01:12:26,894 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 01:12:26.894066 - MainProcess:GreenThread-8
+2025-01-23 01:12:26,894 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-8
+2025-01-23 01:12:26,895 - socketio.server:164 - INFO - emitting event "compilation_start" to Tqeu3qsFlzsR99hcAAAF [/] - MainProcess:GreenThread-8
+2025-01-23 01:12:30,955 - socketio:119 - INFO - Session 49b704a5-04ca-4c58-bc3c-0da2eee28de6 activated. Total active sessions: 1 - MainProcess:GreenThread-8
+2025-01-23 01:12:30,955 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 4.060825824737549} - MainProcess:GreenThread-8
+2025-01-23 01:12:30,956 - socketio.server:164 - INFO - emitting event "compilation_result" to Tqeu3qsFlzsR99hcAAAF [/] - MainProcess:GreenThread-8
+2025-01-23 01:12:31,457 - socketio.server:164 - INFO - emitting event "output" to Tqeu3qsFlzsR99hcAAAF [/] - MainProcess:GreenThread-8
+2025-01-23 01:12:31,457 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 4.564s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-8
+2025-01-23 01:12:31,457 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 4.564s - MainProcess:GreenThread-8
+2025-01-23 01:12:31,458 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-8
+2025-01-23 01:15:26,949 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 01:15:26.949012 - MainProcess:GreenThread-24
+2025-01-23 01:15:26,949 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-24
+2025-01-23 01:15:26,949 - socketio:108 - INFO - New connection established. Total connections: 3 - MainProcess:GreenThread-24
+2025-01-23 01:15:26,949 - socketio:110 - DEBUG - Client info: {'sid': '9QklvgxRtG-MzwfBAAAH', 'remote_addr': '172.31.196.32', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'} - MainProcess:GreenThread-24
+2025-01-23 01:15:26,949 - socketio.server:164 - INFO - emitting event "connection_established" to 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-24
+2025-01-23 01:15:26,950 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:GreenThread-24
+2025-01-23 01:15:26,950 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:GreenThread-24
+2025-01-23 01:15:26,950 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-24
+2025-01-23 01:15:29,712 - socketio.server:576 - INFO - received event "compile_and_run" from 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-24
+2025-01-23 01:15:29,713 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 01:15:29.713158 - MainProcess:GreenThread-26
+2025-01-23 01:15:29,713 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-26
+2025-01-23 01:15:29,715 - socketio.server:164 - INFO - emitting event "compilation_start" to 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-26
+2025-01-23 01:15:32,846 - socketio:119 - INFO - Session 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 activated. Total active sessions: 2 - MainProcess:GreenThread-26
+2025-01-23 01:15:32,846 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 3.131723165512085} - MainProcess:GreenThread-26
+2025-01-23 01:15:32,846 - socketio.server:164 - INFO - emitting event "compilation_result" to 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-26
+2025-01-23 01:15:33,351 - socketio.server:164 - INFO - emitting event "output" to 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-26
+2025-01-23 01:15:33,353 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 3.640s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-26
+2025-01-23 01:15:33,353 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 3.640s - MainProcess:GreenThread-26
+2025-01-23 01:15:33,353 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-26
+2025-01-23 01:15:35,731 - socketio.server:576 - INFO - received event "input" from 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-24
+2025-01-23 01:15:35,732 - socketio:84 - DEBUG - Socket.IO event handle_input started at 2025-01-23 01:15:35.731998 - MainProcess:GreenThread-27
+2025-01-23 01:15:35,732 - socketio:85 - DEBUG - Event context: {'args': "({'session_id': '3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017', 'input': 'me'},)", 'kwargs': '{}'} - MainProcess:GreenThread-27
+2025-01-23 01:15:35,844 - socketio:134 - ERROR - output_error: Failed to get output after input: {'success': False, 'error': 'Session not active'} - MainProcess:GreenThread-27
+NoneType: None
+2025-01-23 01:15:35,844 - socketio:43 - ERROR - Socket.IO error in output_error: Failed to get output after input: {'success': False, 'error': 'Session not active'} - MainProcess:GreenThread-27
+NoneType: None
+2025-01-23 01:15:35,845 - socketio.server:164 - INFO - emitting event "error" to 9QklvgxRtG-MzwfBAAAH [/] - MainProcess:GreenThread-27
+2025-01-23 01:15:35,845 - socketio:31 - DEBUG - Event tracked: handle_input, Duration: 0.114s, Context: {'args': "({'session_id': '3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017', 'input': 'me'},)", 'kwargs': '{}'} - MainProcess:GreenThread-27
+2025-01-23 01:15:35,845 - socketio:92 - DEBUG - Socket.IO event handle_input completed in 0.114s - MainProcess:GreenThread-27
+2025-01-23 01:15:35,845 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-27
+2025-01-23 01:16:20,691 - socketio.server:576 - INFO - received event "compile_and_run" from EspikjfAnP9wImJrAAAB [/] - MainProcess:GreenThread-2
+2025-01-23 01:16:20,692 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 01:16:20.692591 - MainProcess:GreenThread-34
+2025-01-23 01:16:20,692 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-34
+2025-01-23 01:16:20,693 - socketio.server:164 - INFO - emitting event "compilation_start" to EspikjfAnP9wImJrAAAB [/] - MainProcess:GreenThread-34
+2025-01-23 01:16:23,091 - socketio:119 - INFO - Session 6093b367-1ad3-4301-855b-09fd285ee31c activated. Total active sessions: 3 - MainProcess:GreenThread-34
+2025-01-23 01:16:23,091 - socketio:121 - DEBUG - Session context: {'language': 'csharp', 'compilation_time': 2.397632122039795} - MainProcess:GreenThread-34
+2025-01-23 01:16:23,091 - socketio.server:164 - INFO - emitting event "compilation_result" to EspikjfAnP9wImJrAAAB [/] - MainProcess:GreenThread-34
+2025-01-23 01:16:23,592 - socketio.server:164 - INFO - emitting event "output" to EspikjfAnP9wImJrAAAB [/] - MainProcess:GreenThread-34
+2025-01-23 01:16:23,593 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 2.901s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program {\\n    static void Main() {\\n        Console.WriteLine("Enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Hello, {name}!");\\n    }\\n}\', \'language\': \'csharp\'},)', 'kwargs': '{}'} - MainProcess:GreenThread-34
+2025-01-23 01:16:23,594 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 2.901s - MainProcess:GreenThread-34
+2025-01-23 01:16:23,594 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-34
+2025-01-23 01:16:33,102 - socketio.server:576 - INFO - received event "input" from EspikjfAnP9wImJrAAAB [/] - MainProcess:GreenThread-2
+2025-01-23 01:16:33,103 - socketio:84 - DEBUG - Socket.IO event handle_input started at 2025-01-23 01:16:33.103344 - MainProcess:GreenThread-36
+2025-01-23 01:16:33,103 - socketio:85 - DEBUG - Event context: {'args': "({'session_id': '6093b367-1ad3-4301-855b-09fd285ee31c', 'input': 'hi'},)", 'kwargs': '{}'} - MainProcess:GreenThread-36
+2025-01-23 01:16:33,205 - socketio:134 - ERROR - output_error: Failed to get output after input: {'success': False, 'error': 'Session not active'} - MainProcess:GreenThread-36
+NoneType: None
+2025-01-23 01:16:33,205 - socketio:43 - ERROR - Socket.IO error in output_error: Failed to get output after input: {'success': False, 'error': 'Session not active'} - MainProcess:GreenThread-36
+NoneType: None
+2025-01-23 01:16:33,205 - socketio.server:164 - INFO - emitting event "error" to EspikjfAnP9wImJrAAAB [/] - MainProcess:GreenThread-36
+2025-01-23 01:16:33,206 - socketio:31 - DEBUG - Event tracked: handle_input, Duration: 0.103s, Context: {'args': "({'session_id': '6093b367-1ad3-4301-855b-09fd285ee31c', 'input': 'hi'},)", 'kwargs': '{}'} - MainProcess:GreenThread-36
+2025-01-23 01:16:33,206 - socketio:92 - DEBUG - Socket.IO event handle_input completed in 0.103s - MainProcess:GreenThread-36
+2025-01-23 01:16:33,206 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-36
+2025-01-23 01:17:53,486 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-23 01:17:53.486523 - MainProcess:GreenThread-5
+2025-01-23 01:17:53,486 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-5
+2025-01-23 01:17:53,499 - socketio:113 - INFO - Connection closed. Remaining connections: 2 - MainProcess:GreenThread-5
+2025-01-23 01:17:53,499 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.013s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-5
+2025-01-23 01:17:53,499 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.013s - MainProcess:GreenThread-5
+2025-01-23 01:17:53,499 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-5
+2025-01-23 01:18:27,926 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-23 01:18:27.926443 - MainProcess:GreenThread-24
+2025-01-23 01:18:27,926 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-24
+2025-01-23 01:18:27,928 - socketio:113 - INFO - Connection closed. Remaining connections: 1 - MainProcess:GreenThread-24
+2025-01-23 01:18:27,928 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.002s, Context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:GreenThread-24
+2025-01-23 01:18:27,928 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.002s - MainProcess:GreenThread-24
+2025-01-23 01:18:27,928 - socketio:93 - DEBUG - Event result: None - MainProcess:GreenThread-24

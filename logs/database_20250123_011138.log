@@ -37,3 +37,176 @@
 2025-01-23 01:11:53,578 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet MESSAGE data 0{"sid":"Tqeu3qsFlzsR99hcAAAF"} - MainProcess:GreenThread-5
 2025-01-23 01:11:53,579 - app:132 - INFO - Client connected: Tqeu3qsFlzsR99hcAAAF - MainProcess:GreenThread-5
 2025-01-23 01:11:53,579 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"Tqeu3qsFlzsR99hcAAAF"}] - MainProcess:GreenThread-5
+2025-01-23 01:12:06,275 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-6
+2025-01-23 01:12:06,349 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:12:18,484 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-7
+2025-01-23 01:12:18,562 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:12:26,893 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}] - MainProcess:GreenThread-5
+2025-01-23 01:12:26,894 - app:164 - INFO - Starting csharp code compilation - MainProcess:GreenThread-8
+2025-01-23 01:12:26,894 - app:165 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+} - MainProcess:GreenThread-8
+2025-01-23 01:12:26,895 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet MESSAGE data 2["compilation_start",{"session_id":"49b704a5-04ca-4c58-bc3c-0da2eee28de6","timestamp":1737594746.894694}] - MainProcess:GreenThread-8
+2025-01-23 01:12:26,895 - compiler_service:326 - DEBUG - Starting compilation for code length: 198, language: csharp - MainProcess:GreenThread-8
+2025-01-23 01:12:26,895 - compiler_service:169 - INFO - Starting csharp interactive session 49b704a5-04ca-4c58-bc3c-0da2eee28de6 - MainProcess:GreenThread-8
+2025-01-23 01:12:26,896 - compiler_service:198 - DEBUG - Compiling C# program - MainProcess:GreenThread-8
+2025-01-23 01:12:30,494 - compiler_service:241 - DEBUG - Output received: Enter your name: - MainProcess:Thread-2 (monitor_output)
+2025-01-23 01:12:30,494 - compiler_service:89 - DEBUG - Input prompt detected: Enter your name: - MainProcess:Thread-2 (monitor_output)
+2025-01-23 01:12:30,955 - app:184 - INFO - Compilation completed in 4.06s: {'success': True, 'session_id': '49b704a5-04ca-4c58-bc3c-0da2eee28de6', 'interactive': True} - MainProcess:GreenThread-8
+2025-01-23 01:12:30,956 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet MESSAGE data 2["compilation_result",{"success":true,"session_id":"49b704a5-04ca-4c58-bc3c-0da2eee28de6","interactive":true,"metrics":{"compilation_time":4.060825824737549}}] - MainProcess:GreenThread-8
+2025-01-23 01:12:31,357 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-9
+2025-01-23 01:12:31,432 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:12:31,457 - app:213 - DEBUG - Initial program output (attempt 1): {'success': True, 'output': 'Enter your name:', 'waiting_for_input': True} - MainProcess:GreenThread-8
+2025-01-23 01:12:31,457 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet MESSAGE data 2["output",{"output":"Enter your name:","waiting_for_input":true,"error":null}] - MainProcess:GreenThread-8
+2025-01-23 01:12:43,563 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-10
+2025-01-23 01:12:43,641 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:12:56,433 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-11
+2025-01-23 01:12:56,511 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:13:08,641 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-12
+2025-01-23 01:13:08,734 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:13:21,512 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-13
+2025-01-23 01:13:21,588 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:13:33,736 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-14
+2025-01-23 01:13:33,890 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:13:46,590 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-15
+2025-01-23 01:13:46,666 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:13:58,892 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-16
+2025-01-23 01:13:58,995 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:14:11,667 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-17
+2025-01-23 01:14:11,743 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:14:23,996 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-18
+2025-01-23 01:14:24,074 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:14:36,744 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-19
+2025-01-23 01:14:36,820 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:14:49,076 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-20
+2025-01-23 01:14:49,155 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:15:01,821 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-21
+2025-01-23 01:15:01,897 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:15:14,156 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-22
+2025-01-23 01:15:14,239 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:15:26,220 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-23
+2025-01-23 01:15:26,851 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet OPEN data {'sid': 'q-zL-ZqZHSZKR6f9AAAG', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-24
+2025-01-23 01:15:26,851 - engineio.server:90 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received request to upgrade to websocket - MainProcess:GreenThread-24
+2025-01-23 01:15:26,851 - engineio.server:219 - INFO - q-zL-ZqZHSZKR6f9AAAG: Upgrade to websocket successful - MainProcess:GreenThread-24
+2025-01-23 01:15:26,898 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-25
+2025-01-23 01:15:26,947 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet MESSAGE data 0 - MainProcess:GreenThread-24
+2025-01-23 01:15:26,948 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet MESSAGE data 0{"sid":"9QklvgxRtG-MzwfBAAAH"} - MainProcess:GreenThread-24
+2025-01-23 01:15:26,949 - app:132 - INFO - Client connected: 9QklvgxRtG-MzwfBAAAH - MainProcess:GreenThread-24
+2025-01-23 01:15:26,949 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"9QklvgxRtG-MzwfBAAAH"}] - MainProcess:GreenThread-24
+2025-01-23 01:15:26,973 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:15:29,711 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}] - MainProcess:GreenThread-24
+2025-01-23 01:15:29,713 - app:164 - INFO - Starting csharp code compilation - MainProcess:GreenThread-26
+2025-01-23 01:15:29,713 - app:165 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+} - MainProcess:GreenThread-26
+2025-01-23 01:15:29,719 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet MESSAGE data 2["compilation_start",{"session_id":"3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017","timestamp":1737594929.7144475}] - MainProcess:GreenThread-26
+2025-01-23 01:15:29,719 - compiler_service:326 - DEBUG - Starting compilation for code length: 198, language: csharp - MainProcess:GreenThread-26
+2025-01-23 01:15:29,720 - compiler_service:169 - INFO - Starting csharp interactive session 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 - MainProcess:GreenThread-26
+2025-01-23 01:15:29,720 - compiler_service:198 - DEBUG - Compiling C# program - MainProcess:GreenThread-26
+2025-01-23 01:15:32,428 - compiler_service:241 - DEBUG - Output received: Enter your name: - MainProcess:Thread-3 (monitor_output)
+2025-01-23 01:15:32,446 - compiler_service:89 - DEBUG - Input prompt detected: Enter your name: - MainProcess:Thread-3 (monitor_output)
+2025-01-23 01:15:32,846 - app:184 - INFO - Compilation completed in 3.13s: {'success': True, 'session_id': '3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017', 'interactive': True} - MainProcess:GreenThread-26
+2025-01-23 01:15:32,849 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet MESSAGE data 2["compilation_result",{"success":true,"session_id":"3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017","interactive":true,"metrics":{"compilation_time":3.131723165512085}}] - MainProcess:GreenThread-26
+2025-01-23 01:15:33,351 - app:213 - DEBUG - Initial program output (attempt 1): {'success': True, 'output': 'Enter your name:', 'waiting_for_input': True} - MainProcess:GreenThread-26
+2025-01-23 01:15:33,352 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet MESSAGE data 2["output",{"output":"Enter your name:","waiting_for_input":true,"error":null}] - MainProcess:GreenThread-26
+2025-01-23 01:15:35,729 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet MESSAGE data 2["input",{"session_id":"3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017","input":"me"}] - MainProcess:GreenThread-24
+2025-01-23 01:15:35,732 - app:267 - DEBUG - Sending input 'me' to session 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 - MainProcess:GreenThread-27
+2025-01-23 01:15:35,732 - compiler_service:108 - DEBUG - Session 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 is no longer waiting for input - MainProcess:GreenThread-27
+2025-01-23 01:15:35,733 - compiler_service:291 - DEBUG - Input sent: me - MainProcess:GreenThread-27
+2025-01-23 01:15:35,733 - app:269 - DEBUG - Send input result: {'success': True} - MainProcess:GreenThread-27
+2025-01-23 01:15:35,734 - compiler_service:241 - DEBUG - Output received: Hello, me! - MainProcess:Thread-3 (monitor_output)
+2025-01-23 01:15:35,844 - app:274 - DEBUG - Get output after input result: {'success': False, 'error': 'Session not active'} - MainProcess:GreenThread-27
+2025-01-23 01:15:35,845 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet MESSAGE data 2["error",{"message":"Failed to get program output"}] - MainProcess:GreenThread-27
+2025-01-23 01:15:39,239 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-28
+2025-01-23 01:15:39,342 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:15:51,852 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-29
+2025-01-23 01:15:51,928 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:15:51,974 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-30
+2025-01-23 01:15:52,055 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:16:04,343 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-31
+2025-01-23 01:16:04,424 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:16:16,930 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-32
+2025-01-23 01:16:17,008 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:16:17,056 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-33
+2025-01-23 01:16:17,132 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:16:20,691 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program {\n    static void Main() {\n        Console.WriteLine(\"Enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Hello, {name}!\");\n    }\n}","language":"csharp"}] - MainProcess:GreenThread-2
+2025-01-23 01:16:20,692 - app:164 - INFO - Starting csharp code compilation - MainProcess:GreenThread-34
+2025-01-23 01:16:20,693 - app:165 - DEBUG - Code to compile: using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Enter your name:");
+        string name = Console.ReadLine();
+        Console.WriteLine($"Hello, {name}!");
+    }
+} - MainProcess:GreenThread-34
+2025-01-23 01:16:20,694 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet MESSAGE data 2["compilation_start",{"session_id":"6093b367-1ad3-4301-855b-09fd285ee31c","timestamp":1737594980.693374}] - MainProcess:GreenThread-34
+2025-01-23 01:16:20,694 - compiler_service:326 - DEBUG - Starting compilation for code length: 198, language: csharp - MainProcess:GreenThread-34
+2025-01-23 01:16:20,694 - compiler_service:169 - INFO - Starting csharp interactive session 6093b367-1ad3-4301-855b-09fd285ee31c - MainProcess:GreenThread-34
+2025-01-23 01:16:20,694 - compiler_service:198 - DEBUG - Compiling C# program - MainProcess:GreenThread-34
+2025-01-23 01:16:22,638 - compiler_service:241 - DEBUG - Output received: Enter your name: - MainProcess:Thread-4 (monitor_output)
+2025-01-23 01:16:22,639 - compiler_service:89 - DEBUG - Input prompt detected: Enter your name: - MainProcess:Thread-4 (monitor_output)
+2025-01-23 01:16:23,091 - app:184 - INFO - Compilation completed in 2.40s: {'success': True, 'session_id': '6093b367-1ad3-4301-855b-09fd285ee31c', 'interactive': True} - MainProcess:GreenThread-34
+2025-01-23 01:16:23,091 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet MESSAGE data 2["compilation_result",{"success":true,"session_id":"6093b367-1ad3-4301-855b-09fd285ee31c","interactive":true,"metrics":{"compilation_time":2.397632122039795}}] - MainProcess:GreenThread-34
+2025-01-23 01:16:23,592 - app:213 - DEBUG - Initial program output (attempt 1): {'success': True, 'output': 'Enter your name:', 'waiting_for_input': True} - MainProcess:GreenThread-34
+2025-01-23 01:16:23,593 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet MESSAGE data 2["output",{"output":"Enter your name:","waiting_for_input":true,"error":null}] - MainProcess:GreenThread-34
+2025-01-23 01:16:29,426 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-35
+2025-01-23 01:16:29,533 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:16:33,102 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet MESSAGE data 2["input",{"session_id":"6093b367-1ad3-4301-855b-09fd285ee31c","input":"hi"}] - MainProcess:GreenThread-2
+2025-01-23 01:16:33,103 - app:267 - DEBUG - Sending input 'hi' to session 6093b367-1ad3-4301-855b-09fd285ee31c - MainProcess:GreenThread-36
+2025-01-23 01:16:33,103 - compiler_service:108 - DEBUG - Session 6093b367-1ad3-4301-855b-09fd285ee31c is no longer waiting for input - MainProcess:GreenThread-36
+2025-01-23 01:16:33,103 - compiler_service:291 - DEBUG - Input sent: hi - MainProcess:GreenThread-36
+2025-01-23 01:16:33,104 - app:269 - DEBUG - Send input result: {'success': True} - MainProcess:GreenThread-36
+2025-01-23 01:16:33,109 - compiler_service:241 - DEBUG - Output received: Hello, hi! - MainProcess:Thread-4 (monitor_output)
+2025-01-23 01:16:33,204 - app:274 - DEBUG - Get output after input result: {'success': False, 'error': 'Session not active'} - MainProcess:GreenThread-36
+2025-01-23 01:16:33,205 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet MESSAGE data 2["error",{"message":"Failed to get program output"}] - MainProcess:GreenThread-36
+2025-01-23 01:16:42,009 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-37
+2025-01-23 01:16:42,087 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:16:42,133 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-38
+2025-01-23 01:16:42,210 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:16:54,535 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-39
+2025-01-23 01:16:54,615 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:17:07,130 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-40
+2025-01-23 01:17:07,209 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:17:07,211 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-41
+2025-01-23 01:17:07,293 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:17:19,616 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-42
+2025-01-23 01:17:19,695 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:17:32,210 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-43
+2025-01-23 01:17:32,287 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:17:32,295 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-44
+2025-01-23 01:17:32,371 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:17:44,695 - engineio.server:78 - INFO - ivQ0nt0P7eQKpDulAAAE: Sending packet PING data None - MainProcess:GreenThread-45
+2025-01-23 01:17:44,775 - engineio.server:39 - INFO - ivQ0nt0P7eQKpDulAAAE: Received packet PONG data  - MainProcess:GreenThread-5
+2025-01-23 01:17:53,486 - app:141 - INFO - Client disconnected: Tqeu3qsFlzsR99hcAAAF - MainProcess:GreenThread-5
+2025-01-23 01:17:53,487 - compiler_service:117 - DEBUG - Starting cleanup for session 49b704a5-04ca-4c58-bc3c-0da2eee28de6 - MainProcess:GreenThread-5
+2025-01-23 01:17:53,499 - compiler_service:165 - DEBUG - Session 49b704a5-04ca-4c58-bc3c-0da2eee28de6 cleaned up - MainProcess:GreenThread-5
+2025-01-23 01:17:53,499 - app:145 - DEBUG - Cleaned up session: 49b704a5-04ca-4c58-bc3c-0da2eee28de6 - MainProcess:GreenThread-5
+2025-01-23 01:17:57,288 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-46
+2025-01-23 01:17:57,367 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:17:57,371 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-47
+2025-01-23 01:17:57,448 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:18:22,368 - engineio.server:78 - INFO - q-zL-ZqZHSZKR6f9AAAG: Sending packet PING data None - MainProcess:GreenThread-48
+2025-01-23 01:18:22,445 - engineio.server:39 - INFO - q-zL-ZqZHSZKR6f9AAAG: Received packet PONG data  - MainProcess:GreenThread-24
+2025-01-23 01:18:22,449 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-49
+2025-01-23 01:18:22,525 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:18:27,926 - app:141 - INFO - Client disconnected: 9QklvgxRtG-MzwfBAAAH - MainProcess:GreenThread-24
+2025-01-23 01:18:27,926 - compiler_service:117 - DEBUG - Starting cleanup for session 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 - MainProcess:GreenThread-24
+2025-01-23 01:18:27,927 - compiler_service:165 - DEBUG - Session 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 cleaned up - MainProcess:GreenThread-24
+2025-01-23 01:18:27,928 - app:145 - DEBUG - Cleaned up session: 3b50ff5e-7f0a-4ce4-b8c4-90c5c8f2d017 - MainProcess:GreenThread-24
+2025-01-23 01:18:47,527 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-50
+2025-01-23 01:18:47,603 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 01:19:12,604 - engineio.server:78 - INFO - xjxlFRC-SYzgDS3hAAAA: Sending packet PING data None - MainProcess:GreenThread-51
+2025-01-23 01:19:12,682 - engineio.server:39 - INFO - xjxlFRC-SYzgDS3hAAAA: Received packet PONG data  - MainProcess:GreenThread-2

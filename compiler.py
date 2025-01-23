@@ -501,7 +501,7 @@ def start_interactive_session(code: str, language: str, session_id: Optional[str
         }
 
 def handle_interactive_session(session_id: str, action: str, input_data: Optional[str] = None) -> Dict[str, Any]:
-    """Handle interactive session actions"""
+    """Handle interactive session actions with improved error handling and socket events"""
     try:
         with session_lock:
             session = active_sessions.get(session_id)
@@ -528,14 +528,32 @@ def handle_interactive_session(session_id: str, action: str, input_data: Optiona
                 }
 
             try:
+                # Ensure input ends with newline
+                if not input_data.endswith('\n'):
+                    input_data += '\n'
+
+                # Write input to process
                 os.write(session.master_fd, input_data.encode())
                 session.waiting_for_input = False
-                return {'success': True}
+
+                # Wait briefly for output processing
+                time.sleep(0.1)
+
+                # Get any immediate output
+                output = ''.join(session.stdout_buffer)
+                session.stdout_buffer.clear()
+
+                return {
+                    'success': True,
+                    'output': output,
+                    'waiting_for_input': session.waiting_for_input
+                }
             except OSError as e:
                 logger.error(f"Error sending input: {e}")
+                cleanup_session(session_id)
                 return {
                     'success': False,
-                    'error': "Failed to send input"
+                    'error': "Failed to send input - session terminated"
                 }
 
         elif action == 'terminate':
@@ -549,6 +567,7 @@ def handle_interactive_session(session_id: str, action: str, input_data: Optiona
 
     except Exception as e:
         logger.error(f"Error handling interactive session: {e}")
+        cleanup_session(session_id)
         return {
             'success': False,
             'error': str(e)
@@ -614,7 +633,7 @@ def monitor_output(session_id: str):
                         # Check for input patterns
                         patterns = session.input_patterns.get(session.language, [])
                         session.waiting_for_input = any(
-                            pattern.lower() in session.last_output.lower() 
+                            pattern.lower() in session.last_output.lower()
                             for pattern in patterns
                         )
 
@@ -860,7 +879,7 @@ class ParallelCompilationManager:
         return [self.results.get(i, {
             'success': False,
             'error': 'Compilation task not completed',
-            'metrics': {}
+            ''metrics': {}
         }) for i in range(len(self.futures))]
 
 def compile_and_run_parallel(codes: List[str], language: str = 'csharp') -> List[Dict[str, Any]]:
