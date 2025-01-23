@@ -90,22 +90,43 @@ def get_output(session_id: str) -> dict:
             if not session:
                 return {'success': False, 'error': "Session not found"}
 
-        # Read output with timeout
+        # Read output with timeout and accumulation
         ready, _, _ = select.select([session.master_fd], [], [], 0.1)
         output = ''
 
         if ready:
             try:
-                data = os.read(session.master_fd, 1024)
-                if data:
-                    output = data.decode()
-                    session.waiting_for_input = any(pattern in output for pattern in session.input_patterns)
-            except OSError:
-                pass
+                # Read in a loop to get all available output
+                while True:
+                    try:
+                        data = os.read(session.master_fd, 1024)
+                        if not data:
+                            break
+                        output += data.decode()
+                    except (OSError, IOError):
+                        break
 
+                # Store in buffer and check for input prompts
+                if output:
+                    session.output_buffer.append(output)
+                    session.waiting_for_input = any(pattern in output for pattern in session.input_patterns)
+
+                # Return accumulated output
+                full_output = ''.join(session.output_buffer)
+                session.output_buffer = []  # Clear buffer after reading
+                return {
+                    'success': True,
+                    'output': full_output,
+                    'waiting_for_input': session.waiting_for_input
+                }
+            except Exception as e:
+                logger.error(f"Error reading output: {str(e)}")
+                return {'success': False, 'error': str(e)}
+
+        # No new output
         return {
             'success': True,
-            'output': output,
+            'output': '',
             'waiting_for_input': session.waiting_for_input
         }
 
