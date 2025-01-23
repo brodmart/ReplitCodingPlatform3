@@ -379,45 +379,54 @@
 <script src="{{ url_for('static', filename='js/editor.js') }}"></script>
 
 <script>
-    // Improved initialization with readiness checks
-    function checkAndInitializeConsole() {
+    // Enhanced initialization with element verification
+    function verifyAndInitializeConsole() {
         const output = document.getElementById('consoleOutput');
         const input = document.getElementById('consoleInput');
 
+        console.debug('Verifying console elements:', {
+            output: !!output,
+            input: !!input
+        });
+
         if (!output || !input) {
-            console.debug('Console elements not found, waiting...');
+            console.debug('Required elements not found, retrying...');
             if (!window.initAttempts) {
                 window.initAttempts = 0;
             }
+
             if (window.initAttempts < 10) {
                 window.initAttempts++;
-                setTimeout(checkAndInitializeConsole, Math.min(100 * Math.pow(2, window.initAttempts), 2000));
+                const delay = Math.min(100 * Math.pow(2, window.initAttempts), 2000);
+                console.debug(`Retry attempt ${window.initAttempts} in ${delay}ms`);
+                setTimeout(verifyAndInitializeConsole, delay);
             } else {
-                console.error('Failed to find console elements after maximum retries');
+                console.error('Failed to initialize console after maximum retries');
             }
             return;
         }
 
         try {
+            console.debug('Found required elements, initializing console');
             window.consoleInstance = new InteractiveConsole({
                 outputElement: output,
                 inputElement: input,
                 language: document.getElementById('languageSelect')?.value || 'csharp'
             });
-            console.debug('Console initialized successfully');
         } catch (error) {
-            console.error('Console initialization error:', error);
+            console.error('Console initialization failed:', error);
             if (!window.initAttempts || window.initAttempts < 10) {
                 window.initAttempts = (window.initAttempts || 0) + 1;
-                setTimeout(checkAndInitializeConsole, Math.min(100 * Math.pow(2, window.initAttempts), 2000));
+                const delay = Math.min(100 * Math.pow(2, window.initAttempts), 2000);
+                setTimeout(verifyAndInitializeConsole, delay);
             }
         }
     }
 
-    // Wait for all scripts and DOM content to be fully loaded
-    window.addEventListener('load', function() {
+    // Ensure all resources are loaded before initialization
+    window.addEventListener('load', () => {
         console.debug('Window loaded, starting console initialization');
-        setTimeout(checkAndInitializeConsole, 100);
+        setTimeout(verifyAndInitializeConsole, 100);
     });
 </script>
 

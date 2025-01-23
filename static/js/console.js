@@ -3,17 +3,27 @@
  */
 class InteractiveConsole {
     constructor(options = {}) {
-        // Initialize with safer null checks and validation
+        // Validate input parameters first
+        if (!options.outputElement || !options.inputElement) {
+            console.error('Missing required elements:', {
+                outputElement: options.outputElement,
+                inputElement: options.inputElement
+            });
+            throw new Error('Console requires valid output and input elements');
+        }
+
+        // Store references after validation
         this.outputElement = options.outputElement;
         this.inputElement = options.inputElement;
         this.language = options.language || 'csharp';
 
-        // Validate required elements immediately
-        if (!this.outputElement || !(this.outputElement instanceof Element)) {
-            throw new Error('Console requires a valid output element');
-        }
-        if (!this.inputElement || !(this.inputElement instanceof Element)) {
-            throw new Error('Console requires a valid input element');
+        // Additional validation for DOM elements
+        if (!(this.outputElement instanceof Element) || !(this.inputElement instanceof Element)) {
+            console.error('Invalid element types:', {
+                outputElement: this.outputElement,
+                inputElement: this.inputElement
+            });
+            throw new Error('Console elements must be valid DOM elements');
         }
 
         console.debug('Initializing console with:', {
@@ -22,6 +32,7 @@ class InteractiveConsole {
             language: this.language
         });
 
+        // Initialize state
         this.sessionId = null;
         this.isWaitingForInput = false;
         this.currentLanguage = this.language;
@@ -30,13 +41,16 @@ class InteractiveConsole {
         this.retryDelay = 1000;
         this.initialized = false;
 
-        this.setupSocket();
-        this.setupEventHandlers();
-        this.clear();
-
-        // Mark as initialized
-        this.initialized = true;
-        console.debug('Console initialization completed');
+        try {
+            this.setupSocket();
+            this.setupEventHandlers();
+            this.clear();
+            this.initialized = true;
+            console.debug('Console initialization completed successfully');
+        } catch (error) {
+            console.error('Failed to complete console initialization:', error);
+            throw error;
+        }
     }
 
     setupSocket() {
@@ -324,7 +338,7 @@ function initializeConsole() {
     }
 }
 
-// Make sure the class is available globally
+// Export for global access
 if (typeof window !== 'undefined') {
     window.InteractiveConsole = InteractiveConsole;
 }
