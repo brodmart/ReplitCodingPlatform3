@@ -167,33 +167,40 @@ def create_app():
                 'client_sid': sid
             })
 
+            # Emit compilation start
+            emit('output', {
+                'success': True,
+                'session_id': session_id,
+                'output': 'Compiling and running code...\n',
+                'waiting_for_input': False
+            })
+
             # Initialize console state
             emit('console_operation', {
                 'operation': 'ResetColor',
                 'session_id': session_id
             })
 
-            # Start code execution
-            emit('output', {
-                'success': True,
-                'session_id': session_id,
-                'output': 'Initializing console...\n',
-                'waiting_for_input': False
-            })
+            # Import necessary C# compilation module
+            from compiler_service import compile_and_run_csharp
 
-            # Test console operations
-            emit('console_operation', {
-                'operation': 'SetForegroundColor',
-                'color': 'Green',
-                'session_id': session_id
-            })
+            # Start C# compilation and execution
+            compilation_result = compile_and_run_csharp(code, session_id)
 
-            emit('output', {
-                'success': True,
-                'session_id': session_id,
-                'output': 'Console ready for input!\n',
-                'waiting_for_input': True
-            })
+            if compilation_result.get('success'):
+                emit('output', {
+                    'success': True,
+                    'session_id': session_id,
+                    'output': compilation_result.get('output', '') + '\n',
+                    'waiting_for_input': True
+                })
+            else:
+                emit('output', {
+                    'success': False,
+                    'session_id': session_id,
+                    'output': f"Compilation error: {compilation_result.get('error', 'Unknown error')}\n",
+                    'waiting_for_input': False
+                })
 
         except Exception as e:
             logger.error(f"Error in compile_and_run: {str(e)}", exc_info=True)
@@ -224,23 +231,25 @@ def create_app():
             if not console_session:
                 raise ValueError("Invalid session ID")
 
-            # Process input
-            with console_session.lock:
-                console_session.input_queue.put(user_input)
+            # Process input through C# runtime
+            from compiler_service import process_csharp_input
 
-            # Echo input for testing
-            emit('console_operation', {
-                'operation': 'SetForegroundColor',
-                'color': 'Yellow',
-                'session_id': session_id
-            })
+            # Send input to C# program
+            result = process_csharp_input(session_id, user_input)
 
-            emit('output', {
-                'success': True,
-                'session_id': session_id,
-                'output': f"You entered: {user_input}\n",
-                'waiting_for_input': True
-            })
+            if result.get('success'):
+                emit('output', {
+                    'success': True,
+                    'session_id': session_id,
+                    'output': result.get('output', '') + '\n',
+                    'waiting_for_input': result.get('waiting_for_input', True)
+                })
+            else:
+                emit('error', {
+                    'message': result.get('error', 'Failed to process input'),
+                    'type': 'input_error',
+                    'session_id': session_id
+                })
 
         except Exception as e:
             logger.error(f"Error in handle_input: {str(e)}", exc_info=True)

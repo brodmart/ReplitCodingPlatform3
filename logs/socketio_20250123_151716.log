@@ -1,0 +1,11 @@
+2025-01-23 15:17:16,327 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:17:16,356 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:17:16,839 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:17:16,930 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:17:19,824 - app:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:17:19,824 - __main__:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:17:19,827 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:17:19,840 - werkzeug:96 - INFO -  * Debugger PIN: 109-541-529 - MainProcess:MainThread
+2025-01-23 15:17:19,913 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 15:17:20,285 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 15:17:20,401 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)

@@ -1,0 +1,31 @@
+2025-01-23 15:17:27,844 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:17:27,909 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:17:28,908 - __main__:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:17:28,917 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:17:28,918 - werkzeug:96 - INFO -  * Debugger PIN: 115-990-272 - MainProcess:MainThread
+2025-01-23 15:17:29,212 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:29,811 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,024 - engineio.server:78 - INFO - n0v9LCWJzJedOdGWAAAA: Sending packet OPEN data {'sid': 'n0v9LCWJzJedOdGWAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,025 - engineio.server:90 - INFO - n0v9LCWJzJedOdGWAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,025 - engineio.server:219 - INFO - n0v9LCWJzJedOdGWAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,108 - engineio.server:39 - INFO - n0v9LCWJzJedOdGWAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,113 - __main__:114 - INFO - Client connected: {"sid": "dG20uy1Nu9Ikz_a3AAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,115 - engineio.server:78 - INFO - n0v9LCWJzJedOdGWAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"dG20uy1Nu9Ikz_a3AAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,125 - engineio.server:78 - INFO - n0v9LCWJzJedOdGWAAAA: Sending packet MESSAGE data 0{"sid":"dG20uy1Nu9Ikz_a3AAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,321 - engineio.server:78 - INFO - f3trerdyuEEtEX_4AAAC: Sending packet OPEN data {'sid': 'f3trerdyuEEtEX_4AAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,321 - engineio.server:90 - INFO - f3trerdyuEEtEX_4AAAC: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,321 - engineio.server:219 - INFO - f3trerdyuEEtEX_4AAAC: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,371 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,417 - engineio.server:39 - INFO - f3trerdyuEEtEX_4AAAC: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,428 - __main__:114 - INFO - Client connected: {"sid": "b5GlP5btsYABAZGMAAAD", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,429 - engineio.server:78 - INFO - f3trerdyuEEtEX_4AAAC: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"b5GlP5btsYABAZGMAAAD"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,431 - engineio.server:78 - INFO - f3trerdyuEEtEX_4AAAC: Sending packet MESSAGE data 0{"sid":"b5GlP5btsYABAZGMAAAD"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,959 - engineio.server:78 - INFO - kuiv5ZIs-orUnD7sAAAE: Sending packet OPEN data {'sid': 'kuiv5ZIs-orUnD7sAAAE', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,960 - engineio.server:90 - INFO - kuiv5ZIs-orUnD7sAAAE: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,961 - engineio.server:219 - INFO - kuiv5ZIs-orUnD7sAAAE: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,969 - engineio.server:39 - INFO - kuiv5ZIs-orUnD7sAAAE: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,973 - __main__:114 - INFO - Client connected: {"sid": "saI9P-G2z_koYq8eAAAF", "transport": "websocket", "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,974 - engineio.server:78 - INFO - kuiv5ZIs-orUnD7sAAAE: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"saI9P-G2z_koYq8eAAAF"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:30,975 - engineio.server:78 - INFO - kuiv5ZIs-orUnD7sAAAE: Sending packet MESSAGE data 0{"sid":"saI9P-G2z_koYq8eAAAF"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:31,496 - __main__:133 - INFO - Client disconnecting: saI9P-G2z_koYq8eAAAF - MainProcess:Thread-1 (run_server)
+2025-01-23 15:17:31,496 - __main__:143 - INFO - Client disconnected: saI9P-G2z_koYq8eAAAF - MainProcess:Thread-1 (run_server)
