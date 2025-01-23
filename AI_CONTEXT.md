@@ -101,4 +101,27 @@ Browser                     Flask Server                  Backend
 +-----------+   AJAX      +------------+    System      +-----------+
 ```
 
+## Replit Interactive Web Console Policies
+
+### WebSocket Security
+- Always verify WebSocket connections aren't HMR (Hot Module Reload) connections
+- Use dedicated WebSocket paths (e.g., '/ws') to avoid conflicts
+- Handle connection errors gracefully
+
+### Process Execution
+- Never run infinite loops or resource-intensive processes
+- Set timeouts for long-running operations
+- Clean up temporary files and processes
+
+### Memory Management
+- Keep memory usage within Replit's limits
+- Clear buffers and cache regularly
+- Monitor output size to prevent overflow
+
+### Best Practices
+- Use streaming for large outputs instead of buffering
+- Implement rate limiting for user inputs
+- Handle disconnections gracefully with reconnection logic
+- Keep security in mind - validate and sanitize all inputs
+
 This guide maintains critical project information for AI sessions. Update when making significant changes.
