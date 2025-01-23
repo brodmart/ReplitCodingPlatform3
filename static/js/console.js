@@ -212,6 +212,8 @@ class InteractiveConsole {
     }
 
     async queueOutput(text) {
+        if (!text) return;
+
         this.outputQueue.push(text);
         if (!this.isProcessingOutput) {
             await this.processOutputQueue();
@@ -232,9 +234,14 @@ class InteractiveConsole {
                 }
 
                 const output = this.outputQueue.shift();
-                await this.write(output);
+                if (output) {
+                    await this.write(output);
+                    console.log('Output written:', output); // Debug log
+                }
                 this.lastOutputTime = Date.now();
             }
+        } catch (error) {
+            console.error('Error processing output queue:', error);
         } finally {
             this.isProcessingOutput = false;
         }
@@ -255,8 +262,8 @@ class InteractiveConsole {
                     this.handleInput();
                 } else if (data === '\u007f') { // Backspace
                     if (this.inputBuffer.length > 0 && this.inputPosition > 0) {
-                        this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition - 1) + 
-                                        this.inputBuffer.slice(this.inputPosition);
+                        this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition - 1) +
+                                            this.inputBuffer.slice(this.inputPosition);
                         this.inputPosition--;
                         this.terminal.write('\b \b');
                     }
@@ -266,8 +273,8 @@ class InteractiveConsole {
                     this.navigateHistory('down');
                 } else if (data >= ' ' && data <= '~') { // Printable characters
                     this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition) +
-                                    data +
-                                    this.inputBuffer.slice(this.inputPosition);
+                                        data +
+                                        this.inputBuffer.slice(this.inputPosition);
                     this.inputPosition++;
                     this.terminal.write(data);
                 }
@@ -328,8 +335,11 @@ class InteractiveConsole {
 
     async write(text) {
         if (!text || !this.initialized) return;
+
         try {
-            this.terminal.write(text.replace(/\n/g, '\r\n'));
+            console.log('Writing to terminal:', text); // Debug log
+            const processedText = text.replace(/\n/g, '\r\n');
+            this.terminal.write(processedText);
         } catch (error) {
             console.error('Error writing to terminal:', error);
         }
@@ -442,15 +452,20 @@ class InteractiveConsole {
             return;
         }
 
+        // Clear previous state
         this.clear();
-        this.writeSystemMessage('Compiling and running code...');
-
-        // Reset state before new compilation
+        this.outputQueue = [];
+        this.isProcessingOutput = false;
         this.waitingForInput = false;
         this.inputBuffer = '';
         this.inputPosition = 0;
         this.pendingInput = false;
 
+        // Write initial message
+        this.writeSystemMessage('Compiling and running code...');
+
+        // Emit compile event with debug logging
+        console.log('Emitting compile_and_run event with code length:', code.length);
         this.socket.emit('compile_and_run', { code });
     }
 

@@ -210,10 +210,12 @@ def create_app():
             # Import necessary C# compilation module
             from compiler_service import compile_and_run_csharp
 
-            # Start C# compilation and execution
+            # Start C# compilation and execution with detailed logging
+            logger.info(f"Starting C# compilation for session {session_id}")
             compilation_result = compile_and_run_csharp(code, session_id)
+            logger.info(f"Compilation result for session {session_id}: {compilation_result}")
 
-            # Set compilation complete before processing result
+            # Set compilation complete and process result with proper synchronization
             with console_session.lock:
                 console_session.set_compilation_complete()
 
@@ -222,21 +224,24 @@ def create_app():
                     console_session.waiting_for_input = waiting_for_input
                     logger.info(f"Session {session_id} waiting for input: {waiting_for_input}")
 
-                    # Enhanced output handling
+                    # Enhanced output handling with proper validation
                     output = compilation_result.get('output', '')
-                    if output or waiting_for_input:
-                        emit('output', {
-                            'success': True,
-                            'session_id': session_id,
-                            'output': output + ('\n' if output else ''),
-                            'waiting_for_input': waiting_for_input
-                        })
+                    logger.info(f"Emitting output for session {session_id}: {output}")
+
+                    # Always emit output even if empty to ensure state sync
+                    emit('output', {
+                        'success': True,
+                        'session_id': session_id,
+                        'output': output + ('\n' if output and not output.endswith('\n') else ''),
+                        'waiting_for_input': waiting_for_input
+                    })
                 else:
-                    logger.error(f"Compilation error in session {session_id}: {compilation_result.get('error')}")
+                    error = compilation_result.get('error', 'Unknown compilation error')
+                    logger.error(f"Compilation error in session {session_id}: {error}")
                     emit('output', {
                         'success': False,
                         'session_id': session_id,
-                        'output': f"Compilation error: {compilation_result.get('error', 'Unknown error')}\n",
+                        'output': f"Compilation error: {error}\n",
                         'waiting_for_input': False
                     })
 
