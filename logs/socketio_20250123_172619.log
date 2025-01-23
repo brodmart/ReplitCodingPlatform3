@@ -1,0 +1,25 @@
+2025-01-23 17:26:19,236 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:26:19,420 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:26:19,494 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:26:19,593 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:26:19,695 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:26:19,878 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:26:20,408 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:26:20,473 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:26:20,612 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 17:26:20,762 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 17:26:20,779 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:26:20,783 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 17:26:20,787 - werkzeug:96 - INFO -  * Debugger PIN: 942-331-192 - MainProcess:MainThread
+2025-01-23 17:26:21,065 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 17:26:21,166 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 17:26:21,179 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:21,179 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:21,205 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,118 - engineio.server:78 - INFO - lxswP91c3xW8aCFWAAAA: Sending packet OPEN data {'sid': 'lxswP91c3xW8aCFWAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,118 - engineio.server:90 - INFO - lxswP91c3xW8aCFWAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,119 - engineio.server:219 - INFO - lxswP91c3xW8aCFWAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,188 - engineio.server:39 - INFO - lxswP91c3xW8aCFWAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,190 - __main__:147 - INFO - Client connected: {"sid": "FGZ2uxJCgLUsU1QfAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,191 - engineio.server:78 - INFO - lxswP91c3xW8aCFWAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"FGZ2uxJCgLUsU1QfAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:22,192 - engineio.server:78 - INFO - lxswP91c3xW8aCFWAAAA: Sending packet MESSAGE data 0{"sid":"FGZ2uxJCgLUsU1QfAAAB"} - MainProcess:Thread-1 (run_server)

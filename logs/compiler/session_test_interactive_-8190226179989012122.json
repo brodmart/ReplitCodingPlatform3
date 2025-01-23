@@ -1,0 +1,39 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T17:26:22.880884",
+    "data": {
+      "code_length": 269,
+      "timestamp": "2025-01-23T17:26:22.871891"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T17:26:35.657951",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Compiled DLL not found",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Compiled DLL not found"
+        }
+      },
+      "timestamp": "2025-01-23T17:26:35.657850"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T17:26:35.660922",
+    "data": {
+      "error_message": "Failed to start interactive session: Compiled DLL not found",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: Compiled DLL not found"
+        }
+      },
+      "timestamp": "2025-01-23T17:26:35.660848"
+    }
+  }
+]

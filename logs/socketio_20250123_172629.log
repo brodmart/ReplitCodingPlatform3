@@ -1,0 +1,27 @@
+2025-01-23 17:26:29,987 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 17:26:30,060 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 17:26:30,942 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 17:26:30,968 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 17:26:30,972 - werkzeug:96 - INFO -  * Debugger PIN: 113-703-640 - MainProcess:MainThread
+2025-01-23 17:26:31,289 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:31,289 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:31,336 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,280 - engineio.server:78 - INFO - 9a4h3K-l_BIEbLsaAAAA: Sending packet OPEN data {'sid': '9a4h3K-l_BIEbLsaAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,280 - engineio.server:90 - INFO - 9a4h3K-l_BIEbLsaAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,281 - engineio.server:219 - INFO - 9a4h3K-l_BIEbLsaAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,356 - engineio.server:39 - INFO - 9a4h3K-l_BIEbLsaAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,358 - __main__:147 - INFO - Client connected: {"sid": "EToz0syEJTT0mGkLAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,358 - engineio.server:78 - INFO - 9a4h3K-l_BIEbLsaAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"EToz0syEJTT0mGkLAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,359 - engineio.server:78 - INFO - 9a4h3K-l_BIEbLsaAAAA: Sending packet MESSAGE data 0{"sid":"EToz0syEJTT0mGkLAAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,584 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,585 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:32,609 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,215 - engineio.server:78 - INFO - fv9Ax15OQFQ3ZpgzAAAC: Sending packet OPEN data {'sid': 'fv9Ax15OQFQ3ZpgzAAAC', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,216 - engineio.server:90 - INFO - fv9Ax15OQFQ3ZpgzAAAC: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,225 - engineio.server:219 - INFO - fv9Ax15OQFQ3ZpgzAAAC: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,250 - engineio.server:39 - INFO - fv9Ax15OQFQ3ZpgzAAAC: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,254 - __main__:147 - INFO - Client connected: {"sid": "-c1EqKECBUMngSRJAAAD", "transport": "websocket", "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,254 - engineio.server:78 - INFO - fv9Ax15OQFQ3ZpgzAAAC: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"-c1EqKECBUMngSRJAAAD"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,262 - engineio.server:78 - INFO - fv9Ax15OQFQ3ZpgzAAAC: Sending packet MESSAGE data 0{"sid":"-c1EqKECBUMngSRJAAAD"} - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,650 - __main__:166 - INFO - Client disconnecting: -c1EqKECBUMngSRJAAAD - MainProcess:Thread-1 (run_server)
+2025-01-23 17:26:33,664 - __main__:177 - INFO - Client disconnected: -c1EqKECBUMngSRJAAAD - MainProcess:Thread-1 (run_server)

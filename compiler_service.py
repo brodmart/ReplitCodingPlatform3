@@ -33,6 +33,11 @@ performance_logger = logging.getLogger('performance')
 process_mgmt_logger = logging.getLogger('process_management')
 process_mgmt_logger.setLevel(logging.DEBUG)
 
+# Add new loggers for specific components
+socketio_logger = logging.getLogger('socketio')
+console_logger = logging.getLogger('console')
+io_logger = logging.getLogger('io')
+
 # Constants for timeouts and limits
 PROCESS_SPAWN_TIMEOUT = 10  # seconds
 COMPILATION_TIMEOUT = 30    # seconds
@@ -323,6 +328,7 @@ def cleanup_session(session_id: str) -> None:
 def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
     """Start an interactive session with improved process management and error handling"""
     process_mgmt_logger.info(f"Starting {language} interactive session {session.session_id}")
+    console_logger.info(f"Initializing console for session {session.session_id}")
 
     if language != 'csharp':
         return {'success': False, 'error': 'Only C# is supported'}
@@ -333,31 +339,38 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         source_file = project_dir / "Program.cs"
         project_file = project_dir / "program.csproj"
 
-        # Write project file with optimized settings and runtime configuration
+        console_logger.debug(f"Creating project files in {project_dir}")
+
+        # Write project file with optimized settings
         project_content = """<Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
                 <OutputType>Exe</OutputType>
                 <TargetFramework>net7.0</TargetFramework>
                 <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
-                <PublishReadyToRun>true</PublishReadyToRun>
+                <PublishReadyToRun>false</PublishReadyToRun>
                 <SelfContained>false</SelfContained>
-                <InvariantGlobalization>true</InvariantGlobalization>
                 <UseAppHost>false</UseAppHost>
             </PropertyGroup>
         </Project>"""
 
         with open(project_file, 'w') as f:
             f.write(project_content)
+            console_logger.debug("Project file created successfully")
 
         # Write source file
         with open(source_file, 'w') as f:
             f.write(code)
+            console_logger.debug("Source file written successfully")
 
         # Compile with timeout and enhanced error handling
         process_mgmt_logger.debug(f"Starting compilation for session {session.session_id}")
+        process_mgmt_logger.debug(f"Project directory: {project_dir}")
+        process_mgmt_logger.debug(f"Project file exists: {os.path.exists(project_file)}")
+
         try:
+            console_logger.info("Starting compilation process")
             compile_result = subprocess.run(
-                ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release'],
+                ['dotnet', 'build', str(project_file), '--nologo', '-c', 'Release', '-v', 'detailed'],
                 capture_output=True,
                 text=True,
                 timeout=COMPILATION_TIMEOUT,
@@ -368,7 +381,16 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                     'DOTNET_CLI_HOME': session.temp_dir
                 }
             )
+            process_mgmt_logger.debug(f"Compilation output: {compile_result.stdout}")
+            if compile_result.stderr:
+                process_mgmt_logger.error(f"Compilation stderr: {compile_result.stderr}")
             process_mgmt_logger.debug(f"Compilation completed with return code {compile_result.returncode}")
+
+            if compile_result.returncode == 0:
+                console_logger.info("Compilation successful")
+            else:
+                console_logger.error("Compilation failed")
+
         except subprocess.TimeoutExpired:
             process_mgmt_logger.error("Compilation timed out")
             return {'success': False, 'error': 'Compilation timed out'}
@@ -377,12 +399,31 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             process_mgmt_logger.error(f"Compilation failed: {compile_result.stderr}")
             return {'success': False, 'error': compile_result.stderr}
 
-        # Start the compiled program using dotnet directly
+        # Verify DLL location and existence
         dll_path = project_dir / "bin" / "Release" / "net7.0" / "program.dll"
+        console_logger.debug(f"Looking for compiled DLL at: {dll_path}")
+        if not os.path.exists(dll_path):
+            console_logger.error(f"DLL not found at expected path: {dll_path}")
+            # List contents of bin directory to help debug
+            bin_dir = project_dir / "bin"
+            if os.path.exists(bin_dir):
+                console_logger.debug(f"Contents of {bin_dir}:")
+                for root, dirs, files in os.walk(bin_dir):
+                    console_logger.debug(f"Directory: {root}")
+                    console_logger.debug(f"Files: {files}")
+            return {'success': False, 'error': 'Compiled DLL not found'}
+
+        # Start the compiled program using dotnet directly
+        console_logger.info("Initializing process environment")
+        console_logger.debug(f"DOTNET_ROOT: {os.environ.get('DOTNET_ROOT')}")
+        console_logger.debug(f"DOTNET_CLI_HOME: {session.temp_dir}")
+        console_logger.debug(f"Working directory: {session.temp_dir}")
+        console_logger.debug(f"DLL path exists: {os.path.exists(dll_path)}")
 
         def monitor_output():
             """Monitor process output with improved error handling"""
             buffer = ""
+            io_logger.info("Starting output monitoring")
             try:
                 while not session.stop_event.is_set() and session.process.poll() is None:
                     try:
@@ -392,39 +433,40 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                             continue
 
                         chunk = os.read(session.master_fd, BUFFER_SIZE).decode(errors='replace')
-                        process_mgmt_logger.debug(f"Raw output received: {chunk}")
+                        io_logger.debug(f"Raw output received: {chunk}")
                         buffer += chunk
 
                         while '\n' in buffer:
                             line, buffer = buffer.split('\n', 1)
                             cleaned = clean_terminal_output(line)
                             if cleaned:
-                                process_mgmt_logger.debug(f"Cleaned output: {cleaned}")
+                                io_logger.debug(f"Cleaned output: {cleaned}")
                                 session.append_output(cleaned + '\n')
 
                     except (OSError, IOError) as e:
                         if e.errno != errno.EAGAIN:
-                            process_mgmt_logger.error(f"Error reading output: {e}")
+                            io_logger.error(f"Error reading output: {e}")
                             break
                         continue
                     except Exception as e:
-                        process_mgmt_logger.error(f"Unexpected error in output monitoring: {e}")
+                        io_logger.error(f"Unexpected error in output monitoring: {e}")
                         break
 
                 if buffer:  # Process remaining buffer
                     cleaned = clean_terminal_output(buffer)
                     if cleaned:
-                        process_mgmt_logger.debug(f"Final buffer output: {cleaned}")
+                        io_logger.debug(f"Final buffer output: {cleaned}")
                         session.append_output(cleaned + '\n')
 
             except Exception as e:
-                process_mgmt_logger.error(f"Fatal error in output monitoring: {traceback.format_exc()}")
+                io_logger.error(f"Fatal error in output monitoring: {traceback.format_exc()}")
             finally:
                 session.stop_event.set()
+                io_logger.info("Output monitoring stopped")
 
         # Start process with enhanced monitoring
         try:
-            process_mgmt_logger.debug(f"Starting process with DLL: {dll_path}")
+            console_logger.info("Starting dotnet process")
             process = subprocess.Popen(
                 ['dotnet', str(dll_path)],
                 stdin=session.slave_fd,
@@ -435,62 +477,51 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                 env={
                     **os.environ,
                     'DOTNET_ROOT': '/nix/store/4k08ckhym1bcwnsk52j201a80l2xrkhp-dotnet-sdk-7.0.410',
-                    'DOTNET_CLI_HOME': session.temp_dir
+                    'DOTNET_CLI_HOME': session.temp_dir,
+                    'DOTNET_NOLOGO': 'true',  # Disable logo
+                    'DOTNET_CLI_TELEMETRY_OPTOUT': 'true'  # Disable telemetry
                 }
             )
 
             session.process = process
-            process_mgmt_logger.info(f"Process started with PID {process.pid}")
-
-            # Start output monitoring
-            session.output_thread = Thread(target=monitor_output)
-            session.output_thread.daemon = True
-            session.output_thread.start()
-            process_mgmt_logger.debug("Output monitoring thread started")
-
-            # Wait briefly for process to initialize
-            time.sleep(0.5)
-
-            # Verify process is still running
-            if process.poll() is not None:
-                process_mgmt_logger.error("Process failed to start or terminated immediately")
-                return {'success': False, 'error': 'Process failed to start'}
-
-            # Get initial output
-            initial_output = session.get_output()
-            process_mgmt_logger.info("Interactive session successfully initialized")
-            return {
-                'success': True,
-                'session_id': session.session_id,
-                'interactive': True,
-                'output': '\n'.join(initial_output),
-                'waiting_for_input': session.waiting_for_input
-            }
+            console_logger.info(f"Process started with PID {process.pid}")
 
         except Exception as e:
-            process_mgmt_logger.error(f"Failed to start process: {e}")
-            return {'success': False, 'error': str(e)}
+            console_logger.error(f"Failed to start process: {str(e)}")
+            console_logger.error(f"Stack trace: {traceback.format_exc()}")
+            return {'success': False, 'error': f'Failed to start process: {str(e)}'}
+
+        # Start output monitoring
+        session.output_thread = Thread(target=monitor_output)
+        session.output_thread.daemon = True
+        session.output_thread.start()
+        io_logger.debug("Output monitoring thread started")
+
+        # Wait briefly for process to initialize
+        time.sleep(0.5)
+
+        # Verify process is still running
+        if process.poll() is not None:
+            console_logger.error("Process failed to start or terminated immediately")
+            return {'success': False, 'error': 'Process failed to start'}
+
+        # Get initial output
+        initial_output = session.get_output()
+        console_logger.info("Interactive session successfully initialized")
+        socketio_logger.info("Ready to handle Socket.IO events")
+
+        return {
+            'success': True,
+            'session_id': session.session_id,
+            'interactive': True,
+            'output': '\n'.join(initial_output),
+            'waiting_for_input': session.waiting_for_input
+        }
 
     except Exception as e:
-        process_mgmt_logger.error(f"Session start error: {traceback.format_exc()}")
+        console_logger.error(f"Failed to start process: {e}")
         return {'success': False, 'error': str(e)}
 
-def clean_terminal_output(output: str) -> str:
-    """Clean terminal control sequences from output"""
-    # Remove ANSI codes
-    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
-    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
-    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
-
-    # Clean up other control characters while preserving prompts
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
-
-    # Normalize line endings
-    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
-    cleaned = re.sub(r'^\s*\n', '', cleaned)
-    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
-
-    return cleaned.strip()
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with optional session tracking for interactive mode"""
@@ -738,7 +769,7 @@ class ErrorTracker:
         error_logger.error(f"Compilation error: {error.to_dict()}")
         self._update_patterns(error)
 
-        # Log recommendations
+        # Log        # Log recommendations
         if error.code in self.recommendations:
             recommendations = self.recommendations[error.code]
             error_logger.info(f"Recommendations for error {error.code}:")
