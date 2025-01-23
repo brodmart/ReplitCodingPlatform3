@@ -1,5 +1,6 @@
 /**
  * Interactive Console Implementation with Xterm.js integration
+ * Simplified version with core functionality
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -27,72 +28,41 @@ class InteractiveConsole {
         this.terminal.open(this.terminalContainer);
         this.fitAddon.fit();
 
-        // Handle terminal resize
-        window.addEventListener('resize', () => {
-            this.fitAddon.fit();
-        });
-
+        // Basic state management
         this.currentSessionId = null;
         this.connected = false;
         this.waitingForInput = false;
         this.inputBuffer = '';
-        this.inputCallback = null;
 
-        // Initialize Socket.IO
+        // Initialize Socket.IO with basic configuration
         this.socket = io({
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax: 5000,
-            reconnectionAttempts: 5
+            reconnectionAttempts: 3
         });
 
         this.setupSocketEvents();
         this.setupTerminalEvents();
 
-        // Log initialization
-        console.log('Console initialized with terminal');
+        // Handle window resize
+        window.addEventListener('resize', () => this.fitAddon.fit());
     }
 
     setupSocketEvents() {
         // Connection events
         this.socket.on('connect', () => {
-            console.log('Socket connected');
             this.connected = true;
             this.writeLine('Console connected');
         });
 
         this.socket.on('disconnect', () => {
-            console.log('Socket disconnected');
             this.connected = false;
-            this.writeLine('Console disconnected. Attempting to reconnect...');
+            this.writeLine('Console disconnected');
             this.waitingForInput = false;
         });
 
-        this.socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
-            this.writeError(`Connection error: ${error.message}`);
-            this.waitingForInput = false;
-        });
-
-        // Compilation events
-        this.socket.on('compilation_success', (data) => {
-            console.log('Compilation success:', data);
-            if (data && data.session_id) {
-                this.currentSessionId = data.session_id;
-            }
-            this.writeLine('Program started successfully...');
-        });
-
-        this.socket.on('compilation_error', (data) => {
-            console.error('Compilation error:', data);
-            this.writeError(data.error || 'Compilation failed');
-            this.currentSessionId = null;
-            this.waitingForInput = false;
-        });
-
-        // Output events
+        // Simplified output handling
         this.socket.on('output', (data) => {
-            console.log('Received output:', data);
             if (!data) return;
 
             if (data.session_id) {
@@ -103,16 +73,12 @@ class InteractiveConsole {
                 this.write(data.output);
             }
 
+            // Update input state
             this.waitingForInput = data.waiting_for_input;
-            if (data.waiting_for_input) {
-                console.log('Waiting for user input');
-                this.startInput();
-            }
         });
 
-        // Error events
+        // Error handling
         this.socket.on('error', (data) => {
-            console.error('Received error:', data);
             this.writeError(data.message || 'An error occurred');
             this.waitingForInput = false;
         });
@@ -136,25 +102,14 @@ class InteractiveConsole {
         });
     }
 
-    startInput() {
-        this.waitingForInput = true;
-        this.inputBuffer = '';
-    }
-
     handleInput() {
-        if (!this.waitingForInput) return;
+        if (!this.waitingForInput || !this.currentSessionId) return;
 
         const input = this.inputBuffer;
         this.inputBuffer = '';
         this.waitingForInput = false;
         this.terminal.write('\r\n');
 
-        if (!this.currentSessionId) {
-            this.writeError('No active session');
-            return;
-        }
-
-        console.log('Sending input:', input);
         this.socket.emit('input', {
             session_id: this.currentSessionId,
             input: input
@@ -189,7 +144,6 @@ class InteractiveConsole {
             return;
         }
 
-        console.log('Compiling code:', code);
         this.clear();
         this.writeLine('Compiling and running code...');
         this.socket.emit('compile_and_run', { code });
