@@ -119,6 +119,10 @@ args = "Initialize Database"
 task = "workflow.run"
 args = "Flask Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Debug C# Interactive"
+
 [[workflows.workflow]]
 name = "Create Tables"
 author = "agent"
@@ -469,6 +473,20 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python app.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Debug C# Interactive"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python test_interactive_console.py"
 
 [[ports]]
 localPort = 5000

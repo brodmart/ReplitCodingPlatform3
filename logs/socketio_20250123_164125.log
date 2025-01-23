@@ -1,0 +1,24 @@
+2025-01-23 16:41:25,648 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:41:25,673 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:41:27,144 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:41:27,146 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 16:41:27,148 - werkzeug:96 - INFO -  * Debugger PIN: 121-892-282 - MainProcess:MainThread
+2025-01-23 16:41:27,411 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:27,412 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:27,438 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,668 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet OPEN data {'sid': 'dF74d8yvYcCRDmw4AAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,669 - engineio.server:90 - INFO - dF74d8yvYcCRDmw4AAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,670 - engineio.server:219 - INFO - dF74d8yvYcCRDmw4AAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,738 - engineio.server:39 - INFO - dF74d8yvYcCRDmw4AAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,740 - __main__:147 - INFO - Client connected: {"sid": "eFxwbZEsuNTzcfnlAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,740 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"eFxwbZEsuNTzcfnlAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:28,741 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet MESSAGE data 0{"sid":"eFxwbZEsuNTzcfnlAAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:53,698 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 16:41:53,765 - engineio.server:39 - INFO - dF74d8yvYcCRDmw4AAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 16:42:18,790 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 16:42:18,859 - engineio.server:39 - INFO - dF74d8yvYcCRDmw4AAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 16:42:43,875 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 16:42:43,942 - engineio.server:39 - INFO - dF74d8yvYcCRDmw4AAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:08,953 - engineio.server:78 - INFO - dF74d8yvYcCRDmw4AAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:09,020 - engineio.server:39 - INFO - dF74d8yvYcCRDmw4AAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:22,758 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading - MainProcess:MainThread

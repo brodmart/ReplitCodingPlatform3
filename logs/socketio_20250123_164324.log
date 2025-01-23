@@ -1,0 +1,15 @@
+2025-01-23 16:43:24,142 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:43:24,167 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:43:25,467 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:43:25,468 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 16:43:25,475 - werkzeug:96 - INFO -  * Debugger PIN: 124-647-748 - MainProcess:MainThread
+2025-01-23 16:43:25,819 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:25,819 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:25,839 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,821 - engineio.server:78 - INFO - 17jS66nsEagU46nzAAAA: Sending packet OPEN data {'sid': '17jS66nsEagU46nzAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,842 - engineio.server:90 - INFO - 17jS66nsEagU46nzAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,848 - engineio.server:219 - INFO - 17jS66nsEagU46nzAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,929 - engineio.server:39 - INFO - 17jS66nsEagU46nzAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,947 - __main__:147 - INFO - Client connected: {"sid": "QgxX77kOIz98t__wAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,948 - engineio.server:78 - INFO - 17jS66nsEagU46nzAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"QgxX77kOIz98t__wAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 16:43:26,948 - engineio.server:78 - INFO - 17jS66nsEagU46nzAAAA: Sending packet MESSAGE data 0{"sid":"QgxX77kOIz98t__wAAAB"} - MainProcess:Thread-1 (run_server)
