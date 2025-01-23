@@ -5,6 +5,7 @@ import tempfile
 import threading
 import subprocess
 import time
+import importlib.util
 from typing import Dict, Any, Optional, List, Union
 from threading import Lock, Thread, Event
 from pathlib import Path
@@ -20,13 +21,38 @@ import json
 import shutil
 from dataclasses import dataclass, field, asdict
 
-import hashlib
-
 # Configure logging
 logging.basicConfig(level=logging.DEBUG,
                    format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
 logger = logging.getLogger(__name__)
+performance_logger = logging.getLogger('performance')
+error_logger = logging.getLogger('error')
 
+# Constants
+MAX_COMPILATION_TIME = 30  # seconds
+MAX_EXECUTION_TIME = 30  # seconds
+MEMORY_LIMIT = 1024  # MB
+COMPILER_CACHE_DIR = "/tmp/compiler_cache"
+CACHE_MAX_SIZE = 50  # Maximum number of cached compilations
+
+# Initialize cache directory
+os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
+_compilation_cache = {}
+_cache_lock = Lock()
+
+@dataclass
+class CompilationError:
+    """Structured compilation error information"""
+    error_type: str
+    message: str
+    file: str
+    line: int
+    column: int
+    code: str
+    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
 
 @dataclass
 class CompilerSession:
@@ -44,14 +70,19 @@ class CompilerSession:
     def is_active(self) -> bool:
         """Check if the session is still active"""
         with self._access_lock:
-            return (self.process is not None and 
-                    self.process.poll() is None and 
+            return (self.process is not None and
+                    self.process.poll() is None and
                     not self.stop_event.is_set())
 
     def append_output(self, text: str) -> None:
         """Thread-safe method to append output"""
         with self._access_lock:
             self.output_buffer.append(text)
+            # Check if this output looks like it's waiting for input
+            lowercase_text = text.lower()
+            if any(prompt in lowercase_text for prompt in ['input', 'enter', '?', ':']):
+                self.waiting_for_input = True
+                logger.debug(f"Detected input prompt: {text}")
 
     def get_output(self) -> List[str]:
         """Thread-safe method to get output"""
@@ -62,6 +93,10 @@ class CompilerSession:
         """Thread-safe method to set waiting_for_input"""
         with self._access_lock:
             self.waiting_for_input = value
+            if value:
+                logger.debug(f"Session {self.session_id} is now waiting for input")
+            else:
+                logger.debug(f"Session {self.session_id} is no longer waiting for input")
 
     def cleanup(self) -> None:
         """Clean up session resources"""
@@ -176,16 +211,24 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
             """Monitor process output"""
             try:
                 while not session.stop_event.is_set() and process.poll() is None:
+                    if process.stdout is None:
+                        time.sleep(0.1)
+                        continue
+
+                    # Check if there's data available to read
+                    rlist, _, _ = select.select([process.stdout], [], [], 0.1)
+                    if not rlist:
+                        continue
+
                     line = process.stdout.readline()
                     if line:
                         cleaned = line.strip()
                         if cleaned:
                             logger.debug(f"Output received: {cleaned}")
                             session.append_output(cleaned)
-                            if any(p in cleaned.lower() for p in ['input', 'enter', '?', ':']):
-                                session.set_waiting_for_input(True)
                     else:
                         time.sleep(0.1)
+
             except Exception as e:
                 logger.error(f"Error in output monitoring: {e}")
 
@@ -193,6 +236,9 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         session.output_thread = Thread(target=monitor_output)
         session.output_thread.daemon = True
         session.output_thread.start()
+
+        # Wait briefly for initial output
+        time.sleep(0.5)
 
         return {
             'success': True,
@@ -215,15 +261,17 @@ def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
             if not session.is_active():
                 return {'success': False, 'error': 'Session not active'}
 
-            # Ensure input ends with newline
             if not input_text.endswith('\n'):
                 input_text += '\n'
 
-            session.process.stdin.write(input_text)
-            session.process.stdin.flush()
-            session.set_waiting_for_input(False)
-            logger.debug(f"Input sent: {input_text.strip()}")
-            return {'success': True}
+            if session.process and session.process.stdin:
+                session.process.stdin.write(input_text)
+                session.process.stdin.flush()
+                session.set_waiting_for_input(False)
+                logger.debug(f"Input sent: {input_text.strip()}")
+                return {'success': True}
+            else:
+                return {'success': False, 'error': 'Process not ready for input'}
 
     except Exception as e:
         logger.error(f"Send input error: {e}")
@@ -256,17 +304,7 @@ def get_output(session_id: str) -> Dict[str, Any]:
         return {'success': False, 'error': str(e)}
 
 def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
+    """Compile and run code with optional session tracking for interactive mode"""
     logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
 
     if not code:
@@ -281,12 +319,28 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None) 
 
     except Exception as e:
         logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
+        if 'session' in locals() and session.session_id in active_sessions:
             cleanup_session(session.session_id)
         return {
             'success': False,
             'error': str(e)
         }
+
+def is_interactive_code(code: str, language: str) -> bool:
+    """Determine if code requires interactive I/O based on language-specific patterns"""
+    code = code.lower()
+    if language == 'cpp':
+        return any(pattern in code for pattern in [
+            'cin', 'getline', 'std::cin', 'std::getline',
+            'scanf', 'gets', 'fgets'
+        ])
+    elif language == 'csharp':
+        return any(pattern in code for pattern in [
+            'console.read', 'console.readline',
+            'console.in', 'console.keyavailable',
+            'console.readkey'
+        ])
+    return False
 
 def clean_terminal_output(output: str) -> str:
     """Clean terminal control sequences from output"""
@@ -305,172 +359,15 @@ def clean_terminal_output(output: str) -> str:
 
     return cleaned.strip()
 
-import importlib.util
-
-def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
-    """Create isolated environment for compilation with improved project setup"""
-    temp_dir = Path(tempfile.mkdtemp(prefix=f'compiler_env_{language}_'))
-    project_name = "program"
-
-    if language == 'csharp':
-        # Create source file
-        source_file = temp_dir / "Program.cs"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-
-        # Create optimized project file
-        project_file = temp_dir / f"{project_name}.csproj"
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <OutputType>Exe</OutputType>
-            <TargetFramework>net7.0</TargetFramework>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-          </PropertyGroup>
-        </Project>"""
-
-        with open(project_file, 'w', encoding='utf-8') as f:
-            f.write(project_content)
-
-        logger.debug(f"Created C# project in {temp_dir}")
-
-    elif language == 'cpp':
-        source_file = temp_dir / "program.cpp"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-        logger.debug(f"Created C++ project in {temp_dir}")
-
-    return temp_dir, project_name
-
-MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler error messages with improved error detection"""
-    errors = []
-    for line in error_output.splitlines():
-        if ": error CS" in line:
-            try:
-                # Parse error line (format: file(line,col): error CSxxxx: message)
-                parts = line.split(': error CS')
-                if len(parts) != 2:
-                    continue
-
-                location, error_part = parts
-                error_code, message = error_part.split(': ', 1)
-
-                # Parse location
-                loc_match = re.match(r'.*?\((\d+),(\d+)\)', location)
-                if loc_match:
-                    line_num, col = map(int, loc_match.groups())
-                else:
-                    line_num, col = 0, 0
-
-                errors.append(CompilationError(
-                    error_type="compilation",
-                    message=message.strip(),
-                    file=location.split('(')[0],
-                    line=line_num,
-                    column=col,
-                    code=f"CS{error_code}"
-                ))
-            except Exception as e:
-                logger.error(f"Error parsing compiler output: {e}")
-                continue
-
-    return errors
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
-    """Clean up temporary compilation files with enhanced logging"""
-    try:
-        if isinstance(temp_dir, str):
-            temp_dir = Path(temp_dir)
-
-        if temp_dir.exists():
-            # Log directory size before cleanup
-            total_size = sum(f.stat().st_size for f in temp_dir.glob('**/*') if f.is_file())
-            logger.debug(f"Cleaning up directory {temp_dir} (size: {total_size/1024:.1f}KB)")
-
-            # Remove all files and subdirectories
-            shutil.rmtree(temp_dir)
-            logger.debug(f"Successfully removed directory {temp_dir}")
-    except Exception as e:
-        logger.error(f"Error during cleanup of {temp_dir}: {e}")
-
-def format_csharp_error(error_output: str) -> Dict[str, Any]:
-    """Format C# compiler error output into structured data"""
-    logger.debug(f"Raw error output:\n{error_output}")
-
-    error_info = {
-        'error_type': 'CompilerError',
-        'message': error_output,
-        'file': '',
-        'line': 0,
-        'column': 0,
-        'code': '',
-        'timestamp': datetime.now().isoformat()
-    }
-
-    try:
-        # Look for error patterns like: (line,col): error CS#### message
-        match = re.search(r'\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', error_output)
-        if match:
-            error_info.update({
-                'line': int(match.group(1)),
-                'column': int(match.group(2)),
-                'code': match.group(3),
-                'message': match.group(4)
-            })
-            logger.debug(f"Parsed error details: {error_info}")
-    except Exception as e:
-        logger.error(f"Error parsing compiler output: {e}")
-
-    return error_info
-
 def parse_csharp_errors(error_output: str) -> List[CompilationError]:
     """Parse C# compiler errors into structured format"""
     errors = []
     try:
-        # Split output into lines and look for error patterns
         error_lines = error_output.split('\n')
         for line in error_lines:
-            # Skip empty lines and warnings
             if not line.strip() or 'warning' in line.lower():
                 continue
 
-            # Parse error line
             match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
             if match:
                 errors.append(CompilationError(
@@ -488,28 +385,14 @@ def parse_csharp_errors(error_output: str) -> List[CompilationError]:
 
     return errors
 
-def is_interactive_code(code: str, language: str) -> bool:
-    """Determine if code requires interactive I/O based on language-specific patterns."""
-    code = code.lower()
-
-    if language == 'cpp':
-        # Check for common C++ input patterns
-        return any(pattern in code for pattern in [
-            'cin', 'getline',
-            'std::cin', 'std::getline',
-            'scanf', 'gets', 'fgets'
-        ])
-    elif language == 'csharp':
-        # Check for common C# input patterns
-        return any(pattern in code for pattern in [
-            'console.read', 'console.readline',
-            'console.in', 'console.keyavailable',
-            'console.readkey'
-        ])
-    return False
+def get_code_hash(code: str, language: str) -> str:
+    """Generate a unique hash for the code and language"""
+    hasher = hashlib.sha256()
+    hasher.update(f"{code}{language}".encode())
+    return hasher.hexdigest()
 
 def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
+    """Get the template code for a given programming language"""
     templates = {
         'cpp': """#include <iostream>
 #include <string>
@@ -522,19 +405,14 @@ int main() {
 }""",
         'csharp': """using System;
 
-namespace ConsoleApp 
-{
-    class Program 
-    {
-        static void Main(string[] args) 
-        {
-            try 
-            {
+namespace ConsoleApp {
+    class Program {
+        static void Main() {
+            try {
                 // Your code here
                 Console.WriteLine("Hello World!");
             }
-            catch (Exception e) 
-            {
+            catch (Exception e) {
                 Console.WriteLine($"Error: {e.Message}");
             }
         }
@@ -543,19 +421,16 @@ namespace ConsoleApp
     }
     return templates.get(language.lower(), '')
 
-@dataclass
-class CompilationError:
-    """Structured compilation error information"""
-    error_type: str
-    message: str
-    file: str
-    line: int
-    column: int
-    code: str
-    timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+importlib.util.find_spec("hashlib")
+importlib.util.find_spec("dataclasses")
+importlib.util.find_spec("json")
+importlib.util.find_spec("re")
 
-    def to_dict(self) -> Dict[str, Any]:
-        return asdict(self)
+import hashlib
+from dataclasses import dataclass, field, asdict
+import json
+import re
+import logging
 
 @dataclass
 class CompilationMetrics:
@@ -655,6 +530,7 @@ class CompilationMetrics:
                 for name, metrics in self.stage_metrics.items()
             }
         }
+
 
 class ErrorTracker:
     """Track and analyze compilation errors with trend analysis"""
@@ -809,290 +685,35 @@ class ErrorTracker:
             }
         }
 
-def get_code_hash(code: str, language: str) -> str:
-    """Generate a unique hash for the code and language"""
-    hasher = hashlib.sha256()
-    hasher.update(f"{code}{language}".encode())
-    return hasher.hexdigest()
+def get_template(language: str) -> str:
+    """Get the template code for a given programming language."""
+    templates = {
+        'cpp': """#include <iostream>
+#include <string>
+using namespace std;
 
-@dataclass
-class CompilerSession:
-    """Manages a compilation/execution session"""
-    session_id: str
-    temp_dir: str
-    process: Optional[subprocess.Popen] = None
-    output_thread: Optional[Thread] = None
-    output_buffer: List[str] = field(default_factory=list)
-    waiting_for_input: bool = False
-    stop_event: Event = field(default_factory=Event)
-    _access_lock: Lock = field(default_factory=Lock)
-    _cleanup_lock: Lock = field(default_factory=Lock)
+int main() {
+    // Your code here
+    cout << "Hello World!" << endl;
+    return 0;
+}""",
+        'csharp': """using System;
 
-    def is_active(self) -> bool:
-        """Check if the session is still active"""
-        with self._access_lock:
-            return (self.process is not None and 
-                    self.process.poll() is None and 
-                    not self.stop_event.is_set())
-
-    def append_output(self, text: str) -> None:
-        """Thread-safe method to append output"""
-        with self._access_lock:
-            self.output_buffer.append(text)
-
-    def get_output(self) -> List[str]:
-        """Thread-safe method to get output"""
-        with self._access_lock:
-            return self.output_buffer.copy()
-
-    def set_waiting_for_input(self, value: bool) -> None:
-        """Thread-safe method to set waiting_for_input"""
-        with self._access_lock:
-            self.waiting_for_input = value
-
-    def cleanup(self) -> None:
-        """Clean up session resources"""
-        with self._cleanup_lock:
-            logger.debug(f"Starting cleanup for session {self.session_id}")
-            self.stop_event.set()
-
-            if self.process and self.process.poll() is None:
-                try:
-                    self.process.terminate()
-                    try:
-                        self.process.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        logger.warning(f"Process {self.session_id} didn't terminate, force killing")
-                        os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
-                except Exception as e:
-                    logger.error(f"Error killing process: {e}")
-
-            try:
-                if os.path.exists(self.temp_dir):
-                    shutil.rmtree(self.temp_dir)
-            except Exception as e:
-                logger.error(f"Error cleaning temp directory: {e}")
-
-# Global session management
-active_sessions: Dict[str, CompilerSession] = {}
-session_lock = Lock()
-
-def get_or_create_session(session_id: Optional[str] = None) -> CompilerSession:
-    """Get existing session or create new one"""
-    with session_lock:
-        if session_id and session_id in active_sessions:
-            session = active_sessions[session_id]
-            if session.is_active():
-                return session
-            else:
-                cleanup_session(session_id)
-
-        new_session_id = session_id or str(uuid.uuid4())
-        temp_dir = tempfile.mkdtemp(prefix=f'compiler_{new_session_id}_')
-        session = CompilerSession(new_session_id, temp_dir)
-        active_sessions[new_session_id] = session
-        return session
-
-def cleanup_session(session_id: str) -> None:
-    """Clean up session resources"""
-    with session_lock:
-        if session_id in active_sessions:
-            session = active_sessions[session_id]
-            session.cleanup()
-            del active_sessions[session_id]
-            logger.debug(f"Session {session_id} cleaned up")
-
-def start_interactive_session(session: CompilerSession, code: str, language: str) -> Dict[str, Any]:
-    """Start an interactive session"""
-    logger.info(f"Starting {language} interactive session {session.session_id}")
-
-    if language != 'csharp':
-        return {'success': False, 'error': 'Only C# is supported'}
-
-    try:
-        # Create project structure
-        project_dir = Path(session.temp_dir)
-        source_file = project_dir / "Program.cs"
-        project_file = project_dir / "program.csproj"
-
-        # Write project file
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-                <OutputType>Exe</OutputType>
-                <TargetFramework>net7.0</TargetFramework>
-                <ImplicitUsings>enable</ImplicitUsings>
-                <Nullable>enable</Nullable>
-            </PropertyGroup>
-        </Project>"""
-
-        with open(project_file, 'w') as f:
-            f.write(project_content)
-
-        # Write source file
-        with open(source_file, 'w') as f:
-            f.write(code)
-
-        # Compile
-        logger.debug("Compiling C# program")
-        compile_result = subprocess.run(
-            ['dotnet', 'build', str(project_file), '--nologo'],
-            capture_output=True,
-            text=True,
-            cwd=session.temp_dir
-        )
-
-        if compile_result.returncode != 0:
-            logger.error(f"Compilation failed: {compile_result.stderr}")
-            return {'success': False, 'error': compile_result.stderr}
-
-        # Start the compiled program
-        executable = project_dir / "bin" / "Debug" / "net7.0" / "program.dll"
-        process = subprocess.Popen(
-            ['dotnet', str(executable)],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            bufsize=1,  # Line buffered
-            cwd=session.temp_dir
-        )
-
-        session.process = process
-
-        def monitor_output():
-            """Monitor process output"""
-            try:
-                while not session.stop_event.is_set() and process.poll() is None:
-                    line = process.stdout.readline()
-                    if line:
-                        cleaned = line.strip()
-                        if cleaned:
-                            logger.debug(f"Output received: {cleaned}")
-                            session.append_output(cleaned)
-                            if any(p in cleaned.lower() for p in ['input', 'enter', '?', ':']):
-                                session.set_waiting_for_input(True)
-                    else:
-                        time.sleep(0.1)
-            except Exception as e:
-                logger.error(f"Error in output monitoring: {e}")
-
-        # Start output monitoring
-        session.output_thread = Thread(target=monitor_output)
-        session.output_thread.daemon = True
-        session.output_thread.start()
-
-        return {
-            'success': True,
-            'session_id': session.session_id,
-            'interactive': True
+namespace ConsoleApp {
+    class Program {
+        static void Main() {
+            try {
+                // Your code here
+                Console.WriteLine("Hello World!");
+            }
+            catch (Exception e) {
+                Console.WriteLine($"Error: {e.Message}");
+            }
         }
-
-    except Exception as e:
-        logger.error(f"Session start error: {traceback.format_exc()}")
-        return {'success': False, 'error': str(e)}
-
-def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
-    """Send input to an interactive session"""
-    try:
-        with session_lock:
-            if session_id not in active_sessions:
-                return {'success': False, 'error': 'Invalid session'}
-
-            session = active_sessions[session_id]
-            if not session.is_active():
-                return {'success': False, 'error': 'Session not active'}
-
-            # Ensure input ends with newline
-            if not input_text.endswith('\n'):
-                input_text += '\n'
-
-            session.process.stdin.write(input_text)
-            session.process.stdin.flush()
-            session.set_waiting_for_input(False)
-            logger.debug(f"Input sent: {input_text.strip()}")
-            return {'success': True}
-
-    except Exception as e:
-        logger.error(f"Send input error: {e}")
-        return {'success': False, 'error': str(e)}
-
-def get_output(session_id: str) -> Dict[str, Any]:
-    """Get output from an interactive session"""
-    try:
-        with session_lock:
-            if session_id not in active_sessions:
-                return {'success': False, 'error': 'Invalid session'}
-
-            session = active_sessions[session_id]
-            if not session.is_active():
-                return {'success': False, 'error': 'Session not active'}
-
-            with session._access_lock:
-                output_lines = session.output_buffer
-                output_text = '\n'.join(output_lines) if output_lines else ""
-                session.output_buffer = []  # Clear buffer after reading
-
-                return {
-                    'success': True,
-                    'output': output_text,
-                    'waiting_for_input': session.waiting_for_input
-                }
-
-    except Exception as e:
-        logger.error(f"Get output error: {e}")
-        return {'success': False, 'error': str(e)}
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def clean_terminal_output(output: str) -> str:
-    """Clean terminal control sequences from output"""
-    # Remove ANSI codes
-    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
-    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
-    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
-
-    # Clean up other control characters while preserving prompts
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
-
-    # Normalize line endings
-    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
-    cleaned = re.sub(r'^\s*\n', '', cleaned)
-    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
-
-    return cleaned.strip()
-
-import importlib.util
+    }
+}"""
+    }
+    return templates.get(language.lower(), '')
 
 def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
     """Create isolated environment for compilation with improved project setup"""
@@ -1129,75 +750,8 @@ def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
 
     return temp_dir, project_name
 
+
 MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler error messages with improved error detection"""
-    errors = []
-    for line in error_output.splitlines():
-        if ": error CS" in line:
-            try:
-                # Parse error line (format: file(line,col): error CSxxxx: message)
-                parts = line.split(': error CS')
-                if len(parts) != 2:
-                    continue
-
-                location, error_part = parts
-                error_code, message = error_part.split(': ', 1)
-
-                # Parse location
-                loc_match = re.match(r'.*?\((\d+),(\d+)\)', location)
-                if loc_match:
-                    line_num, col = map(int, loc_match.groups())
-                else:
-                    line_num, col = 0, 0
-
-                errors.append(CompilationError(
-                    error_type="compilation",
-                    message=message.strip(),
-                    file=location.split('(')[0],
-                    line=line_num,
-                    column=col,
-                    code=f"CS{error_code}"
-                ))
-            except Exception as e:
-                logger.error(f"Error parsing compiler output: {e}")
-                continue
-
-    return errors
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
 
 def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
     """Clean up temporary compilation files with enhanced logging"""
@@ -1245,784 +799,3 @@ def format_csharp_error(error_output: str) -> Dict[str, Any]:
         logger.error(f"Error parsing compiler output: {e}")
 
     return error_info
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler errors into structured format"""
-    errors = []
-    try:
-        # Split output into lines and look for error patterns
-        error_lines = error_output.split('\n')
-        for line in error_lines:
-            # Skip empty lines and warnings
-            if not line.strip() or 'warning' in line.lower():
-                continue
-
-            # Parse error line
-            match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
-            if match:
-                errors.append(CompilationError(
-                    error_type='CompilerError',
-                    message=match.group(5),
-                    file=match.group(1),
-                    line=int(match.group(2)),
-                    column=int(match.group(3)),
-                    code=match.group(4)
-                ))
-                logger.debug(f"Found error: {errors[-1]}")
-
-    except Exception as e:
-        logger.error(f"Error parsing compiler errors: {e}")
-
-    return errors
-
-def is_interactive_code(code: str, language: str) -> bool:
-    """Determine if code requires interactive I/O based on language-specific patterns."""
-    code = code.lower()
-
-    if language == 'cpp':
-        # Check for common C++ input patterns
-        return any(pattern in code for pattern in [
-            'cin', 'getline',
-            'std::cin', 'std::getline',
-            'scanf', 'gets', 'fgets'
-        ])
-    elif language == 'csharp':
-        # Check for common C# input patterns
-        return any(pattern in code for pattern in [
-            'console.read', 'console.readline',
-            'console.in', 'console.keyavailable',
-            'console.readkey'
-        ])
-    return False
-
-def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
-    templates = {
-        'cpp': """#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Your code here
-    cout << "Hello World!" << endl;
-    return 0;
-}""",
-        'csharp': """using System;
-
-namespace ConsoleApp 
-{
-    class Program 
-    {
-        static void Main(string[] args) 
-        {
-            try 
-            {
-                // Your code here
-                Console.WriteLine("Hello World!");
-            }
-            catch (Exception e) 
-            {
-                Console.WriteLine($"Error: {e.Message}");
-            }
-        }
-    }
-}"""
-    }
-    return templates.get(language.lower(), '')
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler errors into a list of CompilationError objects"""
-    errors = []
-    lines = error_output.splitlines()
-    for line in lines:
-        match = re.match(r"(.+)\((\d+),(\d+)\):\s+error\s+CS(\d+):\s+(.*)", line)
-        if match:
-            file, line_num, col_num, code, message = match.groups()
-            errors.append(CompilationError(
-                error_type="CompilerError",
-                message=message.strip(),
-                file=file.strip(),
-                line=int(line_num),
-                column=int(col_num),
-                code=f"CS{code}"
-            ))
-    return errors
-
-MAX_COMPILATION_TIME = 30    # seconds
-MAX_EXECUTION_TIME = 30     # seconds
-MEMORY_LIMIT = 1024        # MB
-COMPILER_CACHE_DIR = "/tmp/compiler_cache"
-CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
-
-# Initialize cache directory
-os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
-_compilation_cache = {}
-_cache_lock = Lock()
-
-importlib.util.find_spec("hashlib")
-importlib.util.find_spec("dataclasses")
-importlib.util.find_spec("json")
-importlib.util.find_spec("re")
-
-import hashlib
-from dataclasses import dataclasses, field, asdict
-import json
-import re
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def clean_terminal_output(output: str) -> str:
-    """Clean terminal control sequences from output"""
-    # Remove ANSI codes
-    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
-    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
-    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
-
-    # Clean up other control characters while preserving prompts
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
-
-    # Normalize line endings
-    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
-    cleaned = re.sub(r'^\s*\n', '', cleaned)
-    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
-
-    return cleaned.strip()
-
-import importlib.util
-
-def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
-    """Create isolated environment for compilation with improved project setup"""
-    temp_dir = Path(tempfile.mkdtemp(prefix=f'compiler_env_{language}_'))
-    project_name = "program"
-
-    if language == 'csharp':
-        # Create source file
-        source_file = temp_dir / "Program.cs"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-
-        # Create optimized project file
-        project_file = temp_dir / f"{project_name}.csproj"
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <OutputType>Exe</OutputType>
-            <TargetFramework>net7.0</TargetFramework>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-          </PropertyGroup>
-        </Project>"""
-
-        with open(project_file, 'w', encoding='utf-8') as f:
-            f.write(project_content)
-
-        logger.debug(f"Created C# project in {temp_dir}")
-
-    elif language == 'cpp':
-        source_file = temp_dir / "program.cpp"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-        logger.debug(f"Created C++ project in {temp_dir}")
-
-    return temp_dir, project_name
-
-MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler error messages with improved error detection"""
-    errors = []
-    for line in error_output.splitlines():
-        if ": error CS" in line:
-            try:
-                # Parse error line (format: file(line,col): error CSxxxx: message)
-                parts = line.split(': error CS')
-                if len(parts) != 2:
-                    continue
-
-                location, error_part = parts
-                error_code, message = error_part.split(': ', 1)
-
-                # Parse location
-                loc_match = re.match(r'.*?\((\d+),(\d+)\)', location)
-                if loc_match:
-                    line_num, col = map(int, loc_match.groups())
-                else:
-                    line_num, col = 0, 0
-
-                errors.append(CompilationError(
-                    error_type="compilation",
-                    message=message.strip(),
-                    file=location.split('(')[0],
-                    line=line_num,
-                    column=col,
-                    code=f"CS{error_code}"
-                ))
-            except Exception as e:
-                logger.error(f"Error parsing compiler output: {e}")
-                continue
-
-    return errors
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
-    """Clean up temporary compilation files with enhanced logging"""
-    try:
-        if isinstance(temp_dir, str):
-            temp_dir = Path(temp_dir)
-
-        if temp_dir.exists():
-            # Log directory size before cleanup
-            total_size = sum(f.stat().st_size for f in temp_dir.glob('**/*') if f.is_file())
-            logger.debug(f"Cleaning up directory {temp_dir} (size: {total_size/1024:.1f}KB)")
-
-            # Remove all files and subdirectories
-            shutil.rmtree(temp_dir)
-            logger.debug(f"Successfully removed directory {temp_dir}")
-    except Exception as e:
-        logger.error(f"Error during cleanup of {temp_dir}: {e}")
-
-def format_csharp_error(error_output: str) -> Dict[str, Any]:
-    """Format C# compiler error output into structured data"""
-    logger.debug(f"Raw error output:\n{error_output}")
-
-    error_info = {
-        'error_type': 'CompilerError',
-        'message': error_output,
-        'file': '',
-        'line': 0,
-        'column': 0,
-        'code': '',
-        'timestamp': datetime.now().isoformat()
-    }
-
-    try:
-        # Look for error patterns like: (line,col): error CS#### message
-        match = re.search(r'\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', error_output)
-        if match:
-            error_info.update({
-                'line': int(match.group(1)),
-                'column': int(match.group(2)),
-                'code': match.group(3),
-                'message': match.group(4)
-            })
-            logger.debug(f"Parsed error details: {error_info}")
-    except Exception as e:
-        logger.error(f"Error parsing compiler output: {e}")
-
-    return error_info
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler errors into structured format"""
-    errors = []
-    try:
-        # Split output into lines and look for error patterns
-        error_lines = error_output.split('\n')
-        for line in error_lines:
-            # Skip empty lines and warnings
-            if not line.strip() or 'warning' in line.lower():
-                continue
-
-            # Parse error line
-            match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
-            if match:
-                errors.append(CompilationError(
-                    error_type='CompilerError',
-                    message=match.group(5),
-                    file=match.group(1),
-                    line=int(match.group(2)),
-                    column=int(match.group(3)),
-                    code=match.group(4)
-                ))
-                logger.debug(f"Found error: {errors[-1]}")
-
-    except Exception as e:
-        logger.error(f"Error parsing compiler errors: {e}")
-
-    return errors
-
-def is_interactive_code(code: str, language: str) -> bool:
-    """Determine if code requires interactive I/O based on language-specific patterns."""
-    code = code.lower()
-
-    if language == 'cpp':
-        # Check for common C++ input patterns
-        return any(pattern in code for pattern in [
-            'cin', 'getline',
-            'std::cin', 'std::getline',
-            'scanf', 'gets', 'fgets'
-        ])
-    elif language == 'csharp':
-        # Check for common C# input patterns
-        return any(pattern in code for pattern in [
-            'console.read', 'console.readline',
-            'console.in', 'console.keyavailable',
-            'console.readkey'
-        ])
-    return False
-
-def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
-    templates = {
-        'cpp': """#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Your code here
-    cout << "Hello World!" << endl;
-    return 0;
-}""",
-        'csharp': """using System;
-
-namespace ConsoleApp 
-{
-    class Program 
-    {
-        static void Main(string[] args) 
-        {
-            try 
-            {
-                // Your code here
-                Console.WriteLine("Hello World!");
-            }
-            catch (Exception e) 
-            {
-                Console.WriteLine($"Error: {e.Message}");
-            }
-        }
-    }
-}"""
-    }
-    return templates.get(language.lower(), '')
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler errors into a list of CompilationError objects"""
-    errors = []
-    lines = error_output.splitlines()
-    for line in lines:
-        match = re.match(r"(.+)\((\d+),(\d+)\):\s+error\s+CS(\d+):\s+(.*)", line)
-        if match:
-            file, line_num, col_num, code, message = match.groups()
-            errors.append(CompilationError(
-                error_type="CompilerError",
-                message=message.strip(),
-                file=file.strip(),
-                line=int(line_num),
-                column=int(col_num),
-                code=f"CS{code}"
-            ))
-    return errors
-
-MAX_COMPILATION_TIME = 30    # seconds
-MAX_EXECUTION_TIME = 30     # seconds
-MEMORY_LIMIT = 1024        # MB
-COMPILER_CACHE_DIR = "/tmp/compiler_cache"
-CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
-
-# Initialize cache directory
-os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
-_compilation_cache = {}
-_cache_lock = Lock()
-
-importlib.util.find_spec("hashlib")
-importlib.util.find_spec("dataclasses")
-importlib.util.find_spec("json")
-importlib.util.find_spec("re")
-
-import hashlib
-from dataclasses import dataclasses, field, asdict
-import json
-import re
-import logging
-
-performance_logger = logging.getLogger('performance')
-error_logger = logging.getLogger('error')
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def clean_terminal_output(output: str) -> str:
-    """Clean terminal control sequences from output"""
-    # Remove ANSI codes
-    cleaned = re.sub(r'\x1b\[[0-9;]*[mGKHf]', '', output)
-    cleaned = re.sub(r'\x1b\[\??[0-9;]*[A-Za-z]', '', cleaned)
-    cleaned = re.sub(r'\x1b[=>]', '', cleaned)
-
-    # Clean up other control characters while preserving prompts
-    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', cleaned)
-
-    # Normalize line endings
-    cleaned = re.sub(r'\r\n?|\n\r', '\n', cleaned)
-    cleaned = re.sub(r'^\s*\n', '', cleaned)
-    cleaned = re.sub(r'\n\s*$', '\n', cleaned)
-
-    return cleaned.strip()
-
-import importlib.util
-
-def create_isolated_environment(code: str, language: str) -> tuple[Path, str]:
-    """Create isolated environment for compilation with improved project setup"""
-    temp_dir = Path(tempfile.mkdtemp(prefix=f'compiler_env_{language}_'))
-    project_name = "program"
-
-    if language == 'csharp':
-        # Create source file
-        source_file = temp_dir / "Program.cs"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-
-        # Create optimized project file
-        project_file = temp_dir / f"{project_name}.csproj"
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-          <PropertyGroup>
-            <OutputType>Exe</OutputType>
-            <TargetFramework>net7.0</TargetFramework>
-            <ImplicitUsings>enable</ImplicitUsings>
-            <Nullable>enable</Nullable>
-          </PropertyGroup>
-        </Project>"""
-
-        with open(project_file, 'w', encoding='utf-8') as f:
-            f.write(project_content)
-
-        logger.debug(f"Created C# project in {temp_dir}")
-
-    elif language == 'cpp':
-        source_file = temp_dir / "program.cpp"
-        with open(source_file, 'w', encoding='utf-8') as f:
-            f.write(code)
-        logger.debug(f"Created C++ project in {temp_dir}")
-
-    return temp_dir, project_name
-
-MAX_COMPILATION_TIME = 30  # Maximum time allowed for compilation in seconds
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler error messages with improved error detection"""
-    errors = []
-    for line in error_output.splitlines():
-        if ": error CS" in line:
-            try:
-                # Parse error line (format: file(line,col): error CSxxxx: message)
-                parts = line.split(': error CS')
-                if len(parts) != 2:
-                    continue
-
-                location, error_part = parts
-                error_code, message = error_part.split(': ', 1)
-
-                # Parse location
-                loc_match = re.match(r'.*?\((\d+),(\d+)\)', location)
-                if loc_match:
-                    line_num, col = map(int, loc_match.groups())
-                else:
-                    line_num, col = 0, 0
-
-                errors.append(CompilationError(
-                    error_type="compilation",
-                    message=message.strip(),
-                    file=location.split('(')[0],
-                    line=line_num,
-                    column=col,
-                    code=f"CS{error_code}"
-                ))
-            except Exception as e:
-                logger.error(f"Error parsing compiler output: {e}")
-                continue
-
-    return errors
-
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Compile and run code with optional session tracking for interactive mode
-
-    Args:
-        code: Source code to compile and run
-        language: Programming language ('cpp' or 'csharp') 
-        session_id: Optional session ID for interactive sessions
-
-    Returns:
-        Dictionary containing compilation/execution results and session info
-    """
-    logger.debug(f"Starting compilation for code length: {len(code)}, language: {language}")
-
-    if not code:
-        return {
-            'success': False,
-            'error': "No code provided"
-        }
-
-    try:
-        session = get_or_create_session(session_id)
-        return start_interactive_session(session, code, language)
-
-    except Exception as e:
-        logger.error(f"Error in compile_and_run: {str(e)}")
-        if session and session.session_id in active_sessions:
-            cleanup_session(session.session_id)
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def cleanup_compilation_files(temp_dir: Union[str, Path]) -> None:
-    """Clean up temporary compilation files with enhanced logging"""
-    try:
-        if isinstance(temp_dir, str):
-            temp_dir = Path(temp_dir)
-
-        if temp_dir.exists():
-            # Log directory size before cleanup
-            total_size = sum(f.stat().st_size for f in temp_dir.glob('**/*') if f.is_file())
-            logger.debug(f"Cleaning up directory {temp_dir} (size: {total_size/1024:.1f}KB)")
-
-            # Remove all files and subdirectories
-            shutil.rmtree(temp_dir)
-            logger.debug(f"Successfully removed directory {temp_dir}")
-    except Exception as e:
-        logger.error(f"Error during cleanup of {temp_dir}: {e}")
-
-def format_csharp_error(error_output: str) -> Dict[str, Any]:
-    """Format C# compiler error output into structured data"""
-    logger.debug(f"Raw error output:\n{error_output}")
-
-    error_info = {
-        'error_type': 'CompilerError',
-        'message': error_output,
-        'file': '',
-        'line': 0,
-        'column': 0,
-        'code': '',
-        'timestamp': datetime.now().isoformat()
-    }
-
-    try:
-        # Look for error patterns like: (line,col): error CS#### message
-        match = re.search(r'\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', error_output)
-        if match:
-            error_info.update({
-                'line': int(match.group(1)),
-                'column': int(match.group(2)),
-                'code': match.group(3),
-                'message': match.group(4)
-            })
-            logger.debug(f"Parsed error details: {error_info}")
-    except Exception as e:
-        logger.error(f"Error parsing compiler output: {e}")
-
-    return error_info
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler errors into structured format"""
-    errors = []
-    try:
-        # Split output into lines and look for error patterns
-        error_lines = error_output.split('\n')
-        for line in error_lines:
-            # Skip empty lines and warnings
-            if not line.strip() or 'warning' in line.lower():
-                continue
-
-            # Parse error line
-            match = re.search(r'(.+?)\((\d+),(\d+)\):\s*error\s*(CS\d+):\s*(.+)', line)
-            if match:
-                errors.append(CompilationError(
-                    error_type='CompilerError',
-                    message=match.group(5),
-                    file=match.group(1),
-                    line=int(match.group(2)),
-                    column=int(match.group(3)),
-                    code=match.group(4)
-                ))
-                logger.debug(f"Found error: {errors[-1]}")
-
-    except Exception as e:
-        logger.error(f"Error parsing compiler errors: {e}")
-
-    return errors
-
-def is_interactive_code(code: str, language: str) -> bool:
-    """Determine if code requires interactive I/O based on language-specific patterns."""
-    code = code.lower()
-
-    if language == 'cpp':
-        # Check for common C++ input patterns
-        return any(pattern in code for pattern in [
-            'cin', 'getline',
-            'std::cin', 'std::getline',
-            'scanf', 'gets', 'fgets'
-        ])
-    elif language == 'csharp':
-        # Check for common C# input patterns
-        return any(pattern in code for pattern in [
-            'console.read', 'console.readline',
-            'console.in', 'console.keyavailable',
-            'console.readkey'
-        ])
-    return False
-
-def get_template(language: str) -> str:
-    """Get the template code for a given programming language."""
-    templates = {
-        'cpp': """#include <iostream>
-#include <string>
-using namespace std;
-
-int main() {
-    // Your code here
-    cout << "Hello World!" << endl;
-    return 0;
-}""",
-        'csharp': """using System;
-
-namespace ConsoleApp 
-{
-    class Program 
-    {
-        static void Main(string[] args) 
-        {
-            try 
-            {
-                // Your code here
-                Console.WriteLine("Hello World!");
-            }
-            catch (Exception e) 
-            {
-                Console.WriteLine($"Error: {e.Message}");
-            }
-        }
-    }
-}"""
-    }
-    return templates.get(language.lower(), '')
-
-def parse_csharp_errors(error_output: str) -> List[CompilationError]:
-    """Parse C# compiler errors into a list of CompilationError objects"""
-    errors = []
-    lines = error_output.splitlines()
-    for line in lines:
-        match = re.match(r"(.+)\((\d+),(\d+)\):\s+error\s+CS(\d+):\s+(.*)", line)
-        if match:
-            file, line_num, col_num, code, message = match.groups()
-            errors.append(CompilationError(
-                error_type="CompilerError",
-                message=message.strip(),
-                file=file.strip(),
-                line=int(line_num),
-                column=int(col_num),
-                code=f"CS{code}"
-            ))
-    return errors
-
-MAX_COMPILATION_TIME = 30    # seconds
-MAX_EXECUTION_TIME = 30     # seconds
-MEMORY_LIMIT = 1024        # MB
-COMPILER_CACHE_DIR = "/tmp/compiler_cache"
-CACHE_MAX_SIZE = 50      # Maximum number of cached compilations
-
-# Initialize cache directory
-os.makedirs(COMPILER_CACHE_DIR, exist_ok=True)
-_compilation_cache = {}
-_cache_lock = Lock()
-
-importlib.util.find_spec("hashlib")
-importlib.util.find_spec("dataclasses")
-importlib.util.find_spec("json")
-importlib.util.find_spec("re")
-
-import hashlib
-from dataclasses import dataclass, field, asdict
-import json
-import re

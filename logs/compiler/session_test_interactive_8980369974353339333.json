@@ -1,0 +1,25 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T00:42:48.195821",
+    "data": {
+      "code_length": 298,
+      "timestamp": "2025-01-23T00:42:48.190051"
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T00:42:48.196823",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "Only C# is supported",
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": "Only C# is supported"
+        }
+      },
+      "timestamp": "2025-01-23T00:42:48.196736"
+    }
+  }
+]

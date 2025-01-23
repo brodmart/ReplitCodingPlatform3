@@ -1,11 +1,10 @@
 import logging
 from compiler_service import compile_and_run, send_input, get_output
-from utils.compiler_logger import compiler_logger
 import time
 
-# Only enable logging when running tests directly
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
+# Configure logging
+logging.basicConfig(level=logging.DEBUG,
+                   format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s')
 logger = logging.getLogger(__name__)
 
 def test_interactive_csharp():
@@ -26,7 +25,7 @@ class Program {
     session_id = "test_interactive_" + str(hash(code))
 
     # Log test start
-    compiler_logger.log_compilation_start(session_id, code)
+    logger.info(f"Starting test with session ID: {session_id}")
     print("Compiling and running C# code...")
 
     try:
@@ -37,7 +36,7 @@ class Program {
         if result['success'] and result.get('interactive'):
             session_id = result['session_id']
             print("\nC# Session started successfully")
-            compiler_logger.log_execution_state(session_id, 'session_started')
+            logger.info("Session started successfully")
 
             # Wait for initial prompt and show it
             time.sleep(1)
@@ -71,20 +70,12 @@ class Program {
                 print("Initial input state not correct:", output)
 
             if final_output:  # Only log completion if we have final output
-                compiler_logger.log_execution_state(session_id, 'test_completed', {
-                    'outputs_received': bool(final_output.get('output')),
-                    'test_success': True
-                })
+                logger.info("Test completed successfully")
         else:
-            compiler_logger.log_compilation_error(session_id, Exception(result.get('error', 'Unknown error')), {
-                'compilation_result': result
-            })
+            logger.error(f"Compilation failed: {result.get('error', 'Unknown error')}")
 
     except Exception as e:
-        compiler_logger.log_runtime_error(session_id, str(e), {
-            'stage': 'test_execution',
-            'code_hash': hash(code)
-        })
+        logger.error(f"Test failed with error: {str(e)}")
         raise
 
     return result

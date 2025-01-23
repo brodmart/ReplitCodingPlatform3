@@ -4,10 +4,22 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 from pathlib import Path
-from .logging_config import setup_logging
 
-# Initialize logger with our configuration
-logger = setup_logging('compiler')
+# Configure basic logging
+logger = logging.getLogger('compiler')
+logger.setLevel(logging.DEBUG)
+
+# Create handlers
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+
+# Create formatters and add it to handlers
+log_format = '%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
+formatter = logging.Formatter(log_format)
+console_handler.setFormatter(formatter)
+
+# Add handlers to the logger
+logger.addHandler(console_handler)
 
 class CompilerLogger:
     """Handles logging for C# compiler service"""
@@ -99,48 +111,6 @@ class CompilerLogger:
 
         except Exception as e:
             self.error(f"Error writing to log file: {str(e)}")
-
-    def analyze_session_errors(self, session_id: str) -> Dict[str, Any]:
-        """Analyze errors for a specific session"""
-        try:
-            log_file = self.log_dir / f"session_{session_id}.json"
-            if not log_file.exists():
-                return {'error_count': 0, 'patterns': []}
-
-            with open(log_file, 'r') as f:
-                logs = json.load(f)
-
-            error_events = [
-                log for log in logs 
-                if log['event_type'] in ('compilation_error', 'runtime_error')
-            ]
-
-            error_patterns = {}
-            for error in error_events:
-                error_type = error['data'].get('error_type', 'unknown')
-                if error_type not in error_patterns:
-                    error_patterns[error_type] = 0
-                error_patterns[error_type] += 1
-
-            return {
-                'error_count': len(error_events),
-                'patterns': [
-                    {'type': k, 'count': v}
-                    for k, v in error_patterns.items()
-                ],
-                'timeline': [
-                    {
-                        'timestamp': error['timestamp'],
-                        'type': error['event_type'],
-                        'message': error['data'].get('error_message')
-                    }
-                    for error in error_events
-                ]
-            }
-
-        except Exception as e:
-            self.error(f"Error analyzing session logs: {str(e)}")
-            return {'error': str(e)}
 
 # Global compiler logger instance
 compiler_logger = CompilerLogger()

@@ -1,0 +1,3 @@
+2025-01-23 00:37:28,725 - compiler_service:285 - DEBUG - Starting compilation for code length: 318, language: csharp - MainProcess:MainThread
+2025-01-23 00:37:28,725 - compiler_service:135 - INFO - Starting csharp interactive session test_interactive_8319230712900430785 - MainProcess:MainThread
+2025-01-23 00:37:28,726 - compiler_service:164 - DEBUG - Compiling C# program - MainProcess:MainThread

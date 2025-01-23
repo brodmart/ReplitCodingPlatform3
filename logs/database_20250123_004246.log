@@ -1,0 +1,33 @@
+2025-01-23 00:42:46,157 - database:111 - DEBUG - Logging initialized for database - MainProcess:MainThread
+2025-01-23 00:42:46,161 - app:30 - WARNING - Redis not available, falling back to in-memory queue - MainProcess:MainThread
+2025-01-23 00:42:46,171 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 00:42:46,172 - app:55 - INFO - Initializing Flask application - MainProcess:MainThread
+2025-01-23 00:42:46,175 - app:70 - DEBUG - Application configuration loaded - MainProcess:MainThread
+2025-01-23 00:42:46,221 - app:75 - INFO - Database initialized - MainProcess:MainThread
+2025-01-23 00:42:46,222 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 00:42:46,222 - app:82 - INFO - Socket.IO initialized - MainProcess:MainThread
+2025-01-23 00:42:46,231 - app:91 - INFO - CORS, Session, and CSRF protection initialized - MainProcess:MainThread
+2025-01-23 00:42:47,196 - app:98 - INFO - Database tables created - MainProcess:MainThread
+2025-01-23 00:42:47,197 - app:113 - INFO - Application initialized successfully - MainProcess:MainThread
+2025-01-23 00:42:47,197 - __main__:25 - INFO - Starting Flask server with SocketIO on port 5000 - MainProcess:MainThread
+2025-01-23 00:42:47,198 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 00:42:47,199 - werkzeug:96 - INFO -  * Debugger PIN: 151-953-601 - MainProcess:MainThread
+2025-01-23 00:42:48,006 - app:107 - DEBUG - Rendering console page - MainProcess:GreenThread-1
+2025-01-23 00:42:49,136 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet OPEN data {'sid': 'qAfHtoL_zudrpJTgAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:GreenThread-2
+2025-01-23 00:42:49,144 - engineio.server:90 - INFO - qAfHtoL_zudrpJTgAAAA: Received request to upgrade to websocket - MainProcess:GreenThread-2
+2025-01-23 00:42:49,163 - engineio.server:219 - INFO - qAfHtoL_zudrpJTgAAAA: Upgrade to websocket successful - MainProcess:GreenThread-2
+2025-01-23 00:42:49,273 - engineio.server:39 - INFO - qAfHtoL_zudrpJTgAAAA: Received packet MESSAGE data 0 - MainProcess:GreenThread-2
+2025-01-23 00:42:49,273 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet MESSAGE data 0{"sid":"fLUR_537k1oE1vYPAAAB"} - MainProcess:GreenThread-2
+2025-01-23 00:42:49,282 - app:132 - INFO - Client connected: fLUR_537k1oE1vYPAAAB - MainProcess:GreenThread-2
+2025-01-23 00:42:49,283 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet MESSAGE data 2["connection_established",{"status":"connected","sid":"fLUR_537k1oE1vYPAAAB"}] - MainProcess:GreenThread-2
+2025-01-23 00:43:14,166 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet PING data None - MainProcess:GreenThread-3
+2025-01-23 00:43:14,264 - engineio.server:39 - INFO - qAfHtoL_zudrpJTgAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:43:39,266 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet PING data None - MainProcess:GreenThread-4
+2025-01-23 00:43:39,352 - engineio.server:39 - INFO - qAfHtoL_zudrpJTgAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:44:04,352 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet PING data None - MainProcess:GreenThread-5
+2025-01-23 00:44:04,430 - engineio.server:39 - INFO - qAfHtoL_zudrpJTgAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:44:29,432 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet PING data None - MainProcess:GreenThread-6
+2025-01-23 00:44:29,530 - engineio.server:39 - INFO - qAfHtoL_zudrpJTgAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:44:54,531 - engineio.server:78 - INFO - qAfHtoL_zudrpJTgAAAA: Sending packet PING data None - MainProcess:GreenThread-7
+2025-01-23 00:44:54,617 - engineio.server:39 - INFO - qAfHtoL_zudrpJTgAAAA: Received packet PONG data  - MainProcess:GreenThread-2
+2025-01-23 00:44:59,182 - werkzeug:96 - INFO -  * Detected change in '/home/runner/workspace/compiler_service.py', reloading - MainProcess:MainThread
