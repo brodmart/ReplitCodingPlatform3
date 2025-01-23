@@ -184,3 +184,44 @@ Traceback (most recent call last):
     result = func(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^^^
 TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-23 15:18:00,986 - __main__:206 - ERROR - Error in compile_and_run: cannot import name 'compile_and_run_csharp' from 'compiler_service' (/home/runner/workspace/compiler_service.py) - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/app.py", line 185, in handle_compile_and_run
+    from compiler_service import compile_and_run_csharp
+ImportError: cannot import name 'compile_and_run_csharp' from 'compiler_service' (/home/runner/workspace/compiler_service.py)
+2025-01-23 15:20:33,459 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:33,460 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,303 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,303 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,833 - socketio:43 - ERROR - Socket.IO error in handle_disconnect: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,833 - socketio:99 - ERROR - Error in Socket.IO event handle_disconnect after 0.000s: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given

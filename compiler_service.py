@@ -817,3 +817,40 @@ def format_csharp_error(error_output: str) -> Dict[str, Any]:
         logger.error(f"Error parsing compiler output: {e}")
 
     return error_info
+
+def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
+    """Compile and run C# code with interactive I/O support"""
+    logger.debug(f"Starting C# compilation for session {session_id}")
+
+    try:
+        session = get_or_create_session()
+        return compile_and_run(code, 'csharp', session_id=session_id)
+    except Exception as e:
+        logger.error(f"Error in compile_and_run_csharp: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def process_csharp_input(session_id: str, input_text: str) -> Dict[str, Any]:
+    """Process input for an active C# program"""
+    logger.debug(f"Processing input for session {session_id}: {input_text}")
+
+    try:
+        result = send_input(session_id, input_text)
+        if not result['success']:
+            return result
+
+        # Get any output generated after sending input
+        output_result = get_output(session_id)
+        return {
+            'success': True,
+            'output': output_result.get('output', ''),
+            'waiting_for_input': output_result.get('waiting_for_input', True)
+        }
+    except Exception as e:
+        logger.error(f"Error processing C# input: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }

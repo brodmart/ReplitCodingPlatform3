@@ -1565,3 +1565,90 @@ TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments 
 2025-01-23 15:17:31,496 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.000s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
 2025-01-23 15:17:31,496 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.000s - MainProcess:Thread-1 (run_server)
 2025-01-23 15:17:31,496 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,969 - socketio.server:576 - INFO - received event "compile_and_run" from b5GlP5btsYABAZGMAAAD [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,970 - socketio:84 - DEBUG - Socket.IO event handle_compile_and_run started at 2025-01-23 15:18:00.970691 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,970 - socketio:85 - DEBUG - Event context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,971 - socketio:119 - INFO - Session session_1737645480 activated. Total active sessions: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,971 - socketio:121 - DEBUG - Session context: {'code_length': 227, 'client_sid': 'b5GlP5btsYABAZGMAAAD'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,971 - socketio.server:164 - INFO - emitting event "output" to b5GlP5btsYABAZGMAAAD [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,971 - socketio.server:164 - INFO - emitting event "console_operation" to b5GlP5btsYABAZGMAAAD [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,986 - socketio.server:164 - INFO - emitting event "error" to b5GlP5btsYABAZGMAAAD [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,987 - socketio:124 - INFO - Session session_1737645480 deactivated. Remaining active sessions: 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,987 - socketio:31 - DEBUG - Event tracked: handle_compile_and_run, Duration: 0.017s, Context: {'args': '({\'code\': \'using System;\\n\\nclass Program\\n{\\n    static void Main()\\n    {\\n        Console.WriteLine("Hello! Please enter your name:");\\n        string name = Console.ReadLine();\\n        Console.WriteLine($"Nice to meet you, {name}!");\\n    }\\n}\'},)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,987 - socketio:92 - DEBUG - Socket.IO event handle_compile_and_run completed in 0.017s - MainProcess:Thread-1 (run_server)
+2025-01-23 15:18:00,987 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:11,835 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:12,371 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:12,639 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:12,980 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:13,279 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:13,482 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:21,584 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:21,965 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:27,429 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:29,807 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:31,448 - socketio:111 - DEBUG - Logging initialized for socketio - MainProcess:MainThread
+2025-01-23 15:20:33,459 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 15:20:33.459395 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,459 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,459 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:33,460 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:33,460 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 15:20:33.460741 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,460 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,460 - socketio:108 - INFO - New connection established. Total connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,461 - socketio:110 - DEBUG - Client info: {'sid': 'vs9EJ6QdWjYYUtuQAAAB', 'transport': 'websocket', 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36', 'remote_addr': '172.31.196.39'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,461 - socketio.server:164 - INFO - emitting event "connected" to vs9EJ6QdWjYYUtuQAAAB [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,461 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,461 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:33,461 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,303 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 15:20:34.303115 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,303 - socketio:85 - DEBUG - Event context: {'args': '(None,)', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,303 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,303 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,304 - socketio:84 - DEBUG - Socket.IO event handle_connect started at 2025-01-23 15:20:34.304167 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,304 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,304 - socketio:108 - INFO - New connection established. Total connections: 2 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,304 - socketio:110 - DEBUG - Client info: {'sid': 'Zz6nuLy-721w0EIHAAAD', 'transport': 'websocket', 'user_agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/118.0.5993.88 Safari/537.36', 'remote_addr': '172.31.196.39'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,304 - socketio.server:164 - INFO - emitting event "connected" to Zz6nuLy-721w0EIHAAAD [/] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,305 - socketio:31 - DEBUG - Event tracked: handle_connect, Duration: 0.001s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,305 - socketio:92 - DEBUG - Socket.IO event handle_connect completed in 0.001s - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,305 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,833 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-23 15:20:34.833097 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,833 - socketio:85 - DEBUG - Event context: {'args': "('transport close',)", 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,833 - socketio:43 - ERROR - Socket.IO error in handle_disconnect: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,833 - socketio:99 - ERROR - Error in Socket.IO event handle_disconnect after 0.000s: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-23 15:20:34,834 - socketio:84 - DEBUG - Socket.IO event handle_disconnect started at 2025-01-23 15:20:34.834495 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,834 - socketio:85 - DEBUG - Event context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,834 - socketio:113 - INFO - Connection closed. Remaining connections: 1 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,835 - socketio:31 - DEBUG - Event tracked: handle_disconnect, Duration: 0.001s, Context: {'args': '()', 'kwargs': '{}'} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,835 - socketio:92 - DEBUG - Socket.IO event handle_disconnect completed in 0.001s - MainProcess:Thread-1 (run_server)
+2025-01-23 15:20:34,835 - socketio:93 - DEBUG - Event result: None - MainProcess:Thread-1 (run_server)
