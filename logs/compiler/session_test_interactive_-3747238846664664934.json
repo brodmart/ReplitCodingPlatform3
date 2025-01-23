@@ -1,0 +1,44 @@
+[
+  {
+    "event_type": "compilation_start",
+    "timestamp": "2025-01-23T18:39:16.439667",
+    "data": {
+      "code_length": 298,
+      "timestamp": "2025-01-23T18:39:16.438938",
+      "process_id": 16830,
+      "thread_id": 19
+    }
+  },
+  {
+    "event_type": "compilation_error",
+    "timestamp": "2025-01-23T18:39:27.569844",
+    "data": {
+      "error_type": "Exception",
+      "error_message": "",
+      "stack_trace": null,
+      "context": {
+        "compilation_result": {
+          "success": false,
+          "error": ""
+        }
+      },
+      "process_id": 16830,
+      "timestamp": "2025-01-23T18:39:27.569665"
+    }
+  },
+  {
+    "event_type": "runtime_error",
+    "timestamp": "2025-01-23T18:39:27.573873",
+    "data": {
+      "error_message": "Failed to start interactive session: ",
+      "context": {
+        "stage": "unknown",
+        "context": {
+          "error": "Failed to start interactive session: "
+        }
+      },
+      "process_id": 16830,
+      "timestamp": "2025-01-23T18:39:27.573704"
+    }
+  }
+]

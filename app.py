@@ -4,8 +4,9 @@ eventlet.monkey_patch()
 
 import os
 import logging
-from flask import Flask, render_template
+from flask import Flask, render_template, session
 from flask_socketio import SocketIO, emit
+from flask_wtf.csrf import CSRFProtect
 from compiler_simple import compile_and_run
 
 # Basic logging
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'dev_key')
+csrf = CSRFProtect(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 @app.route('/')
