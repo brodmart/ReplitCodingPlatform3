@@ -1,0 +1,24 @@
+2025-01-23 15:13:37,590 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 15:13:37,615 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 15:13:38,477 - __main__:90 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 15:13:38,478 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 15:13:38,483 - werkzeug:96 - INFO -  * Debugger PIN: 216-356-843 - MainProcess:MainThread
+2025-01-23 15:13:39,023 - __main__:97 - DEBUG - Rendering index page - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:39,921 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet OPEN data {'sid': '112SmIIQ8MzZ12FWAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:39,922 - engineio.server:90 - INFO - 112SmIIQ8MzZ12FWAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:39,922 - engineio.server:219 - INFO - 112SmIIQ8MzZ12FWAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:39,992 - engineio.server:39 - INFO - 112SmIIQ8MzZ12FWAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:40,209 - __main__:114 - INFO - Client connected: {"sid": "_8Ti7kcCyBo5T5BnAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:40,210 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"_8Ti7kcCyBo5T5BnAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:13:40,210 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet MESSAGE data 0{"sid":"_8Ti7kcCyBo5T5BnAAAB"} - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:04,947 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:05,015 - engineio.server:39 - INFO - 112SmIIQ8MzZ12FWAAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,267 - engineio.server:39 - INFO - 112SmIIQ8MzZ12FWAAAA: Received packet MESSAGE data 2["compile_and_run",{"code":"using System;\n\nclass Program\n{\n    static void Main()\n    {\n        Console.WriteLine(\"Hello! Please enter your name:\");\n        string name = Console.ReadLine();\n        Console.WriteLine($\"Nice to meet you, {name}!\");\n    }\n}"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,269 - __main__:159 - INFO - Starting compilation session session_1737645265 for client _8Ti7kcCyBo5T5BnAAAB - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,269 - __main__:60 - INFO - Created new console session: session_1737645265 - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,270 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet MESSAGE data 2["console_operation",{"operation":"ResetColor","session_id":"session_1737645265"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,271 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet MESSAGE data 2["output",{"success":true,"session_id":"session_1737645265","output":"Initializing console...\n","waiting_for_input":false}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,271 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet MESSAGE data 2["console_operation",{"operation":"SetForegroundColor","color":"Green","session_id":"session_1737645265"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:25,272 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet MESSAGE data 2["output",{"success":true,"session_id":"session_1737645265","output":"Console ready for input!\n","waiting_for_input":true}] - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:30,020 - engineio.server:78 - INFO - 112SmIIQ8MzZ12FWAAAA: Sending packet PING data None - MainProcess:Thread-1 (run_server)
+2025-01-23 15:14:30,088 - engineio.server:39 - INFO - 112SmIIQ8MzZ12FWAAAA: Received packet PONG data  - MainProcess:Thread-1 (run_server)

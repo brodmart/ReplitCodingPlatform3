@@ -1,8 +1,9 @@
+# Eventlet monkey patch must be the first import
+import eventlet
+eventlet.monkey_patch(socket=True, select=True)
+
 import os
 import logging
-import eventlet
-eventlet.monkey_patch()  # This needs to be at the very top after imports
-
 from flask import Flask, render_template, request, session
 from flask_socketio import SocketIO, emit, disconnect
 from flask_sqlalchemy import SQLAlchemy
@@ -15,12 +16,13 @@ import queue
 import threading
 import json
 
-# Configure logging
+# Configure logging with more detail
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s'
 )
 logger = logging.getLogger(__name__)
+logger.info("Starting application initialization...")
 
 # Initialize SQLAlchemy with a custom base class
 class Base(DeclarativeBase):
@@ -94,8 +96,8 @@ def create_app():
     def index():
         logger.debug("Rendering index page")
         return render_template('index.html',
-                             title='Ontario Secondary Computer Science Curriculum',
-                             lang='en')
+                                 title='Ontario Secondary Computer Science Curriculum',
+                                 lang='en')
 
     @socketio.on('connect')
     @log_socket_event
@@ -306,4 +308,11 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=5000,
+        debug=True,
+        use_reloader=True,
+        log_output=True
+    )
