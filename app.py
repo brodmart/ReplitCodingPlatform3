@@ -1,6 +1,10 @@
 import os
 import logging
-from flask import Flask, render_template, jsonify
+import eventlet
+eventlet.monkey_patch()  # This needs to be at the very top after imports
+
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
@@ -17,6 +21,7 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 migrate = Migrate()
 csrf = CSRFProtect()
+socketio = SocketIO()
 
 def create_app():
     """Application factory function"""
@@ -40,11 +45,13 @@ def create_app():
     migrate.init_app(app, db)
     csrf.init_app(app)
 
+    # Initialize Socket.IO with minimal configuration
+    socketio.init_app(app, 
+                     cors_allowed_origins="*",
+                     async_mode='eventlet')
+
     # Import models here to ensure they're registered with SQLAlchemy
     with app.app_context():
-        from models.student import Student  # Import other models as needed
-        from models.curriculum import Course, Strand, OverallExpectation, SpecificExpectation
-
         try:
             db.create_all()
             logger.info("Database tables created successfully")
@@ -52,12 +59,54 @@ def create_app():
             logger.error(f"Error creating database tables: {str(e)}")
             raise
 
-    # Basic route for testing
     @app.route('/')
     def index():
         return render_template('index.html', 
                              title='Ontario Secondary Computer Science Curriculum',
                              lang='en')  # Default to English
+
+    # SocketIO event handlers
+    @socketio.on('connect')
+    def handle_connect():
+        logger.info("Client connected")
+        emit('connected', {'data': 'Connected'})
+
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        logger.info("Client disconnected")
+
+    @socketio.on('compile_and_run')
+    def handle_compile_and_run(data):
+        try:
+            code = data.get('code', '')
+            logger.info(f"Received code to compile and run: {len(code)} bytes")
+            # For now, just echo back the code
+            emit('output', {
+                'success': True,
+                'session_id': 'test_session',
+                'output': 'Hello from the server!\n',
+                'waiting_for_input': True
+            })
+        except Exception as e:
+            logger.error(f"Error in compile_and_run: {str(e)}")
+            emit('error', {'message': str(e)})
+
+    @socketio.on('input')
+    def handle_input(data):
+        try:
+            session_id = data.get('session_id')
+            user_input = data.get('input', '')
+            logger.info(f"Received input for session {session_id}: {user_input}")
+            # Echo back the input
+            emit('output', {
+                'success': True,
+                'session_id': session_id,
+                'output': f"You entered: {user_input}\n",
+                'waiting_for_input': False
+            })
+        except Exception as e:
+            logger.error(f"Error in handle_input: {str(e)}")
+            emit('error', {'message': str(e)})
 
     return app
 
@@ -65,4 +114,4 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=True, log_output=True)

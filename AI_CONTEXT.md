@@ -206,32 +206,75 @@ Key Points:
 ## Session Learnings History
 Last Updated: January 23, 2025
 
-### Session Insights
-1. Web Console Implementation:
-   - Socket.IO handling needs simplification while maintaining Xterm.js functionality
-   - Console visibility issues on root page need attention
-   - Current implementation may be overly complex for basic I/O operations
+### Web Console Architecture
+1. Components Overview:
+   ```
+   Browser                     Flask Server                  Backend
+   +-----------+              +------------+                +-----------+
+   | Xterm.js  | WebSocket/   | Socket.IO  |    Internal   | Code      |
+   | Terminal  |<------------>| Server     |<------------->| Execution |
+   +-----------+ Socket.IO    +------------+    Pipeline   +-----------+
+        |                           |                           |
+   +-----------+              +------------+                +-----------+
+   | CodeMirror |  HTTP/      | Flask HTTP |    File        | Compiler  |
+   | Editor    |<------------>| Server     |<------------->| Service   |
+   +-----------+   AJAX      +------------+    System      +-----------+
+   ```
 
-2. Key Implementation Findings:
+2. Communication Flow:
+   - Browser initiates WebSocket connection via Socket.IO
+   - Flask server handles connection and maintains session
+   - Code compilation requests flow through Socket.IO events
+   - I/O operations are streamed in real-time via WebSocket
+   - Error handling and state management at each layer
+
+3. Key Implementation Findings:
    - Direct Socket.IO event handling is preferable to complex state management
    - Terminal initialization timing is critical for proper console display
    - Multiple console instances can cause resource conflicts
-
-3. Attempted Solutions:
-   - Complex state management in console.js increased complexity without benefits
-   - Multiple socket event handlers made debugging difficult
-   - Terminal container element timing issues affected console visibility
+   - Keep Socket.IO event structure simple for reliability
+   - Proper cleanup of terminal instances is essential
 
 4. Current Recommendations:
-   - Simplify Socket.IO event structure to basic input/output events
+   - Use simplified Socket.IO event structure:
+     * 'connect/disconnect' for session management
+     * 'compile_and_run' for code execution
+     * 'input/output' for I/O operations
    - Ensure single console instance per session
    - Add explicit error handling for socket connection issues
-   - Implement clear lifecycle management for terminal instances
+   - Implement proper cleanup for terminal instances
 
 5. Next Steps:
    - Reduce Socket.IO event complexity
    - Improve console initialization reliability
    - Enhance error handling and user feedback
    - Implement proper cleanup for terminal instances
+
+### Flask Server Role (January 23, 2025)
+1. **Core Responsibilities**:
+   - Acts as WebSocket endpoint for real-time communication
+   - Manages Socket.IO events and connections
+   - Coordinates between web terminal and backend services
+   - Handles session management and state persistence
+
+2. **Critical Implementation Requirements**:
+   - Proper eventlet initialization and monkey patching
+   - Simplified Socket.IO configuration
+   - Minimal middleware and event handlers
+   - Clear separation of concerns between components
+
+3. **Key Learnings**:
+   - Eventlet monkey patching must occur before other imports
+   - Socket.IO configuration should be minimal for reliability
+   - Proper error handling is crucial for debugging
+   - Detailed logging helps track connection issues
+   - Single instance management prevents resource conflicts
+
+4. **Performance Considerations**:
+   - Minimize event handler complexity
+   - Use efficient WebSocket communication
+   - Implement proper cleanup routines
+   - Monitor connection and resource usage
+   - Handle disconnections gracefully
 
 This guide helps maintain consistent project understanding across AI sessions. Always read these files at the start of each session and update them when making significant changes.
