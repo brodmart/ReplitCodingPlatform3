@@ -8,3 +8,4 @@
 2025-01-23 17:45:30,654 - __main__:24 - INFO - Starting database initialization... - MainProcess:MainThread
 2025-01-23 17:45:31,525 - __main__:30 - INFO - Created database tables successfully - MainProcess:MainThread
 2025-01-23 17:45:32,103 - __main__:66 - INFO - Database initialization completed successfully - MainProcess:MainThread
+2025-01-23 17:48:33,286 - werkzeug:96 - INFO -  * Restarting with stat - MainProcess:MainThread

@@ -559,7 +559,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         socketio_logger.error(f"[SOCKET] Session {session.session_id} failed")
         return {'success': False, 'error': str(e)}
 
-def compile_and_run(code: str, language: str, session_id: Optional[str] = None) -> Dict[str, Any]:
+def compile_and_run(code: str, language: str, session_id: Optional[str] = None, input_data:Optional[str] = None) -> Dict[str, Any]:
     """Compile and run code with optional session tracking for interactive mode"""
     logger.debug(f"[COMPILE] Starting compilation for code length: {len(code)}, language: {language}")
 
@@ -579,6 +579,117 @@ def compile_and_run(code: str, language: str, session_id: Optional[str] = None) 
         logger.debug(f"[COMPILE] Session created/retrieved: {session.session_id}")
 
         performance_logger.debug(f"[PERF] Session setup time: {time.time() - start_time:.3f}s")
+
+        # Add more granular logging around compilation process
+        try:
+            # Create temporary directory for compilation
+            logger.debug(f"[COMPILE] Creating temporary directory for compilation")
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_path = Path(temp_dir)
+                source_file = temp_path / "Program.cs"
+                project_file = temp_path / "program.csproj"
+                logger.debug(f"[COMPILE] Created temp directory: {temp_dir}")
+
+                # Write source code
+                logger.debug(f"[COMPILE] Writing source code to {source_file}")
+                with open(source_file, 'w', encoding='utf-8') as f:
+                    f.write(code)
+                logger.debug("[COMPILE] Source code written successfully")
+
+                try:
+                    # Create optimized project file
+                    logger.debug(f"[COMPILE] Creating project file at {project_file}")
+                    project_content = """<Project Sdk="Microsoft.NET.Sdk">
+                      <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net7.0</TargetFramework>
+                        <ImplicitUsings>enable</ImplicitUsings>
+                        <Nullable>enable</Nullable>
+                        <PublishReadyToRun>true</PublishReadyToRun>
+                      </PropertyGroup>
+                    </Project>"""
+
+                    with open(project_file, 'w', encoding='utf-8') as f:
+                        f.write(project_content)
+                    logger.debug("[COMPILE] Project file created successfully")
+
+                    # Build the project with optimized settings
+                    logger.debug("[COMPILE] Starting build process")
+                    logger.debug(f"[COMPILE] Current directory: {os.getcwd()}")
+                    logger.debug(f"[COMPILE] Build directory: {str(temp_path)}")
+                    logger.debug(f"[COMPILE] DOTNET_ROOT: {os.environ.get('DOTNET_ROOT')}")
+
+                    build_process = subprocess.run(
+                        ['dotnet', 'build', str(project_file), '--nologo', '--configuration', 'Release'],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                        cwd=str(temp_path)
+                    )
+
+                    logger.debug(f"[COMPILE] Build process completed with return code: {build_process.returncode}")
+                    if build_process.stdout:
+                        logger.debug(f"[COMPILE] Build output: {build_process.stdout}")
+                    if build_process.stderr:
+                        logger.error(f"[COMPILE] Build errors: {build_process.stderr}")
+
+                    if build_process.returncode != 0:
+                        logger.error(f"[COMPILE] Build failed")
+                        return {
+                            'success': False,
+                            'error': format_error(build_process.stderr)
+                        }
+
+                    # Run the compiled program
+                    logger.debug("[COMPILE] Starting program execution")
+                    run_process = subprocess.run(
+                        ['dotnet', 'run', '--project', str(project_file), '--no-build'],
+                        input=input_data.encode() if input_data else None,
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                        cwd=str(temp_path)
+                    )
+
+                    logger.debug(f"[COMPILE] Run process completed with return code: {run_process.returncode}")
+                    if run_process.stdout:
+                        logger.debug(f"[COMPILE] Program output: {run_process.stdout}")
+                    if run_process.stderr:
+                        logger.error(f"[COMPILE] Program errors: {run_process.stderr}")
+
+                    if run_process.returncode != 0:
+                        logger.error(f"[COMPILE] Execution failed")
+                        return {
+                            'success': False,
+                            'error': format_error(run_process.stderr)
+                        }
+
+                    return {
+                        'success': True,
+                        'output': run_process.stdout
+                    }
+
+                except subprocess.TimeoutExpired as e:
+                    logger.error(f"[COMPILE] Process timed out: {str(e)}")
+                    return {
+                        'success': False,
+                        'error': "Process timed out"
+                    }
+                except Exception as e:
+                    logger.error(f"[COMPILE] Unexpected error during compilation: {str(e)}")
+                    logger.error(f"[COMPILE] Stack trace: {traceback.format_exc()}")
+                    return {
+                        'success': False,
+                        'error': f"Unexpected error: {str(e)}"
+                    }
+
+        except Exception as e:
+            logger.error(f"[COMPILE] Critical error in compile_and_run: {str(e)}")
+            logger.error(f"[COMPILE] Stack trace: {traceback.format_exc()}")
+            return {
+                'success': False,
+                'error': f"Critical error: {str(e)}"
+            }
 
         result = start_interactive_session(session, code, language)
         logger.debug(f"[COMPILE] Interactive session result: {result}")
@@ -750,7 +861,7 @@ class CompilationMetrics:
             'status': status,
             'memory_mb': psutil.Process().memory_info().rss / (1024 * 1024),
             'cpu_percent': psutil.Process().cpu_percent(interval=0.1)
-        }}
+        }
         self.status_updates.append(status_entry)
         performance_logger.debug(f"[{elapsed:.2f}s] {status}")
 
@@ -1322,3 +1433,7 @@ def handle_socket_error(sid: str, error: Any) -> None:
     """Handle socket errors with logging"""
     socketio_logger.error(f"[SOCKET] Error for {sid}: {str(error)}")
     track_socket_connection(sid, f'socket_error: {str(error)}')
+
+def format_error(error_output:str) -> str:
+    """Format error output for better readability"""
+    return "\n".join(line.strip() for line in error_output.splitlines() if line.strip())
