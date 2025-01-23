@@ -1,6 +1,6 @@
 /**
  * Interactive Console Implementation with Xterm.js integration
- * Enhanced version with improved error handling and C# console operations support
+ * Enhanced version with improved I/O synchronization
  */
 class InteractiveConsole {
     constructor(options = {}) {
@@ -13,6 +13,13 @@ class InteractiveConsole {
         this.initialized = false;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 3;
+
+        // Enhanced I/O state management
+        this.outputQueue = [];
+        this.isProcessingOutput = false;
+        this.lastOutputTime = 0;
+        this.outputDelay = 50; // ms between outputs
+        this.pendingInput = false;
 
         // Ensure all required Xterm.js components are available
         if (!window.Terminal) {
@@ -73,11 +80,10 @@ class InteractiveConsole {
                 cursorStyle: 'block'
             });
 
-            // Initialize addons before opening terminal
+            // Initialize addons
             this.fitAddon = new FitAddon.FitAddon();
             this.terminal.loadAddon(this.fitAddon);
 
-            // Load additional addons if available
             if (window.WebLinksAddon) {
                 this.terminal.loadAddon(new WebLinksAddon.WebLinksAddon());
             }
@@ -89,7 +95,7 @@ class InteractiveConsole {
             this.terminal.open(this.terminalContainer);
             this.fitAddon.fit();
 
-            // Basic state management
+            // Enhanced state management
             this.currentSessionId = null;
             this.connected = false;
             this.waitingForInput = false;
@@ -102,13 +108,11 @@ class InteractiveConsole {
             console.log('Terminal initialized successfully');
         } catch (error) {
             console.error('Failed to initialize terminal:', error);
-            this.terminalContainer.innerHTML = `<div class="alert alert-danger">Failed to initialize terminal: ${error.message}</div>`;
             throw error;
         }
     }
 
     initializeSocketIO() {
-        // Initialize Socket.IO with enhanced configuration
         this.socket = io({
             reconnection: true,
             reconnectionDelay: 1000,
@@ -123,38 +127,58 @@ class InteractiveConsole {
     }
 
     setupSocketEvents() {
-        // Connection events with enhanced error handling
+        // Enhanced connection handling
         this.socket.on('connect', () => {
             this.connected = true;
             this.reconnectAttempts = 0;
-            this.writeLine('[System] Console connected');
+            this.writeSystemMessage('Console connected');
             this.terminal.focus();
         });
 
         this.socket.on('disconnect', () => {
             this.connected = false;
             this.waitingForInput = false;
-            this.writeLine('[System] Console disconnected');
+            this.writeSystemMessage('Console disconnected');
         });
 
-        this.socket.on('connect_error', (error) => {
-            console.error('Connection error:', error);
-            this.writeError(`Connection error: ${error.message}`);
-            this.reconnectAttempts++;
+        // Enhanced output handling with queuing
+        this.socket.on('output', async (data) => {
+            if (!data) return;
 
-            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                this.writeError('Maximum reconnection attempts reached. Please refresh the page.');
+            if (data.session_id) {
+                this.currentSessionId = data.session_id;
+            }
+
+            if (data.output) {
+                await this.queueOutput(data.output);
+            }
+
+            // Update input state after processing output
+            this.waitingForInput = !!data.waiting_for_input;
+            if (this.waitingForInput && !this.pendingInput) {
+                this.terminal.focus();
             }
         });
 
-        // Enhanced C# console operations handling
-        this.socket.on('console_operation', (data) => {
+        // Enhanced error handling
+        this.socket.on('error', async (data) => {
+            const errorMessage = data.message || 'An unknown error occurred';
+            const errorType = data.type || 'general_error';
+            await this.writeError(`${errorType}: ${errorMessage}`);
+            this.waitingForInput = false;
+        });
+
+        // Console operations with improved synchronization
+        this.socket.on('console_operation', async (data) => {
             if (!data || !data.operation) return;
+
+            // Wait for any pending output before processing operation
+            await this.waitForOutputProcessing();
 
             switch (data.operation) {
                 case 'Write':
                 case 'WriteLine':
-                    this.handleWrite(data);
+                    await this.handleWrite(data);
                     break;
                 case 'Clear':
                     this.clear();
@@ -173,34 +197,6 @@ class InteractiveConsole {
                     break;
             }
         });
-
-        // Enhanced output handling with input state management
-        this.socket.on('output', (data) => {
-            if (!data) return;
-
-            if (data.session_id) {
-                this.currentSessionId = data.session_id;
-            }
-
-            if (data.output) {
-                this.write(data.output);
-            }
-
-            // Update input state
-            this.waitingForInput = !!data.waiting_for_input;
-            if (this.waitingForInput) {
-                this.terminal.focus();
-            }
-        });
-
-        // Enhanced error handling
-        this.socket.on('error', (data) => {
-            const errorMessage = data.message || 'An unknown error occurred';
-            const errorType = data.type || 'general_error';
-            this.writeError(`${errorType}: ${errorMessage}`);
-            this.waitingForInput = false;
-        });
-
         // Handle compilation success
         this.socket.on('compilation_success', (data) => {
             if (data && data.session_id) {
@@ -209,78 +205,148 @@ class InteractiveConsole {
         });
     }
 
+    async queueOutput(text) {
+        this.outputQueue.push(text);
+        if (!this.isProcessingOutput) {
+            await this.processOutputQueue();
+        }
+    }
+
+    async processOutputQueue() {
+        if (this.isProcessingOutput || this.outputQueue.length === 0) return;
+
+        this.isProcessingOutput = true;
+        try {
+            while (this.outputQueue.length > 0) {
+                const now = Date.now();
+                const timeSinceLastOutput = now - this.lastOutputTime;
+
+                if (timeSinceLastOutput < this.outputDelay) {
+                    await new Promise(resolve => setTimeout(resolve, this.outputDelay - timeSinceLastOutput));
+                }
+
+                const output = this.outputQueue.shift();
+                await this.write(output);
+                this.lastOutputTime = Date.now();
+            }
+        } finally {
+            this.isProcessingOutput = false;
+        }
+    }
+
+    async waitForOutputProcessing() {
+        while (this.isProcessingOutput || this.outputQueue.length > 0) {
+            await new Promise(resolve => setTimeout(resolve, 10));
+        }
+    }
+
     setupTerminalEvents() {
         if (!this.terminal || !this.initialized) return;
 
         this.terminal.onData(data => {
-            if (this.waitingForInput) {
+            if (this.waitingForInput && !this.pendingInput) {
                 if (data === '\r') { // Enter key
                     this.handleInput();
                 } else if (data === '\u007f') { // Backspace
                     if (this.inputBuffer.length > 0 && this.inputPosition > 0) {
                         this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition - 1) + 
-                                       this.inputBuffer.slice(this.inputPosition);
+                                        this.inputBuffer.slice(this.inputPosition);
                         this.inputPosition--;
                         this.terminal.write('\b \b');
                     }
-                } else if (data === '\u001b[A') { // Up arrow - history
-                    this.navigateHistory('up');
-                } else if (data === '\u001b[B') { // Down arrow - history
-                    this.navigateHistory('down');
-                } else if (data === '\u001b[D') { // Left arrow
-                    if (this.inputPosition > 0) {
-                        this.inputPosition--;
-                        this.terminal.write(data);
-                    }
-                } else if (data === '\u001b[C') { // Right arrow
-                    if (this.inputPosition < this.inputBuffer.length) {
-                        this.inputPosition++;
-                        this.terminal.write(data);
-                    }
                 } else if (data >= ' ' && data <= '~') { // Printable characters
                     this.inputBuffer = this.inputBuffer.slice(0, this.inputPosition) +
-                                   data +
-                                   this.inputBuffer.slice(this.inputPosition);
+                                    data +
+                                    this.inputBuffer.slice(this.inputPosition);
                     this.inputPosition++;
                     this.terminal.write(data);
                 }
             }
         });
 
-        // Ensure terminal focus on click
         this.terminal.element.addEventListener('click', () => {
-            if (this.waitingForInput) {
+            if (this.waitingForInput && !this.pendingInput) {
                 this.terminal.focus();
             }
         });
     }
 
-    handleInput() {
-        if (!this.waitingForInput || !this.currentSessionId) return;
+    async handleInput() {
+        if (!this.waitingForInput || !this.currentSessionId || this.pendingInput) return;
 
         const input = this.inputBuffer;
+        this.pendingInput = true;
 
-        // Add to history if not empty and different from last entry
-        if (input && (this.inputHistory.length === 0 || this.inputHistory[0] !== input)) {
-            this.inputHistory.unshift(input);
-            if (this.inputHistory.length > 50) { // Limit history size
-                this.inputHistory.pop();
+        try {
+            // Add to history if not empty and different from last entry
+            if (input && (this.inputHistory.length === 0 || this.inputHistory[0] !== input)) {
+                this.inputHistory.unshift(input);
+                if (this.inputHistory.length > 50) {
+                    this.inputHistory.pop();
+                }
             }
+
+            // Clear input state
+            this.inputBuffer = '';
+            this.inputPosition = 0;
+            this.historyPosition = -1;
+
+            // Write newline
+            await this.write('\r\n');
+
+            // Emit input event
+            this.socket.emit('input', {
+                session_id: this.currentSessionId,
+                input: input
+            });
+
+            // Wait briefly for backend processing
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+        } finally {
+            this.pendingInput = false;
         }
+    }
 
-        // Clear input state
-        this.inputBuffer = '';
-        this.inputPosition = 0;
-        this.historyPosition = -1;
+    async writeSystemMessage(message) {
+        await this.write('\x1b[90m[System] ' + message + '\x1b[0m\r\n');
+    }
 
-        // Write newline and emit input
-        this.terminal.write('\r\n');
+    async write(text) {
+        if (!text || !this.initialized) return;
+        try {
+            this.terminal.write(text.replace(/\n/g, '\r\n'));
+        } catch (error) {
+            console.error('Error writing to terminal:', error);
+        }
+    }
 
-        // Emit input event with session ID
-        this.socket.emit('input', {
-            session_id: this.currentSessionId,
-            input: input
-        });
+    async writeError(message) {
+        if (!this.initialized) return;
+        try {
+            await this.write('\x1b[31m'); // Red text
+            await this.write('Error: ' + message + '\r\n');
+            await this.write('\x1b[0m'); // Reset color
+        } catch (error) {
+            console.error('Error writing error message:', error);
+        }
+    }
+
+    clear() {
+        if (!this.initialized) return;
+        try {
+            this.terminal.clear();
+            this.outputQueue = [];
+            this.isProcessingOutput = false;
+            this.currentSessionId = null;
+            this.waitingForInput = false;
+            this.inputBuffer = '';
+            this.inputPosition = 0;
+            this.pendingInput = false;
+            this.resetColors();
+        } catch (error) {
+            console.error('Error clearing terminal:', error);
+        }
     }
 
     handleWrite(data) {
@@ -356,45 +422,22 @@ class InteractiveConsole {
     }
 
 
-    write(text) {
-        if (!text || !this.initialized) return;
-        try {
-            this.terminal.write(text.replace(/\n/g, '\r\n'));
-        } catch (error) {
-            console.error('Error writing to terminal:', error);
+    compileAndRun(code) {
+        if (!this.connected) {
+            this.writeError('Not connected to server');
+            return;
         }
-    }
 
-    writeLine(text) {
-        this.write(text + '\n');
-    }
+        this.clear();
+        this.writeSystemMessage('Compiling and running code...');
 
-    writeError(message) {
-        if (!this.initialized) return;
-        try {
-            this.terminal.write('\x1b[31m'); // Red text
-            this.writeLine(`Error: ${message}`);
-            this.terminal.write('\x1b[0m'); // Reset color
-        } catch (error) {
-            console.error('Error writing error message:', error);
-            this.terminalContainer.innerHTML += `<div class="alert alert-danger">${message}</div>`;
-        }
-    }
+        // Reset state before new compilation
+        this.waitingForInput = false;
+        this.inputBuffer = '';
+        this.inputPosition = 0;
+        this.pendingInput = false;
 
-    clear() {
-        if (!this.initialized) return;
-        try {
-            this.terminal.clear();
-            this.currentSessionId = null;
-            this.waitingForInput = false;
-            this.inputBuffer = '';
-            this.inputPosition = 0;
-            this.cursorPosition = { x: 0, y: 0 };
-            // Reset colors
-            this.resetColors();
-        } catch (error) {
-            console.error('Error clearing terminal:', error);
-        }
+        this.socket.emit('compile_and_run', { code });
     }
 
     handleResize() {
@@ -405,23 +448,6 @@ class InteractiveConsole {
                 console.error('Error resizing terminal:', error);
             }
         }
-    }
-
-    compileAndRun(code) {
-        if (!this.connected) {
-            this.writeError('Not connected to server');
-            return;
-        }
-
-        this.clear();
-        this.writeLine('Compiling and running code...');
-
-        // Reset state before new compilation
-        this.waitingForInput = false;
-        this.inputBuffer = '';
-        this.inputPosition = 0;
-
-        this.socket.emit('compile_and_run', { code });
     }
 
     destroy() {

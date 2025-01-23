@@ -285,3 +285,51 @@ Traceback (most recent call last):
     result = func(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^^^
 TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-23 15:30:04,813 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:30:04,813 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:32:02,110 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:32:02,111 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:32:02,529 - socketio:43 - ERROR - Socket.IO error in handle_connect: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:32:02,529 - socketio:99 - ERROR - Error in Socket.IO event handle_connect after 0.000s: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_connect() takes 0 positional arguments but 1 was given
+2025-01-23 15:32:03,022 - socketio:43 - ERROR - Socket.IO error in handle_disconnect: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given
+2025-01-23 15:32:03,023 - socketio:99 - ERROR - Error in Socket.IO event handle_disconnect after 0.000s: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given - MainProcess:Thread-1 (run_server)
+Traceback (most recent call last):
+  File "/home/runner/workspace/utils/socketio_logger.py", line 87, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+TypeError: create_app.<locals>.handle_disconnect() takes 0 positional arguments but 1 was given

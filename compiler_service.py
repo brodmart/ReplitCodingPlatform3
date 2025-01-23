@@ -222,7 +222,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         session.process = process
 
         def monitor_output():
-            """Monitor process output"""
+            """Monitor process output with improved buffering and synchronization"""
             try:
                 while not session.stop_event.is_set() and process.poll() is None:
                     if process.stdout is None:
@@ -245,12 +245,27 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
                             if (any(prompt in lowercase_text for prompt in
                                 ['input', 'enter', '?', ':', 'type', 'name']) or
                                 cleaned.strip().endswith(':')):
-                                session.set_waiting_for_input(True)
+                                session.waiting_for_input = True
+                                logger.debug(f"Input prompt detected: {cleaned}")
                     else:
+                        # Check if process has completed
+                        if process.poll() is not None:
+                            break
                         time.sleep(0.1)
+
+                # Capture any remaining output
+                if process.stdout is not None:
+                    remaining = process.stdout.read()
+                    if remaining:
+                        cleaned = remaining.strip()
+                        if cleaned:
+                            logger.debug(f"Final output received: {cleaned}")
+                            session.append_output(cleaned)
 
             except Exception as e:
                 logger.error(f"Error in output monitoring: {e}")
+                session.append_output(f"Error in output monitoring: {str(e)}")
+
 
         # Start output monitoring
         session.output_thread = Thread(target=monitor_output)
@@ -259,14 +274,14 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
 
         # Wait briefly for initial output
         time.sleep(0.5)
-        initial_output = get_output(session.session_id)
+        initial_output = session.get_output()
 
         return {
             'success': True,
             'session_id': session.session_id,
             'interactive': True,
-            'output': initial_output.get('output', ''),
-            'waiting_for_input': initial_output.get('waiting_for_input', False)
+            'output': '\n'.join(initial_output),
+            'waiting_for_input': session.waiting_for_input
         }
 
     except Exception as e:
@@ -274,7 +289,7 @@ def start_interactive_session(session: CompilerSession, code: str, language: str
         return {'success': False, 'error': str(e)}
 
 def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
-    """Send input to an interactive session"""
+    """Send input to an interactive session with improved handling"""
     try:
         with session_lock:
             if session_id not in active_sessions:
@@ -296,8 +311,23 @@ def send_input(session_id: str, input_text: str) -> Dict[str, Any]:
             if session.process and session.process.stdin:
                 session.process.stdin.write(input_text)
                 session.process.stdin.flush()
-                session.set_waiting_for_input(False)
+                session.waiting_for_input = False
                 logger.debug(f"Input sent: {input_text.strip()}")
+
+                # Wait briefly for output processing
+                time.sleep(0.1)
+
+                # Check if process is still running
+                if session.process.poll() is not None:
+                    logger.debug("Process completed after input")
+                    remaining_output = session.get_output()
+                    return {
+                        'success': True,
+                        'output': '\n'.join(remaining_output),
+                        'waiting_for_input': False,
+                        'completed': True
+                    }
+
                 return {'success': True}
             else:
                 return {'success': False, 'error': 'Process not ready for input'}
