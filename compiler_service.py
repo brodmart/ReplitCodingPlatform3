@@ -20,6 +20,7 @@ import re
 import json
 import shutil
 from dataclasses import dataclass, field, asdict
+import hashlib
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG,
@@ -27,6 +28,8 @@ logging.basicConfig(level=logging.DEBUG,
 logger = logging.getLogger(__name__)
 performance_logger = logging.getLogger('performance')
 error_logger = logging.getLogger('error')
+compiler_logger = logging.getLogger('compiler')
+
 
 # Constants
 MAX_COMPILATION_TIME = 30  # seconds
@@ -902,61 +905,49 @@ logger = logging.getLogger('compiler_service')
 logger.setLevel(logging.DEBUG)
 
 def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
-    """Compile and run C# code with enhanced logging"""
-    logger.info(f"[COMPILE] Starting C# compilation for session {session_id}")
-    logger.debug(f"[COMPILE] Code length: {len(code)}, Session: {session_id}")
+    """Compile and run C# code with enhanced logging and monitoring"""
+    logger.info(f"[CSHARP] Starting compilation process for session {session_id}")
+    compiler_logger.log_compilation_start(session_id, code)
+    metrics = CompilationMetrics(start_time=time.time())
 
     try:
-        # Create project structure
-        logger.debug(f"[COMPILE] Creating project structure for {session_id}")
-        project_dir = Path(tempfile.mkdtemp(prefix=f'compiler_{session_id}_'))
-        source_file = project_dir / "Program.cs"
-        project_file = project_dir / "program.csproj"
+        # Create isolated environment
+        metrics.start_stage('environment_setup')
+        temp_dir, project_name = create_isolated_environment(code, 'csharp')
+        metrics.end_stage('environment_setup')
+        logger.debug(f"[CSHARP] Created isolated environment in {temp_dir}")
 
-        # Write project file
-        logger.debug(f"[COMPILE] Writing project file for {session_id}")
-        project_content = """<Project Sdk="Microsoft.NET.Sdk">
-            <PropertyGroup>
-                <OutputType>Exe</OutputType>
-                <TargetFramework>net7.0</TargetFramework>
-                <ImplicitUsings>enable</ImplicitUsings>
-                <Nullable>enable</Nullable>
-            </PropertyGroup>
-        </Project>"""
+        # Start compilation
+        metrics.start_stage('compilation')
+        project_file = Path(temp_dir) / f"{project_name}.csproj"
+        logger.debug(f"[CSHARP] Starting dotnet build for {project_file}")
 
-        with open(project_file, 'w') as f:
-            f.write(project_content)
-
-        # Write source file
-        logger.debug(f"[COMPILE] Writing source file for {session_id}")
-        with open(source_file, 'w') as f:
-            f.write(code)
-
-        # Compile
-        logger.info(f"[COMPILE] Starting dotnet build for {session_id}")
-        compile_start = datetime.now()
         compile_result = subprocess.run(
             ['dotnet', 'build', str(project_file), '--nologo'],
             capture_output=True,
             text=True,
-            cwd=str(project_dir)
+            cwd=temp_dir
         )
-        compile_time = (datetime.now() - compile_start).total_seconds()
-        logger.info(f"[COMPILE] Build completed in {compile_time:.2f}s for {session_id}")
+        metrics.end_stage('compilation')
 
         if compile_result.returncode != 0:
-            error_msg = compile_result.stderr
-            logger.error(f"[COMPILE] Build failed for {session_id}: {error_msg}")
-            return {'success': False, 'error': error_msg}
+            error = format_csharp_error(compile_result.stderr)
+            logger.error(f"[CSHARP] Compilation failed: {error}")
+            compiler_logger.log_compilation_error(session_id, Exception(error), {
+                'stage': 'compilation',
+                'return_code': compile_result.returncode,
+                'temp_dir': str(temp_dir)
+            })
+            return {
+                'success': False,
+                'error': f"Compilation Error:\n{error}",
+                'session_id': session_id
+            }
 
-        # Start the compiled program
-        logger.info(f"[COMPILE] Starting program execution for {session_id}")
-        executable = project_dir / "bin" / "Debug" / "net7.0" / "program.dll"
-
-        if not executable.exists():
-            error_msg = f"Executable not found at {executable}"
-            logger.error(f"[COMPILE] {error_msg}")
-            return {'success': False, 'error': error_msg}
+        # Start execution
+        metrics.start_stage('execution')
+        executable = Path(temp_dir) / "bin" / "Debug" / "net7.0" / f"{project_name}.dll"
+        logger.info(f"[CSHARP] Starting execution of {executable}")
 
         process = subprocess.Popen(
             ['dotnet', str(executable)],
@@ -964,49 +955,52 @@ def compile_and_run_csharp(code: str, session_id: str) -> Dict[str, Any]:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            bufsize=1,  # Line buffered
-            cwd=str(project_dir)
+            bufsize=1,
+            cwd=temp_dir
         )
 
-        logger.info(f"[COMPILE] Process started for {session_id}")
+        # Set up monitoring
+        session = CompilerSession(session_id, str(temp_dir), process)
+        with session_lock:
+            active_sessions[session_id] = session
 
-        # Monitor initial output
-        try:
-            # Use select to wait for initial output with timeout
-            readable, _, _ = select.select([process.stdout], [], [], 5.0)
+        logger.debug(f"[CSHARP] Process started with PID {process.pid}")
+        metrics.end_stage('execution')
 
-            if not readable:
-                logger.warning(f"[COMPILE] No initial output received in 5s for {session_id}")
-                initial_output = ""
-            else:
-                initial_output = process.stdout.readline().strip()
-                logger.info(f"[COMPILE] Initial output received for {session_id}: {initial_output}")
+        # Monitor process state
+        def monitor_process():
+            try:
+                while session.is_active():
+                    if process.poll() is not None:
+                        logger.info(f"[CSHARP] Process {process.pid} completed with code {process.returncode}")
+                        break
+                    time.sleep(0.1)
+            except Exception as e:
+                logger.error(f"[CSHARP] Error monitoring process: {e}")
 
-        except Exception as e:
-            logger.error(f"[COMPILE] Error reading initial output for {session_id}: {str(e)}")
-            initial_output = ""
+        monitor_thread = Thread(target=monitor_process)
+        monitor_thread.daemon = True
+        monitor_thread.start()
 
-        # Check if process is still running
-        if process.poll() is not None:
-            exit_code = process.poll()
-            error_output = process.stderr.read()
-            logger.error(f"[COMPILE] Process ended prematurely for {session_id}. Exit code: {exit_code}, Error: {error_output}")
-            return {'success': False, 'error': f"Process ended with code {exit_code}: {error_output}"}
-
-        logger.info(f"[COMPILE] Successfully started interactive session {session_id}")
-
-        # Return success with process info
         return {
             'success': True,
             'session_id': session_id,
             'interactive': True,
-            'output': initial_output,
-            'waiting_for_input': bool(initial_output)
+            'pid': process.pid
         }
 
     except Exception as e:
-        logger.error(f"[COMPILE] Critical error in session {session_id}: {str(e)}", exc_info=True)
-        return {'success': False, 'error': str(e)}
-
+        logger.error(f"[CSHARP] Error in compile_and_run: {str(e)}", exc_info=True)
+        metrics.error_count += 1
+        compiler_logger.log_runtime_error(session_id, str(e), {
+            'stage': metrics.stage_metrics.keys()[-1] if metrics.stage_metrics else 'unknown',
+            'metrics': metrics.to_dict()
+        })
+        return {
+            'success': False,
+            'error': f"Runtime Error: {str(e)}",
+            'session_id': session_id
+        }
     finally:
-        logger.info(f"[COMPILE] Compilation process complete for {session_id}")
+        metrics.end_time = time.time()
+        logger.info(f"[CSHARP] Compilation metrics for {session_id}: {metrics.to_dict()}")

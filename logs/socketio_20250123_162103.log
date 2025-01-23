@@ -1,0 +1,55 @@
+2025-01-23 16:21:03,779 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:21:03,811 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:21:03,816 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:21:03,842 - app:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:21:03,869 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:21:03,910 - __main__:25 - INFO - Starting application initialization... - MainProcess:MainThread
+2025-01-23 16:21:03,921 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:21:03,938 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:21:03,948 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:21:03,958 - engineio.server:112 - INFO - Server initialized for eventlet. - MainProcess:MainThread
+2025-01-23 16:21:05,392 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:21:05,393 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:21:05,466 - __main__:48 - INFO - Found in file: c2.1 concevoir des algorithmes qui répondent à des problèmes mathématiques donnés.
+ - MainProcess:MainThread
+2025-01-23 16:21:05,470 - __main__:23 - INFO - Starting database table creation... - MainProcess:MainThread
+2025-01-23 16:21:05,788 - __main__:30 - INFO - Existing tables: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 16:21:05,842 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:21:05,843 - app:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:21:05,867 - __main__:62 - INFO - Database Content: - MainProcess:MainThread
+2025-01-23 16:21:05,868 - __main__:63 - INFO - -------------------------------------------------- - MainProcess:MainThread
+2025-01-23 16:21:05,868 - __main__:64 - INFO - Strand: - MainProcess:MainThread
+2025-01-23 16:21:05,868 - __main__:65 - INFO - - Code: C - MainProcess:MainThread
+2025-01-23 16:21:05,868 - __main__:66 - INFO - - Title (FR): Programmation - MainProcess:MainThread
+2025-01-23 16:21:05,868 - __main__:67 - INFO - - Title (EN): Programming - MainProcess:MainThread
+2025-01-23 16:21:05,869 - __main__:69 - INFO - 
+Overall Expectation: - MainProcess:MainThread
+2025-01-23 16:21:05,869 - __main__:70 - INFO - - Code: C2 - MainProcess:MainThread
+2025-01-23 16:21:05,869 - __main__:71 - INFO - - Description (FR): Écriture - MainProcess:MainThread
+2025-01-23 16:21:05,869 - __main__:72 - INFO - - Description (EN): Writing - MainProcess:MainThread
+2025-01-23 16:21:05,870 - __main__:74 - INFO - 
+Specific Expectation: - MainProcess:MainThread
+2025-01-23 16:21:05,870 - __main__:75 - INFO - - Code: C2.1 - MainProcess:MainThread
+2025-01-23 16:21:05,870 - __main__:76 - INFO - - Description (FR): Écrire du code clair et maintenable en utilisant les conventions appropriées - MainProcess:MainThread
+2025-01-23 16:21:05,870 - __main__:77 - INFO - - Description (EN): Write clear and maintainable code using proper conventions - MainProcess:MainThread
+2025-01-23 16:21:05,870 - __main__:93 - INFO - 
+All required fields are present - MainProcess:MainThread
+2025-01-23 16:21:05,871 - __main__:113 - INFO - Database tables created successfully - MainProcess:MainThread
+2025-01-23 16:21:05,873 - werkzeug:96 - WARNING -  * Debugger is active! - MainProcess:MainThread
+2025-01-23 16:21:05,875 - werkzeug:96 - INFO -  * Debugger PIN: 191-638-687 - MainProcess:MainThread
+2025-01-23 16:21:05,962 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 16:21:06,052 - __main__:47 - INFO - Starting ICS3U curriculum import process... - MainProcess:MainThread
+2025-01-23 16:21:06,134 - __main__:122 - INFO - Starting index page render - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:06,135 - __main__:123 - DEBUG - Rendering index page with template parameters: title='Ontario Secondary Computer Science Curriculum', lang='en' - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:06,173 - __main__:129 - INFO - Successfully rendered index page - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:06,465 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 16:21:06,533 - __main__:86 - INFO - Successfully updated strand titles and overall descriptions - MainProcess:MainThread
+2025-01-23 16:21:07,015 - __main__:37 - INFO - Tables after creation: ['student', 'student_achievement', 'achievement', 'student_progress', 'coding_activity', 'code_submission', 'shared_code', 'audit_log', 'courses', 'strands', 'overall_expectations', 'specific_expectations'] - MainProcess:MainThread
+2025-01-23 16:21:07,015 - __main__:46 - INFO - Database tables created successfully! - MainProcess:MainThread
+2025-01-23 16:21:07,058 - engineio.server:78 - INFO - WfjZJHhJEQyKMv6tAAAA: Sending packet OPEN data {'sid': 'WfjZJHhJEQyKMv6tAAAA', 'upgrades': [], 'pingTimeout': 60000, 'pingInterval': 25000, 'maxPayload': 100000000.0} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:07,058 - engineio.server:90 - INFO - WfjZJHhJEQyKMv6tAAAA: Received request to upgrade to websocket - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:07,059 - engineio.server:219 - INFO - WfjZJHhJEQyKMv6tAAAA: Upgrade to websocket successful - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:07,128 - engineio.server:39 - INFO - WfjZJHhJEQyKMv6tAAAA: Received packet MESSAGE data 0 - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:07,130 - __main__:147 - INFO - Client connected: {"sid": "5fL9GwGkxT01MRZCAAAB", "transport": "websocket", "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36", "remote_addr": "172.31.196.39"} - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:07,131 - engineio.server:78 - INFO - WfjZJHhJEQyKMv6tAAAA: Sending packet MESSAGE data 2["connected",{"status":"success","message":"Connected to server","sid":"5fL9GwGkxT01MRZCAAAB"}] - MainProcess:Thread-1 (run_server)
+2025-01-23 16:21:07,132 - engineio.server:78 - INFO - WfjZJHhJEQyKMv6tAAAA: Sending packet MESSAGE data 0{"sid":"5fL9GwGkxT01MRZCAAAB"} - MainProcess:Thread-1 (run_server)
